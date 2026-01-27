@@ -1,0 +1,56 @@
+# Version catalog is a central place for you to declare and version dependencies
+# https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
+# https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
+
+[versions]
+
+# Project version
+ksqlite = "0.0.1"
+
+# Android
+android-ndk = "29.0.14206865"
+android-sdk-compile = "36"
+android-sdk-min = "21"
+
+# Jvm target version
+jvm-target = "17"
+
+# SQLite version prefixed with the release year and postfixed by SHA3-256 checksum
+# SQLite dowload page -> https://www.sqlite.org/download.html
+sqlite = "2026.3.51.2.9a9dd4eef7a97809bfacd84a7db5080a5c0eff7aaf1fc1aca20a6dc9a0c26f96"
+
+android-gradlePlugin = "9.0.0"
+dokka = "2.1.0"
+undercouch-download = "5.6.0"
+gradle-pluginPublish = "2.0.0"
+kotlin = "2.3.20-Beta1"
+kotlin-wrappers = "2026.1.13"
+kotlinx-coroutines = "1.10.2"
+vanniktech-mavenPublish = "0.36.0"
+turbine = "1.2.1"
+
+[plugins]
+
+conventions-common = { id = "conventions-common", version.ref = "ksqlite" }
+conventions-kmp = { id = "conventions-kmp", version.ref = "ksqlite" }
+
+android-library = { id = "com.android.library", version.ref = "android-gradlePlugin" }
+android-multiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "android-gradlePlugin" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+gradle-pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "gradle-pluginPublish" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+vanniktech-mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech-mavenPublish" }
+undercouch-dowload = { id = "de.undercouch.download", version.ref = "undercouch-download" }
+
+[libraries]
+
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "android-gradlePlugin" }
+cashapp-turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+dokka-gradlePlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlin-wrappers" }
+kotlin-js = { module = "org.jetbrains.kotlin-wrappers:kotlin-js", version.ref = "kotlin-wrappers" }
+kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+vanniktech-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech-mavenPublish" }
