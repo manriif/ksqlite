@@ -4,11 +4,13 @@ plugins {
 
 kotlin {
     androidJvmTargets()
-    macosX64()
+    /*jvmTargets()
+    nativeTargets()
+    webTargets()*/
 
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.sqlite)
+            implementation(projects.ksqlite)
         }
     }
 }

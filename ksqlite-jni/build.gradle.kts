@@ -1,10 +1,16 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.conventions.common)
 }
 
 kotlin {
+    jvmToolchain(libs.versions.jvm.target.get().toInt())
 
+    compilerOptions {
+        jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.get())
+    }
 }
 
 android {
@@ -21,16 +27,11 @@ android {
     }
 
     externalNativeBuild {
-        cmake {
+        ndkVersion = libs.versions.android.ndk.get()
 
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = libs.versions.cmake.get()
         }
     }
-
-    /*compilations.configureEach {
-        compileTaskProvider.configure {
-            compilerOptions {
-                jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.get())
-            }
-        }
-    }*/
 }

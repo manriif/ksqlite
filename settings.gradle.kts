@@ -1,9 +1,10 @@
-rootProject.name = "ksqlite"
+rootProject.name = "kotlin-sqlite"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     includeBuild("build-logic")
+    includeBuild("sqlite-compiler")
 
     repositories {
         mavenCentral()
@@ -41,6 +42,6 @@ dependencyResolutionManagement {
     }
 }
 
-include(":android-jni")
-include(":sqlite")
-include(":driver")
+include(":ksqlite")
+include(":ksqlite-driver")
+include(":ksqlite-jni")

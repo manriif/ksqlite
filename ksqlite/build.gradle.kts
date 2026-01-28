@@ -1,121 +1,12 @@
-@file:Suppress("HasPlatformType")
-
-import com.android.build.api.variant.KotlinMultiplatformAndroidComponentsExtension
-import de.undercouch.gradle.tasks.download.Download
-import de.undercouch.gradle.tasks.download.Verify
-import org.gradle.kotlin.dsl.support.uppercaseFirstChar
-import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import org.jetbrains.kotlin.konan.target.Architecture
-import org.jetbrains.kotlin.konan.target.Family
-import org.jetbrains.kotlin.konan.target.KonanTarget
-import java.util.*
-
 plugins {
     alias(libs.plugins.conventions.kmp)
-    alias(libs.plugins.undercouch.dowload)
 }
 
 kotlin {
     androidJvmTargets()
-    macosX64()
-
-    sourceSets {
-        commonMain.dependencies {
-            implementation(projects.sqlite)
-        }
-    }
 }
+
 /*
-val defNoStringConversions = listOf(
-    "prepare_v2",
-    "prepare_v3"
-)
-
-val defExcludedFunctions = listOf(
-    "mutex_held",
-    "mutex_notheld",
-    "column_database_name",
-    "column_database_name16",
-    "column_table_name",
-    "column_table_name16",
-    "column_origin_name",
-    "column_origin_name16",
-    "normalized_sql",
-    "snapshot_get",
-    "snapshot_free",
-    "snapshot_open",
-    "snapshot_cmp",
-    "snapshot_recover",
-    "stmt_scanstatus",
-    "stmt_scanstatus_reset",
-    "unlock_notify",
-    "win32_set_directory",
-    "win32_set_directory8",
-    "win32_set_directory16"
-)
-
-val sqliteTaskGroup = "sqlite"
-val (releaseYear, major, minor, patch, sha3256checksum) = libs.versions.sqlite.get().split(".")
-val sqliteDirectory = layout.buildDirectory.dir("sqlite")
-val sqliteDefDirectory = sqliteDirectory.map { it.dir("definition") }
-val sqliteDownloadDirectory = sqliteDirectory.map { it.dir("download") }
-val sqliteSourcesDirectory = sqliteDirectory.map { it.dir("sources") }
-val sqliteArtefactsDirectory = sqliteDirectory.map { it.dir("artefacts") }
-val sqliteArtefactsNativeDirectory = sqliteArtefactsDirectory.map { it.dir("native") }
-val sqliteNormalizedVersion = "$major${minor.padStart(2, '0')}${patch.padStart(2, '0')}00"
-val sqliteReleaseFileName = "sqlite-amalgamation-$sqliteNormalizedVersion"
-val sqliteName = "sqlite$major"
-
-val sqliteDownloadTaskProvider = tasks.register<Download>("download") {
-    group = sqliteTaskGroup
-    val zipFileName = "$sqliteReleaseFileName.zip"
-    src("https://sqlite.org/$releaseYear/$zipFileName")
-    dest(sqliteDownloadDirectory.map { it.file(zipFileName) })
-    overwrite(false)
-}
-
-val sqliteChecksumTaskProvider = tasks.register<Verify>("checksum") {
-    group = sqliteTaskGroup
-    dependsOn(sqliteDownloadTaskProvider)
-    src(sqliteDownloadTaskProvider.map { it.dest })
-    algorithm("SHA3-256")
-    checksum(sha3256checksum)
-}
-
-val sqliteUnzipTaskProvider = tasks.register<Copy>("unzip") {
-    group = sqliteTaskGroup
-    dependsOn(sqliteChecksumTaskProvider)
-    from(zipTree(sqliteDownloadTaskProvider.map { it.dest }))
-    into(sqliteDownloadDirectory)
-}
-
-val sqliteExtractSourcesTaskProvider = tasks.register<Copy>("extractSources") {
-    group = sqliteTaskGroup
-    dependsOn(sqliteUnzipTaskProvider)
-    from(sqliteDownloadDirectory.map { it.dir(sqliteReleaseFileName) })
-    into(sqliteSourcesDirectory)
-    include("$sqliteName.h", "$sqliteName.c")
-}
-
-val sqliteGenerateDefFileTaskProvider = tasks.register<GenerateContentTask>("generateDefFile") {
-    group = sqliteTaskGroup
-    outputDirectory = sqliteDefDirectory
-    dependsOn(sqliteExtractSourcesTaskProvider)
-
-    val defContent = """
-        |language = C
-        |package = $localNamespace
-        |headers = $sqliteName.h
-        |headerFilter = $sqliteName.h
-        |linkerOpts.linux_x64 = -lpthread -ldl
-        |linkerOpts.macos_x64 = -lpthread -ldl
-        |noStringConversion = ${defNoStringConversions.joinToString(" ") { "${sqliteName}_$it" }}
-        |excludedFunctions = ${defExcludedFunctions.joinToString(" ") { "${sqliteName}_$it" }}
-    """.trimMargin()
-
-    contents = mapOf("$sqliteName.def" to defContent)
-}
 
 val androidNdkPath = androidNdkPath()
 
@@ -173,7 +64,7 @@ fun KotlinNativeTarget.configureCInterop() {
     }
 
     compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
-        cinterops.register("sqlite") {
+        cinterops.register("ksqlite") {
             tasks.named(interopProcessingTaskName).configure {
                 dependsOn(sqliteGenerateDefFileTaskProvider)
                 dependsOn(archiveSqliteTaskProvider)
@@ -201,7 +92,7 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation(projects.sqlite.sqliteAndroidJni)
+            implementation(projects.ksqlite.sqliteAndroidJni)
         }
     }
 }

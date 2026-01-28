@@ -1,83 +1,14 @@
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.getByName
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinHierarchyBuilder
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithHostTests
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmJsTargetDsl
-import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmWasiTargetDsl
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
-
-/**
- * Adds all supported targets to `this` [KotlinMultiplatformExtension].
- */
-fun KotlinMultiplatformExtension.allTargets(
-    androidNative: Boolean = true,
-    linuxArm: Boolean = true,
-    webBrowser: Boolean = true,
-    webNode: Boolean = true,
-    wasmWasi: Boolean = true,
-    watchosArm32: Boolean = true,
-    watchosDeviceArm64: Boolean = true,
-) {
-    androidJvmTargets()
-    jvmTargets()
-
-    nativeTargets(
-        androidNative = androidNative,
-        linuxArm = linuxArm,
-        watchosArm32 = watchosArm32,
-        watchosDeviceArm64 = watchosDeviceArm64,
-    )
-
-    webTargets(
-        browser = webBrowser,
-        node = webNode
-    )
-
-    if (wasmWasi) {
-        wasmWasiTargets()
-    }
-}
-
-/**
- * Adds Native targets to `this` [KotlinMultiplatformExtension] and returns them.
- */
-@Suppress("DEPRECATION")
-fun KotlinMultiplatformExtension.nativeTargets(
-    androidNative: Boolean = true,
-    linuxArm: Boolean = true,
-    watchosArm32: Boolean = true,
-    watchosDeviceArm64: Boolean = true
-): List<KotlinNativeTarget> = buildList {
-    if (androidNative) {
-        addAll(androidNativeTargets())
-    }
-
-    addAll(appleTargets(
-        watchosArm32 = watchosArm32,
-        watchosDeviceArm64 = watchosDeviceArm64
-    ))
-
-    addAll(linuxTargets(arm = linuxArm))
-    addAll(windowsTargets())
-}
-
-/**
- * Adds Web targets to `this` [KotlinMultiplatformExtension] and returns them.
- */
-fun KotlinMultiplatformExtension.webTargets(
-    browser: Boolean = true,
-    node: Boolean = true
-) {
-    jsTargets(browser = browser, node = node)
-    wasmJsTargets(browser = browser, node = node)
-}
 
 /**
  * Adds Android JVM targets to `this` [KotlinMultiplatformExtension] and returns them.
@@ -121,10 +52,7 @@ fun KotlinMultiplatformExtension.androidNativeTargets(): List<KotlinNativeTarget
  * Adds Apple targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
 @Suppress("DEPRECATION")
-fun KotlinMultiplatformExtension.appleTargets(
-    watchosArm32: Boolean = true,
-    watchosDeviceArm64: Boolean = true
-): List<KotlinNativeTarget> = buildList {
+fun KotlinMultiplatformExtension.appleTargets(): List<KotlinNativeTarget> = buildList {
     add(macosX64())
     add(macosArm64())
 
@@ -139,27 +67,8 @@ fun KotlinMultiplatformExtension.appleTargets(
     add(watchosX64())
     add(watchosArm64())
     add(watchosSimulatorArm64())
-
-    if (watchosArm32) {
-        add(watchosArm32())
-    }
-
-    if (watchosDeviceArm64) {
-        add(watchosDeviceArm64())
-    }
-}
-
-/**
- * Adds Js targets to `this` [KotlinMultiplatformExtension] and returns them.
- */
-fun KotlinMultiplatformExtension.jsTargets(
-    browser: Boolean = true,
-    node: Boolean = true
-): List<KotlinJsTargetDsl> {
-    return listOf(js {
-        useEsModules()
-        configureCommonWebTarget(browser = browser, node = node)
-    })
+    add(watchosArm32())
+    add(watchosDeviceArm64())
 }
 
 /**
@@ -172,37 +81,11 @@ fun KotlinMultiplatformExtension.jvmTargets(): List<KotlinJvmTarget> {
 /**
  * Adds Linux targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.linuxTargets(
-    arm: Boolean = true
-): List<KotlinNativeTarget> = buildList {
-    add(linuxX64())
-
-    if (arm) {
-        add(linuxArm64())
-    }
-}
-
-/**
- * Adds WasmJs targets to `this` [KotlinMultiplatformExtension] and returns them.
- */
-@OptIn(ExperimentalWasmDsl::class)
-fun KotlinMultiplatformExtension.wasmJsTargets(
-    browser: Boolean = true,
-    node: Boolean = true
-): List<KotlinWasmJsTargetDsl> {
-    return listOf(wasmJs {
-        configureCommonWebTarget(browser = browser, node = node)
-    })
-}
-
-/**
- * Adds WasmWasi targets to `this` [KotlinMultiplatformExtension] and returns them.
- */
-@OptIn(ExperimentalWasmDsl::class)
-fun KotlinMultiplatformExtension.wasmWasiTargets(): List<KotlinWasmWasiTargetDsl> {
-    return listOf(wasmWasi {
-        nodejs()
-    })
+fun KotlinMultiplatformExtension.linuxTargets(): List<KotlinNativeTarget> {
+    return listOf(
+        linuxX64(),
+        linuxArm64()
+    )
 }
 
 /**
@@ -213,26 +96,42 @@ fun KotlinMultiplatformExtension.windowsTargets(): List<KotlinNativeTargetWithHo
 }
 
 /**
- * Configures [this] JS target.
+ * Adds Js targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-private fun KotlinJsTargetDsl.configureCommonWebTarget(browser: Boolean, node: Boolean) {
-    if (browser) {
+fun KotlinMultiplatformExtension.jsTargets(): List<KotlinJsTargetDsl> {
+    return listOf(js {
+        useEsModules()
         browser()
-    }
-
-    if (node) {
-        nodejs()
-    }
+    })
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Hierarchy
-///////////////////////////////////////////////////////////////////////////
+/**
+ * Adds WasmJs targets to `this` [KotlinMultiplatformExtension] and returns them.
+ */
+@OptIn(ExperimentalWasmDsl::class)
+fun KotlinMultiplatformExtension.wasmJsTargets(
+): List<KotlinWasmJsTargetDsl> {
+    return listOf(wasmJs {
+        browser()
+    })
+}
 
 /**
- * Only includes new Android Library target in `this` group.
+ * Adds Web targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
-internal fun KotlinHierarchyBuilder.withAndroidJvm() {
-    withCompilations { it.target is KotlinMultiplatformAndroidLibraryTarget }
+fun KotlinMultiplatformExtension.webTargets() = buildList {
+    addAll(jsTargets())
+    addAll(wasmJsTargets())
+}
+
+/**
+ * Adds Native targets to `this` [KotlinMultiplatformExtension] and returns them.
+ */
+@Suppress("DEPRECATION")
+fun KotlinMultiplatformExtension.nativeTargets(
+): List<KotlinNativeTarget> = buildList {
+    addAll(androidNativeTargets())
+    addAll(appleTargets())
+    addAll(linuxTargets())
+    addAll(windowsTargets())
 }

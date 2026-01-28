@@ -8,16 +8,6 @@ kotlin {
     }
 }
 
-gradlePlugin {
-    plugins {
-        listOf("common", "dokka", "kmp", "publish").forEach { scriptName ->
-            named("conventions-$scriptName") {
-                version = libs.versions.ksqlite.get()
-            }
-        }
-    }
-}
-
 dependencies {
     implementation(libs.android.gradlePlugin)
     implementation(libs.dokka.gradlePlugin)
