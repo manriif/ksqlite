@@ -3,6 +3,7 @@ rootProject.name = "sqlite-compiler"
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     repositories {
+        mavenCentral()
         gradlePluginPortal()
     }
 

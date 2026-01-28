@@ -1,2 +1,6 @@
-# komogen
-Kotlin model generator from database model.
+# ksqlite
+Kotlin SQLite
+
+required tools: 
+- tcl-tk
+- emscripten

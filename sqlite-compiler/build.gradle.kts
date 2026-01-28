@@ -12,11 +12,13 @@ gradlePlugin {
     plugins {
         register("sqlite-compiler") {
             id = "sqlite-compiler"
-            implementationClass = "sqlite.SqliteCompilerPlugin"
+            implementationClass = "SqliteCompilerPlugin"
         }
     }
 }
 
 dependencies {
+    implementation(libs.kotlin.gradlePlugin)
     implementation(libs.undercouch.dowload)
+    implementation(libs.z4kn4fein.semver)
 }
