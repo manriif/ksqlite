@@ -20,5 +20,4 @@ gradlePlugin {
 dependencies {
     implementation(libs.kotlin.gradlePlugin)
     implementation(libs.undercouch.dowload)
-    implementation(libs.z4kn4fein.semver)
 }

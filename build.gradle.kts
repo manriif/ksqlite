@@ -1,4 +1,6 @@
 import com.android.build.api.variant.KotlinMultiplatformAndroidComponentsExtension
+import compilation.SqliteCompilationParameters
+import org.gradle.internal.os.OperatingSystem
 import java.util.Properties
 
 plugins {
@@ -17,23 +19,40 @@ allprojects {
 }
 
 sqliteCompiler {
-    androidNdkDirectory = objects.directoryProperty().apply {
-        set(androidNdkDirectory())
-    }
-    
-    androidSdkMin = libs.versions.android.sdk.min.get()
-    macosVersionMin = libs.versions.macos.version.min.get()
-    iosVersionMin = libs.versions.ios.version.min.get()
-    tvosVersionMin = libs.versions.tvos.version.min.get()
-    watchosVersionMin = libs.versions.watchos.version.min.get()
+    val (major, minor, patch, checksum) = libs.versions.sqliteMultipleCiphers.get().split('.')
 
-    sqliteRelease = SqliteRelease.parse(
+    sqliteCompilationParameters = SqliteCompilationParameters(
         sqliteVersion = libs.versions.ksqlite.get(),
-        sqliteMultipleCiphersVersion = libs.versions.sqliteMultipleCiphers.get()
+        sqliteMCVersion = "$major.$minor.$patch",
+        androidNdkToolchainPath = androidNdkToolchainPath(),
+        androidSdkMin = libs.versions.android.sdk.min.get(),
+        macosVersionMin = libs.versions.macos.version.min.get(),
+        iosVersionMin = libs.versions.ios.version.min.get(),
+        tvosVersionMin = libs.versions.tvos.version.min.get(),
+        watchosVersionMin = libs.versions.watchos.version.min.get()
     )
 
+    sqliteDownloadChecksum = checksum
     sqliteDownloadDirectory = layout.buildDirectory.dir("tmp/sqlite")
     sqliteSourcesDirectory = layout.buildDirectory.dir("sqlite")
+}
+
+/**
+ * Returns the path to the Android NDK toolchain
+ */
+fun androidNdkToolchainPath(): String {
+    val ndkDir = androidNdkDirectory().absolutePath
+
+    val ndkHostTag = OperatingSystem.current().run {
+        when {
+            isWindows -> "windows-x86_64"
+            isMacOsX -> "darwin-x86_64"
+            isLinux -> "linux-x86_64"
+            else -> throw UnsupportedOperationException("Unsupported operation system $this")
+        }
+    }
+
+    return "$ndkDir/toolchains/llvm/prebuilt/$ndkHostTag"
 }
 
 /**

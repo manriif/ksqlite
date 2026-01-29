@@ -9,5 +9,5 @@ const val SQLITE_COMPILER_EXTENSION_NAME = "sqliteCompiler"
 /**
  * Retrieves and returns the [SqliteCompilerExtension] from root project.
  */
-val Project.sqliteCompiler: SqliteCompilerExtension
+val Project.sqliteCompilerExtension: SqliteCompilerExtension
     get() = rootProject.extensions.getByName<SqliteCompilerExtension>(SQLITE_COMPILER_EXTENSION_NAME)

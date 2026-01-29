@@ -32,12 +32,11 @@ android-gradlePlugin = "9.0.0"
 dokka = "2.1.0"
 undercouch-download = "5.6.0"
 gradle-pluginPublish = "2.0.0"
-kotlin = "2.3.20-Beta1"
-kotlin-wrappers = "2026.1.13"
+kotlin = "2.3.20-Beta2"
+kotlin-wrappers = "2026.1.14"
 kotlinx-coroutines = "1.10.2"
 vanniktech-mavenPublish = "0.36.0"
 turbine = "1.2.1"
-z4kn4fein-semver = "3.0.0"
 
 [plugins]
 
@@ -65,4 +64,3 @@ kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-co
 kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 undercouch-dowload = { module = "de.undercouch.download:de.undercouch.download.gradle.plugin", version.ref = "undercouch-download" }
 vanniktech-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech-mavenPublish" }
-z4kn4fein-semver = { module = "io.github.z4kn4fein:semver", version.ref = "z4kn4fein-semver" }

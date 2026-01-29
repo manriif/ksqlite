@@ -1,30 +1,37 @@
+package tasks
+
+import SqliteCompilerExtension
+import compilation.SqliteStaticTarget
+import compilation.libraryFile
 import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.Verify
+import interop.createDefContent
 import org.gradle.api.Project
 import org.gradle.api.Task
-import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
-import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import sqliteCompilerExtension
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
 ///////////////////////////////////////////////////////////////////////////
 
-const val sqliteCompilerTaskGroup = "sqlite compile"
+const val sqliteCompilerTaskGroup = "sqlite"
 
 const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
 const val TASK_SQLITE_CHECKSUM = "sqliteChecksum"
 const val TASK_SQLITE_UNZIP = "sqliteUnzip"
-const val TASK_SQLITE_COMPILE = "sqliteCompile"
-const val TASK_SQLITE_COMPILE_ALL_NATIVE_TARGETS = "sqliteCompileAllNativeTargets"
+const val TASK_SQLITE_COMPILE_SHARED = "sqliteCompileShared"
+const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
+const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 
 ///////////////////////////////////////////////////////////////////////////
 // Root tasks
@@ -47,13 +54,13 @@ private fun Project.registerSqliteDownloadTask(
 ): TaskProvider<Download> = tasks.register<Download>(TASK_SQLITE_DOWNLOAD) {
     group = sqliteCompilerTaskGroup
 
-    val amalgamationFileName = extension.sqliteRelease.map {
-        "sqlite3mc-${it.sqliteMultipleCiphersVersion}-sqlite-${it.sqliteVersion}-amalgamation.zip"
+    val amalgamationFileName = extension.sqliteCompilationParameters.map {
+        "sqlite3mc-${it.sqliteMCVersion}-sqlite-${it.sqliteVersion}-amalgamation.zip"
     }
 
-    src(extension.sqliteRelease.zip(amalgamationFileName) { release, fileName ->
+    src(extension.sqliteCompilationParameters.zip(amalgamationFileName) { release, fileName ->
         "https://github.com/utelle/SQLite3MultipleCiphers/releases/download/" +
-                "v${release.sqliteMultipleCiphersVersion}/$fileName"
+                "v${release.sqliteMCVersion}/$fileName"
     })
 
     dest(extension.sqliteDownloadDirectory.zip(amalgamationFileName) { directory, fileName ->
@@ -73,17 +80,16 @@ private fun Project.registerSqliteChecksumTask(
     group = sqliteCompilerTaskGroup
 
     val amalgamationFile = downloadTaskProvider.map { it.dest }
-    val checksum = extension.sqliteRelease.map { it.sha256checksum }
 
     // Implicit dependency
     inputs.file(amalgamationFile)
-    inputs.property("checksum", checksum)
+    inputs.property("checksum", extension.sqliteDownloadChecksum)
 
     src(amalgamationFile)
     algorithm("SHA-256")
 
     // Unfortunately, verify task do not accept provider
-    checksum(checksum.get())
+    checksum(extension.sqliteDownloadChecksum.get())
 }
 
 /**
@@ -119,88 +125,52 @@ private fun Project.registerSqliteUnzipTask(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Registers and returns the task responsible for generating the artifacts and cinterop definition
- * file for [nativeTarget].
+ * Registers and returns the task responsible for generating the artifacts for static targets.
  */
-fun SqliteCompilerExtension.registerSqliteCompileNativeTargetTask(
-    nativeTarget: KotlinNativeTarget,
+fun Project.registerSqliteCompileStaticTask(): TaskProvider<SqliteCompileStaticTask> {
+    val extension = sqliteCompilerExtension
+
+    return tasks.register<SqliteCompileStaticTask>(TASK_SQLITE_COMPILE_STATIC) {
+        group = sqliteCompilerTaskGroup
+
+        // Explicit dependency on the unzip task
+        dependsOn(rootProject.tasks.named(TASK_SQLITE_UNZIP))
+        compilationParameters = extension.sqliteCompilationParameters
+        sqliteSourcesDirectory = extension.sqliteSourcesDirectory
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Interop tasks
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Registers and returns the task responsible for generating the cinterop definition file for `this`
+ * [KotlinNativeTarget].
+ */
+fun KotlinNativeTarget.registerSqliteGenerateCInteropDefTask(
     packageName: String,
-    libraryDirectoryProvider: Provider<Directory>,
+    staticTarget: SqliteStaticTarget,
     defFileProvider: Provider<RegularFile>
-): TaskProvider<Task> = nativeTarget.project.tasks.register(
-    name = "$TASK_SQLITE_COMPILE${nativeTarget.name.uppercaseFirstChar()}"
+): TaskProvider<Task> = project.tasks.register(
+    name = "$TASK_SQLITE_GENERATE_CINTEROP_DEF${name.uppercaseFirstChar()}"
 ) {
     group = sqliteCompilerTaskGroup
 
     // Explicit dependency on the unzip task
-    dependsOn(nativeTarget.project.rootProject.tasks.named(TASK_SQLITE_UNZIP))
+    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_UNZIP))
+    outputs.file(defFileProvider)
 
-    val inputComponents = sqliteSourcesDirectory.zip(sqliteRelease) { directory, release ->
-        directory to release.sqliteMcName
-    }
-
-    val outputComponents = libraryDirectoryProvider.zip(sqliteRelease) { directory, release ->
-        directory to release.sqliteName
-    }
-
-    val headerFileProvider = inputComponents.map { it.first.file("${it.second}.h") }
-    val sourceFileProvider = inputComponents.map { it.first.file("${it.second}.c") }
-
-    // Implicit dependency on the source task
-    inputs.files(headerFileProvider, sourceFileProvider)
-    outputs.dir(libraryDirectoryProvider)
-
-    val objectFileProvider = outputComponents.map { it.first.file("${it.second}.o") }
-    val libraryFileProvider = outputComponents.map { it.first.file("lib${it.second}.a") }
-    val compilerFlags = getNativeCompilerFlags(nativeTarget.konanTarget)
-    val compiler = getNativeCompiler(nativeTarget.konanTarget)
-    val archiver = getNativeArchiver(nativeTarget.konanTarget)
-
-    val fileOperations = project.serviceOf<FileSystemOperations>()
-    val execOperations = project.serviceOf<ExecOperations>()
-
-    doFirst {
-        fileOperations.delete {
-            delete(libraryDirectoryProvider)
-            delete(defFileProvider)
-        }
-
-        libraryDirectoryProvider.get().asFile.mkdirs()
-    }
+    val parameters = project.sqliteCompilerExtension.sqliteCompilationParameters
+    val libraryFile = staticTarget.libraryFile(parameters)
 
     doLast {
-        val sourceFile = sourceFileProvider.get().asFile
-        val objectFile = objectFileProvider.get().asFile
-        val libraryFile = libraryFileProvider.get().asFile
-
-        execOperations.exec {
-            commandLine(
-                compiler,
-                *compilerFlags.toTypedArray(),
-                "-c",
-                sourceFile.absolutePath,
-                "-o",
-                objectFile.absolutePath,
-                *SqliteCompileTimeOptions,
-                "-O3"
-            )
-        }
-
-        execOperations.exec {
-            commandLine(archiver, "rcs", libraryFile.absolutePath, objectFile.absolutePath)
-        }
-
         defFileProvider.get().asFile.writeText(
-            createDefContent(packageName, libraryFile, sqliteRelease.get())
+            createDefContent(
+                packageName = packageName,
+                libraryFile = libraryFile.get().asFile,
+                params = parameters.get()
+            )
         )
     }
-}
-
-/**
- * Registers and returns the task responsible for generating the artifacts for all targets.
- */
-fun Project.registerSqliteCompileAllNativeTargetsTask(): TaskProvider<Task> = tasks.register(
-    name = TASK_SQLITE_COMPILE_ALL_NATIVE_TARGETS
-) {
-    group = sqliteCompilerTaskGroup
 }

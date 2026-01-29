@@ -1,3 +1,6 @@
+package interop
+
+import compilation.SqliteCompilationParameters
 import java.io.File
 
 /**
@@ -47,16 +50,16 @@ private fun List<String>.spacedSqliteFunctions(sqlite: String): String {
 fun createDefContent(
     packageName: String,
     libraryFile: File,
-    release: SqliteRelease,
+    params: SqliteCompilationParameters,
 ): String = """
     |language = C
     |package = $packageName
-    |headers = ${release.sqliteMcName}.h
-    |headerFilter = ${release.sqliteMcName}.h
+    |headers = ${params.sqliteMcName}.h
+    |headerFilter = ${params.sqliteMcName}.h
     |staticLibrary = ${libraryFile.name}
     |libraryPaths = ${libraryFile.parentFile.absolutePath}
     |linkerOpts.linux_x64 = -lpthread -ldl
     |linkerOpts.macos_x64 = -lpthread -ldl
-    |noStringConversion = ${DefNoStringConversions.spacedSqliteFunctions(release.sqliteName)}
-    |excludedFunctions = ${DefExcludedFunctions.spacedSqliteFunctions(release.sqliteName)}
+    |noStringConversion = ${DefNoStringConversions.spacedSqliteFunctions(params.sqliteName)}
+    |excludedFunctions = ${DefExcludedFunctions.spacedSqliteFunctions(params.sqliteName)}
 """.trimMargin()

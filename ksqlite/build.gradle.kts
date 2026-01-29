@@ -1,6 +1,9 @@
-import com.android.build.gradle.internal.tasks.factory.dependsOn
+import compilation.SqliteStaticTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import tasks.SqliteCompileStaticTask
+import tasks.registerSqliteCompileStaticTask
+import tasks.registerSqliteGenerateCInteropDefTask
 
 plugins {
     alias(libs.plugins.conventions.kmp)
@@ -9,13 +12,14 @@ plugins {
 kotlin {
     val sqliteDirectory = layout.buildDirectory.dir("sqlite")
     val nativeArtifactDirectory = sqliteDirectory.map { it.dir("native") }
-    val compileAllTask = registerSqliteCompileAllNativeTargetsTask()
+    val compileStaticTaskProvider = registerSqliteCompileStaticTask()
 
     listOf(macosX64()).forEach {
-        it.configureCInterop(nativeArtifactDirectory, compileAllTask)
+        it.configureCInterop(nativeArtifactDirectory, compileStaticTaskProvider)
     }
 
     androidJvmTargets()
+    //jvmTargets()
 
     sourceSets {
         all {
@@ -34,35 +38,41 @@ kotlin {
 
 fun KotlinNativeTarget.configureCInterop(
     artifactDirectory: Provider<Directory>,
-    compileAllTask: TaskProvider<*>
+    compileStaticTask: TaskProvider<SqliteCompileStaticTask>
 ) {
-    val compiler = sqliteCompiler
-    val outputDirectory = artifactDirectory.map { it.dir(konanTarget.name) }
+    val extension = sqliteCompilerExtension
+    val outputDirectoryProvider = artifactDirectory.map { it.dir(konanTarget.name) }
+    val libraryDirectoryProvider = outputDirectoryProvider.map { it.dir("library") }
 
-    // Use the output from source task to force implicit dependency
-    val libraryDirectoryProvider = outputDirectory.map { it.dir("library") }
+    val staticTarget = objects.newInstance<SqliteStaticTarget>().apply {
+        this.konanTarget = this@configureCInterop.konanTarget
+        this.libraryDirectory = libraryDirectoryProvider
+    }
 
-    val defFileProvider = outputDirectory.map { directory ->
-        directory.file("${compiler.sqliteRelease.get().sqliteName}.def")
+    val defFileProvider = outputDirectoryProvider.map { directory ->
+        directory.file("${extension.sqliteCompilationParameters.get().sqliteName}.def")
+    }
+
+    val generateCInteropDefTaskProvider = registerSqliteGenerateCInteropDefTask(
+        packageName = localNamespace,
+        staticTarget = staticTarget,
+        defFileProvider = defFileProvider
+    )
+
+    compileStaticTask.configure {
+        targets.add(staticTarget)
     }
 
     compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
         cinterops.register("ksqlite") {
             tasks.named(interopProcessingTaskName).configure {
-                dependsOn(compileAllTask)
+                dependsOn(generateCInteropDefTaskProvider)
+                dependsOn(compileStaticTask)
             }
 
             definitionFile = defFileProvider
-            includeDirs(compiler.sqliteSourcesDirectory)
+            extraOpts += listOf("-Xccall-mode", "direct")
+            includeDirs(extension.sqliteSourcesDirectory)
         }
     }
-
-    val compileTask = compiler.registerSqliteCompileNativeTargetTask(
-        nativeTarget = this,
-        packageName = localNamespace,
-        libraryDirectoryProvider = libraryDirectoryProvider,
-        defFileProvider = defFileProvider
-    )
-
-    compileAllTask.dependsOn(compileTask)
 }
