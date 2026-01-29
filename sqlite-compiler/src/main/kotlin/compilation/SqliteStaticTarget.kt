@@ -31,7 +31,8 @@ fun SqliteStaticTarget.libraryFile(
     params: Provider<SqliteCompilationParameters>
 ): Provider<RegularFile> {
     return libraryDirectory.zip(params) { directory, params ->
-        directory.file("lib${params.sqliteName}.a")
+        val family = konanTarget.get().family
+        directory.file("${family.staticPrefix}${params.sqliteName}.${family.staticSuffix}")
     }
 }
 

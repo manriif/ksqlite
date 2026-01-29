@@ -14,7 +14,7 @@ kotlin {
     val nativeArtifactDirectory = sqliteDirectory.map { it.dir("native") }
     val compileStaticTaskProvider = registerSqliteCompileStaticTask()
 
-    listOf(macosX64()).forEach {
+    listOf(linuxX64()).forEach {
         it.configureCInterop(nativeArtifactDirectory, compileStaticTaskProvider)
     }
 

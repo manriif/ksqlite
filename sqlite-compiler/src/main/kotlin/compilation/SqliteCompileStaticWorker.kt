@@ -46,14 +46,14 @@ abstract class SqliteCompileStaticWorker : WorkAction<SqliteCompileStaticWorker.
         val libraryFile = target.libraryFile(parameters.compilationParameters).get().asFile
 
         val konanTarget = target.konanTarget.get()
-        val compilerFlags = params.getNativeCompilerFlags(konanTarget)
-        val compiler = params.getNativeCompiler(konanTarget)
-        val archiver = params.getNativeArchiver(konanTarget)
+        val compilerFlags = params.getNativeCompilerFlags(konanTarget, execOperations)
+        val compiler = params.getNativeCompilerArgs(konanTarget)
+        val archiver = params.getNativeArchiverArgs(konanTarget)
 
         execOperations.exec {
             commandLine(
-                compiler,
-                *compilerFlags.toTypedArray(),
+                *compiler,
+                *compilerFlags,
                 "-c",
                 sourceFile.absolutePath,
                 "-o",
@@ -65,7 +65,7 @@ abstract class SqliteCompileStaticWorker : WorkAction<SqliteCompileStaticWorker.
 
         execOperations.exec {
             commandLine(
-                archiver,
+                *archiver,
                 "rcs",
                 libraryFile.absolutePath,
                 objectFile.absolutePath

@@ -3,9 +3,11 @@ package compilation
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.konan.target.Architecture
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.KonanTarget
+import java.io.ByteArrayOutputStream
 
 ///////////////////////////////////////////////////////////////////////////
 // Common
@@ -59,122 +61,138 @@ fun sqliteSourceFile(
 private fun xcodeCompilerFlags(
     arch: String,
     sdk: String,
-    platformFlag: String
-): List<String> {
-    val sdkDir = sdk.replaceFirstChar { it.uppercase() }
+    flag: String,
+    execOperations: ExecOperations
+): Array<String> {
+    val sdkOutputStream = ByteArrayOutputStream()
 
-    val sdkPath = "/Applications/Xcode.app/Contents/Developer/Platforms/$sdkDir.platform" +
-            "/Developer/SDKs/$sdkDir.sdk"
+    execOperations.exec {
+        standardOutput = sdkOutputStream
+        commandLine("xcrun", "--sdk", sdk, "--show-sdk-path")
+    }.rethrowFailure()
 
-    return listOf("-arch", arch, "-isysroot", sdkPath, platformFlag)
+    val sdkPath = sdkOutputStream.toByteArray().toString(Charsets.US_ASCII)
+
+    return arrayOf("-arch", arch, "-isysroot", sdkPath, flag)
 }
 
 /**
  * Returns the compiler flags for SQLite compilation for Kotlin native [target].
  */
-fun SqliteCompilationParameters.getNativeCompilerFlags(target: KonanTarget): List<String> {
-    return when (target.family) {
-        Family.OSX -> {
-            val arch = when (target.architecture) {
-                Architecture.ARM64 -> "arm64"
-                Architecture.X64 -> "x86_64"
-                else -> error("Unsupported macOS architecture: ${target.architecture}")
+fun SqliteCompilationParameters.getNativeCompilerFlags(
+    target: KonanTarget,
+    execOperations: ExecOperations
+): Array<String> = when (target.family) {
+    Family.OSX -> xcodeCompilerFlags(
+        arch = when (target.architecture) {
+            Architecture.ARM64 -> "arm64"
+            Architecture.X64 -> "x86_64"
+            else -> error("Unsupported macOS architecture: ${target.architecture}")
+        },
+        sdk = "macosx",
+        flag = "-mmacosx-version-min=$macosVersionMin",
+        execOperations = execOperations
+    )
+
+    Family.IOS -> xcodeCompilerFlags(
+        arch = when (target.architecture) {
+            Architecture.ARM64 -> "arm64"
+            Architecture.X64 -> "x86_64"
+            else -> error("Unsupported iOS architecture: ${target.architecture}")
+        },
+        sdk = when (target) {
+            KonanTarget.IOS_ARM64 -> "iphoneos"
+            KonanTarget.IOS_SIMULATOR_ARM64, KonanTarget.IOS_X64 -> "iphonesimulator"
+            else -> error("Unsupported target for iOS family: $target")
+        },
+        flag = "-mios-version-min=$iosVersionMin",
+        execOperations = execOperations
+    )
+
+    Family.TVOS -> xcodeCompilerFlags(
+        arch = when (target.architecture) {
+            Architecture.ARM64 -> "arm64"
+            Architecture.X64 -> "x86_64"
+            else -> error("Unsupported tvOS architecture: ${target.architecture}")
+        },
+        sdk = when (target) {
+            KonanTarget.TVOS_ARM64 -> "appletvos"
+            KonanTarget.TVOS_SIMULATOR_ARM64, KonanTarget.TVOS_X64 -> "appletvsimulator"
+            else -> error("Unsupported target for tvOS family: $target")
+        },
+        flag = "-mtvos-version-min=$tvosVersionMin",
+        execOperations = execOperations
+    )
+
+    Family.WATCHOS -> xcodeCompilerFlags(
+        arch = when (target.architecture) {
+            Architecture.ARM32 -> "armv7k"
+            Architecture.X64 -> "x86_64"
+
+            Architecture.ARM64 -> when (target) {
+                KonanTarget.WATCHOS_ARM64 -> "arm64_32"
+                KonanTarget.WATCHOS_DEVICE_ARM64, KonanTarget.WATCHOS_SIMULATOR_ARM64 -> "arm64"
+                else -> error("Unsupported target for watchOS family: $target")
             }
 
-            listOf("-arch", arch, "-mmacosx-version-min=$macosVersionMin")
+            else -> error("Unsupported watchOS architecture: ${target.architecture}")
+        },
+        sdk = when (target) {
+            KonanTarget.WATCHOS_ARM32,
+            KonanTarget.WATCHOS_ARM64,
+            KonanTarget.WATCHOS_DEVICE_ARM64 -> "watchos"
+
+            KonanTarget.WATCHOS_SIMULATOR_ARM64, KonanTarget.WATCHOS_X64 -> "watchsimulator"
+            else -> error("Unsupported target for watchOS family: $target")
+        },
+        flag = "-mwatchos-version-min=$watchosVersionMin",
+        execOperations = execOperations
+    )
+
+    Family.LINUX -> {
+        val targetTriple = when (target.architecture) {
+            Architecture.X64 -> "x86_64-linux-gnu"
+            Architecture.ARM64 -> "aarch64-linux-gnu"
+            else -> error("Unsupported Linux architecture: ${target.architecture}")
         }
 
-        Family.IOS -> xcodeCompilerFlags(
-            arch = when (target.architecture) {
-                Architecture.ARM64 -> "arm64"
-                Architecture.X64 -> "x86_64"
-                else -> error("Unsupported iOS architecture: ${target.architecture}")
-            },
-            sdk = when {
-                target.name.contains("simulator", ignoreCase = true) -> "iphonesimulator"
-                else -> "iphoneos"
-            },
-            platformFlag = "-mios-version-min=$iosVersionMin"
+        arrayOf("-target", targetTriple)
+    }
+
+    Family.MINGW -> arrayOf("-target", "x86_64-w64-mingw32")
+
+    Family.ANDROID -> {
+        val targetTriple = when (target.architecture) {
+            Architecture.ARM64 -> "aarch64-linux-android"
+            Architecture.ARM32 -> "armv7a-linux-androideabi"
+            Architecture.X64 -> "x86_64-linux-android"
+            Architecture.X86 -> "i686-linux-android"
+        }
+
+        arrayOf(
+            "-target", "$targetTriple$androidSdkMin",
+            "--sysroot=$androidNdkToolchainPath/sysroot"
         )
-
-        Family.TVOS -> xcodeCompilerFlags(
-            arch = when (target.architecture) {
-                Architecture.ARM64 -> "arm64"
-                Architecture.X64 -> "x86_64"
-                else -> error("Unsupported tvOS architecture: ${target.architecture}")
-            },
-            sdk = when {
-                target.name.contains("simulator", ignoreCase = true) -> "appletvsimulator"
-                else -> "appletvos"
-            },
-            platformFlag = "-mtvos-version-min=$tvosVersionMin"
-        )
-
-        Family.WATCHOS -> xcodeCompilerFlags(
-            arch = when (target.architecture) {
-                Architecture.ARM64 -> when (target.name) {
-                    "watchosDeviceArm64" -> "arm64_32"
-                    else -> "arm64"
-                }
-
-                Architecture.ARM32 -> "armv7k"
-                Architecture.X64 -> "x86_64"
-                else -> error("Unsupported watchOS architecture: ${target.architecture}")
-            },
-            sdk = when {
-                target.name.contains("simulator", ignoreCase = true) -> "watchsimulator"
-                else -> "watchos"
-            },
-            platformFlag = "-mwatchos-version-min=$watchosVersionMin"
-        )
-
-        Family.LINUX -> {
-            val targetTriple = when (target.architecture) {
-                Architecture.X64 -> "x86_64-unknown-linux-gnu"
-                Architecture.ARM64 -> "aarch64-unknown-linux-gnu"
-                else -> error("Unsupported Linux architecture: ${target.architecture}")
-            }
-
-            listOf("--target=$targetTriple")
-        }
-
-        Family.MINGW -> {
-            // Only mingwX64 in your targets
-            listOf("-target", "x86_64-w64-mingw32")
-        }
-
-        Family.ANDROID -> {
-            val targetTriple = when (target.architecture) {
-                Architecture.ARM64 -> "aarch64-linux-android"
-                Architecture.ARM32 -> "armv7a-linux-androideabi"
-                Architecture.X64 -> "x86_64-linux-android"
-                Architecture.X86 -> "i686-linux-android"
-            }
-
-            listOf(
-                "-target", "$targetTriple$androidSdkMin",
-                "--sysroot=$androidNdkToolchainPath/sysroot"
-            )
-        }
     }
 }
 
 /**
  * Returns the compiler name for Kotlin native [target].
  */
-fun SqliteCompilationParameters.getNativeCompiler(target: KonanTarget): String {
+fun SqliteCompilationParameters.getNativeCompilerArgs(target: KonanTarget): Array<String> {
     return when (target.family) {
-        Family.OSX, Family.IOS, Family.TVOS, Family.WATCHOS -> "clang"
-        Family.LINUX -> "clang"
-        Family.MINGW -> "x86_64-w64-mingw32-gcc"
-        Family.ANDROID -> "$androidNdkToolchainPath/bin/clang"
+        Family.OSX, Family.IOS, Family.TVOS, Family.WATCHOS -> arrayOf("clang")
+        Family.ANDROID -> arrayOf("$androidNdkToolchainPath/bin/clang")
+        Family.LINUX -> arrayOf("zig", "cc")
+        Family.MINGW -> arrayOf("x86_64-w64-mingw32-gcc")
     }
 }
 
-fun SqliteCompilationParameters.getNativeArchiver(target: KonanTarget): String {
+fun SqliteCompilationParameters.getNativeArchiverArgs(target: KonanTarget): Array<String> {
     return when (target.family) {
-        Family.MINGW -> "x86_64-w64-mingw32-ar"
-        Family.ANDROID -> "$androidNdkToolchainPath/bin/llvm-ar"
-        else -> "ar"
+        Family.OSX, Family.IOS, Family.TVOS, Family.WATCHOS -> arrayOf("ar")
+        Family.ANDROID -> arrayOf("$androidNdkToolchainPath/bin/llvm-ar")
+        Family.LINUX -> arrayOf("zig", "ar")
+        Family.MINGW -> arrayOf("x86_64-w64-mingw32-ar")
     }
 }
