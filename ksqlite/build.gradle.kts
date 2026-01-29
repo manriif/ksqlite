@@ -1,4 +1,4 @@
-import org.gradle.kotlin.dsl.support.uppercaseFirstChar
+import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
@@ -7,11 +7,15 @@ plugins {
 }
 
 kotlin {
-    androidJvmTargets()
+    val sqliteDirectory = layout.buildDirectory.dir("sqlite")
+    val nativeArtifactDirectory = sqliteDirectory.map { it.dir("native") }
+    val compileAllTask = registerSqliteCompileAllNativeTargetsTask()
 
-    listOf(macosX64()).forEach { nativeTarget ->
-        nativeTarget.configureCInterop()
+    listOf(macosX64()).forEach {
+        it.configureCInterop(nativeArtifactDirectory, compileAllTask)
     }
+
+    androidJvmTargets()
 
     sourceSets {
         all {
@@ -28,30 +32,37 @@ kotlin {
     }
 }
 
-fun KotlinNativeTarget.configureCInterop() {
-    val targetName = name.uppercaseFirstChar()
+fun KotlinNativeTarget.configureCInterop(
+    artifactDirectory: Provider<Directory>,
+    compileAllTask: TaskProvider<*>
+) {
     val compiler = sqliteCompiler
+    val outputDirectory = artifactDirectory.map { it.dir(konanTarget.name) }
 
-    val compileSqliteTask = compiler.registerSqliteCompilationTask(
-        nativeTarget = this,
-        targetName = targetName,
-        packageName = localNamespace
-    )
+    // Use the output from source task to force implicit dependency
+    val libraryDirectoryProvider = outputDirectory.map { it.dir("library") }
 
-    val generatedDefinitionFile = compiler.run {
-        sqliteNativeLibDirectory.zip(sqliteRelease) { directory, release ->
-            directory.file("${konanTarget.name}/${release.sqliteName}.def")
-        }
+    val defFileProvider = outputDirectory.map { directory ->
+        directory.file("${compiler.sqliteRelease.get().sqliteName}.def")
     }
 
     compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
         cinterops.register("ksqlite") {
             tasks.named(interopProcessingTaskName).configure {
-                dependsOn(compileSqliteTask)
+                dependsOn(compileAllTask)
             }
 
-            definitionFile = generatedDefinitionFile
-            includeDirs(sqliteCompiler.sourceTask.map { it.outputs.files })
+            definitionFile = defFileProvider
+            includeDirs(compiler.sqliteSourcesDirectory)
         }
     }
+
+    val compileTask = compiler.registerSqliteCompileNativeTargetTask(
+        nativeTarget = this,
+        packageName = localNamespace,
+        libraryDirectoryProvider = libraryDirectoryProvider,
+        defFileProvider = defFileProvider
+    )
+
+    compileAllTask.dependsOn(compileTask)
 }

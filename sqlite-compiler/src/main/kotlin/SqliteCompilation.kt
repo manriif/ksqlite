@@ -1,3 +1,4 @@
+import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.kotlin.konan.target.Architecture
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.KonanTarget
@@ -21,10 +22,24 @@ val SqliteCompileTimeOptions = arrayOf(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Tag of the host for android NDK.
+ */
+private val ndkHostTag: String by lazy {
+    OperatingSystem.current().run {
+        when {
+            isWindows -> "windows-x86_64"
+            isMacOsX -> "darwin-x86_64"
+            isLinux -> "linux-x86_64"
+            else -> throw UnsupportedOperationException("Unsupported operation system $this")
+        }
+    }
+}
+
+/**
  * Returns absolute path of the android NDK directory.
  */
-private inline val SqliteCompilerExtension.androidNdkPath: String
-    get() = androidNdkDirectory.get().asFile.absolutePath
+private inline val SqliteCompilerExtension.ndkToolchain: String
+    get() = "${androidNdkDirectory.get().asFile.absolutePath}/toolchains/llvm/prebuilt/$ndkHostTag"
 
 /**
  * Returns the path for [sdk] in the Xcode application.
@@ -47,7 +62,8 @@ fun SqliteCompilerExtension.getNativeCompilerFlags(target: KonanTarget): List<St
                 Architecture.X64 -> "x86_64"
                 else -> error("Unsupported macOS architecture: ${target.architecture}")
             }
-            listOf("-arch", arch, "-mmacosx-version-min=10.13")
+
+            listOf("-arch", arch, "-mmacosx-version-min=${macosVersionMin.get()}")
         }
 
         Family.IOS -> {
@@ -62,7 +78,8 @@ fun SqliteCompilerExtension.getNativeCompilerFlags(target: KonanTarget): List<St
                 else -> "iphoneos"
             }
 
-            listOf("-arch", arch, "-isysroot", xcodeSdkPath(sdk), "-mios-version-min=12.0")
+            val version = iosVersionMin.get()
+            listOf("-arch", arch, "-isysroot", xcodeSdkPath(sdk), "-mios-version-min=$version")
         }
 
         Family.TVOS -> {
@@ -77,7 +94,8 @@ fun SqliteCompilerExtension.getNativeCompilerFlags(target: KonanTarget): List<St
                 else -> "appletvos"
             }
 
-            listOf("-arch", arch, "-isysroot", xcodeSdkPath(sdk), "-mtvos-version-min=12.0")
+            val version = tvosVersionMin.get()
+            listOf("-arch", arch, "-isysroot", xcodeSdkPath(sdk), "-mtvos-version-min=$version")
         }
 
         Family.WATCHOS -> {
@@ -97,7 +115,8 @@ fun SqliteCompilerExtension.getNativeCompilerFlags(target: KonanTarget): List<St
                 else -> "watchos"
             }
 
-            listOf("-arch", arch, "-isysroot", xcodeSdkPath(sdk), "-mwatchos-version-min=5.0")
+            val version = watchosVersionMin.get()
+            listOf("-arch", arch, "-isysroot", xcodeSdkPath(sdk), "-mwatchos-version-min=$version")
         }
 
         Family.LINUX -> {
@@ -116,16 +135,16 @@ fun SqliteCompilerExtension.getNativeCompilerFlags(target: KonanTarget): List<St
         }
 
         Family.ANDROID -> {
-            val (targetTriple, apiLevel) = when (target.architecture) {
-                Architecture.ARM64 -> "aarch64-linux-android" to 21
-                Architecture.ARM32 -> "armv7a-linux-androideabi" to 21
-                Architecture.X64 -> "x86_64-linux-android" to 21
-                Architecture.X86 -> "i686-linux-android" to 21
+            val targetTriple = when (target.architecture) {
+                Architecture.ARM64 -> "aarch64-linux-android"
+                Architecture.ARM32 -> "armv7a-linux-androideabi"
+                Architecture.X64 -> "x86_64-linux-android"
+                Architecture.X86 -> "i686-linux-android"
             }
 
             listOf(
-                "-target", "$targetTriple$apiLevel",
-                "--sysroot=$androidNdkDirectory/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+                "-target", "$targetTriple${androidSdkMin.get()}",
+                "--sysroot=$ndkToolchain/sysroot"
             )
         }
     }
@@ -139,14 +158,14 @@ fun SqliteCompilerExtension.getNativeCompiler(target: KonanTarget): String {
         Family.OSX, Family.IOS, Family.TVOS, Family.WATCHOS -> "clang"
         Family.LINUX -> "clang"
         Family.MINGW -> "x86_64-w64-mingw32-gcc"
-        Family.ANDROID -> "$androidNdkPath/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang"
+        Family.ANDROID -> "$ndkToolchain/bin/clang"
     }
 }
 
 fun SqliteCompilerExtension.getNativeArchiver(target: KonanTarget): String {
     return when (target.family) {
         Family.MINGW -> "x86_64-w64-mingw32-ar"
-        Family.ANDROID -> "$androidNdkPath/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-ar"
+        Family.ANDROID -> "$ndkToolchain/bin/llvm-ar"
         else -> "ar"
     }
 }

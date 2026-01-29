@@ -1,3 +1,5 @@
+import java.io.File
+
 /**
  * Definition file noStringConversions.
  */
@@ -44,15 +46,15 @@ private fun List<String>.spacedSqliteFunctions(sqlite: String): String {
  */
 fun createDefContent(
     packageName: String,
-    libraryPath: String,
+    libraryFile: File,
     release: SqliteRelease,
 ): String = """
     |language = C
     |package = $packageName
     |headers = ${release.sqliteMcName}.h
     |headerFilter = ${release.sqliteMcName}.h
-    |staticLibrary = ${release.sqliteName}.a
-    |libraryPaths = $libraryPath
+    |staticLibrary = ${libraryFile.name}
+    |libraryPaths = ${libraryFile.parentFile.absolutePath}
     |linkerOpts.linux_x64 = -lpthread -ldl
     |linkerOpts.macos_x64 = -lpthread -ldl
     |noStringConversion = ${DefNoStringConversions.spacedSqliteFunctions(release.sqliteName)}

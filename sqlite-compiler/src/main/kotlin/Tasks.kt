@@ -2,13 +2,15 @@ import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.Verify
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
-import org.gradle.api.file.ProjectLayout
+import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
@@ -22,6 +24,7 @@ const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
 const val TASK_SQLITE_CHECKSUM = "sqliteChecksum"
 const val TASK_SQLITE_UNZIP = "sqliteUnzip"
 const val TASK_SQLITE_COMPILE = "sqliteCompile"
+const val TASK_SQLITE_COMPILE_ALL_NATIVE_TARGETS = "sqliteCompileAllNativeTargets"
 
 ///////////////////////////////////////////////////////////////////////////
 // Root tasks
@@ -33,26 +36,7 @@ const val TASK_SQLITE_COMPILE = "sqliteCompile"
 fun Project.registerTasks(extension: SqliteCompilerExtension) {
     val downloadTaskProvider = registerSqliteDownloadTask(extension)
     val checksumTaskProvider = registerSqliteChecksumTask(extension, downloadTaskProvider)
-    extension.sourceTask.set(registerSqliteUnzipTask(extension, checksumTaskProvider))
-
-    /*val generateDefFileTaskProvider = tasks.register<GenerateContentTask>("generateDefFile") {
-        group = sqliteTaskGroup
-        outputDirectory = sqliteDefDirectory
-        dependsOn(sqliteExtractSourcesTaskProvider)
-
-        val defContent = """
-        |language = C
-        |package = $localNamespace
-        |headers = $sqliteName.h
-        |headerFilter = $sqliteName.h
-        |linkerOpts.linux_x64 = -lpthread -ldl
-        |linkerOpts.macos_x64 = -lpthread -ldl
-        |noStringConversion = ${defNoStringConversions.joinToString(" ") { "${sqliteName}_$it" }}
-        |excludedFunctions = ${defExcludedFunctions.joinToString(" ") { "${sqliteName}_$it" }}
-    """.trimMargin()
-
-        contents = mapOf("$sqliteName.def" to defContent)
-    }*/
+    registerSqliteUnzipTask(extension, checksumTaskProvider)
 }
 
 /**
@@ -131,92 +115,92 @@ private fun Project.registerSqliteUnzipTask(
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Native tasks
+// Compilation tasks
 ///////////////////////////////////////////////////////////////////////////
 
 /**
  * Registers and returns the task responsible for generating the artifacts and cinterop definition
  * file for [nativeTarget].
  */
-@Suppress("NewApi")
-fun SqliteCompilerExtension.registerSqliteCompilationTask(
+fun SqliteCompilerExtension.registerSqliteCompileNativeTargetTask(
     nativeTarget: KotlinNativeTarget,
-    targetName: String,
-    packageName: String
-): TaskProvider<Task> = nativeTarget.project.tasks.register("$TASK_SQLITE_COMPILE$targetName") {
+    packageName: String,
+    libraryDirectoryProvider: Provider<Directory>,
+    defFileProvider: Provider<RegularFile>
+): TaskProvider<Task> = nativeTarget.project.tasks.register(
+    name = "$TASK_SQLITE_COMPILE${nativeTarget.name.uppercaseFirstChar()}"
+) {
     group = sqliteCompilerTaskGroup
 
-    // Use the output from source task to force implicit dependency
-    val sourceDirectory = sourceTask.map { it.outputs.files.singleFile }
-    val outputDirectory = sqliteNativeLibDirectory.map { it.dir(nativeTarget.konanTarget.name) }
+    // Explicit dependency on the unzip task
+    dependsOn(nativeTarget.project.rootProject.tasks.named(TASK_SQLITE_UNZIP))
 
-    val inputComponents = sourceDirectory.zip(sqliteRelease) { directory, release ->
+    val inputComponents = sqliteSourcesDirectory.zip(sqliteRelease) { directory, release ->
         directory to release.sqliteMcName
     }
 
-    val outputComponents = outputDirectory.zip(sqliteRelease) { directory, release ->
-        directory.asFile to release.sqliteName
+    val outputComponents = libraryDirectoryProvider.zip(sqliteRelease) { directory, release ->
+        directory to release.sqliteName
     }
 
-    val headerFile = inputComponents.map { it.first.resolve("${it.second}.h") }
-    val sourceFile = inputComponents.map { it.first.resolve("${it.second}.c") }
+    val headerFileProvider = inputComponents.map { it.first.file("${it.second}.h") }
+    val sourceFileProvider = inputComponents.map { it.first.file("${it.second}.c") }
 
     // Implicit dependency on the source task
-    inputs.files(headerFile, sourceFile)
-    outputs.dir(outputDirectory)
+    inputs.files(headerFileProvider, sourceFileProvider)
+    outputs.dir(libraryDirectoryProvider)
 
-    val defFile = outputComponents.map { it.first.resolve("${it.second}.def") }
-    val objectFile = outputComponents.map { it.first.resolve("${it.second}.o") }
-    val libraryFile = outputComponents.map { it.first.resolve("lib${it.second}.a") }
+    val objectFileProvider = outputComponents.map { it.first.file("${it.second}.o") }
+    val libraryFileProvider = outputComponents.map { it.first.file("lib${it.second}.a") }
     val compilerFlags = getNativeCompilerFlags(nativeTarget.konanTarget)
     val compiler = getNativeCompiler(nativeTarget.konanTarget)
     val archiver = getNativeArchiver(nativeTarget.konanTarget)
 
     val fileOperations = project.serviceOf<FileSystemOperations>()
     val execOperations = project.serviceOf<ExecOperations>()
-    val layout = project.serviceOf<ProjectLayout>()
 
     doFirst {
         fileOperations.delete {
-            delete(outputDirectory)
+            delete(libraryDirectoryProvider)
+            delete(defFileProvider)
         }
 
-        outputDirectory.get().asFile.mkdirs()
+        libraryDirectoryProvider.get().asFile.mkdirs()
     }
 
     doLast {
-        defFile.get().writeText(
-            createDefContent(
-                packageName = packageName,
-                libraryPath = outputDirectory.get().asFile.absolutePath,
-                release = sqliteRelease.get()
-            )
-        )
+        val sourceFile = sourceFileProvider.get().asFile
+        val objectFile = objectFileProvider.get().asFile
+        val libraryFile = libraryFileProvider.get().asFile
 
         execOperations.exec {
-            workingDir = layout.projectDirectory.asFile
-
             commandLine(
                 compiler,
                 *compilerFlags.toTypedArray(),
                 "-c",
-                sourceFile.get().absolutePath,
+                sourceFile.absolutePath,
                 "-o",
-                objectFile.get().absolutePath,
+                objectFile.absolutePath,
                 *SqliteCompileTimeOptions,
                 "-O3"
             )
         }
 
         execOperations.exec {
-            workingDir = layout.projectDirectory.asFile
-
-            commandLine(
-                archiver,
-                "rcs",
-                libraryFile.get().absolutePath,
-                objectFile.get().absolutePath
-            )
+            commandLine(archiver, "rcs", libraryFile.absolutePath, objectFile.absolutePath)
         }
+
+        defFileProvider.get().asFile.writeText(
+            createDefContent(packageName, libraryFile, sqliteRelease.get())
+        )
     }
+}
+
+/**
+ * Registers and returns the task responsible for generating the artifacts for all targets.
+ */
+fun Project.registerSqliteCompileAllNativeTargetsTask(): TaskProvider<Task> = tasks.register(
+    name = TASK_SQLITE_COMPILE_ALL_NATIVE_TARGETS
+) {
+    group = sqliteCompilerTaskGroup
 }

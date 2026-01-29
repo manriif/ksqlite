@@ -7,20 +7,26 @@
 # Project version, matching the targeted sqlite version
 ksqlite = "3.51.2"
 
+# SQLite Multiple Ciphers version postfixed with SHA-256 checksum.
+# Release here: https://github.com/utelle/SQLite3MultipleCiphers/releases
+sqliteMultipleCiphers = "2.2.7.8e84aadc53bc09bda9cd307745a178191e7783e1b6478d74ffbcdf6a04f98085"
+
 # Android
 android-ndk = "29.0.14206865"
 android-sdk-compile = "36"
 android-sdk-min = "21"
+
+# Apple
+macos-version-min = "10.13"
+ios-version-min = "12.0"
+tvos-version-min = "12.0"
+watchos-version-min = "5.0"
 
 # Cmake
 cmake = "3.28.3"
 
 # Jvm target version
 jvm-target = "17"
-
-# SQLite Multiple Ciphers version postfixed with SHA-256 checksum.
-# Release here: https://github.com/utelle/SQLite3MultipleCiphers/releases
-sqliteMultipleCiphers = "2.2.7.8e84aadc53bc09bda9cd307745a178191e7783e1b6478d74ffbcdf6a04f98085"
 
 android-gradlePlugin = "9.0.0"
 dokka = "2.1.0"

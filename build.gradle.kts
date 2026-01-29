@@ -17,43 +17,40 @@ allprojects {
 }
 
 sqliteCompiler {
+    androidNdkDirectory = objects.directoryProperty().apply {
+        set(androidNdkDirectory())
+    }
+    
+    androidSdkMin = libs.versions.android.sdk.min.get()
+    macosVersionMin = libs.versions.macos.version.min.get()
+    iosVersionMin = libs.versions.ios.version.min.get()
+    tvosVersionMin = libs.versions.tvos.version.min.get()
+    watchosVersionMin = libs.versions.watchos.version.min.get()
+
     sqliteRelease = SqliteRelease.parse(
         sqliteVersion = libs.versions.ksqlite.get(),
         sqliteMultipleCiphersVersion = libs.versions.sqliteMultipleCiphers.get()
     )
 
     sqliteDownloadDirectory = layout.buildDirectory.dir("tmp/sqlite")
-
-    val sqliteDirectory = layout.buildDirectory.dir("sqlite")
-    val artifactsDirectory = sqliteDirectory.map { it.dir("artifacts") }
-    sqliteSourcesDirectory = sqliteDirectory.map { it.dir("sources") }
-    sqliteNativeLibDirectory = artifactsDirectory.map { it.dir("native") }
-
-    androidNdkDirectory = objects.directoryProperty().apply {
-        set(androidNdkDirectory())
-    }
+    sqliteSourcesDirectory = layout.buildDirectory.dir("sqlite")
 }
 
 /**
  * Returns the Android NDK location or throws an exception.
  */
 fun androidNdkDirectory(): File {
-    // Try environment variables first
-    val fromEnv = System.getenv("ANDROID_NDK_HOME")
-        ?: System.getenv("ANDROID_NDK_ROOT")
-        ?: System.getenv("NDK_HOME")
-
-    if (fromEnv != null) {
-        return File(fromEnv)
-    }
-
     // Try to find via ANDROID_HOME/ANDROID_SDK_ROOT
-    val sdkRoot = System.getenv("ANDROID_HOME")
-        ?: System.getenv("ANDROID_SDK_ROOT")
-        ?: Properties().run {
-            rootProject.file("local.properties").inputStream().use { load(it) }
-            getProperty("sdk.dir")
+    val sdkRoot = rootProject.file("local.properties")
+        .takeIf { it.exists() }
+        ?.run {
+            Properties().run {
+                inputStream().use { load(it) }
+                getProperty("sdk.dir")
+            }
         }
+        ?: System.getenv("ANDROID_HOME")
+        ?: System.getenv("ANDROID_SDK_ROOT")
 
     if (sdkRoot != null) {
         val ndkDir = File("$sdkRoot/ndk/${libs.versions.android.ndk.get()}")
@@ -61,6 +58,15 @@ fun androidNdkDirectory(): File {
         if (ndkDir.exists()) {
             return ndkDir
         }
+    }
+
+    // Try environment variables first
+    val fromEnv = System.getenv("ANDROID_NDK_HOME")
+        ?: System.getenv("ANDROID_NDK_ROOT")
+        ?: System.getenv("NDK_HOME")
+
+    if (fromEnv != null) {
+        return File(fromEnv)
     }
 
     val extension = extensions.findByType<KotlinMultiplatformAndroidComponentsExtension>()

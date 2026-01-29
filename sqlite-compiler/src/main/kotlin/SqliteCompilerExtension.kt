@@ -1,4 +1,3 @@
-import org.gradle.api.Task
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import javax.inject.Inject
@@ -7,6 +6,36 @@ import javax.inject.Inject
  * Extension for [SqliteCompilerPlugin].
  */
 abstract class SqliteCompilerExtension @Inject constructor() {
+
+    /**
+     * Directory where the Android NDK resides.
+     */
+    abstract val androidNdkDirectory: DirectoryProperty
+
+    /**
+     * Minimum Android SDK.
+     */
+    abstract val androidSdkMin: Property<String>
+
+    /**
+     * Minimum macOS version.
+     */
+    abstract val macosVersionMin: Property<String>
+
+    /**
+     * Minimum iOS version.
+     */
+    abstract val iosVersionMin: Property<String>
+
+    /**
+     * Minimum tvOS version.
+     */
+    abstract val tvosVersionMin: Property<String>
+
+    /**
+     * Minimum watchOS version.
+     */
+    abstract val watchosVersionMin: Property<String>
 
     /**
      * Release of SQLite that should be downloaded and compiled.
@@ -22,19 +51,4 @@ abstract class SqliteCompilerExtension @Inject constructor() {
      * Directory where the SQLite source tree is stored.
      */
     abstract val sqliteSourcesDirectory: DirectoryProperty
-
-    /**
-     * Directory where the native SQLite artifacts are placed.
-     */
-    abstract val sqliteNativeLibDirectory: DirectoryProperty
-
-    /**
-     * Directory where the Android NDK resides.
-     */
-    abstract val androidNdkDirectory: DirectoryProperty
-
-    /**
-     * Task responsible for outputting the SQLite sources.
-     */
-    abstract val sourceTask: Property<Task>
 }
