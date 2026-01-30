@@ -1,5 +1,7 @@
 import compilation.SqliteCompilationParameters
-import toolchains.ToolchainVersions
+import toolchains.Toolchain
+import toolchains.Toolchains
+import utils.absolutePath
 import java.util.Properties
 
 plugins {
@@ -18,8 +20,30 @@ allprojects {
 }
 
 ksqliteCompiler {
+    downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
+    toolchainsDirectory = layout.buildDirectory.dir("toolchains")
+    sqliteSourcesDirectory = layout.buildDirectory.dir("sqlite")
+
+    compilationParams = SqliteCompilationParameters(
+        sqliteVersion = libs.versions.ksqlite.get(),
+        sqliteMCVersion = libs.versions.sqliteMultipleCiphers.get(),
+        androidSdkMin = libs.versions.android.sdk.min.get(),
+        macosVersionMin = libs.versions.macos.version.min.get(),
+        iosVersionMin = libs.versions.ios.version.min.get(),
+        tvosVersionMin = libs.versions.tvos.version.min.get(),
+        watchosVersionMin = libs.versions.watchos.version.min.get(),
+        toolchains = Toolchains(
+            android = Toolchain(
+                version = libs.versions.toolchain.android.get(),
+                path = toolchainsDirectory.absolutePath("android-ndk")
+            )
+        ),
+    )
+
     checksums = Properties()
-        .apply { file("checksums.properties").inputStream().use { load(it) } }
+        .apply {
+            file("checksums.properties").inputStream().use { load(it) }
+        }
         .run {
             KsqliteChecksums(
                 androidNdkLinux = getProperty("android.ndk.linux"),
@@ -28,24 +52,4 @@ ksqliteCompiler {
                 sqliteMultipleCiphers = getProperty("sqlitemc")
             )
         }
-
-    sqliteCompilationParameters = SqliteCompilationParameters(
-        sqliteVersion = libs.versions.ksqlite.get(),
-        sqliteMCVersion = libs.versions.sqliteMultipleCiphers.get(),
-        androidSdkMin = libs.versions.android.sdk.min.get(),
-        macosVersionMin = libs.versions.macos.version.min.get(),
-        iosVersionMin = libs.versions.ios.version.min.get(),
-        tvosVersionMin = libs.versions.tvos.version.min.get(),
-        watchosVersionMin = libs.versions.watchos.version.min.get(),
-        androidToolchainPath = "TODO"
-    )
-
-    downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
-    sqliteSourcesDirectory = layout.buildDirectory.dir("sqlite")
-
-    toolchainVersions = ToolchainVersions(
-        android = libs.versions.toolchain.android.get()
-    )
-
-    toolchainsDirectory = layout.buildDirectory.dir("toolchains")
 }

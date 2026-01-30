@@ -1,3 +1,13 @@
 package toolchains
 
-const val TOOLCHAIN_ANDROID_NDK = "android-ndk"
+import java.io.Serializable
+
+/**
+ * Available toolchains.
+ */
+data class Toolchains(
+    /**
+     * The Android NDK.
+     */
+    val android: Toolchain
+) : Serializable

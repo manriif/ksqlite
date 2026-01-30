@@ -1,11 +1,17 @@
 package compilation
 
+import toolchains.Toolchains
 import java.io.Serializable
 
 /**
  * Parameters for compilation.
  */
 data class SqliteCompilationParameters(
+    /**
+     * Toolchains.
+     */
+    val toolchains: Toolchains,
+
     /**
      * Version of SQLite.
      */
@@ -40,11 +46,6 @@ data class SqliteCompilationParameters(
      * Minimum watchOS version.
      */
     val watchosVersionMin: String,
-
-    /**
-     * Absolute path to the android NDK toolchain.
-     */
-    val androidToolchainPath: String,
 ) : Serializable {
 
     /**

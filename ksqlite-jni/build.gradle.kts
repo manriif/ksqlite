@@ -28,7 +28,7 @@ android {
 
     externalNativeBuild {
         ndkVersion = libs.versions.android.ndk.get()
-        //ndkPath = sqliteCompilerExtension.sqliteCompilationParameters.get().androidNdkToolchainPath
+        ndkPath = ksqliteCompilerExtension.androidToolchain().get().path
 
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")

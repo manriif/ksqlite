@@ -2,6 +2,7 @@ package tasks
 
 import KsqliteChecksums
 import KsqliteCompilerExtension
+import androidToolchain
 import compilation.SqliteStaticTarget
 import compilation.libraryFile
 import de.undercouch.gradle.tasks.download.Download
@@ -12,7 +13,6 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
-import org.gradle.api.file.FileTree
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
@@ -21,11 +21,10 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import toolchainDirectory
 import toolchains.androidNdk
-import toolchains.androidNdkDirectory
 import toolchains.androidNdkDownloadFileName
 import toolchains.androidNdkExtract
-import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
@@ -33,6 +32,7 @@ import java.io.File
 
 const val ksqliteCompilerTaskGroup = "ksqlite"
 
+const val TASK_INSTALL_AND_CONFIGURE = "installAndConfigure"
 const val TASK_TOOLCHAIN_ANDROID_DOWNLOAD = "toolchainAndroidDownload"
 const val TASK_TOOLCHAIN_ANDROID_EXTRACT = "toolchainAndroidExtract"
 const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
@@ -49,8 +49,21 @@ const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
  * Registers the task for downloading sqlite sources.
  */
 fun Project.registerTasks(extension: KsqliteCompilerExtension) {
-    registerToolchainAndroidExtractTask(extension, registerToolchainAndroidDownloadTask(extension))
-    registerSqliteExtractTask(extension, registerSqliteDownloadTask(extension))
+    val androidTaskProvider = registerToolchainAndroidExtractTask(
+        extension = extension,
+        downloadTaskProvider = registerToolchainAndroidDownloadTask(extension)
+    )
+
+    val sqliteTaskProvider = registerSqliteExtractTask(
+        extension = extension,
+        downloadTaskProvider = registerSqliteDownloadTask(extension)
+    )
+
+    // Global task to wait on all toolchains and sqlite extraction
+    tasks.register(TASK_INSTALL_AND_CONFIGURE) {
+        dependsOn(androidTaskProvider)
+        dependsOn(sqliteTaskProvider)
+    }
 }
 
 /**
@@ -87,29 +100,25 @@ private fun Project.registerDownloadTask(
 /**
  * Registers and returns a task responsible for extracting a file.
  */
-private fun Project.registerExtractTask(
+private inline fun Project.registerExtractTask(
     name: String,
     downloadTaskProvider: TaskProvider<Download>,
     outputDirectory: Provider<Directory>,
-    configure: Task.(file: Provider<File>) -> FileTree
+    crossinline configure: Task.(
+        fileOperation: FileSystemOperations,
+        outputDirectory: Provider<Directory>,
+        file: Provider<RegularFile>,
+    ) -> Unit
 ): TaskProvider<Task> = tasks.register(name) {
     group = ksqliteCompilerTaskGroup
 
     val fileOperations = serviceOf<FileSystemOperations>()
-    val downloadedFile = downloadTaskProvider.map { it.dest }
+    val downloadedFile = layout.file(downloadTaskProvider.map { it.dest })
 
     inputs.file(downloadedFile)
     outputs.dir(outputDirectory)
 
-    val sources = configure(downloadedFile)
-
-    // Adds the copy action before the last actions which can be a cleanup added in configure
-    actions.add(actions.lastIndex) {
-        fileOperations.copy {
-            from(sources)
-            into(outputDirectory)
-        }
-    }
+    configure(fileOperations, outputDirectory, downloadedFile)
 
     doFirst {
         fileOperations.delete {
@@ -130,12 +139,14 @@ private fun Project.registerToolchainAndroidDownloadTask(
 ): TaskProvider<Download> = registerDownloadTask(
     name = TASK_TOOLCHAIN_ANDROID_DOWNLOAD,
     extension = extension,
-    fileName = extension.toolchainVersions.map { androidNdkDownloadFileName(it.android) },
+    fileName = extension.androidToolchain().map { androidNdkDownloadFileName(it.version) },
     configureVerify = { checksums ->
         algorithm("SHA-1")
         checksum(checksums.androidNdk())
     },
     configureDownload = { ndkFileName ->
+        // Skip if the host is a non-supported ARM64
+        onlyIf { ndkFileName.isPresent }
         src(ndkFileName.map { "https://dl.google.com/android/repository/$it" })
     }
 )
@@ -150,13 +161,16 @@ private fun Project.registerToolchainAndroidExtractTask(
 ): TaskProvider<Task> = registerExtractTask(
     name = TASK_TOOLCHAIN_ANDROID_EXTRACT,
     downloadTaskProvider = downloadTaskProvider,
-    outputDirectory = androidNdkDirectory(extension.toolchainsDirectory),
-) { downloadedFile ->
-    androidNdkExtract(
-        version = extension.toolchainVersions.map { it.android },
-        downloadedFile = downloadedFile
-    )
-}
+    outputDirectory = layout.toolchainDirectory(extension.androidToolchain()),
+    configure = { fileOperations, outputDirectory, downloadedFile ->
+        androidNdkExtract(
+            version = extension.androidToolchain().map { it.version },
+            fileOperations = fileOperations,
+            downloadedFile = downloadedFile,
+            destination = outputDirectory
+        )
+    }
+)
 
 ///////////////////////////////////////////////////////////////////////////
 // Sqlite Multiple Ciphers
@@ -170,7 +184,7 @@ private fun Project.registerSqliteDownloadTask(
 ): TaskProvider<Download> = registerDownloadTask(
     name = TASK_SQLITE_DOWNLOAD,
     extension = extension,
-    fileName = extension.sqliteCompilationParameters.map { params ->
+    fileName = extension.compilationParams.map { params ->
         "sqlite3mc-${params.sqliteMCVersion}-sqlite-${params.sqliteVersion}-amalgamation.zip"
     },
     configureVerify = { checksums ->
@@ -178,7 +192,7 @@ private fun Project.registerSqliteDownloadTask(
         checksum(checksums.sqliteMultipleCiphers)
     },
     configureDownload = { fileName ->
-        src(extension.sqliteCompilationParameters.zip(fileName) { params, fileName ->
+        src(extension.compilationParams.zip(fileName) { params, fileName ->
             "https://github.com/utelle/SQLite3MultipleCiphers/releases/download/" +
                     "v${params.sqliteMCVersion}/$fileName"
         })
@@ -196,7 +210,16 @@ private fun Project.registerSqliteExtractTask(
     name = TASK_SQLITE_EXTRACT,
     downloadTaskProvider = downloadTaskProvider,
     outputDirectory = extension.sqliteSourcesDirectory,
-    configure = { zipTree(it) }
+    configure = { fileOperations, outputDirectory, downloadedFile ->
+        val sources = zipTree(downloadedFile)
+
+        doLast {
+            fileOperations.copy {
+                from(sources)
+                into(outputDirectory)
+            }
+        }
+    }
 )
 
 ///////////////////////////////////////////////////////////////////////////
@@ -214,7 +237,7 @@ fun Project.registerSqliteCompileStaticTask(): TaskProvider<SqliteCompileStaticT
 
         // Explicit dependency on the unzip task
         dependsOn(rootProject.tasks.named(TASK_SQLITE_EXTRACT))
-        compilationParameters = extension.sqliteCompilationParameters
+        compilationParameters = extension.compilationParams
         sqliteSourcesDirectory = extension.sqliteSourcesDirectory
     }
 }
@@ -236,11 +259,11 @@ fun KotlinNativeTarget.registerSqliteGenerateCInteropDefTask(
 ) {
     group = ksqliteCompilerTaskGroup
 
-    // Explicit dependency on the unzip task
-    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_EXTRACT))
+    // Explicit dependency on the global install and configure task
+    dependsOn(project.rootProject.tasks.named(TASK_INSTALL_AND_CONFIGURE))
     outputs.file(defFileProvider)
 
-    val parameters = project.ksqliteCompilerExtension.sqliteCompilationParameters
+    val parameters = project.ksqliteCompilerExtension.compilationParams
     val libraryFile = staticTarget.libraryFile(parameters)
 
     doLast {

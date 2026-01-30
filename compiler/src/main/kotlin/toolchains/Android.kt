@@ -3,11 +3,12 @@ package toolchains
 import KsqliteChecksums
 import org.gradle.api.Task
 import org.gradle.api.file.Directory
-import org.gradle.api.file.FileTree
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.process.ExecOperations
-import java.io.File
+import utils.copyFirstDirectoryContent
 
 /**
  * Returns the Android NDK download URL or null if the NDK is not supported on the current platform.
@@ -49,41 +50,50 @@ fun androidNdkHostTag(): String = when (Host.Current.operatingSystem) {
 }
 
 /**
- * Returns the path to the android NDK directory from the root [toolchainsDirectory].
- */
-fun androidNdkDirectory(toolchainsDirectory: Provider<Directory>): Provider<Directory> {
-    //"$ndkDir/toolchains/llvm/prebuilt/$ndkHostTag"
-    return toolchainsDirectory.map { it.dir(TOOLCHAIN_ANDROID_NDK) }
-}
-
-/**
  * Returns a file tree to the downloaded Android NDK.
  */
 fun Task.androidNdkExtract(
     version: Provider<String>,
-    downloadedFile: Provider<File>
-): FileTree = when (Host.Current.operatingSystem) {
-    Host.OperatingSystem.Windows, Host.OperatingSystem.Linux -> project.zipTree(downloadedFile)
+    fileOperations: FileSystemOperations,
+    downloadedFile: Provider<RegularFile>,
+    destination: Provider<Directory>
+): Task = when (Host.Current.operatingSystem) {
+    Host.OperatingSystem.Windows, Host.OperatingSystem.Linux -> {
+        val sources = project.zipTree(downloadedFile)
+
+        doLast {
+            fileOperations.copyFirstDirectoryContent(
+                source = sources,
+                destination = destination
+            )
+        }
+    }
+
     Host.OperatingSystem.MacOS -> {
         val execOperations = project.serviceOf<ExecOperations>()
 
-        doFirst {
-            execOperations.exec {
-                commandLine("hdiutil", "attach", downloadedFile.get().absolutePath)
-            }.rethrowFailure()
+        val ndkSources = version.map { value ->
+            val (major, build) = value.split('.')
+            "/Volumes/Android NDK $major/AndroidNDK$build.app/Contents/NDK"
         }
 
         doLast {
             val versionMajor = version.get().substringBefore('.')
 
             execOperations.exec {
-                commandLine("hdiutil", "detach", "/Volumes/Android NDK $versionMajor")
+                commandLine("hdiutil", "attach", downloadedFile.get().asFile.absolutePath)
             }.rethrowFailure()
-        }
 
-        project.fileTree(version.map { value ->
-            val (major, build) = value.split('.')
-            "/Volumes/Android NDK $major/AndroidNDK$build.app/Contents/NDK"
-        })
+            try {
+                fileOperations.copy {
+                    from(ndkSources)
+                    into(destination)
+                }
+            } finally {
+                execOperations.exec {
+                    commandLine("hdiutil", "detach", "/Volumes/Android NDK $versionMajor")
+                }.rethrowFailure()
+            }
+        }
     }
 }

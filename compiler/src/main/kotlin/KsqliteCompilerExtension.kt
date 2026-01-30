@@ -1,7 +1,6 @@
 import compilation.SqliteCompilationParameters
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
-import toolchains.ToolchainVersions
 
 /**
  * Extension for [KsqliteCompilerPlugin].
@@ -19,9 +18,9 @@ interface KsqliteCompilerExtension {
     val downloadDirectory: DirectoryProperty
 
     /**
-     * Parameters for the SQLite compilation.
+     * Directory where toolchains are located.
      */
-    val sqliteCompilationParameters: Property<SqliteCompilationParameters>
+    val toolchainsDirectory: DirectoryProperty
 
     /**
      * Directory where the SQLite source tree is stored.
@@ -29,12 +28,7 @@ interface KsqliteCompilerExtension {
     val sqliteSourcesDirectory: DirectoryProperty
 
     /**
-     * Versions of the toolchains to download.
+     * Parameters for the SQLite compilation.
      */
-    val toolchainVersions: Property<ToolchainVersions>
-
-    /**
-     * Directory where toolchains are located.
-     */
-    val toolchainsDirectory: DirectoryProperty
+    val compilationParams: Property<SqliteCompilationParameters>
 }

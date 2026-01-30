@@ -7,6 +7,7 @@ import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.konan.target.Architecture
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.KonanTarget
+import toolchains.androidNdkHostTag
 import java.io.ByteArrayOutputStream
 
 ///////////////////////////////////////////////////////////////////////////
@@ -23,30 +24,6 @@ val SqliteCompileTimeOptions = arrayOf(
     "-DSQLITE_ENABLE_RTREE=1"
 )
 
-/**
- * Returns the sqlite header file (.h).
- */
-fun sqliteHeaderFile(
-    sources: DirectoryProperty,
-    params: Provider<SqliteCompilationParameters>
-): Provider<RegularFile> {
-    return sources.zip(params) { directory, params ->
-        directory.file("${params.sqliteMcName}.h")
-    }
-}
-
-/**
- * Returns the sqlite source file (.c).
- */
-fun sqliteSourceFile(
-    sources: DirectoryProperty,
-    params: Provider<SqliteCompilationParameters>
-): Provider<RegularFile> {
-    return sources.zip(params) { directory, params ->
-        directory.file("${params.sqliteMcName}.c")
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////////
 // Shared
 ///////////////////////////////////////////////////////////////////////////
@@ -54,6 +31,14 @@ fun sqliteSourceFile(
 ///////////////////////////////////////////////////////////////////////////
 // Static
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Resolves [path] relatively to the Android NDK toolchain directory and returns the absolute path
+ * of the resolved file.
+ */
+private fun SqliteCompilationParameters.androidToolchainPath(path: String): String {
+    return "${toolchains.android.path}/toolchains/llvm/prebuilt/${androidNdkHostTag()}/$path"
+}
 
 /**
  * Returns the compiler flags for Xcode compilation.
@@ -171,7 +156,7 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
 
         arrayOf(
             "-target", "$targetTriple$androidSdkMin",
-            "--sysroot=$androidToolchainPath/sysroot"
+            "--sysroot=${androidToolchainPath("sysroot")}"
         )
     }
 }
@@ -182,7 +167,7 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
 fun SqliteCompilationParameters.getNativeCompilerArgs(target: KonanTarget): Array<String> {
     return when (target.family) {
         Family.OSX, Family.IOS, Family.TVOS, Family.WATCHOS -> arrayOf("clang")
-        Family.ANDROID -> arrayOf("$androidToolchainPath/bin/clang")
+        Family.ANDROID -> arrayOf(androidToolchainPath("bin/clang"))
         Family.LINUX -> arrayOf("zig", "cc")
         Family.MINGW -> arrayOf("x86_64-w64-mingw32-gcc")
     }
@@ -191,7 +176,7 @@ fun SqliteCompilationParameters.getNativeCompilerArgs(target: KonanTarget): Arra
 fun SqliteCompilationParameters.getNativeArchiverArgs(target: KonanTarget): Array<String> {
     return when (target.family) {
         Family.OSX, Family.IOS, Family.TVOS, Family.WATCHOS -> arrayOf("ar")
-        Family.ANDROID -> arrayOf("$androidToolchainPath/bin/llvm-ar")
+        Family.ANDROID -> arrayOf(androidToolchainPath("bin/llvm-ar"))
         Family.LINUX -> arrayOf("zig", "ar")
         Family.MINGW -> arrayOf("x86_64-w64-mingw32-ar")
     }
