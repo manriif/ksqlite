@@ -10,13 +10,13 @@ plugins {
 }
 
 kotlin {
-    val sqliteDirectory = layout.buildDirectory.dir("sqlite")
+    /*val sqliteDirectory = layout.buildDirectory.dir("sqlite")
     val nativeArtifactDirectory = sqliteDirectory.map { it.dir("native") }
     val compileStaticTaskProvider = registerSqliteCompileStaticTask()
 
     listOf(linuxX64()).forEach {
         it.configureCInterop(nativeArtifactDirectory, compileStaticTaskProvider)
-    }
+    }*/
 
     androidJvmTargets()
     //jvmTargets()
@@ -36,11 +36,11 @@ kotlin {
     }
 }
 
-fun KotlinNativeTarget.configureCInterop(
+/*fun KotlinNativeTarget.configureCInterop(
     artifactDirectory: Provider<Directory>,
     compileStaticTask: TaskProvider<SqliteCompileStaticTask>
 ) {
-    val extension = sqliteCompilerExtension
+    val extension = ksqliteCompilerExtension
     val outputDirectoryProvider = artifactDirectory.map { it.dir(konanTarget.name) }
     val libraryDirectoryProvider = outputDirectoryProvider.map { it.dir("library") }
 
@@ -75,4 +75,4 @@ fun KotlinNativeTarget.configureCInterop(
             includeDirs(extension.sqliteSourcesDirectory)
         }
     }
-}
+}*/

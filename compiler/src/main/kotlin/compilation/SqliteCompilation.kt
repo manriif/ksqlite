@@ -171,7 +171,7 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
 
         arrayOf(
             "-target", "$targetTriple$androidSdkMin",
-            "--sysroot=$androidNdkToolchainPath/sysroot"
+            "--sysroot=$androidToolchainPath/sysroot"
         )
     }
 }
@@ -182,7 +182,7 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
 fun SqliteCompilationParameters.getNativeCompilerArgs(target: KonanTarget): Array<String> {
     return when (target.family) {
         Family.OSX, Family.IOS, Family.TVOS, Family.WATCHOS -> arrayOf("clang")
-        Family.ANDROID -> arrayOf("$androidNdkToolchainPath/bin/clang")
+        Family.ANDROID -> arrayOf("$androidToolchainPath/bin/clang")
         Family.LINUX -> arrayOf("zig", "cc")
         Family.MINGW -> arrayOf("x86_64-w64-mingw32-gcc")
     }
@@ -191,7 +191,7 @@ fun SqliteCompilationParameters.getNativeCompilerArgs(target: KonanTarget): Arra
 fun SqliteCompilationParameters.getNativeArchiverArgs(target: KonanTarget): Array<String> {
     return when (target.family) {
         Family.OSX, Family.IOS, Family.TVOS, Family.WATCHOS -> arrayOf("ar")
-        Family.ANDROID -> arrayOf("$androidNdkToolchainPath/bin/llvm-ar")
+        Family.ANDROID -> arrayOf("$androidToolchainPath/bin/llvm-ar")
         Family.LINUX -> arrayOf("zig", "ar")
         Family.MINGW -> arrayOf("x86_64-w64-mingw32-ar")
     }

@@ -1,4 +1,4 @@
-rootProject.name = "sqlite-compiler"
+rootProject.name = "compiler"
 
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {

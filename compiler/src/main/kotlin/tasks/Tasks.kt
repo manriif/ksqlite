@@ -1,10 +1,10 @@
 package tasks
 
-import SqliteCompilerExtension
+import KsqliteCompilerExtension
 import compilation.SqliteStaticTarget
 import compilation.libraryFile
 import de.undercouch.gradle.tasks.download.Download
-import de.undercouch.gradle.tasks.download.Verify
+import de.undercouch.gradle.tasks.download.VerifyAction
 import interop.createDefContent
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -18,18 +18,19 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import sqliteCompilerExtension
+import ksqliteCompilerExtension
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
 ///////////////////////////////////////////////////////////////////////////
 
-const val sqliteCompilerTaskGroup = "sqlite"
+const val ksqliteCompilerTaskGroup = "ksqlite"
 
+const val TASK_TOOLCHAIN_ANDROID_DOWNLOAD = "toolchainAndroidDownload"
+const val TASK_TOOLCHAIN_ANDROID_EXTRACT = "toolchainAndroidExtract"
 const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
-const val TASK_SQLITE_CHECKSUM = "sqliteChecksum"
-const val TASK_SQLITE_UNZIP = "sqliteUnzip"
-const val TASK_SQLITE_COMPILE_SHARED = "sqliteCompileShared"
+const val TASK_SQLITE_EXTRACT = "sqliteExtract"
+const val TASK_SQLITE_COMPILE_DYNAMIC = "sqliteCompileDynamic"
 const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 
@@ -40,56 +41,61 @@ const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 /**
  * Registers the task for downloading sqlite sources.
  */
-fun Project.registerTasks(extension: SqliteCompilerExtension) {
-    val downloadTaskProvider = registerSqliteDownloadTask(extension)
-    val checksumTaskProvider = registerSqliteChecksumTask(extension, downloadTaskProvider)
-    registerSqliteUnzipTask(extension, checksumTaskProvider)
+fun Project.registerTasks(extension: KsqliteCompilerExtension) {
+    registerSqliteUnzipTask(extension, registerSqliteDownloadTask(extension))
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Android NDK
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Registers and returns the task responsible for downloading the necessary toolchains.
+ */
+private fun Project.registerToolchainAndroidDownloadTask(
+    extension: KsqliteCompilerExtension
+): TaskProvider<Download> = tasks.register<Download>(TASK_TOOLCHAIN_ANDROID_DOWNLOAD) {
+    group = ksqliteCompilerTaskGroup
+
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Sqlite
+///////////////////////////////////////////////////////////////////////////
 
 /**
  * Registers and returns the task responsible for downloading SQLite sources.
  */
 private fun Project.registerSqliteDownloadTask(
-    extension: SqliteCompilerExtension
+    extension: KsqliteCompilerExtension
 ): TaskProvider<Download> = tasks.register<Download>(TASK_SQLITE_DOWNLOAD) {
-    group = sqliteCompilerTaskGroup
+    group = ksqliteCompilerTaskGroup
 
     val amalgamationFileName = extension.sqliteCompilationParameters.map {
         "sqlite3mc-${it.sqliteMCVersion}-sqlite-${it.sqliteVersion}-amalgamation.zip"
     }
 
-    src(extension.sqliteCompilationParameters.zip(amalgamationFileName) { release, fileName ->
+    src(extension.sqliteCompilationParameters.zip(amalgamationFileName) { params, file ->
         "https://github.com/utelle/SQLite3MultipleCiphers/releases/download/" +
-                "v${release.sqliteMCVersion}/$fileName"
+                "v${params.sqliteMCVersion}/$file"
     })
 
-    dest(extension.sqliteDownloadDirectory.zip(amalgamationFileName) { directory, fileName ->
-        directory.file(fileName)
-    })
+    val destination = extension.sqliteDownloadDirectory.zip(amalgamationFileName) { dir, file ->
+        dir.file(file)
+    }
 
+    dest(destination)
     overwrite(false)
-}
 
-/**
- * Registers and returns the task responsible for checking downloaded SQLite sources.
- */
-private fun Project.registerSqliteChecksumTask(
-    extension: SqliteCompilerExtension,
-    downloadTaskProvider: TaskProvider<Download>
-): TaskProvider<Verify> = tasks.register<Verify>(TASK_SQLITE_CHECKSUM) {
-    group = sqliteCompilerTaskGroup
+    val verify = VerifyAction(layout).apply {
+        src(destination)
+        algorithm("SHA-256")
+    }
 
-    val amalgamationFile = downloadTaskProvider.map { it.dest }
-
-    // Implicit dependency
-    inputs.file(amalgamationFile)
-    inputs.property("checksum", extension.sqliteDownloadChecksum)
-
-    src(amalgamationFile)
-    algorithm("SHA-256")
-
-    // Unfortunately, verify task do not accept provider
-    checksum(extension.sqliteDownloadChecksum.get())
+    doLast {
+        verify.checksum(extension.checksums.get().sqliteMultipleCiphers)
+        verify.execute()
+    }
 }
 
 /**
@@ -97,13 +103,13 @@ private fun Project.registerSqliteChecksumTask(
  */
 @Suppress("NewApi")
 private fun Project.registerSqliteUnzipTask(
-    extension: SqliteCompilerExtension,
-    checksumTaskProvider: TaskProvider<Verify>
-): TaskProvider<Copy> = tasks.register<Copy>(TASK_SQLITE_UNZIP) {
-    group = sqliteCompilerTaskGroup
+    extension: KsqliteCompilerExtension,
+    downloadTaskProvider: TaskProvider<Download>
+): TaskProvider<Copy> = tasks.register<Copy>(TASK_SQLITE_EXTRACT) {
+    group = ksqliteCompilerTaskGroup
 
     val fileOperations = serviceOf<FileSystemOperations>()
-    val amalgamationFile = checksumTaskProvider.map { it.inputs.files.singleFile }
+    val amalgamationFile = downloadTaskProvider.map { it.dest }
     val amalgamationZipTree = zipTree(amalgamationFile)
 
     // Implicit dependency on the checksum task
@@ -121,27 +127,27 @@ private fun Project.registerSqliteUnzipTask(
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Compilation tasks
+// Compilation
 ///////////////////////////////////////////////////////////////////////////
 
 /**
  * Registers and returns the task responsible for generating the artifacts for static targets.
  */
 fun Project.registerSqliteCompileStaticTask(): TaskProvider<SqliteCompileStaticTask> {
-    val extension = sqliteCompilerExtension
+    val extension = ksqliteCompilerExtension
 
     return tasks.register<SqliteCompileStaticTask>(TASK_SQLITE_COMPILE_STATIC) {
-        group = sqliteCompilerTaskGroup
+        group = ksqliteCompilerTaskGroup
 
         // Explicit dependency on the unzip task
-        dependsOn(rootProject.tasks.named(TASK_SQLITE_UNZIP))
+        dependsOn(rootProject.tasks.named(TASK_SQLITE_EXTRACT))
         compilationParameters = extension.sqliteCompilationParameters
         sqliteSourcesDirectory = extension.sqliteSourcesDirectory
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Interop tasks
+// Interop
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -155,13 +161,13 @@ fun KotlinNativeTarget.registerSqliteGenerateCInteropDefTask(
 ): TaskProvider<Task> = project.tasks.register(
     name = "$TASK_SQLITE_GENERATE_CINTEROP_DEF${name.uppercaseFirstChar()}"
 ) {
-    group = sqliteCompilerTaskGroup
+    group = ksqliteCompilerTaskGroup
 
     // Explicit dependency on the unzip task
-    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_UNZIP))
+    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_EXTRACT))
     outputs.file(defFileProvider)
 
-    val parameters = project.sqliteCompilerExtension.sqliteCompilationParameters
+    val parameters = project.ksqliteCompilerExtension.sqliteCompilationParameters
     val libraryFile = staticTarget.libraryFile(parameters)
 
     doLast {

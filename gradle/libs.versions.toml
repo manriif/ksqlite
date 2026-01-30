@@ -7,9 +7,9 @@
 # Project version, matching the targeted sqlite version
 ksqlite = "3.51.2"
 
-# SQLite Multiple Ciphers version postfixed with SHA-256 checksum.
-# Release here: https://github.com/utelle/SQLite3MultipleCiphers/releases
-sqliteMultipleCiphers = "2.2.7.8e84aadc53bc09bda9cd307745a178191e7783e1b6478d74ffbcdf6a04f98085"
+# Toolchains
+toolchain-android = "r29"
+toolchain.zig = "0.15.2"
 
 # Android
 android-ndk = "29.0.14206865"
@@ -22,27 +22,26 @@ ios-version-min = "12.0"
 tvos-version-min = "12.0"
 watchos-version-min = "5.0"
 
-# Cmake
-cmake = "3.28.3"
-
 # Jvm target version
 jvm-target = "17"
 
 android-gradlePlugin = "9.0.0"
+cmake = "3.28.3"
 dokka = "2.1.0"
 undercouch-download = "5.6.0"
 gradle-pluginPublish = "2.0.0"
 kotlin = "2.3.20-Beta2"
 kotlin-wrappers = "2026.1.14"
 kotlinx-coroutines = "1.10.2"
-vanniktech-mavenPublish = "0.36.0"
+sqliteMultipleCiphers = "2.2.7"
 turbine = "1.2.1"
+vanniktech-mavenPublish = "0.36.0"
 
 [plugins]
 
 conventions-common = { id = "conventions-common", version.ref = "ksqlite" }
 conventions-kmp = { id = "conventions-kmp", version.ref = "ksqlite" }
-sqliteCompiler = { id = "sqlite-compiler", version.ref = "ksqlite" }
+ksqliteCompiler = { id = "ksqlite-compiler", version.ref = "ksqlite" }
 
 android-library = { id = "com.android.library", version.ref = "android-gradlePlugin" }
 android-multiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "android-gradlePlugin" }

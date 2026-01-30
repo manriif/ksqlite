@@ -17,11 +17,6 @@ data class SqliteCompilationParameters(
     val sqliteMCVersion: String,
 
     /**
-     * Absolute path to the android NDK toolchain.
-     */
-    val androidNdkToolchainPath: String,
-
-    /**
      * Minimum Android SDK.
      */
     val androidSdkMin: String,
@@ -45,6 +40,11 @@ data class SqliteCompilationParameters(
      * Minimum watchOS version.
      */
     val watchosVersionMin: String,
+
+    /**
+     * Absolute path to the android NDK toolchain.
+     */
+    val androidToolchainPath: String,
 ) : Serializable {
 
     /**
