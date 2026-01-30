@@ -40,7 +40,7 @@ ksqliteCompiler {
         androidToolchainPath = "TODO"
     )
 
-    sqliteDownloadDirectory = layout.buildDirectory.dir("tmp/sqlite")
+    downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
     sqliteSourcesDirectory = layout.buildDirectory.dir("sqlite")
 
     toolchainVersions = ToolchainVersions(

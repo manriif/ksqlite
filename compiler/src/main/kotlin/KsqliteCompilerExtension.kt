@@ -14,14 +14,14 @@ interface KsqliteCompilerExtension {
     val checksums: Property<KsqliteChecksums>
 
     /**
+     * Directory where to put downloaded files.
+     */
+    val downloadDirectory: DirectoryProperty
+
+    /**
      * Parameters for the SQLite compilation.
      */
     val sqliteCompilationParameters: Property<SqliteCompilationParameters>
-
-    /**
-     * Directory where the SQLite source tree is downloaded and unzipped.
-     */
-    val sqliteDownloadDirectory: DirectoryProperty
 
     /**
      * Directory where the SQLite source tree is stored.
