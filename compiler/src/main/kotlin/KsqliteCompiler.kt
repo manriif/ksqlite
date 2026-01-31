@@ -1,7 +1,6 @@
 import compilation.SqliteCompilationParameters
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
@@ -56,7 +55,7 @@ fun KsqliteCompilerExtension.androidToolchain(): Provider<Toolchain> {
  * Returns the sqlite header file (.h).
  */
 fun sqliteHeaderFile(
-    sources: DirectoryProperty,
+    sources: Provider<Directory>,
     params: Provider<SqliteCompilationParameters>
 ): Provider<RegularFile> {
     return sources.zip(params) { directory, params ->
@@ -68,7 +67,7 @@ fun sqliteHeaderFile(
  * Returns the sqlite source file (.c).
  */
 fun sqliteSourceFile(
-    sources: DirectoryProperty,
+    sources: Provider<Directory>,
     params: Provider<SqliteCompilationParameters>
 ): Provider<RegularFile> {
     return sources.zip(params) { directory, params ->

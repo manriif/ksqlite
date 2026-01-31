@@ -8,6 +8,8 @@ import compilation.libraryFile
 import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.VerifyAction
 import interop.createDefContent
+import interop.createSqliteCMakeListsContent
+import interop.createSqliteJniRuntimeMetadataContent
 import ksqliteCompilerExtension
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -21,6 +23,8 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import sqliteHeaderFile
+import sqliteSourceFile
 import toolchainDirectory
 import toolchains.androidNdk
 import toolchains.androidNdkDownloadFileName
@@ -40,6 +44,8 @@ const val TASK_SQLITE_EXTRACT = "sqliteExtract"
 const val TASK_SQLITE_COMPILE_DYNAMIC = "sqliteCompileDynamic"
 const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
+const val TASK_SQLITE_GENERATE_CMAKE_LISTS = "sqliteGenerateCMakeLists"
+const val TASK_SQLITE_GENERATE_JNI_RUNTIME_METADATA = "sqliteGenerateJniRuntimeMetadata"
 
 ///////////////////////////////////////////////////////////////////////////
 // Root tasks
@@ -272,6 +278,70 @@ fun KotlinNativeTarget.registerSqliteGenerateCInteropDefTask(
                 packageName = packageName,
                 libraryFile = libraryFile.get().asFile,
                 params = parameters.get()
+            )
+        )
+    }
+}
+
+/**
+ * Registers and returns the task responsible for generating the CMakeList.txt file for SQLite.
+ */
+fun Project.registerSqliteGenerateCMakeListsTask(
+    cmakeListsFile: Provider<RegularFile>,
+    cmakeVersion: String
+): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_GENERATE_CMAKE_LISTS) {
+    group = ksqliteCompilerTaskGroup
+
+    // Explicit dependency on sqlite extract task
+    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_EXTRACT))
+
+    val extension = ksqliteCompilerExtension
+
+    val headerFile = sqliteHeaderFile(
+        sources = extension.sqliteSourcesDirectory,
+        params = extension.compilationParams
+    )
+
+    val sourceFile = sqliteSourceFile(
+        sources = extension.sqliteSourcesDirectory,
+        params = extension.compilationParams
+    )
+
+    inputs.files(headerFile, sourceFile)
+    outputs.file(cmakeListsFile)
+
+    doLast {
+        cmakeListsFile.get().asFile.writeText(
+            createSqliteCMakeListsContent(
+                cmakeVersion = cmakeVersion,
+                sqliteHeaderFile = headerFile.get().asFile,
+                sqliteSourceFile = sourceFile.get().asFile,
+                params = extension.compilationParams.get()
+            )
+        )
+    }
+}
+
+/**
+ * Registers and returns the task responsible for generating JNI runtime metadata for SQLite.
+ */
+fun Project.registerSqliteJniRuntimeMetadataTask(
+    packageName: String,
+    metadataFile: Provider<RegularFile>,
+): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_GENERATE_JNI_RUNTIME_METADATA) {
+    group = ksqliteCompilerTaskGroup
+
+    // Explicit dependency on sqlite extract task
+    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_EXTRACT))
+    outputs.file(metadataFile)
+
+    val extension = ksqliteCompilerExtension
+
+    doLast {
+        metadataFile.get().asFile.writeText(
+            createSqliteJniRuntimeMetadataContent(
+                packageName = packageName,
+                params = extension.compilationParams.get()
             )
         )
     }

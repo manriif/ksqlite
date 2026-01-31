@@ -59,7 +59,7 @@ abstract class SqliteCompileStaticWorker : WorkAction<SqliteCompileStaticWorker.
                 sourceFile.absolutePath,
                 "-o",
                 objectFile.absolutePath,
-                *SqliteCompileTimeOptions,
+                *SqliteCompileTimeOptions.map { "-D$it" }.toTypedArray(),
                 "-O3"
             )
         }

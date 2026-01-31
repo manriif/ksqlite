@@ -10,13 +10,13 @@ plugins {
 }
 
 kotlin {
-    val sqliteDirectory = layout.buildDirectory.dir("sqlite")
+    /*val sqliteDirectory = layout.buildDirectory.dir("sqlite")
     val nativeArtifactDirectory = sqliteDirectory.map { it.dir("native") }
     val compileStaticTaskProvider = registerSqliteCompileStaticTask()
 
     listOf(androidNativeX64()).forEach {
         it.configureCInterop(nativeArtifactDirectory, compileStaticTaskProvider)
-    }
+    }*/
 
     androidJvmTargets()
     //jvmTargets()

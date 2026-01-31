@@ -18,10 +18,10 @@ import java.io.ByteArrayOutputStream
  * Compile-time options for SQLite compilation.
  */
 val SqliteCompileTimeOptions = arrayOf(
-    "-DCODEC_TYPE=CODEC_TYPE_CHACHA20",
-    "-DSQLITE_ENABLE_FTS5=1",
-    "-DSQLITE_ENABLE_JSON1=1",
-    "-DSQLITE_ENABLE_RTREE=1"
+    "CODEC_TYPE=CODEC_TYPE_CHACHA20",
+    "SQLITE_ENABLE_FTS5=1",
+    "SQLITE_ENABLE_JSON1=1",
+    "SQLITE_ENABLE_RTREE=1"
 )
 
 ///////////////////////////////////////////////////////////////////////////
