@@ -1,6 +1,7 @@
 import compilation.SqliteCompilationParameters
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 
 /**
  * Extension for [KsqliteCompilerPlugin].
@@ -13,14 +14,14 @@ interface KsqliteCompilerExtension {
     val checksums: Property<KsqliteChecksums>
 
     /**
+     * Parameters for the SQLite compilation.
+     */
+    val compilationParams: Property<SqliteCompilationParameters>
+
+    /**
      * Directory where to put downloaded files.
      */
     val downloadDirectory: DirectoryProperty
-
-    /**
-     * Directory where toolchains are located.
-     */
-    val toolchainsDirectory: DirectoryProperty
 
     /**
      * Directory where the SQLite source tree is stored.
@@ -28,7 +29,17 @@ interface KsqliteCompilerExtension {
     val sqliteSourcesDirectory: DirectoryProperty
 
     /**
-     * Parameters for the SQLite compilation.
+     * Version of the JDK.
      */
-    val compilationParams: Property<SqliteCompilationParameters>
+    val jdkVersion: Property<String>
+
+    /**
+     * Version of JExtract.
+     */
+    val jExtractVersion: Property<String>
+
+    /**
+     * Directory where eJextract is located.
+     */
+    val jExtractDirectory: DirectoryProperty
 }

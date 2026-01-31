@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import tasks.registerSqliteGenerateCMakeListsTask
 import tasks.registerSqliteJniRuntimeMetadataTask
 
@@ -17,20 +16,40 @@ val generateSqliteCMakeListsTaskProvider = registerSqliteGenerateCMakeListsTask(
 )
 
 val generateSqliteJniRuntimeMetadataTaskProvider = registerSqliteJniRuntimeMetadataTask(
-    packageName = localNamespace,
-    metadataFile = generatedSourceDirectory.map { it.file("$localNamespace/KsqliteJni.kt") }
+    packageName = projectNamespace,
+    libraryName = "ksqlite-native",
+    metadataFile = generatedSourceDirectory.map { it.file("$projectNamespace/KsqliteNativeJni.kt") }
 )
 
-kotlin {
-    jvmToolchain(libs.versions.jvm.target.get().toInt())
+val generateNativeContent by tasks.registering {
+    dependsOn(generateSqliteCMakeListsTaskProvider)
+    dependsOn(generateSqliteJniRuntimeMetadataTaskProvider)
+}
 
-    compilerOptions {
-        jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.get())
+registerTaskForIde(generateNativeContent) {
+    // CMakeLists.txt file need to be generated or sync will fail so force task action(s) execution
+    generateSqliteCMakeListsTaskProvider.get().let { generateTask ->
+        generateTask.actions.forEach { it(generateTask) }
+    }
+}
+
+kotlin {
+    configureKotlin()
+
+    target.compilations.configureEach {
+        compileTaskProvider.configure {
+            dependsOn(generateNativeContent)
+        }
     }
 }
 
 android {
-    namespace = localNamespace
+    namespace = projectNamespace
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.default.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.default.get())
+    }
 
     compileSdk {
         version = release(libs.versions.android.sdk.compile.get().toInt())
@@ -52,12 +71,7 @@ android {
         }
     }
 
-    sourceSets.all {
-        println("sourceSet -> ${this.name}, ${this.kotlin.name}")
+    sourceSets.named("main") {
+        kotlin.directories += generatedSourceDirectory.get().asFile.absolutePath
     }
-}
-
-rootProject.tasks.named("prepareKotlinBuildScriptModel").configure {
-    dependsOn(generateSqliteCMakeListsTaskProvider)
-    dependsOn(generateSqliteJniRuntimeMetadataTaskProvider)
 }

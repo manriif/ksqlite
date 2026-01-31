@@ -10,6 +10,9 @@ import de.undercouch.gradle.tasks.download.VerifyAction
 import interop.createDefContent
 import interop.createSqliteCMakeListsContent
 import interop.createSqliteJniRuntimeMetadataContent
+import jextract.jextract
+import jextract.jextractDownloadUrl
+import jextract.jextractExtract
 import ksqliteCompilerExtension
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -27,8 +30,9 @@ import sqliteHeaderFile
 import sqliteSourceFile
 import toolchainDirectory
 import toolchains.androidNdk
-import toolchains.androidNdkDownloadFileName
+import toolchains.androidNdkDownloadUrl
 import toolchains.androidNdkExtract
+import utils.copyFirstDirectoryContent
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
@@ -41,7 +45,8 @@ const val TASK_TOOLCHAIN_ANDROID_DOWNLOAD = "toolchainAndroidDownload"
 const val TASK_TOOLCHAIN_ANDROID_EXTRACT = "toolchainAndroidExtract"
 const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
 const val TASK_SQLITE_EXTRACT = "sqliteExtract"
-const val TASK_SQLITE_COMPILE_DYNAMIC = "sqliteCompileDynamic"
+const val TASK_JEXTRACT_DOWNLOAD = "jextractDownload"
+const val TASK_JEXTRACT_EXTRACT = "jextractExtract"
 const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 const val TASK_SQLITE_GENERATE_CMAKE_LISTS = "sqliteGenerateCMakeLists"
@@ -65,10 +70,16 @@ fun Project.registerTasks(extension: KsqliteCompilerExtension) {
         downloadTaskProvider = registerSqliteDownloadTask(extension)
     )
 
+    val jextractTaskProvider = registerJextractExtractTask(
+        extension = extension,
+        downloadTaskProvider = registerJextractDownloadTask(extension)
+    )
+
     // Global task to wait on all toolchains and sqlite extraction
     tasks.register(TASK_INSTALL_AND_CONFIGURE) {
         dependsOn(androidTaskProvider)
         dependsOn(sqliteTaskProvider)
+        dependsOn(jextractTaskProvider)
     }
 }
 
@@ -78,9 +89,10 @@ fun Project.registerTasks(extension: KsqliteCompilerExtension) {
 private fun Project.registerDownloadTask(
     name: String,
     extension: KsqliteCompilerExtension,
-    fileName: Provider<String>,
+    url: Provider<String>,
+    fileName: Provider<String> = url.map { it.substringAfterLast('/') },
     configureVerify: VerifyAction.(KsqliteChecksums) -> Unit,
-    configureDownload: Download.(fileName: Provider<String>) -> Unit
+    configureDownload: (Download.(fileName: Provider<String>) -> Unit)? = null
 ): TaskProvider<Download> = tasks.register<Download>(name) {
     group = ksqliteCompilerTaskGroup
 
@@ -88,10 +100,15 @@ private fun Project.registerDownloadTask(
         directory.file(fileName)
     }
 
+    // Skip if the host is not-supported
+    onlyIf { url.isPresent }
+    inputs.property("url", url)
+
     dest(destination)
+    src(url)
     overwrite(false)
     quiet(false)
-    configureDownload(fileName)
+    configureDownload?.invoke(this, fileName)
 
     val verify = VerifyAction(layout).apply {
         src(destination)
@@ -145,22 +162,16 @@ private fun Project.registerToolchainAndroidDownloadTask(
 ): TaskProvider<Download> = registerDownloadTask(
     name = TASK_TOOLCHAIN_ANDROID_DOWNLOAD,
     extension = extension,
-    fileName = extension.androidToolchain().map { androidNdkDownloadFileName(it.version) },
+    url = extension.androidToolchain().map { androidNdkDownloadUrl(it.version) },
     configureVerify = { checksums ->
         algorithm("SHA-1")
         checksum(checksums.androidNdk())
-    },
-    configureDownload = { ndkFileName ->
-        // Skip if the host is a non-supported ARM64
-        onlyIf { ndkFileName.isPresent }
-        src(ndkFileName.map { "https://dl.google.com/android/repository/$it" })
     }
 )
 
 /**
  * Registers and returns the task responsible for extracting the Android NDK.
  */
-@Suppress("NewApi")
 private fun Project.registerToolchainAndroidExtractTask(
     extension: KsqliteCompilerExtension,
     downloadTaskProvider: TaskProvider<Download>
@@ -190,25 +201,20 @@ private fun Project.registerSqliteDownloadTask(
 ): TaskProvider<Download> = registerDownloadTask(
     name = TASK_SQLITE_DOWNLOAD,
     extension = extension,
-    fileName = extension.compilationParams.map { params ->
-        "sqlite3mc-${params.sqliteMCVersion}-sqlite-${params.sqliteVersion}-amalgamation.zip"
+    url = extension.compilationParams.map { params ->
+        "https://github.com/utelle/SQLite3MultipleCiphers/releases/download/" +
+                "v${params.sqliteMCVersion}/sqlite3mc-${params.sqliteMCVersion}-sqlite-" +
+                "${params.sqliteVersion}-amalgamation.zip"
     },
     configureVerify = { checksums ->
         algorithm("SHA-256")
-        checksum(checksums.sqliteMultipleCiphers)
-    },
-    configureDownload = { fileName ->
-        src(extension.compilationParams.zip(fileName) { params, fileName ->
-            "https://github.com/utelle/SQLite3MultipleCiphers/releases/download/" +
-                    "v${params.sqliteMCVersion}/$fileName"
-        })
+        checksum(checksums.sqliteMc)
     }
 )
 
 /**
  * Registers and returns the task responsible for extracting the downloaded SQLite sources.
  */
-@Suppress("NewApi")
 private fun Project.registerSqliteExtractTask(
     extension: KsqliteCompilerExtension,
     downloadTaskProvider: TaskProvider<Download>
@@ -225,6 +231,42 @@ private fun Project.registerSqliteExtractTask(
                 into(outputDirectory)
             }
         }
+    }
+)
+
+///////////////////////////////////////////////////////////////////////////
+// Jextract
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Registers and returns the task responsible for downloading Jextract.
+ */
+private fun Project.registerJextractDownloadTask(
+    extension: KsqliteCompilerExtension
+): TaskProvider<Download> = registerDownloadTask(
+    name = TASK_JEXTRACT_DOWNLOAD,
+    extension = extension,
+    url = extension.jdkVersion.zip(extension.jExtractVersion) { jdkVersion, jextractVersion ->
+        jextractDownloadUrl(jdkVersion = jdkVersion, jextractVersion = jextractVersion)
+    },
+    configureVerify = { checksums ->
+        algorithm("SHA-256")
+        checksum(checksums.jextract())
+    }
+)
+
+/**
+ * Registers and returns the task responsible for extracting the downloaded Jextract.
+ */
+private fun Project.registerJextractExtractTask(
+    extension: KsqliteCompilerExtension,
+    downloadTaskProvider: TaskProvider<Download>
+): TaskProvider<Task> = registerExtractTask(
+    name = TASK_JEXTRACT_EXTRACT,
+    downloadTaskProvider = downloadTaskProvider,
+    outputDirectory = extension.jExtractDirectory,
+    configure = { fileOperations, outputDirectory, downloadedFile ->
+        jextractExtract(fileOperations, downloadedFile, outputDirectory)
     }
 )
 
@@ -327,6 +369,7 @@ fun Project.registerSqliteGenerateCMakeListsTask(
  */
 fun Project.registerSqliteJniRuntimeMetadataTask(
     packageName: String,
+    libraryName: String,
     metadataFile: Provider<RegularFile>,
 ): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_GENERATE_JNI_RUNTIME_METADATA) {
     group = ksqliteCompilerTaskGroup
@@ -335,13 +378,11 @@ fun Project.registerSqliteJniRuntimeMetadataTask(
     dependsOn(project.rootProject.tasks.named(TASK_SQLITE_EXTRACT))
     outputs.file(metadataFile)
 
-    val extension = ksqliteCompilerExtension
-
     doLast {
         metadataFile.get().asFile.writeText(
             createSqliteJniRuntimeMetadataContent(
                 packageName = packageName,
-                params = extension.compilationParams.get()
+                libraryName = libraryName
             )
         )
     }

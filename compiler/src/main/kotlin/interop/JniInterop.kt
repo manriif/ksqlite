@@ -36,9 +36,9 @@ fun createSqliteCMakeListsContent(
  */
 fun createSqliteJniRuntimeMetadataContent(
     packageName: String,
-    params: SqliteCompilationParameters
+    libraryName: String
 ): String = """
     |package $packageName
     |
-    |internal const val SQLITE_SHARED_LIB = "${params.sqliteName}"
+    |public const val KSQLITE_NATIVE_LIB: String = "$libraryName"
 """.trimMargin()

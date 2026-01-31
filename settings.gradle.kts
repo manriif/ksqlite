@@ -43,5 +43,6 @@ dependencyResolutionManagement {
 }
 
 include(":ksqlite")
-include(":ksqlite-driver")
+include(":ksqlite-ffm")
 include(":ksqlite-jni")
+include(":ksqlite-native")

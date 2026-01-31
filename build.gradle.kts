@@ -3,6 +3,7 @@ import toolchains.Toolchain
 import toolchains.Toolchains
 import utils.absolutePath
 import java.util.Properties
+import kotlin.String
 
 plugins {
     alias(libs.plugins.android.multiplatformLibrary) apply false
@@ -20,26 +21,6 @@ allprojects {
 }
 
 ksqliteCompiler {
-    downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
-    toolchainsDirectory = layout.buildDirectory.dir("toolchains")
-    sqliteSourcesDirectory = layout.buildDirectory.dir("sqlite")
-
-    compilationParams = SqliteCompilationParameters(
-        sqliteVersion = libs.versions.ksqlite.get(),
-        sqliteMCVersion = libs.versions.sqliteMultipleCiphers.get(),
-        androidSdkMin = libs.versions.android.sdk.min.get(),
-        macosVersionMin = libs.versions.macos.version.min.get(),
-        iosVersionMin = libs.versions.ios.version.min.get(),
-        tvosVersionMin = libs.versions.tvos.version.min.get(),
-        watchosVersionMin = libs.versions.watchos.version.min.get(),
-        toolchains = Toolchains(
-            android = Toolchain(
-                version = libs.versions.toolchain.android.get(),
-                path = toolchainsDirectory.absolutePath("android-ndk")
-            )
-        ),
-    )
-
     checksums = Properties()
         .apply {
             file("checksums.properties").inputStream().use { load(it) }
@@ -49,7 +30,36 @@ ksqliteCompiler {
                 androidNdkLinux = getProperty("android.ndk.linux"),
                 androidNdkMacos = getProperty("android.ndk.macos"),
                 androidNdkWindows = getProperty("android.ndk.windows"),
-                sqliteMultipleCiphers = getProperty("sqlitemc")
+                sqliteMc = getProperty("sqlitemc"),
+                jextractLinuxAarch64 = getProperty("jextract.linux.aarch64"),
+                jextractLinuxX64 = getProperty("jextract.linux.x64"),
+                jextractMacosAarch64 = getProperty("jextract.macos.aarch64"),
+                jextractMacosX64 = getProperty("jextract.macos.x64"),
+                jextractWindowsX64 = getProperty("jextract.windows.x64"),
             )
         }
+
+    compilationParams = SqliteCompilationParameters(
+        sqliteVersion = libs.versions.ksqlite.get(),
+        sqliteMCVersion = libs.versions.sqliteMultipleCiphers.get(),
+        androidSdkMin = libs.versions.android.sdk.min.get(),
+        macosVersionMin = libs.versions.macos.version.min.get(),
+        iosVersionMin = libs.versions.ios.version.min.get(),
+        tvosVersionMin = libs.versions.tvos.version.min.get(),
+        watchosVersionMin = libs.versions.watchos.version.min.get(),
+        toolchains = layout.buildDirectory.dir("toolchains").run {
+            Toolchains(
+                android = Toolchain(
+                    version = libs.versions.toolchain.android.get(),
+                    path = absolutePath("android-ndk")
+                )
+            )
+        },
+    )
+
+    downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
+    sqliteSourcesDirectory = layout.buildDirectory.dir("sqlite")
+    jExtractDirectory = layout.buildDirectory.dir("jextract")
+    jdkVersion = libs.versions.jvm.target.ffm.get()
+    jExtractVersion = libs.versions.jextract.get()
 }

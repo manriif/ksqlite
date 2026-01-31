@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
+import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.getByName
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -16,7 +17,7 @@ import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAndroidLibraryTarget> {
     return listOf(extensions.getByName<KotlinMultiplatformAndroidLibraryTarget>("android").apply {
         val libs = project.libs
-        namespace = project.localNamespace
+        namespace = project.projectNamespace
 
         compileSdk {
             version = release(libs.versions.android.sdk.compile.get().toInt())
@@ -29,7 +30,7 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
         compilations.configureEach {
             compileTaskProvider.configure {
                 compilerOptions {
-                    jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.get())
+                    jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.default.get())
                 }
             }
         }
@@ -74,8 +75,16 @@ fun KotlinMultiplatformExtension.appleTargets(): List<KotlinNativeTarget> = buil
 /**
  * Adds Jvm targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.jvmTargets(): List<KotlinJvmTarget> {
-    return listOf(jvm())
+fun KotlinMultiplatformExtension.jvmTargets(
+    jvmTargetVersion: Provider<String>? = null
+): List<KotlinJvmTarget> {
+    return listOf(jvm {
+        jvmTargetVersion?.get()?.let { version ->
+            compilerOptions {
+                jvmTarget = JvmTarget.fromTarget(version)
+            }
+        }
+    })
 }
 
 /**

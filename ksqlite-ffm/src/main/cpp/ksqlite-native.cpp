@@ -3,10 +3,10 @@
 #include <sqlite3mc_amalgamation.h>
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_ksqlite_MainActivity_stringFromJNI(
+Java_ksqlite_KsqliteNative_ksqliteHello(
     JNIEnv* env,
-    jobject /* this */
+    jclass clazz
 ) {
-    std::string hello = "Hello from C++";
+    std::string hello = "Hello from C++, Ksqlite";
     return env->NewStringUTF(hello.c_str());
 }

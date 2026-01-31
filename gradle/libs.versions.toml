@@ -22,14 +22,16 @@ ios-version-min = "12.0"
 tvos-version-min = "12.0"
 watchos-version-min = "5.0"
 
-# Jvm target version
-jvm-target = "17"
+# Jvm target versions
+jvm-target-default = "17"
+jvm-target-ffm = "22"
 
 android-gradlePlugin = "9.0.0"
 cmake = "3.28.3"
 dokka = "2.1.0"
 undercouch-download = "5.6.0"
 gradle-pluginPublish = "2.0.0"
+jextract = "6-47"
 kotlin = "2.3.20-Beta2"
 kotlin-wrappers = "2026.1.14"
 kotlinx-coroutines = "1.10.2"

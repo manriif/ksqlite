@@ -1,7 +1,6 @@
 package utils
 
 import org.gradle.api.file.Directory
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.FileTree
 import org.gradle.api.file.RelativePath
@@ -12,7 +11,7 @@ import org.gradle.api.tasks.WorkResult
  * Resolves the directory for [path] relatively to this property directory and returns the absolute
  * path to the resolved directory.
  */
-fun DirectoryProperty.absolutePath(path: String): String {
+fun Provider<Directory>.absolutePath(path: String): String {
     return map { it.dir(path) }.get().asFile.absolutePath
 }
 
