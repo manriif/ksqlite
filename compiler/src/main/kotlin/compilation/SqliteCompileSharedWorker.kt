@@ -46,30 +46,19 @@ abstract class SqliteCompileSharedWorker : WorkAction<SqliteCompileSharedWorker.
         val libraryFile = target.sharedLibraryFile(parameters.compilationParameters).get().asFile
 
         val platform = target.platform.get()
-        /*val compilerFlags = params.getNativeCompilerFlags(execOperations, platform)
-        val compiler = params.getNativeCompilerArgs(platform)
-        val archiver = params.getNativeArchiverArgs(platform)
+        val compilerFlags = sharedCompilerFlags(params, platform)
+        val compiler = compiler(platform.operatingSystem, params)
 
         execOperations.exec {
             commandLine(
                 *compiler,
                 *compilerFlags,
-                "-c",
-                sourceFile.absolutePath,
                 "-o",
-                objectFile.absolutePath,
+                libraryFile.absolutePath,
+                sourceFile.absolutePath,
                 *SqliteCompileTimeOptions.map { "-D$it" }.toTypedArray(),
                 "-O3"
             )
         }
-
-        execOperations.exec {
-            commandLine(
-                *archiver,
-                "rcs",
-                libraryFile.absolutePath,
-                objectFile.absolutePath
-            )
-        }*/
     }
 }

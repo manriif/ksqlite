@@ -10,6 +10,11 @@ import java.io.Serializable
 sealed interface OperatingSystem : Serializable {
 
     /**
+     * Name of the operating system.
+     */
+    val name: String
+
+    /**
      * Library information.
      */
     val library: Library
@@ -30,10 +35,17 @@ sealed interface OperatingSystem : Serializable {
     }
 
     data object MacOS : Darwin(), Host {
+
+        override val name: String
+            get() = "macos"
+
         private fun readResolve(): Any = MacOS
     }
 
     sealed class IOS : Darwin() {
+
+        override val name: String
+            get() = "ios"
 
         data object Device : IOS() {
             private fun readResolve(): Any = Device
@@ -46,6 +58,9 @@ sealed interface OperatingSystem : Serializable {
 
     sealed class TvOS : Darwin() {
 
+        override val name: String
+            get() = "tvos"
+
         data object Device : TvOS() {
             private fun readResolve(): Any = Device
         }
@@ -56,6 +71,9 @@ sealed interface OperatingSystem : Serializable {
     }
 
     sealed class WatchOS : Darwin() {
+
+        override val name: String
+            get() = "watchos"
 
         data object Device : WatchOS() {
             private fun readResolve(): Any = Device
@@ -81,10 +99,18 @@ sealed interface OperatingSystem : Serializable {
     }
 
     data object Android : LinuxLike() {
+
+        override val name: String
+            get() = "android"
+
         private fun readResolve(): Any = Android
     }
 
     data object Linux : LinuxLike(), Host {
+
+        override val name: String
+            get() = "linux"
+
         private fun readResolve(): Any = Linux
     }
 
@@ -93,6 +119,9 @@ sealed interface OperatingSystem : Serializable {
     ///////////////////////////////////////////////////////////////////////////
 
     data object Windows : Host {
+
+        override val name: String
+            get() = "windows"
 
         override val library: Library
             get() = Library.MinGW

@@ -10,6 +10,11 @@ import java.io.Serializable
 sealed interface Architecture : Serializable {
 
     /**
+     * Name of the architecture.
+     */
+    val name: String
+
+    /**
      * Supported by toolchains for compilation.
      */
     sealed interface Host : Architecture
@@ -19,10 +24,18 @@ sealed interface Architecture : Serializable {
     ///////////////////////////////////////////////////////////////////////////
 
     data object Arm64 : Host {
+
+        override val name: String
+            get() = "aarch64"
+
         private fun readResolve(): Any = Arm64
     }
 
     data object Arm32 : Architecture {
+
+        override val name: String
+            get() = "aarch32"
+
         private fun readResolve(): Any = Arm32
     }
 
@@ -31,10 +44,18 @@ sealed interface Architecture : Serializable {
     ///////////////////////////////////////////////////////////////////////////
 
     data object X64 : Host {
+
+        override val name: String
+            get() = "x86_64"
+
         private fun readResolve(): Any = X64
     }
 
     data object X86 : Architecture {
+
+        override val name: String
+            get() = "x86"
+
         private fun readResolve(): Any = X86
     }
 }

@@ -34,11 +34,77 @@ private fun SqliteCompilationParameters.androidToolchainPath(path: String): Stri
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Shared
+// Executables
 ///////////////////////////////////////////////////////////////////////////
 
+/**
+ * Returns the compiler executable arguments for [operatingSystem].
+ */
+fun compiler(
+    operatingSystem: OperatingSystem,
+    params: SqliteCompilationParameters
+): Array<String> {
+    return when (operatingSystem) {
+        is OperatingSystem.Darwin -> arrayOf("clang")
+        OperatingSystem.Android -> arrayOf(params.androidToolchainPath("bin/clang"))
+        OperatingSystem.Linux -> arrayOf("zig", "cc")
+        OperatingSystem.Windows -> arrayOf("x86_64-w64-mingw32-gcc")
+    }
+}
+
+/**
+ * Returns the archiver executable arguments for [operatingSystem].
+ */
+fun archiver(
+    operatingSystem: OperatingSystem,
+    params: SqliteCompilationParameters
+): Array<String> {
+    return when (operatingSystem) {
+        is OperatingSystem.Darwin -> arrayOf("ar")
+        OperatingSystem.Android -> arrayOf(params.androidToolchainPath("bin/llvm-ar"))
+        OperatingSystem.Linux -> arrayOf("zig", "ar")
+        OperatingSystem.Windows -> arrayOf("x86_64-w64-mingw32-ar")
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////
-// Static
+// Shared library
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the compiler flags for SQLite shared library compilation for [platform].
+ */
+fun sharedCompilerFlags(
+    params: SqliteCompilationParameters,
+    platform: Platform
+): Array<String> = when (val os = platform.operatingSystem) {
+    OperatingSystem.MacOS -> {
+        val arch = when (val architecture = platform.architecture) {
+            Architecture.Arm64 -> "arm64"
+            Architecture.X64 -> "x86_64"
+            else -> error("Unsupported macOS architecture: $architecture")
+        }
+
+        arrayOf("-dynamiclib", "-arch", arch)
+    }
+
+    OperatingSystem.Linux -> {
+        val targetTriple = when (val architecture = platform.architecture) {
+            Architecture.X64 -> "x86_64-linux-gnu"
+            Architecture.Arm64 -> "aarch64-linux-gnu"
+            else -> error("Unsupported Linux architecture: $architecture")
+        }
+
+        arrayOf("-target", targetTriple)
+    }
+
+    OperatingSystem.Windows -> arrayOf("-shared")
+
+    else -> error("Unsupported operating system for shared library: $os")
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Static library
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -63,10 +129,11 @@ private fun xcodeCompilerFlags(
 }
 
 /**
- * Returns the compiler flags for SQLite compilation for Kotlin native [platform].
+ * Returns the compiler flags for SQLite static library compilation for [platform].
  */
-fun SqliteCompilationParameters.getNativeCompilerFlags(
+fun staticCompilerFlags(
     execOperations: ExecOperations,
+    params: SqliteCompilationParameters,
     platform: Platform
 ): Array<String> = when (val os = platform.operatingSystem) {
     OperatingSystem.MacOS -> xcodeCompilerFlags(
@@ -76,7 +143,7 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
             else -> error("Unsupported macOS architecture: $architecture")
         },
         sdk = "macosx",
-        flag = "-mmacosx-version-min=$macosVersionMin",
+        flag = "-mmacosx-version-min=${params.macosVersionMin}",
         execOperations = execOperations
     )
 
@@ -90,7 +157,7 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
             OperatingSystem.IOS.Device -> "iphoneos"
             OperatingSystem.IOS.Simulator -> "iphonesimulator"
         },
-        flag = "-mios-version-min=$iosVersionMin",
+        flag = "-mios-version-min=${params.iosVersionMin}",
         execOperations = execOperations
     )
 
@@ -104,7 +171,7 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
             OperatingSystem.TvOS.Device -> "appletvos"
             OperatingSystem.TvOS.Simulator -> "appletvsimulator"
         },
-        flag = "-mtvos-version-min=$tvosVersionMin",
+        flag = "-mtvos-version-min=${params.tvosVersionMin}",
         execOperations = execOperations
     )
 
@@ -124,7 +191,7 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
             OperatingSystem.WatchOS.Device, OperatingSystem.WatchOS.DeviceGen2 -> "watchos"
             OperatingSystem.WatchOS.Simulator -> "watchsimulator"
         },
-        flag = "-mwatchos-version-min=$watchosVersionMin",
+        flag = "-mwatchos-version-min=${params.watchosVersionMin}",
         execOperations = execOperations
     )
 
@@ -137,8 +204,8 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
         }
 
         arrayOf(
-            "-target", "$targetTriple$androidSdkMin",
-            "--sysroot=${androidToolchainPath("sysroot")}"
+            "-target", "$targetTriple${params.androidSdkMin}",
+            "--sysroot=${params.androidToolchainPath("sysroot")}"
         )
     }
 
@@ -153,25 +220,4 @@ fun SqliteCompilationParameters.getNativeCompilerFlags(
     }
 
     OperatingSystem.Windows -> arrayOf("-target", "x86_64-w64-mingw32")
-}
-
-/**
- * Returns the compiler name for Kotlin native [target].
- */
-fun SqliteCompilationParameters.getNativeCompilerArgs(platform: Platform): Array<String> {
-    return when (platform.operatingSystem) {
-        is OperatingSystem.Darwin -> arrayOf("clang")
-        OperatingSystem.Android -> arrayOf(androidToolchainPath("bin/clang"))
-        OperatingSystem.Linux -> arrayOf("zig", "cc")
-        OperatingSystem.Windows -> arrayOf("x86_64-w64-mingw32-gcc")
-    }
-}
-
-fun SqliteCompilationParameters.getNativeArchiverArgs(platform: Platform): Array<String> {
-    return when (platform.operatingSystem) {
-        is OperatingSystem.Darwin -> arrayOf("ar")
-        OperatingSystem.Android -> arrayOf(androidToolchainPath("bin/llvm-ar"))
-        OperatingSystem.Linux -> arrayOf("zig", "ar")
-        OperatingSystem.Windows -> arrayOf("x86_64-w64-mingw32-ar")
-    }
 }

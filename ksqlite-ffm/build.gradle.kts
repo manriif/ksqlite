@@ -1,17 +1,70 @@
+@file:Suppress("HasPlatformType")
+
+import compilation.SqliteTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+import platform.Architecture
+import platform.OperatingSystem
+import platform.Platform
 import tasks.registerJextractGenerateBindingsTask
+import tasks.registerSqliteCompileSharedTask
+import tasks.registerSqliteFfmRuntimeMetadataTask
 
 plugins {
     alias(libs.plugins.conventions.kmp)
 }
 
-val generatedJavaSourceDirectory: Provider<Directory> = layout.buildDirectory.map { directory ->
-    directory.dir("generated/ksqlite/src/jvmMain/java")
+val resourceNativeDirName = "native"
+val generatedSourceDirectory = layout.buildDirectory.map { it.dir("generated/ksqlite/src/jvmMain") }
+val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java") }
+val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
+val librariesDirectory = layout.buildDirectory.map { it.dir("sqlite/library") }
+
+fun createSqliteTarget(
+    operatingSystem: OperatingSystem,
+    architecture: Architecture,
+): SqliteTarget = objects.newInstance<SqliteTarget>().apply {
+    val platform = Platform(operatingSystem, architecture)
+    this.platform.set(platform)
+    this.libraryDirectory.set(librariesDirectory.map { it.dir(platform.name) })
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Plugins
-///////////////////////////////////////////////////////////////////////////
+val sqliteTargets = listOf(
+    //createSqliteTarget(OperatingSystem.Linux, Architecture.Arm64),
+    //createSqliteTarget(OperatingSystem.Linux, Architecture.X64),
+    createSqliteTarget(OperatingSystem.MacOS, Architecture.Arm64),
+    createSqliteTarget(OperatingSystem.MacOS, Architecture.X64),
+    //createSqliteTarget(OperatingSystem.Windows, Architecture.Arm64),
+    //createSqliteTarget(OperatingSystem.Windows, Architecture.X64),
+)
+
+val generateBindingsTaskProvider = registerJextractGenerateBindingsTask(
+    packageName = projectNamespace,
+    outputDirectory = generatedJavaSourceDirectory
+)
+
+val compileSharedTaskProvider = registerSqliteCompileSharedTask().apply {
+    configure {
+        outputs.dir(librariesDirectory)
+        targets = sqliteTargets
+    }
+}
+
+val generateSqliteFfmRuntimeMetadataTaskProvider = registerSqliteFfmRuntimeMetadataTask(
+    packageName = projectNamespace,
+    nativeDirectoryName = resourceNativeDirName,
+    metadataFile = generatedKotlinSourceDirectory.map { directory ->
+        directory.file("$projectNamespace/KsqliteNativeFfm.kt")
+    },
+    platforms = provider { sqliteTargets.map { it.platform.get() } }
+)
+
+val generateSources by tasks.registering {
+    dependsOn(generateBindingsTaskProvider)
+    dependsOn(generateSqliteFfmRuntimeMetadataTaskProvider)
+}
+
+registerTaskForIde(generateSources)
 
 kotlin {
     jvmToolchain {
@@ -19,25 +72,28 @@ kotlin {
     }
 
     jvmTargets(libs.versions.jvm.target.ffm).forEach { target ->
-        target.compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
-            checkNotNull(compileJavaTaskProvider).configure {
-                inputs.dir(generateBindingsTaskProvider.map { it.outputs.files.singleFile })
-            }
-        }
+        target.configureJvmTarget()
     }
 
     sourceSets.jvmMain {
         kotlin.srcDir(generatedJavaSourceDirectory)
+        kotlin.srcDir(generatedKotlinSourceDirectory)
     }
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Tasks
-///////////////////////////////////////////////////////////////////////////
+fun KotlinJvmTarget.configureJvmTarget() {
+    compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
+        checkNotNull(compileJavaTaskProvider).configure {
+            inputs.dir(generateBindingsTaskProvider.map { it.outputs.files.singleFile })
+            inputs.dir(generateSqliteFfmRuntimeMetadataTaskProvider.map { it.outputs.files.singleFile })
+        }
 
-val generateBindingsTaskProvider = registerJextractGenerateBindingsTask(
-    packageName = projectNamespace,
-    outputDirectory = generatedJavaSourceDirectory
-)
+        tasks.named<ProcessResources>(processResourcesTaskName).configure {
+            inputs.dir(compileSharedTaskProvider)
 
-registerTaskForIde(generateBindingsTaskProvider)
+            from(compileSharedTaskProvider) {
+                into("./$resourceNativeDirName")
+            }
+        }
+    }
+}

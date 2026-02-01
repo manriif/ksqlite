@@ -8,4 +8,11 @@ import java.io.Serializable
 data class Platform(
     val operatingSystem: OperatingSystem,
     val architecture: Architecture,
-) : Serializable
+) : Serializable {
+
+    /**
+     * Name of the platform.
+     */
+    val name: String
+        get() = "${operatingSystem.name}_${architecture.name}"
+}

@@ -1,3 +1,5 @@
+@file:Suppress("HasPlatformType")
+
 import compilation.SqliteTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
@@ -17,10 +19,6 @@ val sqliteDirectory = layout.buildDirectory.dir("sqlite")
 val nativeArtifactDirectory = sqliteDirectory.map { it.dir("native") }
 val compileStaticTaskProvider = registerSqliteCompileStaticTask()
 
-///////////////////////////////////////////////////////////////////////////
-// Plugins
-///////////////////////////////////////////////////////////////////////////
-
 kotlin {
     /*listOf(androidNativeX64()).forEach {
         it.configureNativeTarget(nativeArtifactDirectory, compileStaticTaskProvider)
@@ -28,10 +26,6 @@ kotlin {
 
     jvmTargets()
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Compilation
-///////////////////////////////////////////////////////////////////////////
 
 fun KotlinNativeTarget.configureNativeTarget(
     artifactDirectory: Provider<Directory>,

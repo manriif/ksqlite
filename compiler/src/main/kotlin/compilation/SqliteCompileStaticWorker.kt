@@ -47,9 +47,9 @@ abstract class SqliteCompileStaticWorker : WorkAction<SqliteCompileStaticWorker.
         val libraryFile = target.staticLibraryFile(parameters.compilationParameters).get().asFile
 
         val platform = target.platform.get()
-        val compilerFlags = params.getNativeCompilerFlags(execOperations, platform)
-        val compiler = params.getNativeCompilerArgs(platform)
-        val archiver = params.getNativeArchiverArgs(platform)
+        val compilerFlags = staticCompilerFlags(execOperations, params, platform)
+        val compiler = compiler(platform.operatingSystem, params)
+        val archiver = archiver(platform.operatingSystem, params)
 
         execOperations.exec {
             commandLine(

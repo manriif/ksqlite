@@ -9,6 +9,7 @@ import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.VerifyAction
 import interop.createDefContent
 import interop.createSqliteCMakeListsContent
+import interop.createSqliteFfmRuntimeMetadataContent
 import interop.createSqliteJniRuntimeMetadataContent
 import jextract.jextract
 import jextract.jextractDownloadUrl
@@ -27,6 +28,7 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.gradle.process.ExecOperations
+import platform.Platform
 import sqliteDynamicLibraryName
 import sqliteHeaderFile
 import sqliteSourceFile
@@ -54,6 +56,7 @@ const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 const val TASK_SQLITE_GENERATE_CMAKE_LISTS = "sqliteGenerateCMakeLists"
 const val TASK_SQLITE_GENERATE_JNI_RUNTIME_METADATA = "sqliteGenerateJniRuntimeMetadata"
+const val TASK_SQLITE_GENERATE_FFM_RUNTIME_METADATA = "sqliteGenerateFfmRuntimeMetadata"
 
 ///////////////////////////////////////////////////////////////////////////
 // Root tasks
@@ -438,9 +441,6 @@ fun Project.registerSqliteJniRuntimeMetadataTask(
     metadataFile: Provider<RegularFile>,
 ): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_GENERATE_JNI_RUNTIME_METADATA) {
     group = ksqliteCompilerTaskGroup
-
-    // Explicit dependency on sqlite extract task
-    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_EXTRACT))
     outputs.file(metadataFile)
 
     doLast {
@@ -448,6 +448,29 @@ fun Project.registerSqliteJniRuntimeMetadataTask(
             createSqliteJniRuntimeMetadataContent(
                 packageName = packageName,
                 libraryName = libraryName
+            )
+        )
+    }
+}
+
+/**
+ * Registers and returns the task responsible for generating FFM runtime metadata for SQLite.
+ */
+fun Project.registerSqliteFfmRuntimeMetadataTask(
+    packageName: String,
+    nativeDirectoryName: String,
+    metadataFile: Provider<RegularFile>,
+    platforms: Provider<List<Platform>>
+): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_GENERATE_FFM_RUNTIME_METADATA) {
+    group = ksqliteCompilerTaskGroup
+    outputs.file(metadataFile)
+
+    doLast {
+        metadataFile.get().asFile.writeText(
+            createSqliteFfmRuntimeMetadataContent(
+                packageName = packageName,
+                nativeDirectoryName = nativeDirectoryName,
+                platforms = platforms.get()
             )
         )
     }
