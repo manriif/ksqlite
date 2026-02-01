@@ -10,9 +10,9 @@ import sqliteSourceFile
 import javax.inject.Inject
 
 /**
- * Compiles a static library.
+ * Compiles a shared library.
  */
-abstract class SqliteCompileStaticWorker : WorkAction<SqliteCompileStaticWorker.Parameters> {
+abstract class SqliteCompileSharedWorker : WorkAction<SqliteCompileSharedWorker.Parameters> {
 
     @get:Inject
     protected abstract val fileOperations: FileSystemOperations
@@ -43,11 +43,10 @@ abstract class SqliteCompileStaticWorker : WorkAction<SqliteCompileStaticWorker.
         target.libraryDirectory.get().asFile.mkdirs()
 
         val sourceFile = sqliteSourceFile(sources, parameters.compilationParameters).get().asFile
-        val objectFile = target.objectFile(parameters.compilationParameters).get().asFile
-        val libraryFile = target.staticLibraryFile(parameters.compilationParameters).get().asFile
+        val libraryFile = target.sharedLibraryFile(parameters.compilationParameters).get().asFile
 
         val platform = target.platform.get()
-        val compilerFlags = params.getNativeCompilerFlags(execOperations, platform)
+        /*val compilerFlags = params.getNativeCompilerFlags(execOperations, platform)
         val compiler = params.getNativeCompilerArgs(platform)
         val archiver = params.getNativeArchiverArgs(platform)
 
@@ -71,6 +70,6 @@ abstract class SqliteCompileStaticWorker : WorkAction<SqliteCompileStaticWorker.
                 libraryFile.absolutePath,
                 objectFile.absolutePath
             )
-        }
+        }*/
     }
 }

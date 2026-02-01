@@ -10,28 +10,9 @@ val generatedSourceDirectory: Provider<Directory> = layout.buildDirectory.map { 
     directory.dir("generated/ksqlite/src/main/kotlin")
 }
 
-val generateSqliteCMakeListsTaskProvider = registerSqliteGenerateCMakeListsTask(
-    cmakeListsFile = layout.buildDirectory.map { it.file("sqlite/CMakeLists.txt") },
-    cmakeVersion = libs.versions.cmake.get()
-)
-
-val generateSqliteJniRuntimeMetadataTaskProvider = registerSqliteJniRuntimeMetadataTask(
-    packageName = projectNamespace,
-    libraryName = "ksqlite-native",
-    metadataFile = generatedSourceDirectory.map { it.file("$projectNamespace/KsqliteNativeJni.kt") }
-)
-
-val generateNativeContent by tasks.registering {
-    dependsOn(generateSqliteCMakeListsTaskProvider)
-    dependsOn(generateSqliteJniRuntimeMetadataTaskProvider)
-}
-
-registerTaskForIde(generateNativeContent) {
-    // CMakeLists.txt file need to be generated or sync will fail so force task action(s) execution
-    generateSqliteCMakeListsTaskProvider.get().let { generateTask ->
-        generateTask.actions.forEach { it(generateTask) }
-    }
-}
+///////////////////////////////////////////////////////////////////////////
+// Plugins
+///////////////////////////////////////////////////////////////////////////
 
 kotlin {
     configureKotlin()
@@ -73,5 +54,32 @@ android {
 
     sourceSets.named(SourceSet.MAIN_SOURCE_SET_NAME) {
         kotlin.directories += generatedSourceDirectory.get().asFile.absolutePath
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Tasks
+///////////////////////////////////////////////////////////////////////////
+
+val generateSqliteCMakeListsTaskProvider = registerSqliteGenerateCMakeListsTask(
+    cmakeListsFile = layout.buildDirectory.map { it.file("sqlite/CMakeLists.txt") },
+    cmakeVersion = libs.versions.cmake.get()
+)
+
+val generateSqliteJniRuntimeMetadataTaskProvider = registerSqliteJniRuntimeMetadataTask(
+    packageName = projectNamespace,
+    libraryName = "ksqlite-native",
+    metadataFile = generatedSourceDirectory.map { it.file("$projectNamespace/KsqliteNativeJni.kt") }
+)
+
+val generateNativeContent by tasks.registering {
+    dependsOn(generateSqliteCMakeListsTaskProvider)
+    dependsOn(generateSqliteJniRuntimeMetadataTaskProvider)
+}
+
+registerTaskForIde(generateNativeContent) {
+    // CMakeLists.txt file need to be generated or sync will fail so force task action(s) execution
+    generateSqliteCMakeListsTaskProvider.get().let { generateTask ->
+        generateTask.actions.forEach { it(generateTask) }
     }
 }

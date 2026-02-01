@@ -9,12 +9,9 @@ val generatedJavaSourceDirectory: Provider<Directory> = layout.buildDirectory.ma
     directory.dir("generated/ksqlite/src/jvmMain/java")
 }
 
-val generateBindingsTaskProvider = registerJextractGenerateBindingsTask(
-    packageName = projectNamespace,
-    outputDirectory = generatedJavaSourceDirectory
-)
-
-registerTaskForIde(generateBindingsTaskProvider)
+///////////////////////////////////////////////////////////////////////////
+// Plugins
+///////////////////////////////////////////////////////////////////////////
 
 kotlin {
     jvmToolchain {
@@ -24,7 +21,7 @@ kotlin {
     jvmTargets(libs.versions.jvm.target.ffm).forEach { target ->
         target.compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
             checkNotNull(compileJavaTaskProvider).configure {
-                dependsOn(generateBindingsTaskProvider)
+                inputs.dir(generateBindingsTaskProvider.map { it.outputs.files.singleFile })
             }
         }
     }
@@ -33,3 +30,14 @@ kotlin {
         kotlin.srcDir(generatedJavaSourceDirectory)
     }
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Tasks
+///////////////////////////////////////////////////////////////////////////
+
+val generateBindingsTaskProvider = registerJextractGenerateBindingsTask(
+    packageName = projectNamespace,
+    outputDirectory = generatedJavaSourceDirectory
+)
+
+registerTaskForIde(generateBindingsTaskProvider)

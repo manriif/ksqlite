@@ -9,7 +9,9 @@ import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.process.ExecOperations
-import toolchains.Host
+import platform.Architecture
+import platform.Host
+import platform.OperatingSystem
 import utils.copyFirstDirectoryContent
 import java.io.File
 
@@ -26,19 +28,19 @@ fun jextractDownloadUrl(
 ): String? {
     val platform = Host.Current.run {
         when (operatingSystem) {
-            Host.OperatingSystem.Linux -> when (architecture) {
-                Host.Architecture.Arm64 -> "linux-aarch64"
-                Host.Architecture.X86_64 -> "linux-x64"
+            OperatingSystem.Linux -> when (architecture) {
+                Architecture.Arm64 -> "linux-aarch64"
+                Architecture.X64 -> "linux-x64"
             }
 
-            Host.OperatingSystem.MacOS -> when (architecture) {
-                Host.Architecture.Arm64 -> "macos-aarch64"
-                Host.Architecture.X86_64 -> "macos-x64"
+            OperatingSystem.MacOS -> when (architecture) {
+                Architecture.Arm64 -> "macos-aarch64"
+                Architecture.X64 -> "macos-x64"
             }
 
-            Host.OperatingSystem.Windows -> when (architecture) {
-                Host.Architecture.Arm64 -> return null
-                Host.Architecture.X86_64 -> "windows-x64"
+            OperatingSystem.Windows -> when (architecture) {
+                Architecture.Arm64 -> return null
+                Architecture.X64 -> "windows-x64"
             }
         }
     }
@@ -72,19 +74,19 @@ fun Task.jextractExtract(
  */
 fun KsqliteChecksums.jextract(): String = Host.Current.run {
     when (operatingSystem) {
-        Host.OperatingSystem.Linux -> when (architecture) {
-            Host.Architecture.Arm64 -> jextractLinuxAarch64
-            Host.Architecture.X86_64 -> jextractLinuxX64
+        OperatingSystem.Linux -> when (architecture) {
+            Architecture.Arm64 -> jextractLinuxAarch64
+            Architecture.X64 -> jextractLinuxX64
         }
 
-        Host.OperatingSystem.MacOS -> when (architecture) {
-            Host.Architecture.Arm64 -> jextractMacosAarch64
-            Host.Architecture.X86_64 -> jextractMacosX64
+        OperatingSystem.MacOS -> when (architecture) {
+            Architecture.Arm64 -> jextractMacosAarch64
+            Architecture.X64 -> jextractMacosX64
         }
 
-        Host.OperatingSystem.Windows -> when (architecture) {
-            Host.Architecture.Arm64 -> error("Invalid path, no build for windows-x64")
-            Host.Architecture.X86_64 -> jextractWindowsX64
+        OperatingSystem.Windows -> when (architecture) {
+            Architecture.Arm64 -> error("Invalid path, no build for windows-x64")
+            Architecture.X64 -> jextractWindowsX64
         }
     }
 }

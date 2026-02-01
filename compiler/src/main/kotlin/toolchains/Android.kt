@@ -8,6 +8,9 @@ import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.process.ExecOperations
+import platform.Architecture
+import platform.Host
+import platform.OperatingSystem
 import utils.copyFirstDirectoryContent
 
 ///////////////////////////////////////////////////////////////////////////
@@ -20,16 +23,16 @@ import utils.copyFirstDirectoryContent
 fun androidNdkDownloadUrl(version: String): String? {
     val (platform, extension) = Host.Current.run {
         when (operatingSystem) {
-            Host.OperatingSystem.Linux -> when (architecture) {
-                Host.Architecture.Arm64 -> return null
-                Host.Architecture.X86_64 -> "linux" to "zip"
+            OperatingSystem.Linux -> when (architecture) {
+                Architecture.Arm64 -> return null
+                Architecture.X64 -> "linux" to "zip"
             }
 
-            Host.OperatingSystem.MacOS -> "darwin" to "dmg"
+            OperatingSystem.MacOS -> "darwin" to "dmg"
 
-            Host.OperatingSystem.Windows -> when (architecture) {
-                Host.Architecture.Arm64 -> return null
-                Host.Architecture.X86_64 -> "windows" to "zip"
+            OperatingSystem.Windows -> when (architecture) {
+                Architecture.Arm64 -> return null
+                Architecture.X64 -> "windows" to "zip"
             }
         }
     }
@@ -49,7 +52,7 @@ fun Task.androidNdkExtract(
     destination: Provider<Directory>
 ) {
     when (Host.Current.operatingSystem) {
-        Host.OperatingSystem.Windows, Host.OperatingSystem.Linux -> {
+        OperatingSystem.Windows, OperatingSystem.Linux -> {
             val sources = project.zipTree(downloadedFile)
 
             doLast {
@@ -60,7 +63,7 @@ fun Task.androidNdkExtract(
             }
         }
 
-        Host.OperatingSystem.MacOS -> {
+        OperatingSystem.MacOS -> {
             val execOperations = project.serviceOf<ExecOperations>()
 
             val ndkSources = version.map { value ->
@@ -94,9 +97,9 @@ fun Task.androidNdkExtract(
  * Returns the checksum for the Android NDK and the current operating system.
  */
 fun KsqliteChecksums.androidNdk(): String = when (Host.Current.operatingSystem) {
-    Host.OperatingSystem.Linux -> androidNdkLinux
-    Host.OperatingSystem.MacOS -> androidNdkMacos
-    Host.OperatingSystem.Windows -> androidNdkWindows
+    OperatingSystem.Linux -> androidNdkLinux
+    OperatingSystem.MacOS -> androidNdkMacos
+    OperatingSystem.Windows -> androidNdkWindows
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -107,7 +110,7 @@ fun KsqliteChecksums.androidNdk(): String = when (Host.Current.operatingSystem) 
  * Returns the Android NDK host tag.
  */
 fun androidNdkHostTag(): String = when (Host.Current.operatingSystem) {
-    Host.OperatingSystem.Linux -> "linux-x86_64"
-    Host.OperatingSystem.MacOS -> "darwin-x86_64"
-    Host.OperatingSystem.Windows -> "windows-x86_64"
+    OperatingSystem.Linux -> "linux-x86_64"
+    OperatingSystem.MacOS -> "darwin-x86_64"
+    OperatingSystem.Windows -> "windows-x86_64"
 }

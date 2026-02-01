@@ -3,8 +3,8 @@ package tasks
 import KsqliteChecksums
 import KsqliteCompilerExtension
 import androidToolchain
-import compilation.SqliteStaticTarget
-import compilation.libraryFile
+import compilation.SqliteTarget
+import compilation.staticLibraryFile
 import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.VerifyAction
 import interop.createDefContent
@@ -27,7 +27,6 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.gradle.process.ExecOperations
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import sqliteDynamicLibraryName
 import sqliteHeaderFile
 import sqliteSourceFile
@@ -50,6 +49,7 @@ const val TASK_SQLITE_EXTRACT = "sqliteExtract"
 const val TASK_JEXTRACT_DOWNLOAD = "jextractDownload"
 const val TASK_JEXTRACT_EXTRACT = "jextractExtract"
 const val TASK_JEXTRACT_GENERATE_BINDINGS = "jextractGenerateBindings"
+const val TASK_SQLITE_COMPILE_SHARED = "sqliteCompileShared"
 const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 const val TASK_SQLITE_GENERATE_CMAKE_LISTS = "sqliteGenerateCMakeLists"
@@ -324,18 +324,34 @@ fun Project.registerJextractGenerateBindingsTask(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Registers and returns the task responsible for generating the artifacts for static targets.
+ * Registers and returns the task responsible for generating the artifacts for dynamic linking.
+ */
+private fun SqliteCompileTask.configureCompileTask() {
+    group = ksqliteCompilerTaskGroup
+
+    // Depend on toolchains and sqlite installation
+    dependsOn(project.rootProject.tasks.named(TASK_INSTALL_AND_CONFIGURE))
+
+    val extension = project.ksqliteCompilerExtension
+    compilationParameters = extension.compilationParams
+    sqliteSourcesDirectory = extension.sqliteSourcesDirectory
+}
+
+/**
+ * Registers and returns the task responsible for generating the artifacts for dynamic linking.
+ */
+fun Project.registerSqliteCompileSharedTask(): TaskProvider<SqliteCompileSharedTask> {
+    return tasks.register<SqliteCompileSharedTask>(TASK_SQLITE_COMPILE_SHARED) {
+        configureCompileTask()
+    }
+}
+
+/**
+ * Registers and returns the task responsible for generating the artifacts for static linking.
  */
 fun Project.registerSqliteCompileStaticTask(): TaskProvider<SqliteCompileStaticTask> {
-    val extension = ksqliteCompilerExtension
-
     return tasks.register<SqliteCompileStaticTask>(TASK_SQLITE_COMPILE_STATIC) {
-        group = ksqliteCompilerTaskGroup
-
-        // Explicit dependency on the unzip task
-        dependsOn(rootProject.tasks.named(TASK_SQLITE_EXTRACT))
-        compilationParameters = extension.compilationParams
-        sqliteSourcesDirectory = extension.sqliteSourcesDirectory
+        configureCompileTask()
     }
 }
 
@@ -344,12 +360,12 @@ fun Project.registerSqliteCompileStaticTask(): TaskProvider<SqliteCompileStaticT
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Registers and returns the task responsible for generating the cinterop definition file for `this`
- * [KotlinNativeTarget].
+ * Registers and returns the task responsible for generating the cinterop definition file for
+ * [target].
  */
-fun KotlinNativeTarget.registerSqliteGenerateCInteropDefTask(
+fun Project.registerSqliteGenerateCInteropDefTask(
     packageName: String,
-    staticTarget: SqliteStaticTarget,
+    target: SqliteTarget,
     defFileProvider: Provider<RegularFile>
 ): TaskProvider<Task> = project.tasks.register(
     name = "$TASK_SQLITE_GENERATE_CINTEROP_DEF${name.uppercaseFirstChar()}"
@@ -361,7 +377,7 @@ fun KotlinNativeTarget.registerSqliteGenerateCInteropDefTask(
     outputs.file(defFileProvider)
 
     val parameters = project.ksqliteCompilerExtension.compilationParams
-    val libraryFile = staticTarget.libraryFile(parameters)
+    val libraryFile = target.staticLibraryFile(parameters)
 
     doLast {
         defFileProvider.get().asFile.writeText(

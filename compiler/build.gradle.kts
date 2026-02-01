@@ -18,6 +18,5 @@ gradlePlugin {
 }
 
 dependencies {
-    implementation(libs.kotlin.gradlePlugin)
     implementation(libs.undercouch.dowload)
 }

@@ -6,15 +6,15 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputDirectory
-import org.jetbrains.kotlin.konan.target.KonanTarget
+import platform.Platform
 
 /**
  * Target for static sqlite compilation.
  */
-abstract class SqliteStaticTarget {
+abstract class SqliteTarget {
 
     @get:Input
-    abstract val konanTarget: Property<KonanTarget>
+    abstract val platform: Property<Platform>
 
     @get:OutputDirectory
     abstract val libraryDirectory: DirectoryProperty
@@ -25,21 +25,35 @@ abstract class SqliteStaticTarget {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the generated library file (.a).
+ * Returns the generated shared library file.
  */
-fun SqliteStaticTarget.libraryFile(
+fun SqliteTarget.sharedLibraryFile(
     params: Provider<SqliteCompilationParameters>
 ): Provider<RegularFile> {
     return libraryDirectory.zip(params) { directory, params ->
-        val family = konanTarget.get().family
-        directory.file("${family.staticPrefix}${params.sqliteName}.${family.staticSuffix}")
+        platform.get().operatingSystem.library.run {
+            directory.file("${sharedPrefix}${params.sqliteName}.${sharedSuffix}")
+        }
+    }
+}
+
+/**
+ * Returns the generated static library file.
+ */
+fun SqliteTarget.staticLibraryFile(
+    params: Provider<SqliteCompilationParameters>
+): Provider<RegularFile> {
+    return libraryDirectory.zip(params) { directory, params ->
+        platform.get().operatingSystem.library.run {
+            directory.file("${staticPrefix}${params.sqliteName}.${staticSuffix}")
+        }
     }
 }
 
 /**
  * Returns the generated object file (.o).
  */
-fun SqliteStaticTarget.objectFile(
+fun SqliteTarget.objectFile(
     params: Provider<SqliteCompilationParameters>
 ): Provider<RegularFile> {
     return libraryDirectory.zip(params) { directory, params ->

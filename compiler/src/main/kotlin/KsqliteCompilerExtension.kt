@@ -1,7 +1,6 @@
 import compilation.SqliteCompilationParameters
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 
 /**
  * Extension for [KsqliteCompilerPlugin].
