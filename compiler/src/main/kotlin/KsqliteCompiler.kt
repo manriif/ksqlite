@@ -52,6 +52,13 @@ fun KsqliteCompilerExtension.androidToolchain(): Provider<Toolchain> {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Returns the name of the SQLite dynamic library.
+ */
+fun sqliteDynamicLibraryName(params: Provider<SqliteCompilationParameters>): Provider<String> {
+    return params.map { it.sqliteName }
+}
+
+/**
  * Returns the sqlite header file (.h).
  */
 fun sqliteHeaderFile(

@@ -1,13 +1,17 @@
 package jextract
 
 import KsqliteChecksums
+import compilation.SqliteCompilationParameters
+import compilation.SqliteFunctions
 import org.gradle.api.Task
 import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
+import org.gradle.process.ExecOperations
 import toolchains.Host
 import utils.copyFirstDirectoryContent
+import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////
 // Download
@@ -83,4 +87,42 @@ fun KsqliteChecksums.jextract(): String = Host.Current.run {
             Host.Architecture.X86_64 -> jextractWindowsX64
         }
     }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Generation
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Generates the SQLite bindings with Jextract.
+ */
+fun jextractGenerateBindings(
+    execOperations: ExecOperations,
+    packageName: String,
+    libraryName: String,
+    jextractDirectory: File,
+    sqliteHeaderFile: File,
+    outputDirectory: File,
+    params: SqliteCompilationParameters
+) {
+    execOperations
+        .exec {
+            workingDir = jextractDirectory
+
+            val includedFunctions = SqliteFunctions
+                .filter { it.value }
+                .flatMap { listOf("--include-function", "${params.sqliteName}_${it.key}") }
+                .toTypedArray()
+
+            commandLine(
+                "bin/jextract",
+                "--output", outputDirectory.absolutePath,
+                "--target-package", packageName,
+                "--header-class-name", params.sqliteName,
+                "--include-dir", sqliteHeaderFile.parentFile.absolutePath,
+                *includedFunctions,
+                "--library", libraryName, sqliteHeaderFile.absolutePath
+            )
+        }
+        .rethrowFailure()
 }

@@ -71,7 +71,7 @@ android {
         }
     }
 
-    sourceSets.named("main") {
+    sourceSets.named(SourceSet.MAIN_SOURCE_SET_NAME) {
         kotlin.directories += generatedSourceDirectory.get().asFile.absolutePath
     }
 }

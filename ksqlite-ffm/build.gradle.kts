@@ -1,18 +1,35 @@
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
-import tasks.TASK_JEXTRACT_EXTRACT
+import tasks.registerJextractGenerateBindingsTask
 
 plugins {
     alias(libs.plugins.conventions.kmp)
 }
 
-val
+val generatedJavaSourceDirectory: Provider<Directory> = layout.buildDirectory.map { directory ->
+    directory.dir("generated/ksqlite/src/jvmMain/java")
+}
 
-registerTaskForIde(rootProject.tasks.named(TASK_JEXTRACT_EXTRACT))
+val generateBindingsTaskProvider = registerJextractGenerateBindingsTask(
+    packageName = projectNamespace,
+    outputDirectory = generatedJavaSourceDirectory
+)
+
+registerTaskForIde(generateBindingsTaskProvider)
 
 kotlin {
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(libs.versions.jvm.target.ffm.get())
+    }
+
     jvmTargets(libs.versions.jvm.target.ffm).forEach { target ->
         target.compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
-
+            checkNotNull(compileJavaTaskProvider).configure {
+                dependsOn(generateBindingsTaskProvider)
+            }
         }
+    }
+
+    sourceSets.jvmMain {
+        kotlin.srcDir(generatedJavaSourceDirectory)
     }
 }

@@ -1,8 +1,5 @@
 package compilation
 
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFile
-import org.gradle.api.provider.Provider
 import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.konan.target.Architecture
 import org.jetbrains.kotlin.konan.target.Family

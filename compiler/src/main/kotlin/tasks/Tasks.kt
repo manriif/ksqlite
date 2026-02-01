@@ -13,6 +13,7 @@ import interop.createSqliteJniRuntimeMetadataContent
 import jextract.jextract
 import jextract.jextractDownloadUrl
 import jextract.jextractExtract
+import jextract.jextractGenerateBindings
 import ksqliteCompilerExtension
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -25,14 +26,15 @@ import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import sqliteDynamicLibraryName
 import sqliteHeaderFile
 import sqliteSourceFile
 import toolchainDirectory
 import toolchains.androidNdk
 import toolchains.androidNdkDownloadUrl
 import toolchains.androidNdkExtract
-import utils.copyFirstDirectoryContent
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
@@ -47,6 +49,7 @@ const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
 const val TASK_SQLITE_EXTRACT = "sqliteExtract"
 const val TASK_JEXTRACT_DOWNLOAD = "jextractDownload"
 const val TASK_JEXTRACT_EXTRACT = "jextractExtract"
+const val TASK_JEXTRACT_GENERATE_BINDINGS = "jextractGenerateBindings"
 const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 const val TASK_SQLITE_GENERATE_CMAKE_LISTS = "sqliteGenerateCMakeLists"
@@ -269,6 +272,52 @@ private fun Project.registerJextractExtractTask(
         jextractExtract(fileOperations, downloadedFile, outputDirectory)
     }
 )
+
+/**
+ * Registers and returns the task responsible for generating SQLite bindings using Jextract.
+ */
+fun Project.registerJextractGenerateBindingsTask(
+    packageName: String,
+    outputDirectory: Provider<Directory>
+): TaskProvider<Task> = project.tasks.register(TASK_JEXTRACT_GENERATE_BINDINGS) {
+    group = ksqliteCompilerTaskGroup
+
+    val fileOperations = serviceOf<FileSystemOperations>()
+    val execOperations = serviceOf<ExecOperations>()
+    val extension = ksqliteCompilerExtension
+
+    val headerFile = sqliteHeaderFile(
+        sources = extension.sqliteSourcesDirectory,
+        params = extension.compilationParams
+    )
+
+    // Explicit dependency on sqlite and jextract extract tasks
+    dependsOn(project.rootProject.tasks.named(TASK_JEXTRACT_EXTRACT))
+    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_EXTRACT))
+
+    inputs.file(headerFile)
+    outputs.dir(outputDirectory)
+
+    doFirst {
+        fileOperations.delete {
+            delete(outputDirectory)
+        }
+
+        outputDirectory.get().asFile.mkdirs()
+    }
+
+    doLast {
+        jextractGenerateBindings(
+            execOperations = execOperations,
+            packageName = packageName,
+            libraryName = sqliteDynamicLibraryName(extension.compilationParams).get(),
+            jextractDirectory = extension.jExtractDirectory.get().asFile,
+            sqliteHeaderFile = headerFile.get().asFile,
+            outputDirectory = outputDirectory.get().asFile,
+            params = extension.compilationParams.get()
+        )
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Compilation
