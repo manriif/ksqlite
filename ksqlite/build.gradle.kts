@@ -11,14 +11,6 @@ kotlin {
     webTargets()*/
 
     sourceSets {
-        /*all {
-            languageSettings {
-                optIn("kotlin.experimental.ExperimentalNativeApi")
-                optIn("kotlinx.cinterop.ExperimentalForeignApi")
-                optIn("kotlinx.cinterop.BetaInteropApi")
-            }
-        }*/
-
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutinesTest)
@@ -32,8 +24,8 @@ kotlin {
             implementation(projects.ksqliteFfm)
         }
 
-        /*nativeMain.dependencies {
+        nativeMain.dependencies {
             implementation(projects.ksqliteNative)
-        }*/
+        }
     }
 }

@@ -10,8 +10,10 @@ val generatedSourceDirectory: Provider<Directory> = layout.buildDirectory.map { 
     directory.dir("generated/ksqlite/src/main/kotlin")
 }
 
+val sqliteCmakeDirectory: Provider<Directory> = layout.buildDirectory.map { it.dir("sqlite") }
+
 val generateSqliteCMakeListsTaskProvider = registerSqliteGenerateCMakeListsTask(
-    cmakeListsFile = layout.buildDirectory.map { it.file("sqlite/CMakeLists.txt") },
+    cmakeListsFile = sqliteCmakeDirectory.map { it.file("CMakeLists.txt") },
     cmakeVersion = libs.versions.cmake.get()
 )
 
@@ -57,6 +59,13 @@ android {
     defaultConfig {
         minSdk {
             version = release(libs.versions.android.sdk.min.get().toInt())
+        }
+
+        @Suppress("UnstableApiUsage")
+        externalNativeBuild {
+            cmake {
+                arguments("-DSQLITE_CMAKE_DIR=${sqliteCmakeDirectory.get().asFile.absolutePath}")
+            }
         }
     }
 

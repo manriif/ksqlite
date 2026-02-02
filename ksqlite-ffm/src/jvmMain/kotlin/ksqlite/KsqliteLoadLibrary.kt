@@ -1,30 +1,18 @@
-@file:Suppress("NOTHING_TO_INLINE")
-
 package ksqlite
 
 import java.nio.file.Files
-import kotlin.time.measureTimedValue
 
-public fun main() {
-    ksqliteLoadLibrary()
-
-    val results = (0..<1000000).map {
-        measureTimedValue {
-            sqlite3.sqlite3_libversion().getString(0)
-        }
-    }
-
-    println("Result = ${results.sumOf { it.duration.inWholeNanoseconds } / results.size}")
-}
-
-public inline fun String.isX64(): Boolean {
+private fun String.isX64(): Boolean {
     return contains("amd64") || contains("x86_64")
 }
 
-public inline fun String.isArm64(): Boolean {
+private fun String.isArm64(): Boolean {
     return contains("aarch64") || contains("arm64")
 }
 
+/**
+ * Loads the library.
+ */
 @Suppress("UnsafeDynamicallyLoadedCode")
 public fun ksqliteLoadLibrary() {
     val osName = System.getProperty("os.name").lowercase()
@@ -67,13 +55,11 @@ public fun ksqliteLoadLibrary() {
         .toFile()
         .apply { deleteOnExit() }
 
-    // Extract library to temp file
     libraryStream.use { input ->
         tempFile.outputStream().use { output ->
             input.copyTo(output)
         }
     }
 
-    // Load the library
     System.load(tempFile.absolutePath)
 }

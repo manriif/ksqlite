@@ -32,7 +32,7 @@ fun createSqliteFfmRuntimeMetadataContent(
             | * Path to the Ksqlite library for the `${platform.operatingSystem.name}` operating
             | * system and `${platform.architecture.name}` architecture.
             | */
-            |public const val KSQLITE_NATIVE_LIB_${uppercaseLibName}_PATH: String = "$libPath"
+            |internal const val KSQLITE_NATIVE_LIB_${uppercaseLibName}_PATH: String = "$libPath"
         """.trimMargin()
     }
 }

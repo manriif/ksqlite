@@ -1,5 +1,6 @@
 package ksqlite
 
-public fun ksqlite() {
-    NativeLibraryLoader.loadLibrary()
-}
+/**
+ * Version of SQLite.
+ */
+public expect val sqliteLibVersion: String
