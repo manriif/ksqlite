@@ -1,6 +1,6 @@
 package tasks
 
-import compilation.SqliteCompileStaticWorker
+import compilation.worker.SqliteCompileStaticWorker
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.assign

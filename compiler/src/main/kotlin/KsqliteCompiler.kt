@@ -1,10 +1,15 @@
 import compilation.SqliteCompilationParameters
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.file.Directory
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.getByName
+import tasks.TASK_JEXTRACT_EXTRACT
+import tasks.TASK_SQLITE_EXTRACT
+import tasks.TASK_TOOLCHAIN_ANDROID_EXTRACT
 import toolchains.Toolchain
 import toolchains.Toolchains
 import java.io.File
@@ -21,6 +26,28 @@ val Project.ksqliteCompilerExtension: KsqliteCompilerExtension
     get() = rootProject.extensions.getByName<KsqliteCompilerExtension>(
         KSQLITE_COMPILER_EXTENSION_NAME
     )
+
+///////////////////////////////////////////////////////////////////////////
+// Tasks
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the provider of the task responsible for installing the Android NDK toolchain.
+ */
+val Project.androidToolchainInstallTaskProvider: TaskProvider<Task>
+    get() = rootProject.tasks.named(TASK_TOOLCHAIN_ANDROID_EXTRACT)
+
+/**
+ * Returns the provider of the task responsible for installing sqlite.
+ */
+val Project.sqliteInstallTaskProvider: TaskProvider<Task>
+    get() = rootProject.tasks.named(TASK_SQLITE_EXTRACT)
+
+/**
+ * Returns the provider of the task responsible for installing jextract.
+ */
+val Project.jextractInstallTaskProvider: TaskProvider<Task>
+    get() = rootProject.tasks.named(TASK_JEXTRACT_EXTRACT)
 
 ///////////////////////////////////////////////////////////////////////////
 // Toolchains

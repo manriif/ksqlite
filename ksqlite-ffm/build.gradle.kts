@@ -1,6 +1,7 @@
 @file:Suppress("HasPlatformType")
 
 import compilation.SqliteTarget
+import compilation.sharedLibraryFileName
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import platform.Architecture
@@ -18,15 +19,18 @@ val resourceNativeDirName = "native"
 val generatedSourceDirectory = layout.buildDirectory.map { it.dir("generated/ksqlite/src/jvmMain") }
 val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java") }
 val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
-val librariesDirectory = layout.buildDirectory.map { it.dir("sqlite/$resourceNativeDirName") }
+val libsDir = layout.buildDirectory.map { it.dir("sqlite/$resourceNativeDirName") }
 
 fun createSqliteTarget(
     operatingSystem: OperatingSystem,
     architecture: Architecture,
 ): SqliteTarget = objects.newInstance<SqliteTarget>().apply {
     val platform = Platform(operatingSystem, architecture)
-    this.platform.set(platform)
-    this.libraryDirectory.set(librariesDirectory.map { it.dir(platform.name) })
+    this.platform = platform
+
+    this.libraryFile = libsDir.zip(ksqliteCompilerExtension.compilationParams) { dir, params ->
+        dir.file(platform.operatingSystem.library.sharedLibraryFileName(params.libraryName))
+    }
 }
 
 val sqliteTargets = listOf(
@@ -43,11 +47,11 @@ val generateBindingsTaskProvider = registerJextractGenerateBindingsTask(
     outputDirectory = generatedJavaSourceDirectory
 )
 
-val compileSharedTaskProvider = registerSqliteCompileSharedTask().apply {
-    configure {
-        outputs.dir(librariesDirectory)
-        targets = sqliteTargets
-    }
+val sqliteCompileSharedTaskProvider = registerSqliteCompileSharedTask("Jvm") {
+    dependsOn(jextractInstallTaskProvider)
+    // TODO zig dependency
+    outputs.dir(libsDir)
+    targets = sqliteTargets
 }
 
 val generateSqliteFfmRuntimeMetadataTaskProvider = registerSqliteFfmRuntimeMetadataTask(
@@ -90,10 +94,10 @@ fun KotlinJvmTarget.configureJvmTarget() {
 
         tasks.named<ProcessResources>(processResourcesTaskName).apply {
             configure {
-                dependsOn(compileSharedTaskProvider)
-                inputs.dir(librariesDirectory)
+                dependsOn(sqliteCompileSharedTaskProvider)
+                inputs.dir(libsDir)
 
-                from(librariesDirectory) {
+                from(libsDir) {
                     into(resourceNativeDirName)
                 }
             }

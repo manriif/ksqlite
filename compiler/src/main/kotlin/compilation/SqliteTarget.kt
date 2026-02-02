@@ -1,11 +1,10 @@
 package compilation
 
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFile
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.Internal
+import platform.Library
 import platform.Platform
 
 /**
@@ -16,8 +15,8 @@ abstract class SqliteTarget {
     @get:Input
     abstract val platform: Property<Platform>
 
-    @get:OutputDirectory
-    abstract val libraryDirectory: DirectoryProperty
+    @get:Internal
+    abstract val libraryFile: RegularFileProperty
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -25,38 +24,15 @@ abstract class SqliteTarget {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the generated shared library file.
+ * Returns the name of generated shared library file.
  */
-fun SqliteTarget.sharedLibraryFile(
-    params: Provider<SqliteCompilationParameters>
-): Provider<RegularFile> {
-    return libraryDirectory.zip(params) { directory, params ->
-        platform.get().operatingSystem.library.run {
-            directory.file("${sharedPrefix}${params.libraryName}.${sharedSuffix}")
-        }
-    }
+fun Library.sharedLibraryFileName(libraryName: String): String {
+    return "${sharedPrefix}${libraryName}.${sharedSuffix}"
 }
 
 /**
- * Returns the generated static library file.
+ * Returns the name of generated static library file.
  */
-fun SqliteTarget.staticLibraryFile(
-    params: Provider<SqliteCompilationParameters>
-): Provider<RegularFile> {
-    return libraryDirectory.zip(params) { directory, params ->
-        platform.get().operatingSystem.library.run {
-            directory.file("${staticPrefix}${params.libraryName}.${staticSuffix}")
-        }
-    }
-}
-
-/**
- * Returns the generated object file (.o).
- */
-fun SqliteTarget.objectFile(
-    params: Provider<SqliteCompilationParameters>
-): Provider<RegularFile> {
-    return libraryDirectory.zip(params) { directory, params ->
-        directory.file("${params.sqliteName}.o")
-    }
+fun Library.staticLibraryFileName(libraryName: String): String {
+    return "${staticPrefix}${libraryName}.${staticSuffix}"
 }

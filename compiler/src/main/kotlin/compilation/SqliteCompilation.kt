@@ -110,20 +110,21 @@ fun sharedCompilerFlags(
 /**
  * Returns the compiler flags for Xcode compilation.
  */
+@Suppress("NewApi")
 private fun xcodeCompilerFlags(
     arch: String,
     sdk: String,
     flag: String,
     execOperations: ExecOperations
 ): Array<String> {
-    val sdkOutputStream = ByteArrayOutputStream()
+    val sdkPath = ByteArrayOutputStream().use { output ->
+        execOperations.exec {
+            standardOutput = output
+            commandLine("xcrun", "--sdk", sdk, "--show-sdk-path")
+        }.rethrowFailure()
 
-    execOperations.exec {
-        standardOutput = sdkOutputStream
-        commandLine("xcrun", "--sdk", sdk, "--show-sdk-path")
-    }.rethrowFailure()
-
-    val sdkPath = sdkOutputStream.toByteArray().toString(Charsets.US_ASCII)
+        output.toString(Charsets.UTF_8).trimEnd()
+    }
 
     return arrayOf("-arch", arch, "-isysroot", sdkPath, flag)
 }

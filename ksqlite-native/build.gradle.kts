@@ -1,13 +1,14 @@
 @file:Suppress("HasPlatformType")
 
 import compilation.SqliteTarget
+import compilation.staticLibraryFileName
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import platform.Architecture
 import platform.OperatingSystem
 import platform.Platform
-import tasks.SqliteCompileStaticTask
 import tasks.registerSqliteCompileStaticTask
 import tasks.registerSqliteGenerateCInteropDefTask
 
@@ -17,48 +18,71 @@ plugins {
 
 val sqliteDirectory = layout.buildDirectory.dir("sqlite")
 val nativeArtifactDirectory = sqliteDirectory.map { it.dir("native") }
-val compileStaticTaskProvider = registerSqliteCompileStaticTask()
+val sqliteCompileStaticXcodeTaskProvider = registerSqliteCompileStaticTask("Xcode")
 
-kotlin {
-    /*listOf(androidNativeX64()).forEach {
-        it.configureNativeTarget(nativeArtifactDirectory, compileStaticTaskProvider)
-    }*/
-
-    jvmTargets()
+val sqliteCompileStaticAndroidTaskProvider = registerSqliteCompileStaticTask("Android") {
+    dependsOn(androidToolchainInstallTaskProvider)
 }
 
-fun KotlinNativeTarget.configureNativeTarget(
-    artifactDirectory: Provider<Directory>,
-    compileStaticTask: TaskProvider<SqliteCompileStaticTask>
-) {
-    val extension = ksqliteCompilerExtension
-    val outputDirectoryProvider = artifactDirectory.map { it.dir(konanTarget.name) }
-    val libraryDirectoryProvider = outputDirectoryProvider.map { it.dir("library") }
+val sqliteCompileStaticZigTaskProvider = registerSqliteCompileStaticTask("Zig") {
+    // TODO zig dependency
+}
 
-    val compilationTarget = objects.newInstance<SqliteTarget>().apply {
-        this.platform = konanTarget.toPlatform()
-        this.libraryDirectory = libraryDirectoryProvider
+val sqliteCompileStaticTaskProviders = mapOf(
+    Family.ANDROID to sqliteCompileStaticAndroidTaskProvider,
+    Family.OSX to sqliteCompileStaticXcodeTaskProvider,
+    Family.IOS to sqliteCompileStaticXcodeTaskProvider,
+    Family.TVOS to sqliteCompileStaticXcodeTaskProvider,
+    Family.WATCHOS to sqliteCompileStaticXcodeTaskProvider,
+    Family.LINUX to sqliteCompileStaticZigTaskProvider,
+    Family.MINGW to sqliteCompileStaticZigTaskProvider,
+)
+
+kotlin {
+    listOf(macosX64()).forEach { target ->
+        target.configureNativeTarget()
+    }
+}
+
+fun KotlinNativeTarget.configureNativeTarget() {
+    val extension = ksqliteCompilerExtension
+    val platform = konanTarget.toPlatform()
+    val platformDirectory = nativeArtifactDirectory.map { it.dir(platform.name) }
+
+    val sqliteTarget = objects.newInstance<SqliteTarget>().apply {
+        this.platform = platform
+
+        this.libraryFile = platformDirectory.zip(extension.compilationParams) { dir, params ->
+            dir.file(platform.operatingSystem.library.staticLibraryFileName(params.libraryName))
+        }
     }
 
-    val defFileProvider = outputDirectoryProvider.map { directory ->
+    val defFileProvider = platformDirectory.map { directory ->
         directory.file("${extension.compilationParams.get().sqliteName}.def")
     }
 
     val generateCInteropDefTaskProvider = registerSqliteGenerateCInteropDefTask(
         packageName = projectNamespace,
-        target = compilationTarget,
+        target = sqliteTarget,
         defFileProvider = defFileProvider
     )
 
-    compileStaticTask.configure {
-        targets.add(compilationTarget)
+    val sqliteCompileStaticTaskProvider = checkNotNull(
+        sqliteCompileStaticTaskProviders[konanTarget.family]
+    )
+
+    sqliteCompileStaticTaskProvider.configure {
+        targets.add(sqliteTarget)
     }
 
     compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
+        compileTaskProvider.configure {
+            dependsOn(sqliteCompileStaticTaskProvider)
+        }
+
         cinterops.register("ksqlite") {
             tasks.named(interopProcessingTaskName).configure {
                 dependsOn(generateCInteropDefTaskProvider)
-                dependsOn(compileStaticTask)
             }
 
             definitionFile = defFileProvider

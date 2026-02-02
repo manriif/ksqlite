@@ -31,7 +31,7 @@ fun createDefContent(
     |package = $packageName
     |headers = ${params.sqliteMcName}.h
     |headerFilter = ${params.sqliteMcName}.h
-    |staticLibrary = ${libraryFile.name}
+    |staticLibraries = ${libraryFile.name}
     |libraryPaths = ${libraryFile.parentFile.absolutePath}
     |linkerOpts.linux_x64 = -lpthread -ldl
     |linkerOpts.macos_x64 = -lpthread -ldl
