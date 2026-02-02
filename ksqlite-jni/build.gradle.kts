@@ -17,7 +17,6 @@ val generateSqliteCMakeListsTaskProvider = registerSqliteGenerateCMakeListsTask(
 
 val generateSqliteJniRuntimeMetadataTaskProvider = registerSqliteJniRuntimeMetadataTask(
     packageName = projectNamespace,
-    libraryName = "ksqlite-native",
     metadataFile = generatedSourceDirectory.map { it.file("$projectNamespace/KsqliteNativeJni.kt") }
 )
 
@@ -47,8 +46,8 @@ android {
     namespace = projectNamespace
 
     compileOptions {
-        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.default.get())
-        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.default.get())
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.android.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.android.get())
     }
 
     compileSdk {
@@ -63,7 +62,10 @@ android {
 
     externalNativeBuild {
         ndkVersion = libs.versions.android.ndk.get()
-        ndkPath = ksqliteCompilerExtension.androidToolchain().get().path
+
+        ndkPath = ksqliteCompilerExtension.androidToolchain().get().path.takeIf { path ->
+            file(path).exists()
+        }
 
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")

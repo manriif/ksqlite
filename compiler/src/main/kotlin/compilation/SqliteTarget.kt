@@ -32,7 +32,7 @@ fun SqliteTarget.sharedLibraryFile(
 ): Provider<RegularFile> {
     return libraryDirectory.zip(params) { directory, params ->
         platform.get().operatingSystem.library.run {
-            directory.file("${sharedPrefix}${params.sqliteName}.${sharedSuffix}")
+            directory.file("${sharedPrefix}${params.libraryName}.${sharedSuffix}")
         }
     }
 }
@@ -45,7 +45,7 @@ fun SqliteTarget.staticLibraryFile(
 ): Provider<RegularFile> {
     return libraryDirectory.zip(params) { directory, params ->
         platform.get().operatingSystem.library.run {
-            directory.file("${staticPrefix}${params.sqliteName}.${staticSuffix}")
+            directory.file("${staticPrefix}${params.libraryName}.${staticSuffix}")
         }
     }
 }

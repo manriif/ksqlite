@@ -40,5 +40,8 @@ fun createSqliteJniRuntimeMetadataContent(
 ): String = """
     |package $packageName
     |
-    |public const val KSQLITE_NATIVE_LIB: String = "$libraryName"
+    |/**
+    | * Name of the Ksqlite native library.
+    | */
+    |public const val KSQLITE_NATIVE_LIB_NAME: String = "$libraryName"
 """.trimMargin()

@@ -23,14 +23,4 @@ kotlin {
             }
         }
     }
-
-    sourceSets {
-        all {
-            languageSettings {
-                optIn("kotlin.experimental.ExperimentalNativeApi")
-                optIn("kotlinx.cinterop.ExperimentalForeignApi")
-                optIn("kotlinx.cinterop.BetaInteropApi")
-            }
-        }
-    }
 }

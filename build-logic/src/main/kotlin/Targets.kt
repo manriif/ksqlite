@@ -30,7 +30,7 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
         compilations.configureEach {
             compileTaskProvider.configure {
                 compilerOptions {
-                    jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.default.get())
+                    jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.android.get())
                 }
             }
         }
@@ -75,14 +75,10 @@ fun KotlinMultiplatformExtension.appleTargets(): List<KotlinNativeTarget> = buil
 /**
  * Adds Jvm targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.jvmTargets(
-    jvmTargetVersion: Provider<String>? = null
-): List<KotlinJvmTarget> {
+fun KotlinMultiplatformExtension.jvmTargets(): List<KotlinJvmTarget> {
     return listOf(jvm {
-        jvmTargetVersion?.get()?.let { version ->
-            compilerOptions {
-                jvmTarget = JvmTarget.fromTarget(version)
-            }
+        compilerOptions {
+            jvmTarget = JvmTarget.fromTarget(project.libs.versions.jvm.target.jvm.get())
         }
     })
 }

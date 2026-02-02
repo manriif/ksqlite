@@ -13,6 +13,11 @@ data class SqliteCompilationParameters(
     val toolchains: Toolchains,
 
     /**
+     * Name of the generated library.
+     */
+    val libraryName: String,
+
+    /**
      * Version of SQLite.
      */
     val sqliteVersion: String,

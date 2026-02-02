@@ -3,7 +3,6 @@ import toolchains.Toolchain
 import toolchains.Toolchains
 import utils.absolutePath
 import java.util.Properties
-import kotlin.String
 
 plugins {
     alias(libs.plugins.android.multiplatformLibrary) apply false
@@ -21,6 +20,8 @@ allprojects {
 }
 
 ksqliteCompiler {
+    val ksqliteDir = layout.buildDirectory.dir("ksqlite")
+
     checksums = Properties()
         .apply {
             file("checksums.properties").inputStream().use { load(it) }
@@ -40,6 +41,7 @@ ksqliteCompiler {
         }
 
     compilationParams = SqliteCompilationParameters(
+        libraryName = "ksqlite",
         sqliteVersion = libs.versions.ksqlite.get(),
         sqliteMCVersion = libs.versions.sqliteMultipleCiphers.get(),
         androidSdkMin = libs.versions.android.sdk.min.get(),
@@ -47,7 +49,7 @@ ksqliteCompiler {
         iosVersionMin = libs.versions.ios.version.min.get(),
         tvosVersionMin = libs.versions.tvos.version.min.get(),
         watchosVersionMin = libs.versions.watchos.version.min.get(),
-        toolchains = layout.buildDirectory.dir("toolchains").run {
+        toolchains = ksqliteDir.map { it.dir("toolchains") }.run {
             Toolchains(
                 android = Toolchain(
                     version = libs.versions.toolchain.android.get(),
@@ -58,8 +60,8 @@ ksqliteCompiler {
     )
 
     downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
-    sqliteSourcesDirectory = layout.buildDirectory.dir("sqlite")
-    jExtractDirectory = layout.buildDirectory.dir("jextract")
-    jdkVersion = libs.versions.jvm.target.ffm.get()
+    sqliteSourcesDirectory = ksqliteDir.map { it.dir("sqlite") }
+    jExtractDirectory = ksqliteDir.map { it.dir("jextract") }
+    jdkVersion = libs.versions.jvm.toolchain.get()
     jExtractVersion = libs.versions.jextract.get()
 }

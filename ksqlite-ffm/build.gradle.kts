@@ -18,7 +18,7 @@ val resourceNativeDirName = "native"
 val generatedSourceDirectory = layout.buildDirectory.map { it.dir("generated/ksqlite/src/jvmMain") }
 val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java") }
 val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
-val librariesDirectory = layout.buildDirectory.map { it.dir("sqlite/library") }
+val librariesDirectory = layout.buildDirectory.map { it.dir("sqlite/$resourceNativeDirName") }
 
 fun createSqliteTarget(
     operatingSystem: OperatingSystem,
@@ -32,7 +32,7 @@ fun createSqliteTarget(
 val sqliteTargets = listOf(
     //createSqliteTarget(OperatingSystem.Linux, Architecture.Arm64),
     //createSqliteTarget(OperatingSystem.Linux, Architecture.X64),
-    createSqliteTarget(OperatingSystem.MacOS, Architecture.Arm64),
+    //createSqliteTarget(OperatingSystem.MacOS, Architecture.Arm64),
     createSqliteTarget(OperatingSystem.MacOS, Architecture.X64),
     //createSqliteTarget(OperatingSystem.Windows, Architecture.Arm64),
     //createSqliteTarget(OperatingSystem.Windows, Architecture.X64),
@@ -67,11 +67,7 @@ val generateSources by tasks.registering {
 registerTaskForIde(generateSources)
 
 kotlin {
-    jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(libs.versions.jvm.target.ffm.get())
-    }
-
-    jvmTargets(libs.versions.jvm.target.ffm).forEach { target ->
+    jvmTargets().forEach { target ->
         target.configureJvmTarget()
     }
 
@@ -83,16 +79,23 @@ kotlin {
 
 fun KotlinJvmTarget.configureJvmTarget() {
     compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
-        checkNotNull(compileJavaTaskProvider).configure {
-            inputs.dir(generateBindingsTaskProvider.map { it.outputs.files.singleFile })
-            inputs.dir(generateSqliteFfmRuntimeMetadataTaskProvider.map { it.outputs.files.singleFile })
+        compileTaskProvider.configure {
+            dependsOn(generateSources)
         }
 
-        tasks.named<ProcessResources>(processResourcesTaskName).configure {
-            inputs.dir(compileSharedTaskProvider)
+        checkNotNull(compileJavaTaskProvider).configure {
+            dependsOn(generateSources)
+            source(generatedJavaSourceDirectory)
+        }
 
-            from(compileSharedTaskProvider) {
-                into("./$resourceNativeDirName")
+        tasks.named<ProcessResources>(processResourcesTaskName).apply {
+            configure {
+                dependsOn(compileSharedTaskProvider)
+                inputs.dir(librariesDirectory)
+
+                from(librariesDirectory) {
+                    into(resourceNativeDirName)
+                }
             }
         }
     }

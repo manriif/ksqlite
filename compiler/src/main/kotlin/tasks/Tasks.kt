@@ -29,7 +29,6 @@ import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.gradle.process.ExecOperations
 import platform.Platform
-import sqliteDynamicLibraryName
 import sqliteHeaderFile
 import sqliteSourceFile
 import toolchainDirectory
@@ -43,7 +42,8 @@ import toolchains.androidNdkExtract
 
 const val ksqliteCompilerTaskGroup = "ksqlite"
 
-const val TASK_INSTALL_AND_CONFIGURE = "installAndConfigure"
+const val TASK_INSTALL_AND_CONFIGURE_SHARED = "installAndConfigureShared"
+const val TASK_INSTALL_AND_CONFIGURE_STATIC = "installAndConfigureStatic"
 const val TASK_TOOLCHAIN_ANDROID_DOWNLOAD = "toolchainAndroidDownload"
 const val TASK_TOOLCHAIN_ANDROID_EXTRACT = "toolchainAndroidExtract"
 const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
@@ -81,11 +81,16 @@ fun Project.registerTasks(extension: KsqliteCompilerExtension) {
         downloadTaskProvider = registerJextractDownloadTask(extension)
     )
 
-    // Global task to wait on all toolchains and sqlite extraction
-    tasks.register(TASK_INSTALL_AND_CONFIGURE) {
-        dependsOn(androidTaskProvider)
+    // Aggregation of task needed for shared library compilation
+    val sharedInstallTaskProvider = tasks.register(TASK_INSTALL_AND_CONFIGURE_SHARED) {
         dependsOn(sqliteTaskProvider)
         dependsOn(jextractTaskProvider)
+    }
+
+    // Aggregation of task needed for static library compilation
+    tasks.register(TASK_INSTALL_AND_CONFIGURE_STATIC) {
+        dependsOn(sharedInstallTaskProvider)
+        dependsOn(androidTaskProvider)
     }
 }
 
@@ -313,7 +318,6 @@ fun Project.registerJextractGenerateBindingsTask(
         jextractGenerateBindings(
             execOperations = execOperations,
             packageName = packageName,
-            libraryName = sqliteDynamicLibraryName(extension.compilationParams).get(),
             jextractDirectory = extension.jExtractDirectory.get().asFile,
             sqliteHeaderFile = headerFile.get().asFile,
             outputDirectory = outputDirectory.get().asFile,
@@ -329,11 +333,11 @@ fun Project.registerJextractGenerateBindingsTask(
 /**
  * Registers and returns the task responsible for generating the artifacts for dynamic linking.
  */
-private fun SqliteCompileTask.configureCompileTask() {
+private fun SqliteCompileTask.configureCompileTask(aggregate: String) {
     group = ksqliteCompilerTaskGroup
 
     // Depend on toolchains and sqlite installation
-    dependsOn(project.rootProject.tasks.named(TASK_INSTALL_AND_CONFIGURE))
+    dependsOn(project.rootProject.tasks.named(aggregate))
 
     val extension = project.ksqliteCompilerExtension
     compilationParameters = extension.compilationParams
@@ -345,7 +349,7 @@ private fun SqliteCompileTask.configureCompileTask() {
  */
 fun Project.registerSqliteCompileSharedTask(): TaskProvider<SqliteCompileSharedTask> {
     return tasks.register<SqliteCompileSharedTask>(TASK_SQLITE_COMPILE_SHARED) {
-        configureCompileTask()
+        configureCompileTask(TASK_INSTALL_AND_CONFIGURE_SHARED)
     }
 }
 
@@ -354,7 +358,7 @@ fun Project.registerSqliteCompileSharedTask(): TaskProvider<SqliteCompileSharedT
  */
 fun Project.registerSqliteCompileStaticTask(): TaskProvider<SqliteCompileStaticTask> {
     return tasks.register<SqliteCompileStaticTask>(TASK_SQLITE_COMPILE_STATIC) {
-        configureCompileTask()
+        configureCompileTask(TASK_INSTALL_AND_CONFIGURE_STATIC)
     }
 }
 
@@ -375,8 +379,8 @@ fun Project.registerSqliteGenerateCInteropDefTask(
 ) {
     group = ksqliteCompilerTaskGroup
 
-    // Explicit dependency on the global install and configure task
-    dependsOn(project.rootProject.tasks.named(TASK_INSTALL_AND_CONFIGURE))
+    // Explicit dependency on the sqlite extract task
+    dependsOn(project.rootProject.tasks.named(TASK_SQLITE_EXTRACT))
     outputs.file(defFileProvider)
 
     val parameters = project.ksqliteCompilerExtension.compilationParams
@@ -437,17 +441,18 @@ fun Project.registerSqliteGenerateCMakeListsTask(
  */
 fun Project.registerSqliteJniRuntimeMetadataTask(
     packageName: String,
-    libraryName: String,
     metadataFile: Provider<RegularFile>,
 ): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_GENERATE_JNI_RUNTIME_METADATA) {
     group = ksqliteCompilerTaskGroup
     outputs.file(metadataFile)
 
+    val extension = ksqliteCompilerExtension
+
     doLast {
         metadataFile.get().asFile.writeText(
             createSqliteJniRuntimeMetadataContent(
                 packageName = packageName,
-                libraryName = libraryName
+                libraryName = extension.compilationParams.get().libraryName
             )
         )
     }
@@ -465,11 +470,14 @@ fun Project.registerSqliteFfmRuntimeMetadataTask(
     group = ksqliteCompilerTaskGroup
     outputs.file(metadataFile)
 
+    val extension = ksqliteCompilerExtension
+
     doLast {
         metadataFile.get().asFile.writeText(
             createSqliteFfmRuntimeMetadataContent(
                 packageName = packageName,
                 nativeDirectoryName = nativeDirectoryName,
+                libraryName = extension.compilationParams.get().libraryName,
                 platforms = platforms.get()
             )
         )

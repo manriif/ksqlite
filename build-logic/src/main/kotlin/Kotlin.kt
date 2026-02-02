@@ -1,4 +1,3 @@
-import org.gradle.api.provider.Provider
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.kotlin.dsl.assign
 import org.jetbrains.kotlin.gradle.dsl.HasConfigurableKotlinCompilerOptions
@@ -9,11 +8,10 @@ import org.jetbrains.kotlin.gradle.plugin.HasProject
 /**
  * Applies common Kotlin configuration.
  */
-fun <Extension> Extension.configureKotlin(
-    jvmVersion: Provider<String> = project.libs.versions.jvm.target.default
-) where Extension : KotlinBaseExtension,
-        Extension : HasConfigurableKotlinCompilerOptions<*>,
-        Extension : HasProject {
+fun <Extension> Extension.configureKotlin()
+        where Extension : KotlinBaseExtension,
+              Extension : HasConfigurableKotlinCompilerOptions<*>,
+              Extension : HasProject {
     explicitApi()
 
     compilerOptions {
@@ -31,6 +29,6 @@ fun <Extension> Extension.configureKotlin(
     }
 
     jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(jvmVersion.get())
+        languageVersion = JavaLanguageVersion.of(project.libs.versions.jvm.toolchain.get())
     }
 }

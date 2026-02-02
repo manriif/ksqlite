@@ -22,9 +22,10 @@ ios-version-min = "12.0"
 tvos-version-min = "12.0"
 watchos-version-min = "5.0"
 
-# Jvm target versions
-jvm-target-default = "17"
-jvm-target-ffm = "22"
+# Jvm versions
+jvm-target-android = "17"
+jvm-target-jvm = "22"
+jvm-toolchain = "22"
 
 android-gradlePlugin = "9.0.0"
 cmake = "3.28.3"

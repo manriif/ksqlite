@@ -101,7 +101,6 @@ fun KsqliteChecksums.jextract(): String = Host.Current.run {
 fun jextractGenerateBindings(
     execOperations: ExecOperations,
     packageName: String,
-    libraryName: String,
     jextractDirectory: File,
     sqliteHeaderFile: File,
     outputDirectory: File,
@@ -123,7 +122,7 @@ fun jextractGenerateBindings(
                 "--header-class-name", params.sqliteName,
                 "--include-dir", sqliteHeaderFile.parentFile.absolutePath,
                 *includedFunctions,
-                "--library", libraryName, sqliteHeaderFile.absolutePath
+                sqliteHeaderFile.absolutePath
             )
         }
         .rethrowFailure()
