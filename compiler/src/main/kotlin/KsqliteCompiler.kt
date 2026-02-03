@@ -8,7 +8,7 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.getByName
 import tasks.TASK_JEXTRACT_EXTRACT
-import tasks.TASK_SQLITE_EXTRACT
+import tasks.TASK_SQLITE_INSTALL
 import tasks.TASK_TOOLCHAIN_ANDROID_EXTRACT
 import toolchains.Toolchain
 import toolchains.Toolchains
@@ -41,7 +41,7 @@ val Project.androidToolchainInstallTaskProvider: TaskProvider<Task>
  * Returns the provider of the task responsible for installing sqlite.
  */
 val Project.sqliteInstallTaskProvider: TaskProvider<Task>
-    get() = rootProject.tasks.named(TASK_SQLITE_EXTRACT)
+    get() = rootProject.tasks.named(TASK_SQLITE_INSTALL)
 
 /**
  * Returns the provider of the task responsible for installing jextract.

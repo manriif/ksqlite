@@ -31,12 +31,13 @@ ksqliteCompiler {
                 androidNdkLinux = getProperty("android.ndk.linux"),
                 androidNdkMacos = getProperty("android.ndk.macos"),
                 androidNdkWindows = getProperty("android.ndk.windows"),
-                sqliteMc = getProperty("sqlitemc"),
                 jextractLinuxAarch64 = getProperty("jextract.linux.aarch64"),
                 jextractLinuxX64 = getProperty("jextract.linux.x64"),
                 jextractMacosAarch64 = getProperty("jextract.macos.aarch64"),
                 jextractMacosX64 = getProperty("jextract.macos.x64"),
                 jextractWindowsX64 = getProperty("jextract.windows.x64"),
+                sqlite = getProperty("sqlite"),
+                sqliteMc = getProperty("sqlitemc"),
             )
         }
 

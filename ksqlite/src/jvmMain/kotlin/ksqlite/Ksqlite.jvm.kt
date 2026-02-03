@@ -9,4 +9,4 @@ package ksqlite
 private val nativeInit = run { ksqliteLoadLibrary() }
 
 public actual val sqliteLibVersion: String
-    get() = sqlite3.sqlite3_libversion().getString(0, Charsets.US_ASCII)
+    get() = sqlite3.sqlite3_libversion().getString(0)

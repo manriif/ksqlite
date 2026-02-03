@@ -36,6 +36,7 @@ import toolchainDirectory
 import toolchains.androidNdk
 import toolchains.androidNdkDownloadUrl
 import toolchains.androidNdkExtract
+import utils.copyFirstDirectoryContent
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
@@ -47,6 +48,9 @@ const val TASK_TOOLCHAIN_ANDROID_DOWNLOAD = "toolchainAndroidDownload"
 const val TASK_TOOLCHAIN_ANDROID_EXTRACT = "toolchainAndroidExtract"
 const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
 const val TASK_SQLITE_EXTRACT = "sqliteExtract"
+const val TASK_SQLITEMC_DOWNLOAD = "sqliteMcDownload"
+const val TASK_SQLITEMC_EXTRACT = "sqliteMcExtract"
+const val TASK_SQLITE_INSTALL = "sqliteInstall"
 const val TASK_JEXTRACT_DOWNLOAD = "jextractDownload"
 const val TASK_JEXTRACT_EXTRACT = "jextractExtract"
 const val TASK_JEXTRACT_GENERATE_BINDINGS = "jextractGenerateBindings"
@@ -65,9 +69,27 @@ const val TASK_SQLITE_GENERATE_FFM_RUNTIME_METADATA = "sqliteGenerateFfmRuntimeM
  * Registers the task for downloading sqlite sources.
  */
 fun Project.registerTasks(extension: KsqliteCompilerExtension) {
-    registerToolchainAndroidExtractTask(extension, registerToolchainAndroidDownloadTask(extension))
-    registerSqliteExtractTask(extension, registerSqliteDownloadTask(extension))
-    registerJextractExtractTask(extension, registerJextractDownloadTask(extension))
+    registerToolchainAndroidExtractTask(
+        extension = extension,
+        downloadTaskProvider = registerToolchainAndroidDownloadTask(extension)
+    )
+
+    registerJextractExtractTask(
+        extension = extension,
+        downloadTaskProvider = registerJextractDownloadTask(extension)
+    )
+
+    registerSqliteInstallTask(
+        extension = extension,
+        sqliteExtractTaskProvider = registerSqliteExtractTask(
+            extension = extension,
+            downloadTaskProvider = registerSqliteDownloadTask(extension)
+        ),
+        sqliteMcExtractTaskProvider = registerSqliteMcExtractTask(
+            extension = extension,
+            downloadTaskProvider = registerSqliteMcDownloadTask(extension)
+        )
+    )
 }
 
 /**
@@ -77,11 +99,11 @@ private fun Project.registerDownloadTask(
     name: String,
     extension: KsqliteCompilerExtension,
     url: Provider<String>,
-    fileName: Provider<String> = url.map { it.substringAfterLast('/') },
     configureVerify: VerifyAction.(KsqliteChecksums) -> Unit,
-    configureDownload: (Download.(fileName: Provider<String>) -> Unit)? = null
 ): TaskProvider<Download> = tasks.register<Download>(name) {
     group = ksqliteCompilerTaskGroup
+
+    val fileName = url.map { it.substringAfterLast('/') }
 
     val destination = extension.downloadDirectory.zip(fileName) { directory, fileName ->
         directory.file(fileName)
@@ -95,7 +117,6 @@ private fun Project.registerDownloadTask(
     src(url)
     overwrite(false)
     quiet(false)
-    configureDownload?.invoke(this, fileName)
 
     val verify = VerifyAction(layout).apply {
         src(destination)
@@ -177,8 +198,10 @@ private fun Project.registerToolchainAndroidExtractTask(
 )
 
 ///////////////////////////////////////////////////////////////////////////
-// Sqlite Multiple Ciphers
+// SQLite
 ///////////////////////////////////////////////////////////////////////////
+
+private fun String.pad2() = padStart(2, '0')
 
 /**
  * Registers and returns the task responsible for downloading SQLite sources.
@@ -187,6 +210,54 @@ private fun Project.registerSqliteDownloadTask(
     extension: KsqliteCompilerExtension
 ): TaskProvider<Download> = registerDownloadTask(
     name = TASK_SQLITE_DOWNLOAD,
+    extension = extension,
+    url = extension.compilationParams.zip(extension.checksums) { params, checksums ->
+        val components = params.sqliteVersion.split('.')
+        val (major, minor, patch) = components
+        val build = components.getOrElse(3) { "0" }
+        val releaseYear = checksums.sqlite.split('.').first()
+        val normalizedVersion = "$major${minor.pad2()}${patch.pad2()}${build.pad2()}"
+
+        "https://www.sqlite.org/$releaseYear/sqlite-src-$normalizedVersion.zip"
+    },
+    configureVerify = { checksums ->
+        algorithm("SHA3-256")
+        checksum(checksums.sqlite.split('.').last())
+    }
+)
+
+/**
+ * Registers and returns the task responsible for extracting the downloaded SQLite sources.
+ */
+private fun Project.registerSqliteExtractTask(
+    extension: KsqliteCompilerExtension,
+    downloadTaskProvider: TaskProvider<Download>
+): TaskProvider<Task> = registerExtractTask(
+    name = TASK_SQLITE_EXTRACT,
+    downloadTaskProvider = downloadTaskProvider,
+    outputDirectory = downloadTaskProvider.zip(extension.downloadDirectory) { task, directory ->
+        directory.dir(task.dest.nameWithoutExtension)
+    },
+    configure = { fileOperations, outputDirectory, downloadedFile ->
+        val sources = zipTree(downloadedFile)
+
+        doLast {
+            fileOperations.copyFirstDirectoryContent(sources, outputDirectory)
+        }
+    }
+)
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite Multiple Ciphers
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Registers and returns the task responsible for downloading SQLite MC sources.
+ */
+private fun Project.registerSqliteMcDownloadTask(
+    extension: KsqliteCompilerExtension
+): TaskProvider<Download> = registerDownloadTask(
+    name = TASK_SQLITEMC_DOWNLOAD,
     extension = extension,
     url = extension.compilationParams.map { params ->
         "https://github.com/utelle/SQLite3MultipleCiphers/releases/download/" +
@@ -200,15 +271,17 @@ private fun Project.registerSqliteDownloadTask(
 )
 
 /**
- * Registers and returns the task responsible for extracting the downloaded SQLite sources.
+ * Registers and returns the task responsible for extracting the downloaded SQLite MC sources.
  */
-private fun Project.registerSqliteExtractTask(
+private fun Project.registerSqliteMcExtractTask(
     extension: KsqliteCompilerExtension,
     downloadTaskProvider: TaskProvider<Download>
 ): TaskProvider<Task> = registerExtractTask(
-    name = TASK_SQLITE_EXTRACT,
+    name = TASK_SQLITEMC_EXTRACT,
     downloadTaskProvider = downloadTaskProvider,
-    outputDirectory = extension.sqliteSourcesDirectory,
+    outputDirectory = downloadTaskProvider.zip(extension.downloadDirectory) { task, directory ->
+        directory.dir(task.dest.nameWithoutExtension)
+    },
     configure = { fileOperations, outputDirectory, downloadedFile ->
         val sources = zipTree(downloadedFile)
 
@@ -220,6 +293,62 @@ private fun Project.registerSqliteExtractTask(
         }
     }
 )
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite install
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Registers the task responsible for installing sqlite (merging sources).
+ */
+private fun Project.registerSqliteInstallTask(
+    extension: KsqliteCompilerExtension,
+    sqliteExtractTaskProvider: TaskProvider<Task>,
+    sqliteMcExtractTaskProvider: TaskProvider<Task>,
+): TaskProvider<Task> = tasks.register(TASK_SQLITE_INSTALL) {
+    group = ksqliteCompilerTaskGroup
+
+    val destination = extension.sqliteSourcesDirectory
+    val sqliteDirectory = sqliteExtractTaskProvider.map { it.outputs.files.singleFile }
+    val sqliteMcDirectory = sqliteMcExtractTaskProvider.map { it.outputs.files.singleFile }
+    val sqliteJniSources = fileTree(sqliteDirectory.map { it.resolve("ext/jni") })
+    val sqliteJniDestination = destination.map { it.dir("jni") }
+    val sqliteWasmSources = fileTree(sqliteDirectory.map { it.resolve("ext/wasm") })
+    val sqliteWasmDestination = destination.map { it.dir("wasm") }
+    val fileOperations = serviceOf<FileSystemOperations>()
+
+    inputs.dir(sqliteDirectory)
+    inputs.dir(sqliteMcDirectory)
+    outputs.dir(destination)
+
+    doFirst {
+        fileOperations.delete {
+            delete(destination)
+        }
+    }
+
+    doLast {
+        val params = extension.compilationParams.get()
+        val jniDirectory = sqliteJniDestination.get().asFile
+        val wasmDirectory = sqliteWasmDestination.get().asFile
+
+        fileOperations.copy {
+            from(sqliteMcDirectory, sqliteJniSources, sqliteWasmSources)
+            include { it.name.startsWith(params.sqliteMcName) }
+            into(destination)
+        }
+
+        /*fileOperations.copy {
+            from(sqliteJniSources)
+            into(jniDirectory)
+        }
+
+        fileOperations.copy {
+            from( sqliteWasmSources)
+            into(wasmDirectory)
+        }*/
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Jextract
