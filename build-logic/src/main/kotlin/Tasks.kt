@@ -1,7 +1,9 @@
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.kotlin.dsl.configure
 
 private const val PREPARE_KOTLIN_IDEA_IMPORT = "prepareKotlinIdeaImport"
+private const val PREPARE_KOTLIN_BUILD_SCRIPT_MODEL = "prepareKotlinBuildScriptModel"
 
 /**
  * Registers the task as a dependency during Gradle sync when running in IDE.
@@ -22,7 +24,9 @@ fun Project.registerTaskForIde(
     onFailed?.let { callback ->
         afterEvaluate {
             if (tasks.none { it.name == PREPARE_KOTLIN_IDEA_IMPORT }) {
-                callback()
+                rootProject.tasks.findByName(PREPARE_KOTLIN_BUILD_SCRIPT_MODEL)
+                    ?.run { dependsOn(provider) }
+                    ?: callback()
             }
         }
     }

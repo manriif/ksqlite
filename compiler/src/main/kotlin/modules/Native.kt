@@ -1,7 +1,8 @@
-package interop
+package modules
 
 import compilation.SqliteCompilationParameters
 import compilation.SqliteFunctions
+import compilation.SqliteMcFunctions
 import java.io.File
 
 /**
@@ -13,10 +14,10 @@ private val DefNoStringConversions = listOf(
 )
 
 /**
- * Returns the concatenation of all items prefixed with [sqlite] and spaced by a space.
+ * Returns the concatenation of all items prefixed with [prefix] and spaced by a space.
  */
-private fun Collection<String>.spacedSqliteFunctions(sqlite: String): String {
-    return joinToString(" ") { "${sqlite}_$it" }
+private fun Collection<String>.spaced(prefix: String): String {
+    return joinToString(" ") { "${prefix}_$it" }
 }
 
 /**
@@ -29,16 +30,15 @@ fun createDefContent(
 ): String = """
     |language = C
     |package = $packageName
-    |headers = ${params.sqliteMcName}.h
-    |headerFilter = ${params.sqliteMcName}.h
+    |headers = ${params.sqliteMcAmalgamationName}.h
+    |headerFilter = ${params.sqliteMcAmalgamationName}.h
     |staticLibraries = ${libraryFile.name}
     |libraryPaths = ${libraryFile.parentFile.absolutePath}
     |linkerOpts.linux_x64 = -lpthread -ldl
     |linkerOpts.macos_x64 = -lpthread -ldl
-    |noStringConversion = ${
-        DefNoStringConversions.spacedSqliteFunctions(params.sqliteName)
-    }
+    |noStringConversion = ${ DefNoStringConversions.spaced(params.sqliteName)}
     |excludedFunctions = ${
-        SqliteFunctions.filter { !it.value }.keys.spacedSqliteFunctions(params.sqliteName)
+        SqliteFunctions.filter { !it.value }.keys.spaced(params.sqliteName) + ' ' +
+                SqliteMcFunctions.filter { !it.value }.keys.spaced(params.sqliteMcName)
     }
 """.trimMargin()

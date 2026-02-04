@@ -1,3 +1,6 @@
+@file:Suppress("HasPlatformType")
+
+import tasks.registerSqliteCopyJniJavaSourceTask
 import tasks.registerSqliteGenerateCMakeListsTask
 import tasks.registerSqliteJniRuntimeMetadataTask
 
@@ -6,11 +9,10 @@ plugins {
     alias(libs.plugins.conventions.common)
 }
 
-val generatedSourceDirectory: Provider<Directory> = layout.buildDirectory.map { directory ->
-    directory.dir("generated/ksqlite/src/main/kotlin")
-}
-
-val sqliteCmakeDirectory: Provider<Directory> = layout.buildDirectory.map { it.dir("sqlite") }
+val generatedSourceDirectory = layout.buildDirectory.map { it.dir("generated/ksqlite/src/main") }
+val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java") }
+val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
+val sqliteCmakeDirectory = layout.buildDirectory.map { it.dir("sqlite") }
 
 val generateSqliteCMakeListsTaskProvider = registerSqliteGenerateCMakeListsTask(
     cmakeListsFile = sqliteCmakeDirectory.map { it.file("CMakeLists.txt") },
@@ -19,12 +21,17 @@ val generateSqliteCMakeListsTaskProvider = registerSqliteGenerateCMakeListsTask(
 
 val generateSqliteJniRuntimeMetadataTaskProvider = registerSqliteJniRuntimeMetadataTask(
     packageName = projectNamespace,
-    metadataFile = generatedSourceDirectory.map { it.file("$projectNamespace/KsqliteNativeJni.kt") }
+    metadataFile = generatedKotlinSourceDirectory.map { it.file("$projectNamespace/KsqliteJni.kt") }
+)
+
+val copySqliteJniRuntimeMetadataTaskProvider = registerSqliteCopyJniJavaSourceTask(
+    sourcesDirectory = generatedJavaSourceDirectory
 )
 
 val generateSources by tasks.registering {
     dependsOn(generateSqliteCMakeListsTaskProvider)
     dependsOn(generateSqliteJniRuntimeMetadataTaskProvider)
+    dependsOn(copySqliteJniRuntimeMetadataTaskProvider)
 }
 
 registerTaskForIde(generateSources) {
@@ -83,6 +90,7 @@ android {
     }
 
     sourceSets.named(SourceSet.MAIN_SOURCE_SET_NAME) {
-        kotlin.directories += generatedSourceDirectory.get().asFile.absolutePath
+        java.directories += generatedJavaSourceDirectory.get().asFile.absolutePath
+        kotlin.directories += generatedKotlinSourceDirectory.get().asFile.absolutePath
     }
 }

@@ -7,9 +7,8 @@ kotlin {
     androidJvmTargets()
     jvmTargets()
     macosX64()
-
-    /*nativeTargets()
-    webTargets()*/
+    //nativeTargets()
+    webTargets()
 
     sourceSets {
         commonTest.dependencies {
@@ -27,6 +26,10 @@ kotlin {
 
         nativeMain.dependencies {
             implementation(projects.ksqliteNative)
+        }
+
+        webMain.dependencies {
+            implementation(projects.ksqliteWeb)
         }
     }
 }

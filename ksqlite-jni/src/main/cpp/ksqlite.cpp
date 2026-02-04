@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <string>
 #include <sqlite3mc_amalgamation.h>
+#include "jni/src/c/sqlite3-jni.h"
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_ksqlite_KsqliteNative_ksqliteHello(

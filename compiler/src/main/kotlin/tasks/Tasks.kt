@@ -6,22 +6,24 @@ import androidToolchain
 import compilation.SqliteTarget
 import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.VerifyAction
-import interop.createDefContent
-import interop.createSqliteCMakeListsContent
-import interop.createSqliteFfmRuntimeMetadataContent
-import interop.createSqliteJniRuntimeMetadataContent
+import modules.createDefContent
+import modules.createSqliteCMakeListsContent
+import modules.createSqliteFfmRuntimeMetadataContent
+import modules.createSqliteJniRuntimeMetadataContent
 import jextract.jextract
 import jextract.jextractDownloadUrl
 import jextract.jextractExtract
 import jextract.jextractGenerateBindings
 import jextractInstallTaskProvider
 import ksqliteCompilerExtension
+import modules.adjustSqliteSourceTreeForWasmCompilation
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.register
@@ -58,6 +60,7 @@ const val TASK_SQLITE_COMPILE_SHARED = "sqliteCompileShared"
 const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 const val TASK_SQLITE_GENERATE_CMAKE_LISTS = "sqliteGenerateCMakeLists"
+const val TASK_SQLITE_COPY_JNI_JAVA_SOURCES = "sqliteCopyJniJavaSources"
 const val TASK_SQLITE_GENERATE_JNI_RUNTIME_METADATA = "sqliteGenerateJniRuntimeMetadata"
 const val TASK_SQLITE_GENERATE_FFM_RUNTIME_METADATA = "sqliteGenerateFfmRuntimeMetadata"
 
@@ -308,45 +311,43 @@ private fun Project.registerSqliteInstallTask(
 ): TaskProvider<Task> = tasks.register(TASK_SQLITE_INSTALL) {
     group = ksqliteCompilerTaskGroup
 
-    val destination = extension.sqliteSourcesDirectory
+    val outputDirectory = extension.sqliteSourcesDirectory
     val sqliteDirectory = sqliteExtractTaskProvider.map { it.outputs.files.singleFile }
     val sqliteMcDirectory = sqliteMcExtractTaskProvider.map { it.outputs.files.singleFile }
-    val sqliteJniSources = fileTree(sqliteDirectory.map { it.resolve("ext/jni") })
-    val sqliteJniDestination = destination.map { it.dir("jni") }
-    val sqliteWasmSources = fileTree(sqliteDirectory.map { it.resolve("ext/wasm") })
-    val sqliteWasmDestination = destination.map { it.dir("wasm") }
     val fileOperations = serviceOf<FileSystemOperations>()
 
     inputs.dir(sqliteDirectory)
     inputs.dir(sqliteMcDirectory)
-    outputs.dir(destination)
+    outputs.dir(outputDirectory)
 
     doFirst {
         fileOperations.delete {
-            delete(destination)
+            delete(outputDirectory)
         }
     }
 
     doLast {
         val params = extension.compilationParams.get()
-        val jniDirectory = sqliteJniDestination.get().asFile
-        val wasmDirectory = sqliteWasmDestination.get().asFile
 
         fileOperations.copy {
-            from(sqliteMcDirectory, sqliteJniSources, sqliteWasmSources)
-            include { it.name.startsWith(params.sqliteMcName) }
-            into(destination)
-        }
+            from(sqliteMcDirectory)
+            into(outputDirectory)
 
-        /*fileOperations.copy {
-            from(sqliteJniSources)
-            into(jniDirectory)
+            include { element ->
+                element.name.startsWith(params.sqliteMcAmalgamationName)
+                        || element.name.equals("${params.sqliteName}.h")
+            }
         }
 
         fileOperations.copy {
-            from( sqliteWasmSources)
-            into(wasmDirectory)
-        }*/
+            from(sqliteDirectory)
+            into(outputDirectory)
+        }
+
+        adjustSqliteSourceTreeForWasmCompilation(
+            sqliteSourcesDirectory = outputDirectory.get().asFile,
+            params = params
+        )
     }
 }
 
@@ -488,7 +489,7 @@ fun Project.registerSqliteCompileStaticTask(
 fun Project.registerSqliteGenerateCInteropDefTask(
     packageName: String,
     target: SqliteTarget,
-    defFileProvider: Provider<RegularFile>
+    defFile: Provider<RegularFile>
 ): TaskProvider<Task> = project.tasks.register(
     name = "$TASK_SQLITE_GENERATE_CINTEROP_DEF${name.uppercaseFirstChar()}"
 ) {
@@ -496,12 +497,16 @@ fun Project.registerSqliteGenerateCInteropDefTask(
 
     // Explicit dependency on the sqlite install task
     dependsOn(sqliteInstallTaskProvider)
-    outputs.file(defFileProvider)
+    outputs.file(defFile)
 
     val extension = ksqliteCompilerExtension
 
+    doFirst {
+        defFile.get().asFile.parentFile.mkdirs()
+    }
+
     doLast {
-        defFileProvider.get().asFile.writeText(
+        defFile.get().asFile.writeText(
             createDefContent(
                 packageName = packageName,
                 libraryFile = target.libraryFile.get().asFile,
@@ -539,6 +544,10 @@ fun Project.registerSqliteGenerateCMakeListsTask(
     inputs.files(headerFile, sourceFile)
     outputs.file(cmakeListsFile)
 
+    doFirst {
+        cmakeListsFile.get().asFile.parentFile.mkdirs()
+    }
+
     doLast {
         cmakeListsFile.get().asFile.writeText(
             createSqliteCMakeListsContent(
@@ -552,6 +561,25 @@ fun Project.registerSqliteGenerateCMakeListsTask(
 }
 
 /**
+ * Registers and returns the task responsible for copying SQLite JNI java sources to project.
+ */
+fun Project.registerSqliteCopyJniJavaSourceTask(
+    sourcesDirectory: Provider<Directory>,
+): TaskProvider<out Task> = project.tasks.register<Copy>(TASK_SQLITE_COPY_JNI_JAVA_SOURCES) {
+    group = ksqliteCompilerTaskGroup
+    dependsOn(sqliteInstallTaskProvider)
+
+    val extension = ksqliteCompilerExtension
+    val jniDirectory = fileTree(extension.sqliteSourcesDirectory.dir("ext/jni/src/org"))
+
+    inputs.dir(jniDirectory)
+    outputs.dir(sourcesDirectory)
+
+    from(jniDirectory)
+    into(sourcesDirectory.map { it.dir("org") })
+}
+
+/**
  * Registers and returns the task responsible for generating JNI runtime metadata for SQLite.
  */
 fun Project.registerSqliteJniRuntimeMetadataTask(
@@ -562,6 +590,10 @@ fun Project.registerSqliteJniRuntimeMetadataTask(
     outputs.file(metadataFile)
 
     val extension = ksqliteCompilerExtension
+
+    doFirst {
+        metadataFile.get().asFile.parentFile.mkdirs()
+    }
 
     doLast {
         metadataFile.get().asFile.writeText(
@@ -586,6 +618,10 @@ fun Project.registerSqliteFfmRuntimeMetadataTask(
     outputs.file(metadataFile)
 
     val extension = ksqliteCompilerExtension
+
+    doFirst {
+        metadataFile.get().asFile.parentFile.mkdirs()
+    }
 
     doLast {
         metadataFile.get().asFile.writeText(

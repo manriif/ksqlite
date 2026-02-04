@@ -1,4 +1,4 @@
-package interop
+package modules
 
 import compilation.SqliteCompilationParameters
 import compilation.SqliteCompileTimeOptions

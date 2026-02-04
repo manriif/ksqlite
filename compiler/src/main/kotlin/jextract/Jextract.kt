@@ -110,9 +110,15 @@ fun jextractGenerateBindings(
         .exec {
             workingDir = jextractDirectory
 
-            val includedFunctions = SqliteFunctions
+            val sqliteIncludedFunctions = SqliteFunctions
                 .filter { it.value }
                 .flatMap { listOf("--include-function", "${params.sqliteName}_${it.key}") }
+
+            val sqliteMcIncludedFunctions = SqliteFunctions
+                .filter { it.value }
+                .flatMap { listOf("--include-function", "${params.sqliteMcName}_${it.key}") }
+
+            val includedFunctions = (sqliteIncludedFunctions + sqliteMcIncludedFunctions)
                 .toTypedArray()
 
             commandLine(

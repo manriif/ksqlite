@@ -6,6 +6,7 @@ import org.gradle.api.file.FileTree
 import org.gradle.api.file.RelativePath
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.WorkResult
+import java.io.File
 
 /**
  * Resolves the directory for [path] relatively to this property directory and returns the absolute
@@ -36,4 +37,38 @@ fun FileSystemOperations.copyFirstDirectoryContent(
 
     into(destination)
     includeEmptyDirs = false
+}
+
+/**
+ * Inserts content after multiple different search texts in sequence and returns `true` if all
+ * search texts were found and content was inserted, or `false` if any search text was not found.
+ * The file is only modified if ALL search texts are found.
+ *
+ * @param searchTexts List of texts to search for sequentially
+ * @param contentToInsert Content to insert after each found search text
+ * @return `true` if all insertions succeeded, `false` if any search text was not found
+ */
+fun File.insertAfterText(
+    searchTexts: List<String>,
+    contentToInsert: String
+): Boolean {
+    val originalContent = readText()
+    var modifiedContent = originalContent
+
+    for (searchText in searchTexts) {
+        val index = modifiedContent.indexOf(searchText)
+
+        if (index == -1) {
+            return false // Search text not found, abort without modifying file
+        }
+
+        val insertPosition = index + searchText.length
+
+        modifiedContent = modifiedContent.substring(0, insertPosition) +
+                contentToInsert +
+                modifiedContent.substring(insertPosition)
+    }
+
+    writeText(modifiedContent)
+    return true
 }

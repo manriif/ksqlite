@@ -86,7 +86,7 @@ fun sqliteHeaderFile(
     params: Provider<SqliteCompilationParameters>
 ): Provider<RegularFile> {
     return sources.zip(params) { directory, params ->
-        directory.file("${params.sqliteMcName}.h")
+        directory.file("${params.sqliteMcAmalgamationName}.h")
     }
 }
 
@@ -98,6 +98,6 @@ fun sqliteSourceFile(
     params: Provider<SqliteCompilationParameters>
 ): Provider<RegularFile> {
     return sources.zip(params) { directory, params ->
-        directory.file("${params.sqliteMcName}.c")
+        directory.file("${params.sqliteMcAmalgamationName}.c")
     }
 }

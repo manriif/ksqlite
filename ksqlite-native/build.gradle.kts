@@ -57,14 +57,14 @@ fun KotlinNativeTarget.configureNativeTarget() {
         }
     }
 
-    val defFileProvider = platformDirectory.map { directory ->
+    val defFile = platformDirectory.map { directory ->
         directory.file("${extension.compilationParams.get().sqliteName}.def")
     }
 
     val generateCInteropDefTaskProvider = registerSqliteGenerateCInteropDefTask(
         packageName = projectNamespace,
         target = sqliteTarget,
-        defFileProvider = defFileProvider
+        defFile = defFile
     )
 
     val sqliteCompileStaticTaskProvider = checkNotNull(
@@ -85,7 +85,7 @@ fun KotlinNativeTarget.configureNativeTarget() {
                 dependsOn(generateCInteropDefTaskProvider)
             }
 
-            definitionFile = defFileProvider
+            definitionFile = defFile
             extraOpts += listOf("-Xccall-mode", "direct")
             includeDirs(extension.sqliteSourcesDirectory)
         }

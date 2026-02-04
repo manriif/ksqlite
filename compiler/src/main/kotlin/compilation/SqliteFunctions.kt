@@ -377,10 +377,36 @@ val SqliteFunctions = mapOf(
     "rekey" to true,
     "rekey_v2" to true,
     "activate_see" to false,  // Commercial SEE only
-    /*"sqlite3mc_config" to true,
-    "sqlite3mc_codec_data" to true,
-    "sqlite3mc_cipher_index" to true,
-    "sqlite3mc_cipher_name" to true,
-    "sqlite3mc_register_cipher" to true,
-    "sqlite3mc_version" to true*/
+)
+
+/**
+ * SQLite Multiple Ciphers functions with their enabled state.
+ * Prefix need to be added before each function name.
+ */
+val SqliteMcFunctions = mapOf(
+    "cipher_count" to true,
+    "cipher_index" to true,
+    "cipher_name" to true,
+    "codec_data" to true,
+    "config" to true,
+    "config_cipher" to true,
+    "register_cipher" to false,
+    "version" to true,
+    "vfs_create" to false,
+    "vfs_destroy" to false,
+    "vfs_shutdown" to false
+)
+
+/**
+ * Signatures of SQLite3 Multiple Ciphers function for WASM.
+ * Only signature for enabled function (from [SqliteMcFunctions]) are provided.
+ */
+val SqliteMcFunctionsWasmSignature = mapOf(
+    "cipher_count" to arrayOf("int"),
+    "cipher_index" to arrayOf("int", "string"),
+    "cipher_name" to arrayOf("string", "int"),
+    "codec_data" to arrayOf("short*" /*TODO*/, "sqlite3*", "string", "string"),
+    "config" to arrayOf("int", "sqlite3*", "string", "int"),
+    "config_cipher" to arrayOf("int", "sqlite3*", "string", "int"),
+    "version" to arrayOf("string")
 )

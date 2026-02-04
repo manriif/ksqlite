@@ -55,13 +55,19 @@ data class SqliteCompilationParameters(
 
     /**
      * Name of the SQLite product.
-     * It is the name of the default C header file, C source file and code source function prefix.
+     * It is the name of the SQLite C header file, C source file and code source function prefix.
      */
     val sqliteName: String = "sqlite${sqliteVersion.substringBefore('.')}"
 
     /**
-     * Name of the SQLite product.
-     * It is the name of the C header file, C source file and code source function prefix.
+     * Name of the SQLite Multiple Ciphers.
+     * It is the name of the code source function prefix.
      */
-    val sqliteMcName: String = "${sqliteName}mc_amalgamation"
+    val sqliteMcName: String = "${sqliteName}mc"
+
+    /**
+     * Name of the SQLite Multiple Ciphers amalgamation files.
+     * It is the name of the C header file, C source file.
+     */
+    val sqliteMcAmalgamationName: String = "${sqliteMcName}_amalgamation"
 }
