@@ -1,6 +1,7 @@
 import compilation.SqliteCompilationParameters
 import toolchains.Toolchain
 import toolchains.Toolchains
+import tools.Tool
 import utils.absolutePath
 import java.util.Properties
 
@@ -23,9 +24,7 @@ ksqliteCompiler {
     val ksqliteDir = layout.buildDirectory.dir("ksqlite")
 
     checksums = Properties()
-        .apply {
-            file("checksums.properties").inputStream().use { load(it) }
-        }
+        .apply { file("checksums.properties").inputStream().use { load(it) } }
         .run {
             KsqliteChecksums(
                 androidNdkLinux = getProperty("android.ndk.linux"),
@@ -38,6 +37,7 @@ ksqliteCompiler {
                 jextractWindowsX64 = getProperty("jextract.windows.x64"),
                 sqlite = getProperty("sqlite"),
                 sqliteMc = getProperty("sqlitemc"),
+                emsdk = getProperty("emsdk")
             )
         }
 
@@ -62,7 +62,15 @@ ksqliteCompiler {
 
     downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
     sqliteSourcesDirectory = ksqliteDir.map { it.dir("sqlite") }
-    jExtractDirectory = ksqliteDir.map { it.dir("jextract") }
     jdkVersion = libs.versions.jvm.toolchain.get()
-    jExtractVersion = libs.versions.jextract.get()
+
+    emscripten = Tool(
+        version = libs.versions.emscripten.get(),
+        path = ksqliteDir.map { it.dir("emscripten") }
+    )
+
+    jextract = Tool(
+        version = libs.versions.jextract.get(),
+        path = ksqliteDir.map { it.dir("jextract") }
+    )
 }

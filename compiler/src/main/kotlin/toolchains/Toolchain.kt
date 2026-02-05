@@ -12,7 +12,7 @@ data class Toolchain(
     val version: String,
 
     /**
-     * Absolute path of the toolchain.
+     * Absolute path to the toolchain.
      */
     val path: String
 ) : Serializable

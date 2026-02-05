@@ -39,7 +39,7 @@ fun adjustSqliteSourceTreeForWasmCompilation(
             )
     )
 
-    val enabledSqliteMcFunctions = SqliteMcFunctions.filter { it.value }.keys
+   /* val enabledSqliteMcFunctions = SqliteMcFunctions.filter { it.value }.keys
 
     // Append the functions to export
     sqliteSourcesDirectory
@@ -68,5 +68,5 @@ fun adjustSqliteSourceTreeForWasmCompilation(
                 })
     ) {
         "Search text for function signatures insertion was not found"
-    }
+    }*/
 }

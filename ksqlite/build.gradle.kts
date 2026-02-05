@@ -1,12 +1,12 @@
 plugins {
-    alias(libs.plugins.android.multiplatformLibrary)
+    //alias(libs.plugins.android.multiplatformLibrary)
     alias(libs.plugins.conventions.kmp)
 }
 
 kotlin {
-    androidJvmTargets()
-    jvmTargets()
-    macosX64()
+    //androidJvmTargets()
+    //jvmTargets()
+    //macosX64()
     //nativeTargets()
     webTargets()
 
@@ -16,7 +16,7 @@ kotlin {
             implementation(libs.kotlinx.coroutinesTest)
         }
 
-        androidMain.dependencies {
+        /*androidMain.dependencies {
             implementation(projects.ksqliteJni)
         }
 
@@ -26,7 +26,7 @@ kotlin {
 
         nativeMain.dependencies {
             implementation(projects.ksqliteNative)
-        }
+        }*/
 
         webMain.dependencies {
             implementation(projects.ksqliteWeb)

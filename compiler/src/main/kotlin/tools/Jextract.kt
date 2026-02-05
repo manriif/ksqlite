@@ -1,4 +1,4 @@
-package jextract
+package tools
 
 import KsqliteChecksums
 import compilation.SqliteCompilationParameters

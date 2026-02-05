@@ -1,6 +1,7 @@
 import compilation.SqliteCompilationParameters
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
+import tools.Tool
 
 /**
  * Extension for [KsqliteCompilerPlugin].
@@ -33,12 +34,12 @@ interface KsqliteCompilerExtension {
     val jdkVersion: Property<String>
 
     /**
-     * Version of JExtract.
+     * Emscripten SDK config.
      */
-    val jExtractVersion: Property<String>
+    val emscripten: Property<Tool>
 
     /**
-     * Directory where eJextract is located.
+     * Jextract config.
      */
-    val jExtractDirectory: DirectoryProperty
+    val jextract: Property<Tool>
 }

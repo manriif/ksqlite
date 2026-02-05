@@ -7,6 +7,7 @@ import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.getByName
+import tasks.TASK_EMSCRIPTEN_INSTALL
 import tasks.TASK_JEXTRACT_EXTRACT
 import tasks.TASK_SQLITE_INSTALL
 import tasks.TASK_TOOLCHAIN_ANDROID_EXTRACT
@@ -38,16 +39,23 @@ val Project.androidToolchainInstallTaskProvider: TaskProvider<Task>
     get() = rootProject.tasks.named(TASK_TOOLCHAIN_ANDROID_EXTRACT)
 
 /**
- * Returns the provider of the task responsible for installing sqlite.
+ * Returns the provider of the task responsible for installing emscripten.
  */
-val Project.sqliteInstallTaskProvider: TaskProvider<Task>
-    get() = rootProject.tasks.named(TASK_SQLITE_INSTALL)
+val Project.emscriptenInstallTaskProvider: TaskProvider<Task>
+    get() = rootProject.tasks.named(TASK_EMSCRIPTEN_INSTALL)
 
 /**
  * Returns the provider of the task responsible for installing jextract.
  */
 val Project.jextractInstallTaskProvider: TaskProvider<Task>
     get() = rootProject.tasks.named(TASK_JEXTRACT_EXTRACT)
+
+/**
+ * Returns the provider of the task responsible for installing sqlite.
+ */
+val Project.sqliteInstallTaskProvider: TaskProvider<Task>
+    get() = rootProject.tasks.named(TASK_SQLITE_INSTALL)
+
 
 ///////////////////////////////////////////////////////////////////////////
 // Toolchains

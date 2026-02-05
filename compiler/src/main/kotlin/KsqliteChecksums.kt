@@ -12,4 +12,5 @@ data class KsqliteChecksums(
     val jextractWindowsX64: String,
     val sqlite: String,
     val sqliteMc: String,
+    val emsdk: String
 )

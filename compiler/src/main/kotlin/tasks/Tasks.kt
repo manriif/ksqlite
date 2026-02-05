@@ -4,19 +4,17 @@ import KsqliteChecksums
 import KsqliteCompilerExtension
 import androidToolchain
 import compilation.SqliteTarget
+import compilation.compileSqliteWasm
 import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.VerifyAction
+import emscriptenInstallTaskProvider
+import jextractInstallTaskProvider
+import ksqliteCompilerExtension
+import modules.adjustSqliteSourceTreeForWasmCompilation
 import modules.createDefContent
 import modules.createSqliteCMakeListsContent
 import modules.createSqliteFfmRuntimeMetadataContent
 import modules.createSqliteJniRuntimeMetadataContent
-import jextract.jextract
-import jextract.jextractDownloadUrl
-import jextract.jextractExtract
-import jextract.jextractGenerateBindings
-import jextractInstallTaskProvider
-import ksqliteCompilerExtension
-import modules.adjustSqliteSourceTreeForWasmCompilation
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.Directory
@@ -38,6 +36,13 @@ import toolchainDirectory
 import toolchains.androidNdk
 import toolchains.androidNdkDownloadUrl
 import toolchains.androidNdkExtract
+import tools.emscriptenInstall
+import tools.emsdkDownloadUrl
+import tools.emsdkExtract
+import tools.jextract
+import tools.jextractDownloadUrl
+import tools.jextractExtract
+import tools.jextractGenerateBindings
 import utils.copyFirstDirectoryContent
 
 ///////////////////////////////////////////////////////////////////////////
@@ -48,16 +53,20 @@ const val ksqliteCompilerTaskGroup = "ksqlite"
 
 const val TASK_TOOLCHAIN_ANDROID_DOWNLOAD = "toolchainAndroidDownload"
 const val TASK_TOOLCHAIN_ANDROID_EXTRACT = "toolchainAndroidExtract"
+const val TASK_EMSCRIPTEN_INSTALL = "emscriptenInstall"
+const val TASK_EMSCRIPTEN_DOWNLOAD = "emscriptenDownload"
+const val TASK_EMSCRIPTEN_EXTRACT = "emscriptenExtract"
+const val TASK_JEXTRACT_DOWNLOAD = "jextractDownload"
+const val TASK_JEXTRACT_EXTRACT = "jextractExtract"
+const val TASK_JEXTRACT_GENERATE_BINDINGS = "jextractGenerateBindings"
+const val TASK_SQLITE_INSTALL = "sqliteInstall"
 const val TASK_SQLITE_DOWNLOAD = "sqliteDownload"
 const val TASK_SQLITE_EXTRACT = "sqliteExtract"
 const val TASK_SQLITEMC_DOWNLOAD = "sqliteMcDownload"
 const val TASK_SQLITEMC_EXTRACT = "sqliteMcExtract"
-const val TASK_SQLITE_INSTALL = "sqliteInstall"
-const val TASK_JEXTRACT_DOWNLOAD = "jextractDownload"
-const val TASK_JEXTRACT_EXTRACT = "jextractExtract"
-const val TASK_JEXTRACT_GENERATE_BINDINGS = "jextractGenerateBindings"
 const val TASK_SQLITE_COMPILE_SHARED = "sqliteCompileShared"
 const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
+const val TASK_SQLITE_COMPILE_WASM = "sqliteCompileWasm"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 const val TASK_SQLITE_GENERATE_CMAKE_LISTS = "sqliteGenerateCMakeLists"
 const val TASK_SQLITE_COPY_JNI_JAVA_SOURCES = "sqliteCopyJniJavaSources"
@@ -82,6 +91,14 @@ fun Project.registerTasks(extension: KsqliteCompilerExtension) {
         downloadTaskProvider = registerJextractDownloadTask(extension)
     )
 
+    registerEmscriptenInstallTask(
+        extension = extension,
+        emsdkExtractTaskProvider = registerEmscriptenExtractTask(
+            extension = extension,
+            downloadTaskProvider = registerEmscriptenDownloadTask(extension)
+        )
+    )
+
     registerSqliteInstallTask(
         extension = extension,
         sqliteExtractTaskProvider = registerSqliteExtractTask(
@@ -102,11 +119,12 @@ private fun Project.registerDownloadTask(
     name: String,
     extension: KsqliteCompilerExtension,
     url: Provider<String>,
+    fileNamePrefix: String = "",
     configureVerify: VerifyAction.(KsqliteChecksums) -> Unit,
 ): TaskProvider<Download> = tasks.register<Download>(name) {
     group = ksqliteCompilerTaskGroup
 
-    val fileName = url.map { it.substringAfterLast('/') }
+    val fileName = url.map { "$fileNamePrefix${it.substringAfterLast('/')}" }
 
     val destination = extension.downloadDirectory.zip(fileName) { directory, fileName ->
         directory.file(fileName)
@@ -161,6 +179,15 @@ private inline fun Project.registerExtractTask(
     }
 }
 
+/**
+ * Returns a directory where to extract downloaded file in the download directory.
+ */
+private fun TaskProvider<Download>.extractDirectory(
+    extension: KsqliteCompilerExtension
+): Provider<Directory> = zip(extension.downloadDirectory) { task, directory ->
+    directory.dir(task.dest.nameWithoutExtension)
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Android NDK
 ///////////////////////////////////////////////////////////////////////////
@@ -201,6 +228,146 @@ private fun Project.registerToolchainAndroidExtractTask(
 )
 
 ///////////////////////////////////////////////////////////////////////////
+// Emscripten
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Registers and returns the task responsible for downloading Emsdk.
+ */
+private fun Project.registerEmscriptenDownloadTask(
+    extension: KsqliteCompilerExtension
+): TaskProvider<Download> = registerDownloadTask(
+    name = TASK_EMSCRIPTEN_DOWNLOAD,
+    extension = extension,
+    url = extension.emscripten.map { emsdk ->
+        emsdkDownloadUrl(emscriptenVersion = emsdk.version)
+    },
+    fileNamePrefix = "emsdk-",
+    configureVerify = { checksums ->
+        algorithm("SHA-256")
+        checksum(checksums.emsdk)
+    }
+)
+
+/**
+ * Registers and returns the task responsible for extracting the downloaded Emsdk.
+ */
+private fun Project.registerEmscriptenExtractTask(
+    extension: KsqliteCompilerExtension,
+    downloadTaskProvider: TaskProvider<Download>
+): TaskProvider<Task> = registerExtractTask(
+    name = TASK_EMSCRIPTEN_EXTRACT,
+    downloadTaskProvider = downloadTaskProvider,
+    outputDirectory = downloadTaskProvider.extractDirectory(extension),
+    configure = { fileOperations, outputDirectory, downloadedFile ->
+        emsdkExtract(fileOperations, downloadedFile, outputDirectory)
+    }
+)
+
+/**
+ * Registers and returns the task responsible for installing emscripten from emsdk.
+ */
+fun Project.registerEmscriptenInstallTask(
+    extension: KsqliteCompilerExtension,
+    emsdkExtractTaskProvider: TaskProvider<Task>,
+): TaskProvider<Task> = project.tasks.register(TASK_EMSCRIPTEN_INSTALL) {
+    group = ksqliteCompilerTaskGroup
+
+    val outputDirectory = extension.emscripten.flatMap { it.path }
+    val emsdkDirectory = emsdkExtractTaskProvider.map { it.outputs.files.singleFile }
+
+    inputs.dir(emsdkDirectory)
+    outputs.dir(outputDirectory)
+
+    emscriptenInstall(
+        inputDirectory = layout.dir(emsdkDirectory),
+        outputDirectory = outputDirectory
+    )
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Jextract
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Registers and returns the task responsible for downloading Jextract.
+ */
+private fun Project.registerJextractDownloadTask(
+    extension: KsqliteCompilerExtension
+): TaskProvider<Download> = registerDownloadTask(
+    name = TASK_JEXTRACT_DOWNLOAD,
+    extension = extension,
+    url = extension.jdkVersion.zip(extension.jextract) { jdkVersion, jextract ->
+        jextractDownloadUrl(jdkVersion = jdkVersion, jextractVersion = jextract.version)
+    },
+    configureVerify = { checksums ->
+        algorithm("SHA-256")
+        checksum(checksums.jextract())
+    }
+)
+
+/**
+ * Registers and returns the task responsible for extracting the downloaded Jextract.
+ */
+private fun Project.registerJextractExtractTask(
+    extension: KsqliteCompilerExtension,
+    downloadTaskProvider: TaskProvider<Download>
+): TaskProvider<Task> = registerExtractTask(
+    name = TASK_JEXTRACT_EXTRACT,
+    downloadTaskProvider = downloadTaskProvider,
+    outputDirectory = extension.jextract.flatMap { it.path },
+    configure = { fileOperations, outputDirectory, downloadedFile ->
+        jextractExtract(fileOperations, downloadedFile, outputDirectory)
+    }
+)
+
+/**
+ * Registers and returns the task responsible for generating SQLite bindings using Jextract.
+ * The returned task depends on SQLite and Jextract installations.
+ */
+fun Project.registerJextractGenerateBindingsTask(
+    packageName: String,
+    outputDirectory: Provider<Directory>
+): TaskProvider<Task> = project.tasks.register(TASK_JEXTRACT_GENERATE_BINDINGS) {
+    group = ksqliteCompilerTaskGroup
+
+    val fileOperations = serviceOf<FileSystemOperations>()
+    val execOperations = serviceOf<ExecOperations>()
+    val extension = ksqliteCompilerExtension
+
+    val headerFile = sqliteHeaderFile(
+        sources = extension.sqliteSourcesDirectory,
+        params = extension.compilationParams
+    )
+
+    // Explicit dependency on sqlite and jextract extract tasks
+    dependsOn(sqliteInstallTaskProvider)
+    dependsOn(jextractInstallTaskProvider)
+
+    inputs.file(headerFile)
+    outputs.dir(outputDirectory)
+
+    doFirst {
+        fileOperations.delete {
+            delete(outputDirectory)
+        }
+
+        outputDirectory.get().asFile.mkdirs()
+    }
+
+    doLast {
+        jextractGenerateBindings(
+            execOperations = execOperations,
+            packageName = packageName,
+            jextractDirectory = extension.jextract.get().path.get().asFile,
+            sqliteHeaderFile = headerFile.get().asFile,
+            outputDirectory = outputDirectory.get().asFile,
+            params = extension.compilationParams.get()
+        )
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
 // SQLite
 ///////////////////////////////////////////////////////////////////////////
 
@@ -238,9 +405,7 @@ private fun Project.registerSqliteExtractTask(
 ): TaskProvider<Task> = registerExtractTask(
     name = TASK_SQLITE_EXTRACT,
     downloadTaskProvider = downloadTaskProvider,
-    outputDirectory = downloadTaskProvider.zip(extension.downloadDirectory) { task, directory ->
-        directory.dir(task.dest.nameWithoutExtension)
-    },
+    outputDirectory = downloadTaskProvider.extractDirectory(extension),
     configure = { fileOperations, outputDirectory, downloadedFile ->
         val sources = zipTree(downloadedFile)
 
@@ -282,9 +447,7 @@ private fun Project.registerSqliteMcExtractTask(
 ): TaskProvider<Task> = registerExtractTask(
     name = TASK_SQLITEMC_EXTRACT,
     downloadTaskProvider = downloadTaskProvider,
-    outputDirectory = downloadTaskProvider.zip(extension.downloadDirectory) { task, directory ->
-        directory.dir(task.dest.nameWithoutExtension)
-    },
+    outputDirectory = downloadTaskProvider.extractDirectory(extension),
     configure = { fileOperations, outputDirectory, downloadedFile ->
         val sources = zipTree(downloadedFile)
 
@@ -352,88 +515,6 @@ private fun Project.registerSqliteInstallTask(
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Jextract
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Registers and returns the task responsible for downloading Jextract.
- */
-private fun Project.registerJextractDownloadTask(
-    extension: KsqliteCompilerExtension
-): TaskProvider<Download> = registerDownloadTask(
-    name = TASK_JEXTRACT_DOWNLOAD,
-    extension = extension,
-    url = extension.jdkVersion.zip(extension.jExtractVersion) { jdkVersion, jextractVersion ->
-        jextractDownloadUrl(jdkVersion = jdkVersion, jextractVersion = jextractVersion)
-    },
-    configureVerify = { checksums ->
-        algorithm("SHA-256")
-        checksum(checksums.jextract())
-    }
-)
-
-/**
- * Registers and returns the task responsible for extracting the downloaded Jextract.
- */
-private fun Project.registerJextractExtractTask(
-    extension: KsqliteCompilerExtension,
-    downloadTaskProvider: TaskProvider<Download>
-): TaskProvider<Task> = registerExtractTask(
-    name = TASK_JEXTRACT_EXTRACT,
-    downloadTaskProvider = downloadTaskProvider,
-    outputDirectory = extension.jExtractDirectory,
-    configure = { fileOperations, outputDirectory, downloadedFile ->
-        jextractExtract(fileOperations, downloadedFile, outputDirectory)
-    }
-)
-
-/**
- * Registers and returns the task responsible for generating SQLite bindings using Jextract.
- * The returned task depends on SQLite and Jextract installations.
- */
-fun Project.registerJextractGenerateBindingsTask(
-    packageName: String,
-    outputDirectory: Provider<Directory>
-): TaskProvider<Task> = project.tasks.register(TASK_JEXTRACT_GENERATE_BINDINGS) {
-    group = ksqliteCompilerTaskGroup
-
-    val fileOperations = serviceOf<FileSystemOperations>()
-    val execOperations = serviceOf<ExecOperations>()
-    val extension = ksqliteCompilerExtension
-
-    val headerFile = sqliteHeaderFile(
-        sources = extension.sqliteSourcesDirectory,
-        params = extension.compilationParams
-    )
-
-    // Explicit dependency on sqlite and jextract extract tasks
-    dependsOn(sqliteInstallTaskProvider)
-    dependsOn(jextractInstallTaskProvider)
-
-    inputs.file(headerFile)
-    outputs.dir(outputDirectory)
-
-    doFirst {
-        fileOperations.delete {
-            delete(outputDirectory)
-        }
-
-        outputDirectory.get().asFile.mkdirs()
-    }
-
-    doLast {
-        jextractGenerateBindings(
-            execOperations = execOperations,
-            packageName = packageName,
-            jextractDirectory = extension.jExtractDirectory.get().asFile,
-            sqliteHeaderFile = headerFile.get().asFile,
-            outputDirectory = outputDirectory.get().asFile,
-            params = extension.compilationParams.get()
-        )
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////
 // Compilation
 ///////////////////////////////////////////////////////////////////////////
 
@@ -474,6 +555,46 @@ fun Project.registerSqliteCompileStaticTask(
     return tasks.register<SqliteCompileStaticTask>("$TASK_SQLITE_COMPILE_STATIC$name") {
         configureCompileTask()
         configure?.invoke(this)
+    }
+}
+
+/**
+ * Registers and returns a task responsible for compiling SQLite for Wasm.
+ * The returned task depends on Emscripten and SQLite installation.
+ */
+fun Project.registerSqliteCompileWasmTask(
+    outputDirectory: Provider<Directory>
+): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_COMPILE_WASM) {
+    group = ksqliteCompilerTaskGroup
+
+    val fileOperations = serviceOf<FileSystemOperations>()
+    val execOperations = serviceOf<ExecOperations>()
+    val sqliteDirectory = sqliteInstallTaskProvider.map { it.outputs.files.singleFile }
+    val emscriptenDirectory = emscriptenInstallTaskProvider.map { it.outputs.files.singleFile }
+    val extension = ksqliteCompilerExtension
+
+    // Implicit dependency on sqlite and emscripten install tasks
+    inputs.dir(sqliteDirectory)
+    inputs.dir(emscriptenDirectory)
+    outputs.dir(outputDirectory)
+
+    doLast {
+        compileSqliteWasm(
+            fileOperations = fileOperations,
+            execOperations = execOperations,
+            sqliteDirectory = sqliteDirectory.get(),
+            emscriptenDirectory = emscriptenDirectory.get(),
+            outputDirectory = outputDirectory.get().asFile,
+            params = extension.compilationParams.get()
+        )
+    }
+
+    doFirst {
+        fileOperations.delete {
+            delete(outputDirectory)
+        }
+
+        outputDirectory.get().asFile.mkdirs()
     }
 }
 

@@ -43,7 +43,7 @@ dependencyResolutionManagement {
 }
 
 include(":ksqlite")
-include(":ksqlite-ffm")
+/*include(":ksqlite-ffm")
 include(":ksqlite-jni")
-include(":ksqlite-native")
+include(":ksqlite-native")*/
 include(":ksqlite-web")

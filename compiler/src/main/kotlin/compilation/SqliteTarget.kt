@@ -12,9 +12,15 @@ import platform.Platform
  */
 abstract class SqliteTarget {
 
+    /**
+     * Targeted platform.
+     */
     @get:Input
     abstract val platform: Property<Platform>
 
+    /**
+     * File to write compiled library to.
+     */
     @get:Internal
     abstract val libraryFile: RegularFileProperty
 }
