@@ -27,7 +27,7 @@ fun adjustSqliteSourceTreeForWasmCompilation(
     params: SqliteCompilationParameters
 ) {
     // Append _WASM_ flag for sqlitemc
-    check(
+    /*check(
         sqliteSourcesDirectory
             .resolve("ext/wasm/GNUmakefile")
             .insertAfterText(
@@ -37,7 +37,7 @@ fun adjustSqliteSourceTreeForWasmCompilation(
                 ),
                 contentToInsert = " -D__WASM__"
             )
-    )
+    )*/
 
    /* val enabledSqliteMcFunctions = SqliteMcFunctions.filter { it.value }.keys
 

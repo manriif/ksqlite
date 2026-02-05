@@ -495,11 +495,6 @@ private fun Project.registerSqliteInstallTask(
         fileOperations.copy {
             from(sqliteMcDirectory)
             into(outputDirectory)
-
-            include { element ->
-                element.name.startsWith(params.sqliteMcAmalgamationName)
-                        || element.name.equals("${params.sqliteName}.h")
-            }
         }
 
         fileOperations.copy {

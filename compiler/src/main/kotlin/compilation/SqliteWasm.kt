@@ -17,40 +17,39 @@ fun compileSqliteWasm(
     outputDirectory: File,
     params: SqliteCompilationParameters,
 ) {
-    val wasmDirectory = sqliteDirectory.resolve("ext/wasm")
+    if (Host.Current.operatingSystem == OperatingSystem.Windows) {
+        throw UnsupportedOperationException(
+            "Windows is currently not supported for wasm compilation"
+        )
+    }
+
+    val wabtPath = "wabt-1.0.39/bin"
+    val sedPath = "sed-4.9/build/bin"
+    val emsdkEnv = emscriptenDirectory.resolve("emsdk_env.sh").absolutePath
     val sqliteSourceFile = sqliteDirectory.resolve("${params.sqliteMcAmalgamationName}.c")
+    val wasmDirectory = sqliteDirectory.resolve("ext/wasm")
 
     val makeCommand = listOf(
         "make",
-        "-j4",
+        //"-j4",
         //"64bit",
         "${params.sqliteName}.c=${sqliteSourceFile.absolutePath}"
     ).joinToString(" ")
 
     execOperations.exec {
         workingDir = sqliteDirectory
+        environment("PATH", "$wabtPath:${System.getenv("PATH")}")
+        commandLine("bash", "-c", "source $emsdkEnv && ./configure")
+    }
 
-        when (Host.Current.operatingSystem) {
-            OperatingSystem.Linux, OperatingSystem.MacOS -> {
-                val env = emscriptenDirectory.resolve("emsdk_env.sh").absolutePath
-
-                commandLine(
-                    "bash",
-                    "-c",
-                    "source $env && ./configure && cd ./ext/wasm && $makeCommand"
-                )
-            }
-
-            OperatingSystem.Windows -> {
-                /*val env = emscriptenDirectory.resolve("emsdk_env.bat").absolutePath
-
-                commandLine(
-                    "cmd",
-                    "/c",
-                    "$env && $makeCommand"
-                )*/
-            }
-        }
+    execOperations.exec {
+        workingDir = wasmDirectory
+        environment("PATH", "$sedPath:${System.getenv("PATH")}")
+        commandLine(
+            "make",
+            "-j8",
+            "64bit",
+            "${params.sqliteName}.c=${sqliteSourceFile.absolutePath}")
     }
 
     val generatedOutputDirectory = wasmDirectory.resolve("jswasm")
