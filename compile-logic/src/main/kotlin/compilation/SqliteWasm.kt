@@ -4,8 +4,8 @@ import org.gradle.api.file.FileSystemOperations
 import org.gradle.process.ExecOperations
 import platform.Host
 import platform.OperatingSystem
+import utils.copyToTempDirectory
 import java.io.File
-import kotlin.io.path.createTempDirectory
 
 /**
  * Compiles SQLite for Wasm.
@@ -26,30 +26,25 @@ fun compileSqliteWasm(
         )
     }
 
-    // Use temporary directory for sqlite source tree to not write the original directory which will
-    // break Gradle caching
-    val sqliteSourceTree = createTempDirectory("ksqlite").toFile()
-
-    fileOperations.copy {
-        from(sqliteDirectory)
-        into(sqliteSourceTree)
-    }
-
-    val wabtPath = wabtDirectory.resolve("bin")
-    val sedPath = gnuSedDirectory.resolve("bin")
+    // Use temporary directory for sqlite source tree and emscripten to not write the original
+    // directories which will break Gradle caching
+    val sqliteDirectory = fileOperations.copyToTempDirectory(sqliteDirectory)
+    val emscriptenDirectory = fileOperations.copyToTempDirectory(emscriptenDirectory)
+    val wabtBin = wabtDirectory.resolve("bin")
+    val gnuSedBin = gnuSedDirectory.resolve("bin")
     val emsdkEnv = emscriptenDirectory.resolve("emsdk_env.sh").absolutePath
-    val sqliteSourceFile = sqliteSourceTree.resolve("${params.sqliteMcAmalgamationName}.c")
-    val wasmDirectory = sqliteSourceTree.resolve("ext/wasm")
+    val sqliteSourceFile = sqliteDirectory.resolve("${params.sqliteMcAmalgamationName}.c")
+    val wasmDirectory = sqliteDirectory.resolve("ext/wasm")
 
     execOperations.exec {
-        workingDir = sqliteSourceTree
-        environment("PATH", "$wabtPath:${System.getenv("PATH")}")
+        workingDir = sqliteDirectory
+        environment("PATH", "$wabtBin:${System.getenv("PATH")}")
         commandLine("bash", "-c", "source $emsdkEnv && ./configure")
     }
 
     execOperations.exec {
         workingDir = wasmDirectory
-        environment("PATH", "$sedPath:${System.getenv("PATH")}")
+        environment("PATH", "$gnuSedBin:${System.getenv("PATH")}")
 
         commandLine(
             "make",

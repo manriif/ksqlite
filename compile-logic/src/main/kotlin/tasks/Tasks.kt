@@ -150,6 +150,44 @@ fun Project.registerRootTasks(extension: KsqliteExtension) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
+// Checksum
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a file that can be used to store a checksum for task generated output(s).
+ */
+fun Task.checksumFile(): RegularFile {
+    return project.rootProject.layout.projectDirectory.file(
+        ".ksqlite/${project.name}/$name/checksum.txt"
+    )
+}
+
+/**
+ * Invokes [execute] if [checksumFile] exists and its value differs from the one supplied by
+ * [currentChecksum].
+ */
+inline fun executeIfChecksumChanged(
+    checksumFile: RegularFile,
+    currentChecksum: () -> String,
+    execute: () -> Unit
+) {
+    val hashFile = checksumFile.asFile
+
+    if (hashFile.exists()) {
+        val current = currentChecksum()
+        val previous = hashFile.readText()
+
+        if (current == previous) {
+            return
+        }
+    }
+
+    execute()
+    hashFile.parentFile.mkdirs()
+    hashFile.writeText(currentChecksum())
+}
+
+///////////////////////////////////////////////////////////////////////////
 // Download, Extract, Install
 ///////////////////////////////////////////////////////////////////////////
 
@@ -248,32 +286,18 @@ private fun Project.registerInstallTask(
     group = ksqliteTaskGroup
     outputs.dir(outputDirectoryProvider)
 
-    val checksumFileProvider = layout.projectDirectory.file(".ksqlite/$name/checksum.txt")
+    val checksumFile = checksumFile()
     val fileOperations = serviceOf<FileSystemOperations>()
 
     configureTask()
 
     doLast {
-        val checksumFile = checksumFileProvider.asFile
         val outputDirectory = outputDirectoryProvider.get().asFile
 
-        if (checksumFile.exists()) {
-            val currentChecksum = outputDirectory.sha256()
-            val previousChecksum = checksumFile.readText()
-
-            if (currentChecksum == previousChecksum) {
-                return@doLast
-            }
+        executeIfChecksumChanged(checksumFile, outputDirectory::sha256) {
+            fileOperations.delete { delete(outputDirectory) }
+            install(fileOperations, outputDirectory)
         }
-
-        fileOperations.delete {
-            delete(outputDirectory)
-        }
-
-        install(fileOperations, outputDirectory)
-
-        checksumFile.parentFile.mkdirs()
-        checksumFile.writeText(outputDirectory.sha256())
     }
 }
 
@@ -328,7 +352,7 @@ private fun Project.registerToolchainAndroidInstallTask(
     val androidToolchain = extension.androidToolchain()
 
     return registerInstallTask(
-        name = TASK_EMSCRIPTEN_INSTALL,
+        name = TASK_TOOLCHAIN_ANDROID_INSTALL,
         outputDirectoryProvider = layout.toolDirectory(androidToolchain),
         configureTask = {
             inputs.file(downloadedFile)
@@ -749,6 +773,7 @@ private fun SqliteCompileTask.configureCompileTask() {
     val extension = project.ksqliteExtension
     compilationParameters = extension.compilationParams
     sqliteSourcesDirectory = extension.sqliteSourcesDirectory
+    checksumFile = checksumFile()
 }
 
 /**
@@ -757,9 +782,9 @@ private fun SqliteCompileTask.configureCompileTask() {
  */
 fun Project.registerSqliteCompileSharedTask(
     name: String,
-    configure: (SqliteCompileSharedTask.() -> Unit)? = null
-): TaskProvider<SqliteCompileSharedTask> {
-    return tasks.register<SqliteCompileSharedTask>("$TASK_SQLITE_COMPILE_SHARED$name") {
+    configure: (SqliteCompileTask.Shared.() -> Unit)? = null
+): TaskProvider<SqliteCompileTask.Shared> {
+    return tasks.register<SqliteCompileTask.Shared>("$TASK_SQLITE_COMPILE_SHARED$name") {
         configureCompileTask()
         configure?.invoke(this)
     }
@@ -771,9 +796,9 @@ fun Project.registerSqliteCompileSharedTask(
  */
 fun Project.registerSqliteCompileStaticTask(
     name: String,
-    configure: (SqliteCompileStaticTask.() -> Unit)? = null
-): TaskProvider<SqliteCompileStaticTask> {
-    return tasks.register<SqliteCompileStaticTask>("$TASK_SQLITE_COMPILE_STATIC$name") {
+    configure: (SqliteCompileTask.Static.() -> Unit)? = null
+): TaskProvider<SqliteCompileTask.Static> {
+    return tasks.register<SqliteCompileTask.Static>("$TASK_SQLITE_COMPILE_STATIC$name") {
         configureCompileTask()
         configure?.invoke(this)
     }
@@ -788,6 +813,7 @@ fun Project.registerSqliteCompileWasmTask(
 ): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_COMPILE_WASM) {
     group = ksqliteTaskGroup
 
+    val checksumFile = checksumFile()
     val fileOperations = serviceOf<FileSystemOperations>()
     val execOperations = serviceOf<ExecOperations>()
     val sqliteDirectory = sqliteInstallTaskProvider.outputDirectory()
@@ -804,24 +830,23 @@ fun Project.registerSqliteCompileWasmTask(
     outputs.dir(outputDirectory)
 
     doLast {
-        compileSqliteWasm(
-            fileOperations = fileOperations,
-            execOperations = execOperations,
-            sqliteDirectory = sqliteDirectory.get(),
-            emscriptenDirectory = emscriptenDirectory.get(),
-            wabtDirectory = wabtDirectory.get(),
-            gnuSedDirectory = gnuSedDirectory.get(),
-            outputDirectory = outputDirectory.get().asFile,
-            params = params.get()
-        )
-    }
+        val outputDirectory = outputDirectory.get().asFile
 
-    doFirst {
-        fileOperations.delete {
-            delete(outputDirectory)
+        executeIfChecksumChanged(checksumFile, outputDirectory::sha256) {
+            fileOperations.delete { delete(outputDirectory) }
+            outputDirectory.mkdirs()
+
+            compileSqliteWasm(
+                fileOperations = fileOperations,
+                execOperations = execOperations,
+                sqliteDirectory = sqliteDirectory.get(),
+                emscriptenDirectory = emscriptenDirectory.get(),
+                wabtDirectory = wabtDirectory.get(),
+                gnuSedDirectory = gnuSedDirectory.get(),
+                outputDirectory = outputDirectory,
+                params = params.get()
+            )
         }
-
-        outputDirectory.get().asFile.mkdirs()
     }
 }
 
@@ -892,12 +917,8 @@ fun Project.registerSqliteGenerateCMakeListsTask(
     inputs.files(headerFile, sourceFile)
     outputs.file(cmakeListsFile)
 
-    doFirst {
-        cmakeListsFile.get().asFile.parentFile.mkdirs()
-    }
-
     doLast {
-        cmakeListsFile.get().asFile.writeText(
+        cmakeListsFile.get().asFile.apply { parentFile.mkdirs() }.writeText(
             createSqliteCMakeListsContent(
                 cmakeVersion = cmakeVersion,
                 sqliteHeaderFile = headerFile.get().asFile,
@@ -937,17 +958,13 @@ fun Project.registerSqliteJniRuntimeMetadataTask(
     group = ksqliteTaskGroup
     outputs.file(metadataFile)
 
-    val extension = ksqliteExtension
-
-    doFirst {
-        metadataFile.get().asFile.parentFile.mkdirs()
-    }
+    val params = ksqliteExtension.compilationParams
 
     doLast {
-        metadataFile.get().asFile.writeText(
+        metadataFile.get().asFile.apply { parentFile.mkdirs() }.writeText(
             createSqliteJniRuntimeMetadataContent(
                 packageName = packageName,
-                libraryName = extension.compilationParams.get().libraryName
+                libraryName = params.get().libraryName
             )
         )
     }
@@ -967,12 +984,8 @@ fun Project.registerSqliteFfmRuntimeMetadataTask(
 
     val extension = ksqliteExtension
 
-    doFirst {
-        metadataFile.get().asFile.parentFile.mkdirs()
-    }
-
     doLast {
-        metadataFile.get().asFile.writeText(
+        metadataFile.get().asFile.apply { parentFile.mkdirs() }.writeText(
             createSqliteFfmRuntimeMetadataContent(
                 packageName = packageName,
                 nativeDirectoryName = nativeDirectoryName,

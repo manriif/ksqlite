@@ -1,5 +1,4 @@
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
-import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.getByName
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -127,6 +126,13 @@ fun KotlinMultiplatformExtension.wasmJsTargets(
 fun KotlinMultiplatformExtension.webTargets() = buildList {
     addAll(jsTargets())
     addAll(wasmJsTargets())
+}.onEach { target ->
+    target.compilerOptions {
+        freeCompilerArgs.addAll(
+            "-Xes-long-as-bigint",
+            "-XXLanguage:+JsAllowLongInExportedDeclarations"
+        )
+    }
 }
 
 /**
