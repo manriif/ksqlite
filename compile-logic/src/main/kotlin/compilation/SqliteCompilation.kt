@@ -4,7 +4,7 @@ import org.gradle.process.ExecOperations
 import platform.Architecture
 import platform.OperatingSystem
 import platform.Platform
-import toolchains.androidNdkHostTag
+import tools.androidNdkHostTag
 import java.io.ByteArrayOutputStream
 
 ///////////////////////////////////////////////////////////////////////////

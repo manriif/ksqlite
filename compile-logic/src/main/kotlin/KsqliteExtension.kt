@@ -1,12 +1,12 @@
 import compilation.SqliteCompilationParameters
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
-import tools.Tool
+import tools.Tools
 
 /**
- * Extension for [KsqliteCompilerPlugin].
+ * Extension for [KsqlitePlugin].
  */
-interface KsqliteCompilerExtension {
+interface KsqliteExtension {
 
     /**
      * Checksums of downloaded sources.
@@ -19,6 +19,11 @@ interface KsqliteCompilerExtension {
     val compilationParams: Property<SqliteCompilationParameters>
 
     /**
+     * Tools used by tasks.
+     */
+    val tools: Property<Tools>
+
+    /**
      * Directory where to put downloaded files.
      */
     val downloadDirectory: DirectoryProperty
@@ -29,17 +34,12 @@ interface KsqliteCompilerExtension {
     val sqliteSourcesDirectory: DirectoryProperty
 
     /**
+     * Year SQLite was released.
+     */
+    val sqliteReleaseYear: Property<String>
+
+    /**
      * Version of the JDK.
      */
     val jdkVersion: Property<String>
-
-    /**
-     * Emscripten SDK config.
-     */
-    val emscripten: Property<Tool>
-
-    /**
-     * Jextract config.
-     */
-    val jextract: Property<Tool>
 }

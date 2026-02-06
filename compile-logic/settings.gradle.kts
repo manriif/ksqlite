@@ -1,4 +1,4 @@
-rootProject.name = "compiler"
+rootProject.name = "compile-logic"
 
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {

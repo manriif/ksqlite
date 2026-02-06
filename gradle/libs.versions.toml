@@ -30,22 +30,22 @@ jvm-toolchain = "22"
 android-gradlePlugin = "9.0.0"
 cmake = "3.22.1"
 dokka = "2.1.0"
-emscripten = "5.0.0"
+emsdk = "5.0.0"
+gnuSed = "4.9"
 gradle-pluginPublish = "2.0.0"
 jextract = "6-47"
 kotlin = "2.3.20-Beta2"
-kotlin-wrappers = "2026.1.14"
-kotlinx-coroutines = "1.10.2"
 sqliteMultipleCiphers = "2.2.7"
-turbine = "1.2.1"
+sqliteReleaseYear = "2026"
 undercouch-download = "5.7.0"
 vanniktech-mavenPublish = "0.36.0"
+wabt = "1.0.39"
 
 [plugins]
 
 conventions-common = { id = "conventions-common", version.ref = "ksqlite" }
 conventions-kmp = { id = "conventions-kmp", version.ref = "ksqlite" }
-ksqliteCompiler = { id = "ksqlite-compiler", version.ref = "ksqlite" }
+ksqlite = { id = "ksqlite", version.ref = "ksqlite" }
 
 android-library = { id = "com.android.library", version.ref = "android-gradlePlugin" }
 android-multiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "android-gradlePlugin" }
@@ -57,13 +57,8 @@ vanniktech-mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "
 [libraries]
 
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "android-gradlePlugin" }
-cashapp-turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 dokka-gradlePlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-kotlin-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlin-wrappers" }
-kotlin-js = { module = "org.jetbrains.kotlin-wrappers:kotlin-js", version.ref = "kotlin-wrappers" }
-kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
-kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 undercouch-dowload = { module = "de.undercouch.download:de.undercouch.download.gradle.plugin", version.ref = "undercouch-download" }
 vanniktech-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech-mavenPublish" }

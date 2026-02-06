@@ -1,6 +1,7 @@
 .gradle/
 .idea/
 .kotlin/
+.ksqlite/
 .cxx/
 
 build

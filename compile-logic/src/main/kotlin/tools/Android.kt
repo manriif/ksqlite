@@ -1,4 +1,4 @@
-package toolchains
+package tools
 
 import KsqliteChecksums
 import org.gradle.api.Task
@@ -6,12 +6,12 @@ import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
-import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.process.ExecOperations
 import platform.Architecture
 import platform.Host
 import platform.OperatingSystem
 import utils.copyFirstDirectoryContent
+import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////
 // Download
@@ -46,7 +46,6 @@ fun androidNdkDownloadUrl(version: String): String? {
  * Extracts the Android NDK from [downloadedFile] into [destination].
  */
 fun Task.androidNdkExtract(
-    version: Provider<String>,
     fileOperations: FileSystemOperations,
     downloadedFile: Provider<RegularFile>,
     destination: Provider<Directory>
@@ -63,31 +62,47 @@ fun Task.androidNdkExtract(
             }
         }
 
-        OperatingSystem.MacOS -> {
-            val execOperations = project.serviceOf<ExecOperations>()
+        // Android provides a DMG for macOS, postpone mounting at installation phase
+        OperatingSystem.MacOS -> return
+    }
+}
 
-            val ndkSources = version.map { value ->
-                val (major, build) = value.split('.')
-                "/Volumes/Android NDK $major/AndroidNDK$build.app/Contents/NDK"
+/**
+ * Installs the Android NDK.
+ */
+fun androidNdkInstall(
+    version: String,
+    fileOperations: FileSystemOperations,
+    execOperations: ExecOperations,
+    downloadedFile: File,
+    inputDirectory: File,
+    outputDirectory: File
+) {
+    when (Host.Current.operatingSystem) {
+        OperatingSystem.Windows, OperatingSystem.Linux -> {
+            fileOperations.copy {
+                from(inputDirectory)
+                into(outputDirectory)
             }
+        }
 
-            doLast {
-                val versionMajor = version.get().substringBefore('.')
+        OperatingSystem.MacOS -> {
+            val (major, build) = version.split('.')
+            val ndkSources = "/Volumes/Android NDK $major/AndroidNDK$build.app/Contents/NDK"
 
-                execOperations.exec {
-                    commandLine("hdiutil", "attach", downloadedFile.get().asFile.absolutePath)
-                }.rethrowFailure()
+            execOperations.exec {
+                commandLine("hdiutil", "attach", downloadedFile.absolutePath)
+            }.rethrowFailure()
 
-                try {
-                    fileOperations.copy {
-                        from(ndkSources)
-                        into(destination)
-                    }
-                } finally {
-                    execOperations.exec {
-                        commandLine("hdiutil", "detach", "/Volumes/Android NDK $versionMajor")
-                    }.rethrowFailure()
+            try {
+                fileOperations.copy {
+                    from(ndkSources)
+                    into(outputDirectory)
                 }
+            } finally {
+                execOperations.exec {
+                    commandLine("hdiutil", "detach", "/Volumes/Android NDK $major")
+                }.rethrowFailure()
             }
         }
     }

@@ -27,7 +27,7 @@ fun adjustSqliteSourceTreeForWasmCompilation(
     params: SqliteCompilationParameters
 ) {
     // Append _WASM_ flag for sqlitemc
-    /*check(
+    check(
         sqliteSourcesDirectory
             .resolve("ext/wasm/GNUmakefile")
             .insertAfterText(
@@ -37,15 +37,15 @@ fun adjustSqliteSourceTreeForWasmCompilation(
                 ),
                 contentToInsert = " -D__WASM__"
             )
-    )*/
+    )
 
-   /* val enabledSqliteMcFunctions = SqliteMcFunctions.filter { it.value }.keys
+    val enabledSqliteMcFunctions = SqliteMcFunctions.filter { it.value }.keys
 
-    // Append the functions to export
+    // Append the functions to export, new line at the end of the line is important
     sqliteSourcesDirectory
         .resolve("ext/wasm/api/EXPORTED_FUNCTIONS.sqlite3-see")
-        .appendText(enabledSqliteMcFunctions.joinToString("\n") { function ->
-            "_${params.sqliteMcName}_$function"
+        .appendText(enabledSqliteMcFunctions.joinToString("") { function ->
+            "_${params.sqliteMcName}_$function\n"
         })
 
     // Append sqlitemc functions signatures
@@ -68,5 +68,5 @@ fun adjustSqliteSourceTreeForWasmCompilation(
                 })
     ) {
         "Search text for function signatures insertion was not found"
-    }*/
+    }
 }

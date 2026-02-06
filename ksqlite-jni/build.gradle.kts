@@ -79,7 +79,7 @@ android {
     externalNativeBuild {
         ndkVersion = libs.versions.android.ndk.get()
 
-        ndkPath = ksqliteCompilerExtension.androidToolchain().get().path.takeIf { path ->
+        ndkPath = ksqliteExtension.androidToolchain().get().path.takeIf { path ->
             file(path).exists()
         }
 

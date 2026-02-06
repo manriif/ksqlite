@@ -28,7 +28,7 @@ fun createSqliteTarget(
     val platform = Platform(operatingSystem, architecture)
     this.platform = platform
 
-    this.libraryFile = libsDir.zip(ksqliteCompilerExtension.compilationParams) { dir, params ->
+    this.libraryFile = libsDir.zip(ksqliteExtension.compilationParams) { dir, params ->
         dir.file(platform.operatingSystem.library.sharedLibraryFileName(params.libraryName))
     }
 }

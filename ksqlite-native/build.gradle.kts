@@ -45,7 +45,7 @@ kotlin {
 }
 
 fun KotlinNativeTarget.configureNativeTarget() {
-    val extension = ksqliteCompilerExtension
+    val extension = ksqliteExtension
     val platform = konanTarget.toPlatform()
     val platformDirectory = nativeArtifactDirectory.map { it.dir(platform.name) }
 

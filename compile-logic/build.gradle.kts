@@ -10,9 +10,9 @@ kotlin {
 
 gradlePlugin {
     plugins {
-        register("ksqlite-compiler") {
-            id = "ksqlite-compiler"
-            implementationClass = "KsqliteCompilerPlugin"
+        register("ksqlite") {
+            id = "ksqlite"
+            implementationClass = "KsqlitePlugin"
         }
     }
 }

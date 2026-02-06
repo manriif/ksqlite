@@ -4,7 +4,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     includeBuild("build-logic")
-    includeBuild("compiler")
+    includeBuild("compile-logic")
 
     repositories {
         mavenCentral()

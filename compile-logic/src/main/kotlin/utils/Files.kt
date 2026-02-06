@@ -7,6 +7,7 @@ import org.gradle.api.file.RelativePath
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.WorkResult
 import java.io.File
+import java.security.MessageDigest
 
 /**
  * Resolves the directory for [path] relatively to this property directory and returns the absolute
@@ -14,6 +15,31 @@ import java.io.File
  */
 fun Provider<Directory>.absolutePath(path: String): String {
     return map { it.dir(path) }.get().asFile.absolutePath
+}
+
+/**
+ * Returns the SHA-256 hash of this file or directory.
+ */
+fun File.sha256(): String {
+    val messageDigest = when {
+        isFile -> MessageDigest.getInstance("SHA-256").apply {
+            update(readBytes())
+        }
+
+        isDirectory -> MessageDigest.getInstance("SHA-256").apply {
+            walkTopDown()
+                .filter { it.isFile }
+                .sortedBy { it.relativeTo(this@sha256).path }
+                .forEach { file ->
+                    update(file.relativeTo(this@sha256).path.toByteArray())
+                    update(file.readBytes())
+                }
+        }
+
+        else -> error("File is not a regular file nor a directory")
+    }
+
+    return messageDigest.digest().joinToString("") { "%02x".format(it) }
 }
 
 /**

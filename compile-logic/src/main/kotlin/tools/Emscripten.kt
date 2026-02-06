@@ -5,11 +5,11 @@ import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
-import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.process.ExecOperations
 import platform.Host
 import platform.OperatingSystem
 import utils.copyFirstDirectoryContent
+import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////
 // Download
@@ -43,32 +43,29 @@ fun Task.emsdkExtract(
 /**
  * Installs Emscripten.
  */
-fun Task.emscriptenInstall(
-    inputDirectory: Provider<Directory>,
-    outputDirectory: Provider<Directory>
+fun emscriptenInstall(
+    fileOperations: FileSystemOperations,
+    execOperations: ExecOperations,
+    inputDirectory: File,
+    outputDirectory: File
 ) {
-    val fileOperations = project.serviceOf<FileSystemOperations>()
-    val execOperations = project.serviceOf<ExecOperations>()
-
-    doLast {
-        fileOperations.copy {
-            from(inputDirectory)
-            into(outputDirectory)
-        }
-
-        val emsdk = when (Host.Current.operatingSystem) {
-            OperatingSystem.Linux, OperatingSystem.MacOS -> "./emsdk"
-            OperatingSystem.Windows -> "emsdk.bat"
-        }
-
-        fun exec(vararg args: String) = execOperations
-            .exec {
-                workingDir = outputDirectory.get().asFile
-                commandLine(emsdk, *args)
-            }
-            .rethrowFailure()
-
-        exec("install", "latest")
-        exec("activate", "latest")
+    fileOperations.copy {
+        from(inputDirectory)
+        into(outputDirectory)
     }
+
+    val emsdk = when (Host.Current.operatingSystem) {
+        OperatingSystem.Linux, OperatingSystem.MacOS -> "./emsdk"
+        OperatingSystem.Windows -> "emsdk.bat"
+    }
+
+    fun exec(vararg args: String) = execOperations
+        .exec {
+            workingDir = outputDirectory
+            commandLine(emsdk, *args)
+        }
+        .rethrowFailure()
+
+    exec("install", "latest")
+    exec("activate", "latest")
 }

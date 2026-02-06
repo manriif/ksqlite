@@ -12,7 +12,6 @@ import kotlin.io.path.createTempFile
  */
 abstract class SqliteCompileStaticWorker : SqliteCompileWorker() {
 
-    @Suppress("NewApi")
     override fun execute() {
         val params = parameters.compilationParameters.get()
         val sources = parameters.sqliteSourcesDirectory

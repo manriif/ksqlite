@@ -8,24 +8,26 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.getByName
 import tasks.TASK_EMSCRIPTEN_INSTALL
+import tasks.TASK_GNU_SED_INSTALL
 import tasks.TASK_JEXTRACT_EXTRACT
 import tasks.TASK_SQLITE_INSTALL
-import tasks.TASK_TOOLCHAIN_ANDROID_EXTRACT
-import toolchains.Toolchain
-import toolchains.Toolchains
+import tasks.TASK_TOOLCHAIN_ANDROID_INSTALL
+import tasks.TASK_WABT_INSTALL
+import tools.Tool
+import tools.Toolchains
 import java.io.File
 
 /**
- * Name of the sqlite compiler extension.
+ * Name of the ksqlite extension.
  */
-const val KSQLITE_COMPILER_EXTENSION_NAME = "ksqliteCompiler"
+const val KSQLITE_EXTENSION_NAME = "ksqlite"
 
 /**
- * Retrieves and returns the [KsqliteCompilerExtension] from root project.
+ * Retrieves and returns the [KsqliteExtension] from root project.
  */
-val Project.ksqliteCompilerExtension: KsqliteCompilerExtension
-    get() = rootProject.extensions.getByName<KsqliteCompilerExtension>(
-        KSQLITE_COMPILER_EXTENSION_NAME
+val Project.ksqliteExtension: KsqliteExtension
+    get() = rootProject.extensions.getByName<KsqliteExtension>(
+        KSQLITE_EXTENSION_NAME
     )
 
 ///////////////////////////////////////////////////////////////////////////
@@ -36,13 +38,19 @@ val Project.ksqliteCompilerExtension: KsqliteCompilerExtension
  * Returns the provider of the task responsible for installing the Android NDK toolchain.
  */
 val Project.androidToolchainInstallTaskProvider: TaskProvider<Task>
-    get() = rootProject.tasks.named(TASK_TOOLCHAIN_ANDROID_EXTRACT)
+    get() = rootProject.tasks.named(TASK_TOOLCHAIN_ANDROID_INSTALL)
 
 /**
  * Returns the provider of the task responsible for installing emscripten.
  */
 val Project.emscriptenInstallTaskProvider: TaskProvider<Task>
     get() = rootProject.tasks.named(TASK_EMSCRIPTEN_INSTALL)
+
+/**
+ * Returns the provider of the task responsible for installing wabt.
+ */
+val Project.wabtInstallTaskProvider: TaskProvider<Task>
+    get() = rootProject.tasks.named(TASK_WABT_INSTALL)
 
 /**
  * Returns the provider of the task responsible for installing jextract.
@@ -56,29 +64,34 @@ val Project.jextractInstallTaskProvider: TaskProvider<Task>
 val Project.sqliteInstallTaskProvider: TaskProvider<Task>
     get() = rootProject.tasks.named(TASK_SQLITE_INSTALL)
 
+/**
+ * Returns the provider of the task responsible for installing GNU sed.
+ */
+val Project.gnuSedInstallTaskProvider: TaskProvider<Task>
+    get() = rootProject.tasks.named(TASK_GNU_SED_INSTALL)
 
 ///////////////////////////////////////////////////////////////////////////
-// Toolchains
+// Tool
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a provider to the [tool]'s directory.
+ */
+fun ProjectLayout.toolDirectory(tool: Provider<Tool>): Provider<Directory> {
+    return dir(tool.map { File(it.path) })
+}
 
 /**
  * Returns a provider to the [Toolchains] instance.
  */
-fun KsqliteCompilerExtension.toolchains(): Provider<Toolchains> {
+fun KsqliteExtension.toolchains(): Provider<Toolchains> {
     return compilationParams.map { it.toolchains }
 }
 
 /**
- * Returns a provider to the [toolchain]'s directory.
+ * Returns a provider to the Android [Tool].
  */
-fun ProjectLayout.toolchainDirectory(toolchain: Provider<Toolchain>): Provider<Directory> {
-    return dir(toolchain.map { File(it.path) })
-}
-
-/**
- * Returns a provider to the Android [Toolchain].
- */
-fun KsqliteCompilerExtension.androidToolchain(): Provider<Toolchain> {
+fun KsqliteExtension.androidToolchain(): Provider<Tool> {
     return toolchains().map { it.android }
 }
 

@@ -1,11 +1,11 @@
-package toolchains
+package tools
 
 import java.io.Serializable
 
 /**
- * Toolchain information.
+ * Tool used for code/file generation or compilation.
  */
-data class Toolchain(
+data class Tool(
     /**
      * Version of the toolchain.
      */

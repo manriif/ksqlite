@@ -384,12 +384,12 @@ val SqliteFunctions = mapOf(
  * Prefix need to be added before each function name.
  */
 val SqliteMcFunctions = mapOf(
-    "cipher_count" to true,
-    "cipher_index" to true,
-    "cipher_name" to true,
-    "codec_data" to true,
-    "config" to true,
-    "config_cipher" to true,
+    "cipher_count" to false,
+    "cipher_index" to false,
+    "cipher_name" to false,
+    "codec_data" to false,
+    "config" to false,
+    "config_cipher" to false,
     "register_cipher" to false,
     "version" to true,
     "vfs_create" to false,
@@ -402,11 +402,5 @@ val SqliteMcFunctions = mapOf(
  * Only signature for enabled function (from [SqliteMcFunctions]) are provided.
  */
 val SqliteMcFunctionsWasmSignature = mapOf(
-    "cipher_count" to arrayOf("int"),
-    "cipher_index" to arrayOf("int", "string"),
-    "cipher_name" to arrayOf("string", "int"),
-    "codec_data" to arrayOf("short*" /*TODO*/, "sqlite3*", "string", "string"),
-    "config" to arrayOf("int", "sqlite3*", "string", "int"),
-    "config_cipher" to arrayOf("int", "sqlite3*", "string", "int"),
     "version" to arrayOf("string")
 )

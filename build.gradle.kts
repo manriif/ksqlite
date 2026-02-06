@@ -1,7 +1,7 @@
 import compilation.SqliteCompilationParameters
-import toolchains.Toolchain
-import toolchains.Toolchains
+import tools.Toolchains
 import tools.Tool
+import tools.Tools
 import utils.absolutePath
 import java.util.Properties
 
@@ -12,7 +12,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.vanniktech.mavenPublish) apply false
     alias(libs.plugins.gradle.pluginPublish) apply false
-    alias(libs.plugins.ksqliteCompiler)
+    alias(libs.plugins.ksqlite)
 }
 
 allprojects {
@@ -20,7 +20,7 @@ allprojects {
     version = rootProject.libs.versions.ksqlite.get()
 }
 
-ksqliteCompiler {
+ksqlite {
     val ksqliteDir = layout.buildDirectory.dir("ksqlite")
 
     checksums = Properties()
@@ -37,7 +37,9 @@ ksqliteCompiler {
                 jextractWindowsX64 = getProperty("jextract.windows.x64"),
                 sqlite = getProperty("sqlite"),
                 sqliteMc = getProperty("sqlitemc"),
-                emsdk = getProperty("emsdk")
+                emsdk = getProperty("emsdk"),
+                wabt = getProperty("wabt"),
+                gnuSed = getProperty("gnu.sed")
             )
         }
 
@@ -52,7 +54,7 @@ ksqliteCompiler {
         watchosVersionMin = libs.versions.watchos.version.min.get(),
         toolchains = ksqliteDir.map { it.dir("toolchains") }.run {
             Toolchains(
-                android = Toolchain(
+                android = Tool(
                     version = libs.versions.toolchain.android.get(),
                     path = absolutePath("android-ndk")
                 )
@@ -60,17 +62,29 @@ ksqliteCompiler {
         },
     )
 
+    tools = ksqliteDir.map { it.dir("tools") }.run {
+        Tools(
+            emsdk = Tool(
+                version = libs.versions.emsdk.get(),
+                path = absolutePath("emscripten")
+            ),
+            gnuSed = Tool(
+                version = libs.versions.gnuSed.get(),
+                path = absolutePath("gnu-sed")
+            ),
+            jextract = Tool(
+                version = libs.versions.jextract.get(),
+                path = absolutePath("jextract")
+            ),
+            wabt = Tool(
+                version = libs.versions.wabt.get(),
+                path = absolutePath("wabt")
+            ),
+        )
+    }
+
     downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
+    sqliteReleaseYear = libs.versions.sqliteReleaseYear.get()
     sqliteSourcesDirectory = ksqliteDir.map { it.dir("sqlite") }
     jdkVersion = libs.versions.jvm.toolchain.get()
-
-    emscripten = Tool(
-        version = libs.versions.emscripten.get(),
-        path = ksqliteDir.map { it.dir("emscripten") }
-    )
-
-    jextract = Tool(
-        version = libs.versions.jextract.get(),
-        path = ksqliteDir.map { it.dir("jextract") }
-    )
 }
