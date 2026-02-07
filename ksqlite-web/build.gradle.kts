@@ -1,10 +1,12 @@
 @file:Suppress("HasPlatformType")
 
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import tasks.registerSqliteCompileWasmTask
 
 plugins {
     alias(libs.plugins.conventions.kmp)
+    alias(libs.plugins.opensavvy.resources.producer)
 }
 
 val compiledSqliteDirectory = layout.buildDirectory.dir("sqlite/wasm")
@@ -20,22 +22,30 @@ kotlin {
 }
 
 fun KotlinJsTargetDsl.configureJsTarget() {
-    compilations.configureEach {
+    tasks.named("${name}ResourceArchive") {
+        dependsOn(sqliteCompileWasmTaskProvider)
+    }
+
+    compilations.named(KotlinCompilation.MAIN_COMPILATION_NAME) {
         compileTaskProvider.configure {
             dependsOn(sqliteCompileWasmTaskProvider)
         }
 
-        tasks.named<ProcessResources>(processResourcesTaskName).apply {
+        defaultSourceSet.resources.srcDir(compiledSqliteDirectory)
+
+        // TODO clean in generated resource directory
+        /*tasks.named<ProcessResources>(processResourcesTaskName).apply {
             configure {
                 dependsOn(sqliteCompileWasmTaskProvider)
 
-                from(compiledSqliteDirectory.map { "esm64" }) {
+                from(compiledSqliteDirectory.map { it.dir("esm64") }) {
                     into(".")
                 }
 
                 from(compiledSqliteDirectory) {
                     include { element ->
-                        element.name == "sqlite3-opfs-async-proxy.js"
+                        element.name == "sqlite3.js"
+                                || element.name == "sqlite3-opfs-async-proxy.js"
                                 || element.name == "sqlite3-worker1.mjs"
                                 || element.name == "sqlite3-worker1-promiser.mjs"
                                 || element.name == "sqlite3-worker1-promiser-bundler-friendly.mjs"
@@ -44,6 +54,6 @@ fun KotlinJsTargetDsl.configureJsTarget() {
                     into(".")
                 }
             }
-        }
+        }*/
     }
 }

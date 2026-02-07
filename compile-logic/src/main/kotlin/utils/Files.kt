@@ -95,7 +95,9 @@ fun FileSystemOperations.copyToTempDirectory(
     directory: File,
     prefix: String? = null
 ): File {
-    val tempDirectory = createTempDirectory(prefix ?: "ksqlite").toFile()
+    val tempDirectory = createTempDirectory(prefix ?: "ksqlite").toFile().apply {
+        deleteOnExit()
+    }
 
     copy {
         from(directory)

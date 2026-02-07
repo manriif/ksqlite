@@ -59,13 +59,5 @@ fun compileSqliteWasm(
     fileOperations.copy {
         from(generatedOutputDirectory)
         into(outputDirectory)
-
-        exclude { element ->
-            element.isDirectory && !element.name.startsWith("esm")
-        }
-
-        rename { name ->
-            name.replace("-64bit", "")
-        }
     }
 }

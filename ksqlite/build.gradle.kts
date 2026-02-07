@@ -1,6 +1,8 @@
 plugins {
     //alias(libs.plugins.android.multiplatformLibrary)
     alias(libs.plugins.conventions.kmp)
+    alias(libs.plugins.opensavvy.resources.consumer)
+    alias(libs.plugins.opensavvy.resources.producer)
 }
 
 kotlin {
@@ -13,6 +15,7 @@ kotlin {
     sourceSets {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutinesTest)
         }
 
         /*androidMain.dependencies {
@@ -29,6 +32,15 @@ kotlin {
 
         webMain.dependencies {
             implementation(projects.ksqliteWeb)
+            implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
         }
     }
+}
+
+kotlinJsResConsumer {
+    directory = ""
+}
+
+dependencies {
+    jsConsumedResources(projects.ksqliteWeb)
 }
