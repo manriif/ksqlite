@@ -3,57 +3,41 @@
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import tasks.registerSqliteCompileWasmTask
+import tasks.registerSqliteCopyWasmResourcesTask
 
 plugins {
     alias(libs.plugins.conventions.kmp)
     alias(libs.plugins.opensavvy.resources.producer)
 }
 
-val compiledSqliteDirectory = layout.buildDirectory.dir("sqlite/wasm")
+val generatedResourcesDirectory =
+    layout.buildDirectory.dir("generated/ksqlite/src/webMain/resources")
 
-val sqliteCompileWasmTaskProvider = registerSqliteCompileWasmTask(
-    outputDirectory = compiledSqliteDirectory
+val sqliteCopyWasmResourcesTaskProvider = registerSqliteCopyWasmResourcesTask(
+    wasmCompileTaskProvider = registerSqliteCompileWasmTask(
+        outputDirectory = layout.buildDirectory.dir("sqlite/wasm")
+    ),
+    outputDirectory = generatedResourcesDirectory
 )
 
 kotlin {
     webTargets().forEach { target ->
         target.configureJsTarget()
     }
+
+    sourceSets.webMain {
+        resources.srcDir(generatedResourcesDirectory)
+    }
 }
 
 fun KotlinJsTargetDsl.configureJsTarget() {
     tasks.named("${name}ResourceArchive") {
-        dependsOn(sqliteCompileWasmTaskProvider)
+        dependsOn(sqliteCopyWasmResourcesTaskProvider)
     }
 
     compilations.named(KotlinCompilation.MAIN_COMPILATION_NAME) {
         compileTaskProvider.configure {
-            dependsOn(sqliteCompileWasmTaskProvider)
+            dependsOn(sqliteCopyWasmResourcesTaskProvider)
         }
-
-        defaultSourceSet.resources.srcDir(compiledSqliteDirectory)
-
-        // TODO clean in generated resource directory
-        /*tasks.named<ProcessResources>(processResourcesTaskName).apply {
-            configure {
-                dependsOn(sqliteCompileWasmTaskProvider)
-
-                from(compiledSqliteDirectory.map { it.dir("esm64") }) {
-                    into(".")
-                }
-
-                from(compiledSqliteDirectory) {
-                    include { element ->
-                        element.name == "sqlite3.js"
-                                || element.name == "sqlite3-opfs-async-proxy.js"
-                                || element.name == "sqlite3-worker1.mjs"
-                                || element.name == "sqlite3-worker1-promiser.mjs"
-                                || element.name == "sqlite3-worker1-promiser-bundler-friendly.mjs"
-                    }
-
-                    into(".")
-                }
-            }
-        }*/
     }
 }

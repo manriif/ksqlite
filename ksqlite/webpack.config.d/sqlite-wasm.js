@@ -20,8 +20,8 @@ config.plugins.push(
   new CopyWebpackPlugin({
     patterns: [
       {
-        from: path.resolve(__dirname, './kotlin/esm64/sqlite3-64bit.wasm'),
-        to: 'esm64/sqlite3-64bit.wasm',
+        from: path.resolve(__dirname, './kotlin/sqlite3-64bit.wasm'),
+        to: 'sqlite3-64bit.wasm',
         toType: 'file'
       }
     ]

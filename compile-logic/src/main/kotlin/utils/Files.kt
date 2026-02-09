@@ -116,18 +116,14 @@ fun FileSystemOperations.copyToTempDirectory(
  * search texts were found and content was inserted, or `false` if any search text was not found.
  * The file is only modified if ALL search texts are found.
  *
- * @param searchTexts List of texts to search for sequentially
- * @param contentToInsert Content to insert after each found search text
+ * @param insertions pairs of text to search associated with the content to append
  * @return `true` if all insertions succeeded, `false` if any search text was not found
  */
-fun File.insertAfterText(
-    searchTexts: List<String>,
-    contentToInsert: String
-): Boolean {
+fun File.insertAfterText(vararg insertions: Pair<String, String>, ): Boolean {
     val originalContent = readText()
     var modifiedContent = originalContent
 
-    for (searchText in searchTexts) {
+    for ((searchText, contentToInsert) in insertions) {
         val index = modifiedContent.indexOf(searchText)
 
         if (index == -1) {

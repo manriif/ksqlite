@@ -11,11 +11,13 @@ import emscriptenInstallTaskProvider
 import gnuSedInstallTaskProvider
 import jextractInstallTaskProvider
 import ksqliteExtension
-import modules.adjustSqliteSourceTreeForWasmCompilation
+import modules.configureSqliteWasmTrunk
 import modules.createDefContent
 import modules.createSqliteCMakeListsContent
 import modules.createSqliteFfmRuntimeMetadataContent
 import modules.createSqliteJniRuntimeMetadataContent
+import modules.patchGeneratedSqliteForWasm
+import modules.sqliteWasmExtraResourceFileNames
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.Directory
@@ -87,9 +89,10 @@ const val TASK_SQLITE_COMPILE_STATIC = "sqliteCompileStatic"
 const val TASK_SQLITE_COMPILE_WASM = "sqliteCompileWasm"
 const val TASK_SQLITE_GENERATE_CINTEROP_DEF = "sqliteGenerateCInteropDef"
 const val TASK_SQLITE_GENERATE_CMAKE_LISTS = "sqliteGenerateCMakeLists"
-const val TASK_SQLITE_COPY_JNI_JAVA_SOURCES = "sqliteCopyJniJavaSources"
 const val TASK_SQLITE_GENERATE_JNI_RUNTIME_METADATA = "sqliteGenerateJniRuntimeMetadata"
 const val TASK_SQLITE_GENERATE_FFM_RUNTIME_METADATA = "sqliteGenerateFfmRuntimeMetadata"
+const val TASK_SQLITE_COPY_JNI_JAVA_SOURCES = "sqliteCopyJniJavaSources"
+const val TASK_SQLITE_COPY_WASM_RESOURCES = "sqliteCopyWasmResources"
 
 ///////////////////////////////////////////////////////////////////////////
 // Root project tasks
@@ -194,7 +197,7 @@ inline fun executeIfChecksumChanged(
 /**
  * Returns a directory where to extract downloaded file in the download directory.
  */
-private fun TaskProvider<Download>.extractDirectory(
+private fun Provider<Download>.extractDirectory(
     extension: KsqliteExtension
 ): Provider<Directory> = zip(extension.downloadDirectory) { task, directory ->
     directory.dir(task.dest.nameWithoutExtension)
@@ -203,7 +206,7 @@ private fun TaskProvider<Download>.extractDirectory(
 /**
  * Returns a provider resolving the output directory of the task.
  */
-private fun TaskProvider<Task>.outputDirectory(): Provider<File> {
+private fun Provider<Task>.outputDirectory(): Provider<File> {
     return map { it.outputs.files.singleFile }
 }
 
@@ -612,15 +615,13 @@ fun Project.registerJextractGenerateBindingsTask(
     inputs.file(headerFile)
     outputs.dir(outputDirectory)
 
-    doFirst {
+    doLast {
         fileOperations.delete {
             delete(outputDirectory)
         }
 
         outputDirectory.get().asFile.mkdirs()
-    }
 
-    doLast {
         jextractGenerateBindings(
             execOperations = execOperations,
             packageName = packageName,
@@ -751,7 +752,7 @@ private fun Project.registerSqliteInstallTask(
                 into(outputDirectory)
             }
 
-            adjustSqliteSourceTreeForWasmCompilation(
+            configureSqliteWasmTrunk(
                 sqliteSourcesDirectory = outputDirectory,
                 params = params
             )
@@ -874,11 +875,9 @@ fun Project.registerSqliteGenerateCInteropDefTask(
 
     val extension = ksqliteExtension
 
-    doFirst {
-        defFile.get().asFile.parentFile.mkdirs()
-    }
-
     doLast {
+        defFile.get().asFile.parentFile.mkdirs()
+
         defFile.get().asFile.writeText(
             createDefContent(
                 packageName = packageName,
@@ -993,5 +992,58 @@ fun Project.registerSqliteFfmRuntimeMetadataTask(
                 platforms = platforms.get()
             )
         )
+    }
+}
+
+/**
+ * Registers and returns the task responsible for copying the necessary resources for WASM SQLite.
+ */
+fun Project.registerSqliteCopyWasmResourcesTask(
+    wasmCompileTaskProvider: Provider<Task>,
+    outputDirectory: Provider<Directory>
+): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_COPY_WASM_RESOURCES) {
+    group = ksqliteTaskGroup
+
+    // Implicit dependency on wasmCompileTaskProvider
+    val inputDirectory = wasmCompileTaskProvider.outputDirectory()
+    val esm64Directory = inputDirectory.map { it.resolve("esm64") }
+    val params = ksqliteExtension.compilationParams
+
+    val sqliteSourceFile = esm64Directory.zip(params) { directory, params ->
+        directory.resolve("${params.sqliteName}-64bit.mjs")
+    }
+
+    val fileOperations = project.serviceOf<FileSystemOperations>()
+
+    outputs.dir(outputDirectory)
+
+    doLast {
+        fileOperations.delete {
+            delete(outputDirectory)
+        }
+
+        val outputDirectoryFile = outputDirectory.get().asFile.apply { mkdirs() }
+        val sqliteFile = sqliteSourceFile.get()
+        val sqliteName = params.get().sqliteName
+
+        patchGeneratedSqliteForWasm(
+            sqliteName = sqliteName,
+            inputFile = sqliteFile,
+            outputFile = outputDirectoryFile.resolve(sqliteFile.name)
+        )
+
+        fileOperations.copy {
+            from(esm64Directory) {
+                include { it.name != sqliteFile.name }
+            }
+
+            sqliteWasmExtraResourceFileNames(sqliteName).takeUnless { it.isEmpty() }?.let { names ->
+                from(inputDirectory) {
+                    include { !it.isDirectory && it.name in names }
+                }
+            }
+
+            into(outputDirectoryFile)
+        }
     }
 }

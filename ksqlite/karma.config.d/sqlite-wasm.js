@@ -1,7 +1,6 @@
 const path = require("path");
 const os = require("os");
-const esm64 = path.resolve("./kotlin/esm64")
-const wasm = path.join(esm64, "sqlite3-64bit.wasm")
+const wasm = path.resolve("./kotlin/sqlite3-64bit.wasm")
 
 config.files.push({
   pattern: wasm,
@@ -11,9 +10,7 @@ config.files.push({
   nocache: false,
 });
 
-config.proxies["/esm64/sqlite3-64bit.wasm"] = `/absolute${wasm}`
 config.proxies["/sqlite3-64bit.wasm"] = `/absolute${wasm}`
-config.proxies["sqlite3-64bit.wasm"] = `/absolute${wasm}`
 
 // Adapted from: https://github.com/ryanclark/karma-webpack/issues/498#issuecomment-790040818
 const output = {

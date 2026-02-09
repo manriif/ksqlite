@@ -7,69 +7,105 @@ import utils.insertAfterText
 import java.io.File
 
 /**
+ * Extra resources files that can be embedded in the library.
+ */
+fun sqliteWasmExtraResourceFileNames(sqliteName: String) = listOf(
+    "$sqliteName-opfs-async-proxy.js",
+    "$sqliteName-worker1.mjs",
+    "$sqliteName-worker1-promiser.mjs",
+    "$sqliteName-worker1-promiser-bundler-friendly.mjs"
+)
+
+/**
  * Performs some adjustments and fixes for WASM compilation.
  */
-fun adjustSqliteSourceTreeForWasmCompilation(
+fun configureSqliteWasmTrunk(
     sqliteSourcesDirectory: File,
     params: SqliteCompilationParameters
 ) {
     val wasmDirectory = sqliteSourcesDirectory.resolve("ext/wasm")
-    configureGnuMakefile(wasmDirectory)
-    patchFiles(wasmDirectory)
+    applyPatches(wasmDirectory)
     configureExportedFunctions(wasmDirectory, params)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Compilation
+// Patches
 ///////////////////////////////////////////////////////////////////////////
 
-private const val MAKEFILE_SEARCH_TEXT_EMCC_FLAGS = "emcc.flags ="
-private const val MAKEFILE_SEARCH_TEXT_EMCC_CFLAGS = "emcc.cflags ="
-
-/**
- * Configures the GNUmakefile.
- */
-private fun configureGnuMakefile(wasmDirectory: File) {
-    // Append _WASM_ flag for sqlitemc
-    check(
-        wasmDirectory
-            .resolve("GNUmakefile")
-            .insertAfterText(
-                searchTexts = listOf(
-                    MAKEFILE_SEARCH_TEXT_EMCC_FLAGS,
-                    MAKEFILE_SEARCH_TEXT_EMCC_CFLAGS
-                ),
-                contentToInsert = " -D__WASM__"
-            )
-    )
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Fixes
-///////////////////////////////////////////////////////////////////////////
-
-private const val EXTERN_POST_JS_CPP_JS = "extern-post-js.c-pp.js"
-private const val PRE_JS_CPP_JS = "pre-js.c-pp.js"
+private const val GNU_MAKEFILE = "GNUmakefile"
+private const val PRE_JS_CPP_JS = "api/pre-js.c-pp.js"
 
 /**
  * Replaces some js files.
  */
-private fun patchFiles(wasmDirectory: File) {
-    replaceApiFile(wasmDirectory, PRE_JS_CPP_JS)
-    replaceApiFile(wasmDirectory, EXTERN_POST_JS_CPP_JS)
+private fun applyPatches(wasmDirectory: File) {
+    replaceFile(wasmDirectory, GNU_MAKEFILE)
+    replaceFile(wasmDirectory, PRE_JS_CPP_JS)
 }
 
 /**
  * Replaces file [fileName] in [wasmDirectory] by the one in resources.
  */
-private fun replaceApiFile(wasmDirectory: File, fileName: String) {
+private fun replaceFile(wasmDirectory: File, fileName: String) {
     val resource = Thread.currentThread().contextClassLoader
         .getResourceAsStream("wasm/$fileName")
         ?: error("File resource $fileName not found in /wasm")
 
     resource.use { input ->
-        wasmDirectory.resolve("api/$fileName").outputStream().use { output ->
+        wasmDirectory.resolve(fileName).outputStream().use { output ->
             input.copyTo(output)
+        }
+    }
+}
+
+private const val ASSIGN_WASM_EXPORT_GLUE = "function assignWasmExports(wasmExports) {"
+
+/**
+ * Patches sqlite generated file [inputFile] and writes the patched content to [outputFile].
+ */
+fun patchGeneratedSqliteForWasm(
+    sqliteName: String,
+    inputFile: File,
+    outputFile: File
+) {
+    outputFile.outputStream().writer().use { writer ->
+        inputFile.useLines { lines ->
+            val lineIterator = lines.iterator()
+            var assignWasmExportsFound = false
+            var inAssignWasmExports = false
+
+            while (lineIterator.hasNext() && !assignWasmExportsFound) {
+                val line = lineIterator.next()
+
+                when {
+                    inAssignWasmExports -> when {
+                        line.startsWith("  _${sqliteName}") -> {
+                            writer.append(' ')
+                            writer.appendLine(line.substringAfter('='))
+                        }
+
+                        line == "}" -> {
+                            writer.appendLine(line)
+                            assignWasmExportsFound = true
+                        }
+
+                        else -> writer.appendLine(line)
+                    }
+
+                    line == ASSIGN_WASM_EXPORT_GLUE -> {
+                        writer.appendLine(line)
+                        inAssignWasmExports = true
+                    }
+
+                    else -> writer.appendLine(line)
+                }
+            }
+
+            check(assignWasmExportsFound) {
+                "assignWasmExports() function not found in ${inputFile.name}"
+            }
+
+            lineIterator.forEachRemaining(writer::appendLine)
         }
     }
 }
@@ -78,7 +114,6 @@ private fun replaceApiFile(wasmDirectory: File, fileName: String) {
 // Extensions
 ///////////////////////////////////////////////////////////////////////////
 
-private const val GLUE_FILE_SEARCH_TEXT = """["sqlite3_activate_see", undefined, "string"]"""
 private const val FUNCTION_SEPARATOR = ",\n      "
 
 /**
@@ -92,18 +127,19 @@ private fun configureExportedFunctions(
 
     // Append the functions to export, new line at the end of the line is important
     wasmDirectory
-        .resolve("api/EXPORTED_FUNCTIONS.sqlite3-see")
+        .resolve("api/EXPORTED_FUNCTIONS.${params.sqliteName}-see")
         .appendText(enabledSqliteMcFunctions.joinToString("") { function ->
             "_${params.sqliteMcName}_$function\n"
         })
 
+    val searchText = """["${params.sqliteName}_activate_see", undefined, "string"]"""
+
     // Append sqlitemc functions signatures
     check(
         wasmDirectory
-            .resolve("api/sqlite3-api-glue.c-pp.js")
+            .resolve("api/${params.sqliteName}-api-glue.c-pp.js")
             .insertAfterText(
-                searchTexts = listOf(GLUE_FILE_SEARCH_TEXT),
-                contentToInsert = enabledSqliteMcFunctions.joinToString(
+                searchText to enabledSqliteMcFunctions.joinToString(
                     separator = FUNCTION_SEPARATOR,
                     prefix = FUNCTION_SEPARATOR
                 ) { function ->

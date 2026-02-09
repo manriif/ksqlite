@@ -23,7 +23,13 @@
           }
         });
   delete globalThis.sqlite3InitModuleState;
-  sIMS.debugModule('pre-js.js sqlite3InitModuleState =',sIMS);
+
+    // Check if custom locateFile was provided
+  if (Module.customDebugModule && typeof Module.customDebugModule === 'function') {
+    sIMS.debugModule = Module.customDebugModule;
+  }
+
+  sIMS.debugModule('pre-js.js sqlite3InitModuleState =',sIMS, Module);
 
   /**
      This custom locateFile() tries to figure out where to load `path`
@@ -49,13 +55,15 @@
   Module['locateFile'] = function(path, prefix) {
 //#if target:es6-module
     // Check if custom locateFile was provided
-    if (this.locateFile && typeof this.locateFile === 'function') {
-      return this.locateFile(path, prefix);
+    if (Module.customLocateFile && typeof Module.customLocateFile === 'function') {
+      return Module.customLocateFile(path, prefix);
     }
+
     // Check sqlite3Dir from state
     if (this.sqlite3Dir) {
       return this.sqlite3Dir + path;
     }
+
     // Fallback to original behavior
     return new URL(path, import.meta.url).href;
 //#else
