@@ -25,8 +25,14 @@ kotlin {
         target.configureJsTarget()
     }
 
-    sourceSets.webMain {
-        resources.srcDir(generatedResourcesDirectory)
+    sourceSets {
+        all {
+            languageSettings.optIn("kotlin.js.ExperimentalWasmJsInterop")
+        }
+
+        webMain {
+            resources.srcDir(generatedResourcesDirectory)
+        }
     }
 }
 

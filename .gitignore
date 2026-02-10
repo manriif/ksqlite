@@ -3,6 +3,7 @@
 .kotlin/
 .ksqlite/
 .cxx/
+.run
 
 build
 local.properties

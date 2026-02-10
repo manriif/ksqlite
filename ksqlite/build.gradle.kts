@@ -31,8 +31,14 @@ kotlin {
         }*/
 
         webMain.dependencies {
-            implementation(projects.ksqliteWeb)
             implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
+            implementation(projects.ksqliteWeb)
+        }
+
+        listOf(webMain, webTest, jsMain, wasmJsMain).forEach { sourceSet ->
+            sourceSet.languageSettings {
+                optIn("kotlin.js.ExperimentalWasmJsInterop")
+            }
         }
     }
 }
@@ -43,4 +49,5 @@ kotlinJsResConsumer {
 
 dependencies {
     jsConsumedResources(projects.ksqliteWeb)
+    wasmConsumedResources(projects.ksqliteWeb)
 }

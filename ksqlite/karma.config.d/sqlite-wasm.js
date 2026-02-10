@@ -1,6 +1,7 @@
 const path = require("path");
 const os = require("os");
-const wasm = path.resolve("./kotlin/sqlite3-64bit.wasm")
+const kotlin = path.resolve("./kotlin")
+const wasm = path.resolve(kotlin, "sqlite3-64bit.wasm")
 
 config.files.push({
   pattern: wasm,
