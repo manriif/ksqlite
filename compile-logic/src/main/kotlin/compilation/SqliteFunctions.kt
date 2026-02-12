@@ -2,9 +2,10 @@ package compilation
 
 /**
  * SQLite functions with their enabled state.
+ * An enabled function is available in the public ksqlite API.
  * SQLite prefix need to be added before each function name.
  */
-val SqliteFunctions = mapOf(
+private val SqliteFunctions = mapOf(
     // Database Connection Functions
     "open" to true,
     "open16" to false,  // Use UTF-8 version instead
@@ -380,27 +381,10 @@ val SqliteFunctions = mapOf(
 )
 
 /**
- * SQLite Multiple Ciphers functions with their enabled state.
- * Prefix need to be added before each function name.
+ * Returns a list of SQLite functions. If enabled is `true` then only the functions which are
+ * enabled (available in the public ksqlite API) are returned, otherwise those who are excluded are
+ * returned.
  */
-val SqliteMcFunctions = mapOf(
-    "cipher_count" to false,
-    "cipher_index" to false,
-    "cipher_name" to false,
-    "codec_data" to false,
-    "config" to false,
-    "config_cipher" to false,
-    "register_cipher" to false,
-    "version" to true,
-    "vfs_create" to false,
-    "vfs_destroy" to false,
-    "vfs_shutdown" to false
-)
-
-/**
- * Signatures of SQLite3 Multiple Ciphers function for WASM.
- * Only signature for enabled function (from [SqliteMcFunctions]) are provided.
- */
-val SqliteMcFunctionsWasmSignature = mapOf(
-    "version" to arrayOf("string")
-)
+fun SqliteCompilationParameters.sqliteFunctions(enabled: Boolean): List<String> {
+    return SqliteFunctions.filter { it.value == enabled }.map { "${sqliteName}_${it.key}" }
+}

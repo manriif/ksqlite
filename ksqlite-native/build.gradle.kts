@@ -62,7 +62,7 @@ fun KotlinNativeTarget.configureNativeTarget() {
     }
 
     val generateCInteropDefTaskProvider = registerSqliteGenerateCInteropDefTask(
-        packageName = projectNamespace,
+        packageName = "sqlite",
         target = sqliteTarget,
         defFile = defFile
     )

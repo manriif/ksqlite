@@ -740,8 +740,6 @@ private fun Project.registerSqliteInstallTask(
             inputs.dir(sqliteMcDirectory)
         },
         install = { fileOperations, outputDirectory ->
-            val params = extension.compilationParams.get()
-
             fileOperations.copy {
                 from(sqliteMcDirectory)
                 into(outputDirectory)
@@ -752,10 +750,7 @@ private fun Project.registerSqliteInstallTask(
                 into(outputDirectory)
             }
 
-            configureSqliteWasmTrunk(
-                sqliteSourcesDirectory = outputDirectory,
-                params = params
-            )
+            configureSqliteWasmTrunk(sqliteSourcesDirectory = outputDirectory)
         }
     )
 }

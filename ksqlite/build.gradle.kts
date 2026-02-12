@@ -7,8 +7,8 @@ plugins {
 
 kotlin {
     //androidJvmTargets()
-    //jvmTargets()
-    //macosX64()
+    jvmTargets()
+    macosX64()
     //nativeTargets()
     webTargets()
 
@@ -20,7 +20,7 @@ kotlin {
 
         /*androidMain.dependencies {
             implementation(projects.ksqliteJni)
-        }
+        }*/
 
         jvmMain.dependencies {
             implementation(projects.ksqliteFfm)
@@ -28,17 +28,11 @@ kotlin {
 
         nativeMain.dependencies {
             implementation(projects.ksqliteNative)
-        }*/
+        }
 
         webMain.dependencies {
             implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
             implementation(projects.ksqliteWeb)
-        }
-
-        listOf(webMain, webTest, jsMain, wasmJsMain).forEach { sourceSet ->
-            sourceSet.languageSettings {
-                optIn("kotlin.js.ExperimentalWasmJsInterop")
-            }
         }
     }
 }

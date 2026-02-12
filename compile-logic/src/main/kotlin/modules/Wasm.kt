@@ -1,10 +1,10 @@
 package modules
 
-import compilation.SqliteCompilationParameters
-import compilation.SqliteMcFunctions
-import compilation.SqliteMcFunctionsWasmSignature
-import utils.insertAfterText
 import java.io.File
+
+private const val GNU_MAKEFILE = "GNUmakefile"
+private const val PRE_JS_CPP_JS = "api/pre-js.c-pp.js"
+private const val ASSIGN_WASM_EXPORT_GLUE = "function assignWasmExports(wasmExports) {"
 
 /**
  * Extra resources files that can be embedded in the library.
@@ -12,33 +12,14 @@ import java.io.File
 fun sqliteWasmExtraResourceFileNames(sqliteName: String) = listOf(
     "$sqliteName-opfs-async-proxy.js",
     "$sqliteName-worker1.mjs",
-    "$sqliteName-worker1-promiser.mjs",
-    "$sqliteName-worker1-promiser-bundler-friendly.mjs"
+    "$sqliteName-worker1-promiser.mjs"
 )
 
 /**
  * Performs some adjustments and fixes for WASM compilation.
  */
-fun configureSqliteWasmTrunk(
-    sqliteSourcesDirectory: File,
-    params: SqliteCompilationParameters
-) {
+fun configureSqliteWasmTrunk(sqliteSourcesDirectory: File) {
     val wasmDirectory = sqliteSourcesDirectory.resolve("ext/wasm")
-    applyPatches(wasmDirectory)
-    configureExportedFunctions(wasmDirectory, params)
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Patches
-///////////////////////////////////////////////////////////////////////////
-
-private const val GNU_MAKEFILE = "GNUmakefile"
-private const val PRE_JS_CPP_JS = "api/pre-js.c-pp.js"
-
-/**
- * Replaces some js files.
- */
-private fun applyPatches(wasmDirectory: File) {
     replaceFile(wasmDirectory, GNU_MAKEFILE)
     replaceFile(wasmDirectory, PRE_JS_CPP_JS)
 }
@@ -57,8 +38,6 @@ private fun replaceFile(wasmDirectory: File, fileName: String) {
         }
     }
 }
-
-private const val ASSIGN_WASM_EXPORT_GLUE = "function assignWasmExports(wasmExports) {"
 
 /**
  * Patches sqlite generated file [inputFile] and writes the patched content to [outputFile].
@@ -107,51 +86,5 @@ fun patchGeneratedSqliteForWasm(
 
             lineIterator.forEachRemaining(writer::appendLine)
         }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-private const val FUNCTION_SEPARATOR = ",\n      "
-
-/**
- * Appends exported functions and signatures.
- */
-private fun configureExportedFunctions(
-    wasmDirectory: File,
-    params: SqliteCompilationParameters
-) {
-    val enabledSqliteMcFunctions = SqliteMcFunctions.filter { it.value }.keys
-
-    // Append the functions to export, new line at the end of the line is important
-    wasmDirectory
-        .resolve("api/EXPORTED_FUNCTIONS.${params.sqliteName}-see")
-        .appendText(enabledSqliteMcFunctions.joinToString("") { function ->
-            "_${params.sqliteMcName}_$function\n"
-        })
-
-    val searchText = """["${params.sqliteName}_activate_see", undefined, "string"]"""
-
-    // Append sqlitemc functions signatures
-    check(
-        wasmDirectory
-            .resolve("api/${params.sqliteName}-api-glue.c-pp.js")
-            .insertAfterText(
-                searchText to enabledSqliteMcFunctions.joinToString(
-                    separator = FUNCTION_SEPARATOR,
-                    prefix = FUNCTION_SEPARATOR
-                ) { function ->
-                    val functionName = "${params.sqliteMcName}_$function"
-
-                    val signatureString = checkNotNull(SqliteMcFunctionsWasmSignature[function]) {
-                        "Function signature for $functionName was not found"
-                    }.joinToString(", ") { """"$it"""" }
-
-                    """["$functionName", $signatureString]"""
-                })
-    ) {
-        "Search text for function signatures insertion was not found"
     }
 }

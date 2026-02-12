@@ -1,5 +1,7 @@
-package ksqlite
+package sqlite
 
+import ksqlite.ffm.KSQLITE_NATIVE_LIB_MACOS_X86_64_PATH
+import ksqlite.ffm.KSQLITE_NATIVE_LIB_NAME
 import java.nio.file.Files
 
 private fun String.isX64(): Boolean {
@@ -11,10 +13,10 @@ private fun String.isArm64(): Boolean {
 }
 
 /**
- * Loads the library.
+ * Loads the SQLite library.
  */
 @Suppress("UnsafeDynamicallyLoadedCode")
-public fun ksqliteLoadLibrary() {
+public fun sqliteLoadLibrary() {
     val osName = System.getProperty("os.name").lowercase()
     val osArch = System.getProperty("os.arch").lowercase()
 
@@ -51,7 +53,7 @@ public fun ksqliteLoadLibrary() {
         ?: error("Native library not found: $libPath")
 
     val tempFile = Files
-        .createTempFile("lib$KSQLITE_NATIVE_LIB_NAME", libPath.substringAfterLast('.'))
+        .createTempFile("lib${KSQLITE_NATIVE_LIB_NAME}", libPath.substringAfterLast('.'))
         .toFile()
         .apply { deleteOnExit() }
 

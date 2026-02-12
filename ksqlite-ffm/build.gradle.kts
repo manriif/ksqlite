@@ -16,6 +16,7 @@ plugins {
 }
 
 val resourceNativeDirName = "native"
+val sqlitePackage = "sqlite"
 val generatedSourceDirectory = layout.buildDirectory.map { it.dir("generated/ksqlite/src/jvmMain") }
 val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java") }
 val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
@@ -43,7 +44,7 @@ val sqliteTargets = listOf(
 )
 
 val generateBindingsTaskProvider = registerJextractGenerateBindingsTask(
-    packageName = projectNamespace,
+    packageName = sqlitePackage,
     outputDirectory = generatedJavaSourceDirectory
 )
 
@@ -55,10 +56,10 @@ val sqliteCompileSharedTaskProvider = registerSqliteCompileSharedTask("Jvm") {
 }
 
 val generateSqliteFfmRuntimeMetadataTaskProvider = registerSqliteFfmRuntimeMetadataTask(
-    packageName = projectNamespace,
+    packageName = sqlitePackage,
     nativeDirectoryName = resourceNativeDirName,
     metadataFile = generatedKotlinSourceDirectory.map { directory ->
-        directory.file("$projectNamespace/KsqliteNativeFfm.kt")
+        directory.file("$projectNamespace/KsqliteFfm.kt")
     },
     platforms = provider { sqliteTargets.map { it.platform.get() } }
 )

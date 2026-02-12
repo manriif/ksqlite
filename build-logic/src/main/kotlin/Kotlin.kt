@@ -6,6 +6,45 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.plugin.HasProject
 
 /**
+ * Names of all native main sources sets.
+ */
+val SourceSetMainNatives = listOf(
+    "nativeMain",
+    "appleMain",
+    "macosMain",
+    "macosX64Main",
+    "macosArm64Main",
+    "iosMain",
+    "iosX64Main",
+    "iosArm64Main",
+    "iosSimulatorArm64Main",
+    "tvosMain",
+    "tvosX64Main",
+    "tvosArm64Main",
+    "tvosSimulatorArm64Main",
+    "watchosMain",
+    "watchosArm32Main",
+    "watchosX64Main",
+    "watchosArm64Main",
+    "watchosDeviceArm64Main",
+    "watchosSimulatorArm64Main",
+    "linuxMain",
+    "linuxX64Main",
+    "linuxArm64Main",
+    "mingwMain",
+    "mingwX64Main",
+)
+
+/**
+ * Names of all web main sources sets.
+ */
+val SourceSetMainWebs = listOf(
+    "webMain",
+    "jsMain",
+    "wasmJsMain"
+)
+
+/**
  * Applies common Kotlin configuration.
  */
 fun <Extension> Extension.configureKotlin()
@@ -21,10 +60,10 @@ fun <Extension> Extension.configureKotlin()
         progressiveMode = true
 
         freeCompilerArgs.run {
-            add("-Xreturn-value-checker=full")
-            add("-Xexpect-actual-classes")
             add("-Xcontext-parameters")
+            add("-Xexpect-actual-classes")
             add("-Xexplicit-backing-fields")
+            add("-Xreturn-value-checker=full")
         }
     }
 

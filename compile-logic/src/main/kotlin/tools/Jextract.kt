@@ -2,7 +2,7 @@ package tools
 
 import KsqliteChecksums
 import compilation.SqliteCompilationParameters
-import compilation.SqliteFunctions
+import compilation.sqliteFunctions
 import org.gradle.api.Task
 import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
@@ -110,15 +110,9 @@ fun jextractGenerateBindings(
         .exec {
             workingDir = jextractDirectory
 
-            val sqliteIncludedFunctions = SqliteFunctions
-                .filter { it.value }
-                .flatMap { listOf("--include-function", "${params.sqliteName}_${it.key}") }
-
-            val sqliteMcIncludedFunctions = SqliteFunctions
-                .filter { it.value }
-                .flatMap { listOf("--include-function", "${params.sqliteMcName}_${it.key}") }
-
-            val includedFunctions = (sqliteIncludedFunctions + sqliteMcIncludedFunctions)
+            val includedFunctions = params
+                .sqliteFunctions(true)
+                .flatMap { listOf("--include-function", it) }
                 .toTypedArray()
 
             commandLine(

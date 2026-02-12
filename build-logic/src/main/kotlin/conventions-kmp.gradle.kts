@@ -1,8 +1,9 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+
 /**
  * Copyright (c) 2024 Maanrifa Bacar Ali.
  * Use of this source code is governed by the MIT license.
  */
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     org.jetbrains.kotlin.multiplatform
@@ -15,11 +16,24 @@ kotlin {
 
     applyDefaultHierarchyTemplate {
         common {
-            group("nonAndroid") {
+            group("nonWeb") {
+                withAndroidTarget()
                 withJvm()
-                withJs()
                 withNative()
-                withWasmJs()
+            }
+        }
+    }
+
+    sourceSets.configureEach {
+        when (name) {
+            in SourceSetMainNatives -> languageSettings {
+                optIn("kotlin.experimental.ExperimentalNativeApi")
+                optIn("kotlinx.cinterop.BetaInteropApi")
+                optIn("kotlinx.cinterop.ExperimentalForeignApi")
+            }
+
+            in SourceSetMainWebs -> languageSettings {
+                optIn("kotlin.js.ExperimentalWasmJsInterop")
             }
         }
     }

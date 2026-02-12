@@ -7,7 +7,7 @@ class KsqliteTest {
 
     @Test
     fun `version is returned`() = sqliteTest {
-        println(sqliteLibVersion)
-        assertTrue { sqliteLibVersion.isNotBlank() }
+        println(sqlite3_libversion())
+        assertTrue { sqlite3_libversion().isNotBlank() }
     }
 }
