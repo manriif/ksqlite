@@ -21,7 +21,7 @@ public expect fun sqlite3_libversion(): String
 public expect fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): pointer
+): pointer?
 
 ///////////////////////////////////////////////////////////////////////////
 // Automatically Load Statically Linked Extensions
@@ -230,7 +230,7 @@ public expect fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
     zData: String?,
-    nData: Int
+    nData: Int,
     encoding: TextEncoding,
     sqlite3_stmt*, int, const char*, sqlite3_uint64,
 void(*)(void*), unsigned char encoding);
@@ -240,18 +240,18 @@ void(*)(void*), unsigned char encoding);
  *
  * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
  */
-public expect fun sqlite3_bind_value
+public expect fun sqlite3_bind_value()
 
 /**
  * Bind a blob value to an SQL statement variable.
  *
  * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
  */
-public expect fun sqlite3_bind_zeroblob
+public expect fun sqlite3_bind_zeroblob()
 
 /**
  * Bind a blob value to an SQL statement variable.
  *
  * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
  */
-public expect fun sqlite3_bind_zeroblob64
+public expect fun sqlite3_bind_zeroblob64()

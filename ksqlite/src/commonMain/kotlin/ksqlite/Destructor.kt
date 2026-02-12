@@ -47,7 +47,7 @@ internal class DestructorFunction<Target>(val destructor: (Target) -> Unit) : De
 public sealed class SpecialDestructor(internal val constant: Int) : Destructor<Nothing> {
 
     /**
-     * Content pointer is constant and will never change and  does not need to be destroyed.
+     * Content pointer is constant and will never change and does not need to be destroyed.
      */
     public data object Static : SpecialDestructor(0)
 
