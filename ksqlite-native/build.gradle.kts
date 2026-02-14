@@ -39,7 +39,7 @@ val sqliteCompileStaticTaskProviders = mapOf(
 )
 
 kotlin {
-    listOf(macosX64()).forEach { target ->
+    listOf(macosX64(), macosArm64()).forEach { target ->
         target.configureNativeTarget()
     }
 }
@@ -63,6 +63,7 @@ fun KotlinNativeTarget.configureNativeTarget() {
 
     val generateCInteropDefTaskProvider = registerSqliteGenerateCInteropDefTask(
         packageName = "sqlite",
+        targetName = name,
         target = sqliteTarget,
         defFile = defFile
     )
@@ -82,6 +83,7 @@ fun KotlinNativeTarget.configureNativeTarget() {
 
         cinterops.register("ksqlite") {
             tasks.named(interopProcessingTaskName).configure {
+                dependsOn(sqliteCompileStaticTaskProvider)
                 dependsOn(generateCInteropDefTaskProvider)
             }
 

@@ -17,9 +17,8 @@ kotlin {
     applyDefaultHierarchyTemplate {
         common {
             group("nonWeb") {
-                withAndroidTarget()
                 withJvm()
-                withNative()
+                group("native")
             }
         }
     }

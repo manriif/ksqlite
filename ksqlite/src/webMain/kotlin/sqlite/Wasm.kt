@@ -1,4 +1,4 @@
-package ksqlite
+package sqlite
 
 import kotlin.js.JsNumber
 

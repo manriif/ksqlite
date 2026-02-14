@@ -6,12 +6,12 @@ package ksqlite
  *
  * [Text Encodings](https://sqlite.org/c3ref/c_any.html)
  */
-public sealed class TextEncoding(internal val constant: UShort) {
+public sealed class TextEncoding(internal val value: UByte) {
 
     /**
      * Encoding available everywhere.
      */
-    public sealed class Common(constant: UShort) : TextEncoding(constant)
+    public sealed class Common(constant: UByte) : TextEncoding(constant)
 
     /**
      * IMP: R-37514-35566.

@@ -45,15 +45,6 @@ public expect class sqlite3_api_routines
 public expect class sqlite3_context
 
 /**
- * The [sqlite3_backup] object records state information about an ongoing online backup operation.
- * The [sqlite3_backup] object is created by a call to [sqlite3_backup_init] and is destroyed by a
- * call to [sqlite3_backup_finish].
- *
- * [sqlite3_backup](https://sqlite.org/c3ref/backup.html)
- */
-public expect class sqlite3_backup
-
-/**
  * An instance of this object represents a single SQL statement that has been compiled into binary
  * form and is ready to be evaluated.
  *
@@ -64,3 +55,12 @@ public expect class sqlite3_backup
  * [sqlite3_stmt](https://sqlite.org/c3ref/stmt.html)
  */
 public expect class sqlite3_stmt
+
+/**
+ * SQLite uses the sqlite3_value object to represent all values that can be stored in a database
+ * table. SQLite uses dynamic typing for the values it stores. Values stored in sqlite3_value
+ * objects can be integers, floating point values, strings, BLOBs, or NULL.
+ *
+ * [sqlite3_value](https://sqlite.org/c3ref/value.html)
+ */
+public expect class sqlite3_value

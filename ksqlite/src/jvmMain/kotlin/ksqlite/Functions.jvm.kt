@@ -4,8 +4,10 @@
 package ksqlite
 
 import sqlite.sqliteLoadLibrary
-import java.lang.foreign.MemorySegment
 import sqlite.sqlite3 as nativeSqlite3
+import java.lang.foreign.MemoryLayout as Pointer
+import java.lang.foreign.ValueLayout.ADDRESS as POINTER
+import java.lang.foreign.ValueLayout.JAVA_INT as INT
 
 /**
  * Workaround to load the native library at file level.
@@ -13,18 +15,39 @@ import sqlite.sqlite3 as nativeSqlite3
 @Suppress("unused")
 private val nativeInit = run { sqliteLoadLibrary() }
 
-public actual fun sqlite3_libversion(): String {
-    return nativeSqlite3.sqlite3_libversion().getString(0)
-}
-
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
 ): pointer? = wrap(
     nativeSqlite3.sqlite3_aggregate_context(
-        context.segment,
+        context.pointer,
         nBytes
     )
+)
+
+public actual fun <Data : Any> sqlite3_autovacuum_pages(
+    db: sqlite3,
+    pArg: Data?,
+    xCallback: AutoVacuumPagesCallback<Data>?
+): Int = nativeSqlite3.sqlite3_autovacuum_pages(
+    db.pointer,
+    segment(xCallback) {
+        db.pointer(
+            POINTER,
+            POINTER,
+            INT,
+            INT,
+            INT,
+            returnLayout = INT,
+            function = { data: Pointer, zSchema: Pointer, nDbPage: Int, nFreePage: Int, nBytePerPage: Int ->
+                data
+            }
+        )
+    },
+    db.pointer(AutovacuumPages(db, pArg, xCallback)),
+    db.pointer(POINTER, function = { data: Pointer ->
+
+    })
 )
 
 public actual fun sqlite3_bind_blob(
@@ -33,9 +56,22 @@ public actual fun sqlite3_bind_blob(
     zData: ByteArray?,
     nData: Int
 ): Int = nativeSqlite3.sqlite3_bind_blob(
-    stmt.segment,
+    stmt.pointer,
     index,
-    zData?.let(MemorySegment::ofArray) ?: MemorySegment.NULL,
+    zData.pointer(),
     nData,
     SqliteTransient
+)
+
+public actual fun sqlite3_bind_pointer(
+    stmt: sqlite3_stmt,
+    index: Int,
+    data: Any?,
+    ptrType: String
+): Int = nativeSqlite3.sqlite3_bind_pointer(
+    stmt.pointer,
+    index,
+    stmt.pointer(data),
+    stmt.pointer(ptrType),
+    SqliteStatic
 )

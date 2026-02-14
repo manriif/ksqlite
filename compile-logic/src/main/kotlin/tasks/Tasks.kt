@@ -857,10 +857,11 @@ fun Project.registerSqliteCompileWasmTask(
  */
 fun Project.registerSqliteGenerateCInteropDefTask(
     packageName: String,
+    targetName: String,
     target: SqliteTarget,
     defFile: Provider<RegularFile>
 ): TaskProvider<Task> = project.tasks.register(
-    name = "$TASK_SQLITE_GENERATE_CINTEROP_DEF${name.uppercaseFirstChar()}"
+    name = "$TASK_SQLITE_GENERATE_CINTEROP_DEF${targetName.uppercaseFirstChar()}"
 ) {
     group = ksqliteTaskGroup
 

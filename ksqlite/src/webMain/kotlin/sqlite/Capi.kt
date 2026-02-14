@@ -1,6 +1,8 @@
-package ksqlite
+package sqlite
 
+import ksqlite.sqlite3_context
 import kotlin.js.JsAny
+import kotlin.js.JsBigInt
 
 ///////////////////////////////////////////////////////////////////////////
 // Aliases
@@ -315,7 +317,7 @@ internal external interface Capi : JsAny {
     sqlite3_cancel_auto_extension(xEntryPoint: Function): number;
     sqlite3_reset_auto_extension(): void;*/
 
-    fun sqlite3_aggregate_context(ctx: sqlite3_context, nBytes: Int)
+    fun sqlite3_aggregate_context(ctx: sqlite3_context, nBytes: Int): JsBigInt
 
     fun sqlite3_auto_extension(xEntryPoint: JsAny)
 

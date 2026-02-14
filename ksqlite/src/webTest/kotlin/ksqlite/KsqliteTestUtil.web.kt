@@ -2,6 +2,7 @@
 
 package ksqlite
 
+import sqlite.initializeSqlite
 import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.JsAny
 import kotlin.js.JsArray

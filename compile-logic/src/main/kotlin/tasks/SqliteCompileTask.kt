@@ -14,7 +14,6 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputFiles
@@ -43,7 +42,7 @@ abstract class SqliteCompileTask(
     @get:Input
     abstract val compilationParameters: Property<SqliteCompilationParameters>
 
-    @get:InputFile
+    @get:Internal
     abstract val checksumFile: RegularFileProperty
 
     @get:InputDirectory

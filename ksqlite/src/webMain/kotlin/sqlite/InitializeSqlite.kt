@@ -1,6 +1,5 @@
-package ksqlite
+package sqlite
 
-import sqlite.sqliteInitializer
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -12,13 +11,13 @@ import kotlin.js.unsafeCast
 /**
  * One single SQLite instance is allowed per application session.
  */
-private var SqliteInstance: Sqlite? = null
+private var Sqlite3Instance: Sqlite3? = null
 
 /**
- * Returns the [Sqlite] instance or raise an error if SQLite wasn't initialized.
+ * Returns the [Sqlite3] instance or raise an error if SQLite wasn't initialized.
  */
-internal val sqlite: Sqlite
-    get() = checkNotNull(SqliteInstance) {
+internal val sqlite3: Sqlite3
+    get() = checkNotNull(Sqlite3Instance) {
         "SQLite was not initialized, function initializeSqlite() must be called before any other " +
                 "API call"
     }
@@ -38,13 +37,13 @@ public suspend fun initializeSqlite(
     debugModule: ((args: JsArray<out JsAny>) -> Unit)? = null,
     locateFile: ((path: String, prefix: String) -> JsAny?)? = null
 ) {
-    SqliteInstance = suspendCoroutine { continuation ->
+    Sqlite3Instance = suspendCoroutine { continuation ->
         @Suppress("ThrowableNotThrown", "RemoveExplicitTypeArguments")
         val _ = sqliteInitializer(
             debugModule = debugModule,
             locateFile = locateFile
         ).then(
-            onFulfilled = { continuation.resume(it.unsafeCast<Sqlite>()); null },
+            onFulfilled = { continuation.resume(it.unsafeCast<Sqlite3>()); null },
             onRejected = { continuation.resumeWithException(it.asJsException()); null }
         )
     }

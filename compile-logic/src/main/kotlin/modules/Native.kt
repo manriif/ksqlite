@@ -9,7 +9,8 @@ import java.io.File
  */
 private val DefNoStringConversions = listOf(
     "prepare_v2",
-    "prepare_v3"
+    "prepare_v3",
+    "bind_pointer"
 )
 
 /**
