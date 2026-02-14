@@ -11,12 +11,13 @@ import kotlinx.cinterop.pin
 import kotlin.reflect.KFunction0
 
 /**
- * Provides [CPointer] to objects, managing their lifecycles.
+ * Manages memory.
  */
-public open class PointerManager internal constructor() {
+public open class MemoryManager internal constructor() : AutoCloseable {
 
-    private lateinit var arena: Arena
     private lateinit var disposables: MutableList<KFunction0<Unit>>
+    private lateinit var arena: Arena
+    private var closed = false
 
     /**
      * Adds a dispose function that will be invoked once on [clear].
@@ -32,43 +33,62 @@ public open class PointerManager internal constructor() {
     /**
      * Returns a [CPointer] to [value]'s reference.
      */
-    internal fun pointer(value: Any): COpaquePointer {
+    internal fun referencePointer(value: Any): COpaquePointer = notClosed {
         val stableRef = StableRef.create(value)
         addDisposable(stableRef::dispose)
-        return stableRef.asCPointer()
+        stableRef.asCPointer()
     }
 
     /**
      * Returns a [CPointer] to [value]'s content.
      */
-    internal fun pointer(value: ByteArray): CPointer<ByteVar> {
+    internal fun bufferPointer(value: ByteArray): CPointer<ByteVar> = notClosed {
         val pinned = value.pin()
         addDisposable(pinned::unpin)
-        return pinned.addressOf(0)
+        pinned.addressOf(0)
     }
 
     /**
      * Allocates a copy of the [value] and returns a [CPointer] to the content.
      */
-    internal fun pointer(value: String): CPointer<ByteVar> {
+    internal fun stringPointer(value: String): CPointer<ByteVar> = notClosed {
         if (!::arena.isInitialized) {
             arena = Arena()
         }
 
-        return value.cstr.getPointer(arena)
+        value.cstr.getPointer(arena)
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Cleanup
+    ///////////////////////////////////////////////////////////////////////////
 
     /**
      * Clears all the allocated memory and unpins all the pinneds objects.
      */
-    public fun clear() {
+    internal fun clear() = notClosed {
         if (::arena.isInitialized) {
             arena.clear()
         }
 
         if (::disposables.isInitialized) {
             disposables.onEach(KFunction0<Unit>::invoke).clear()
+        }
+    }
+
+    /**
+     * Invokes and returns [block]'s result throwing an [IllegalStateException] if this instance is
+     * closed.
+     */
+    private inline fun <T> notClosed(block: () -> T): T {
+        check(!closed) { "Manager is closed" }
+        return block()
+    }
+
+    override fun close() {
+        if (!closed) {
+            clear()
+            closed = true
         }
     }
 }
@@ -81,16 +101,20 @@ public open class PointerManager internal constructor() {
  * Allocates a copy of the [value] and returns a [CPointer] to the content.
  * Returns `null` if [value] is `null`.
  */
-internal fun PointerManager.pointer(value: Any?): COpaquePointer? = value?.let(::pointer)
+internal fun MemoryManager.referencePointer(value: Any?): COpaquePointer? {
+    return value?.let(::referencePointer)
+}
 
 /**
  * Pins [value] and returns a [CPointer] to the content.
  * Returns `null` if [value] is `null`.
  */
-internal fun PointerManager.pointer(value: ByteArray?): CPointer<ByteVar>? = value?.let(::pointer)
+internal fun MemoryManager.bufferPointer(value: ByteArray?): CPointer<ByteVar>? =
+    value?.let(::bufferPointer)
 
 /**
  * Allocates a copy of the [value] and returns a [CPointer] to the content.
  * Returns `null` if [value] is `null`.
  */
-internal fun PointerManager.pointer(value: String?): CPointer<ByteVar>? = value?.let(::pointer)
+internal fun MemoryManager.stringPointer(value: String?): CPointer<ByteVar>? =
+    value?.let(::stringPointer)

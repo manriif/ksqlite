@@ -1,7 +1,5 @@
 package sqlite
 
-import ksqlite.ffm.KSQLITE_NATIVE_LIB_MACOS_X86_64_PATH
-import ksqlite.ffm.KSQLITE_NATIVE_LIB_NAME
 import java.nio.file.Files
 
 private fun String.isX64(): Boolean {

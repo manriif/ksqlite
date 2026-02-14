@@ -17,7 +17,7 @@ public actual fun sqlite3_aggregate_context(
     )
 )
 
-public actual fun <Data : Any> sqlite3_autovacuum_pages(
+public actual fun <Data> sqlite3_autovacuum_pages(
     db: sqlite3,
     pArg: Data?,
     xCallback: AutoVacuumPagesCallback<Data>?
@@ -30,7 +30,7 @@ public actual fun <Data : Any> sqlite3_autovacuum_pages(
             } ?: 0U
         }
     },
-    arg2 = StableRef.create(AutovacuumPages(db, pArg, xCallback)).asCPointer(),
+    arg2 = StableRef.create(AutovacuumPages(pArg, xCallback)).asCPointer(),
     arg3 = staticCFunction { pointer ->
         pointer!!.asStableRef<AutovacuumPages<Data>>().dispose()
     }
@@ -44,7 +44,7 @@ public actual fun sqlite3_bind_blob(
 ): Int = sqlite.sqlite3_bind_blob(
     arg0 = stmt.pointer,
     arg1 = index,
-    arg2 = stmt.pointer(zData),
+    arg2 = stmt.bufferPointer(zData),
     n = nData,
     arg4 = sqlite.SQLITE_STATIC
 )
@@ -57,8 +57,8 @@ public actual fun sqlite3_bind_pointer(
 ): Int = sqlite.sqlite3_bind_pointer(
     arg0 = stmt.pointer,
     arg1 = index,
-    arg2 = stmt.pointer(data),
-    arg3 = stmt.pointer(ptrType),
+    arg2 = stmt.referencePointer(data),
+    arg3 = stmt.stringPointer(ptrType),
     arg4 = sqlite.SQLITE_STATIC
 )
 

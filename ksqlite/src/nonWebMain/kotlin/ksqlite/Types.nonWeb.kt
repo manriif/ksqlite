@@ -36,7 +36,6 @@ public typealias AutoVacuumPagesCallback<Data> = (
  * Wrapper for [sqlite3_autovacuum_pages] parameters that can be passed as user_data pointer.
  */
 internal class AutovacuumPages<Data>(
-    val db: sqlite3,
     val data: Data?,
     val callback: AutoVacuumPagesCallback<Data>?
 )

@@ -12,7 +12,7 @@ package ksqlite
  *
  * [sqlite3_autovacuum_pages()](https://sqlite.org/c3ref/autovacuum_pages.html)
  */
-public expect fun <Data: Any> sqlite3_autovacuum_pages(
+public expect fun <Data> sqlite3_autovacuum_pages(
     db: sqlite3,
     pArg: Data?,
     xCallback: AutoVacuumPagesCallback<Data>?

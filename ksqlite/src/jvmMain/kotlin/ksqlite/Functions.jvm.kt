@@ -3,11 +3,9 @@
 
 package ksqlite
 
+import ksqlite.handler.AutovacuumPagesHandler
 import sqlite.sqliteLoadLibrary
 import sqlite.sqlite3 as nativeSqlite3
-import java.lang.foreign.MemoryLayout as Pointer
-import java.lang.foreign.ValueLayout.ADDRESS as POINTER
-import java.lang.foreign.ValueLayout.JAVA_INT as INT
 
 /**
  * Workaround to load the native library at file level.
@@ -25,29 +23,15 @@ public actual fun sqlite3_aggregate_context(
     )
 )
 
-public actual fun <Data : Any> sqlite3_autovacuum_pages(
+public actual fun <Data> sqlite3_autovacuum_pages(
     db: sqlite3,
     pArg: Data?,
     xCallback: AutoVacuumPagesCallback<Data>?
 ): Int = nativeSqlite3.sqlite3_autovacuum_pages(
     db.pointer,
-    segment(xCallback) {
-        db.pointer(
-            POINTER,
-            POINTER,
-            INT,
-            INT,
-            INT,
-            returnLayout = INT,
-            function = { data: Pointer, zSchema: Pointer, nDbPage: Int, nFreePage: Int, nBytePerPage: Int ->
-                data
-            }
-        )
-    },
-    db.pointer(AutovacuumPages(db, pArg, xCallback)),
-    db.pointer(POINTER, function = { data: Pointer ->
-
-    })
+    db.functionPointer(xCallback?.let { { AutovacuumPagesHandler<Data>(it) } }),
+    db.referencePointer(AutovacuumPages(pArg, xCallback)),
+    db.destructorFunctionPointer
 )
 
 public actual fun sqlite3_bind_blob(
@@ -71,7 +55,7 @@ public actual fun sqlite3_bind_pointer(
 ): Int = nativeSqlite3.sqlite3_bind_pointer(
     stmt.pointer,
     index,
-    stmt.pointer(data),
-    stmt.pointer(ptrType),
+    stmt.referencePointer(data),
+    stmt.stringPointer(ptrType),
     SqliteStatic
 )
