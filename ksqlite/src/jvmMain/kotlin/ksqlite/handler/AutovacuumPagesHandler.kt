@@ -1,6 +1,6 @@
 package ksqlite.handler
 
-import ksqlite.AutovacuumPages
+import ksqlite.AutoVacuumPagesCallback
 import ksqlite.MemoryManager
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
@@ -9,7 +9,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.sqlite3_autovacuum_pages] callback.
  */
-internal class AutovacuumPagesHandler<Data>(manager: MemoryManager) : Handler(manager) {
+internal class AutovacuumPagesHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -26,15 +26,13 @@ internal class AutovacuumPagesHandler<Data>(manager: MemoryManager) : Handler(ma
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = manager.get<AutovacuumPages<Data>>(userPtr).run {
-        checkNotNull(callback)
-            .invoke(
-                data,
-                zSchema.getString(0),
-                nDbPage.toUInt(),
-                nFreePage.toUInt(),
-                nBytePerPage.toUInt()
-            )
-            .toInt()
-    }
+    ): Int = manager
+        .get<AutoVacuumPagesCallback>(userPtr)
+        .invoke(
+            zSchema.getString(0),
+            nDbPage.toUInt(),
+            nFreePage.toUInt(),
+            nBytePerPage.toUInt()
+        )
+        .toInt()
 }

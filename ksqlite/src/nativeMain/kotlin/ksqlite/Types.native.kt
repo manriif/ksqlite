@@ -21,7 +21,7 @@ public actual class pointer(internal val pointer: COpaquePointer)
 // Sqlite
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class sqlite3(internal val pointer: CPointer<sqlite3>)// : PointerManager()
+public actual class sqlite3(internal val pointer: CPointer<sqlite3>) : MemoryManager()
 
 public actual class sqlite3_context(internal val pointer: CPointer<sqlite3_context>)
 

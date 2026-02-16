@@ -2,8 +2,6 @@
 
 package ksqlite
 
-import kotlinx.cinterop.StableRef
-import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKString
 
@@ -17,23 +15,19 @@ public actual fun sqlite3_aggregate_context(
     )
 )
 
-public actual fun <Data> sqlite3_autovacuum_pages(
+public actual fun sqlite3_autovacuum_pages(
     db: sqlite3,
-    pArg: Data?,
-    xCallback: AutoVacuumPagesCallback<Data>?
+    callback: AutoVacuumPagesCallback?
 ): Int = sqlite.sqlite3_autovacuum_pages(
     db = db.pointer,
-    arg1 = xCallback?.let {
+    arg1 = callback?.let {
         staticCFunction { pointer, zSchema, nDbPage, nFreePage, nBytePerPage ->
-            pointer!!.asStableRef<AutovacuumPages<Data>>().get().run {
-                callback?.invoke(data, zSchema!!.toKString(), nDbPage, nFreePage, nBytePerPage)
-            } ?: 0U
+            pointer.getManaged<AutoVacuumPagesCallback>()
+                .invoke(zSchema!!.toKString(), nDbPage, nFreePage, nBytePerPage)
         }
     },
-    arg2 = StableRef.create(AutovacuumPages(pArg, xCallback)).asCPointer(),
-    arg3 = staticCFunction { pointer ->
-        pointer!!.asStableRef<AutovacuumPages<Data>>().dispose()
-    }
+    arg2 = db.managedPointer(callback),
+    arg3 = callback.managedDestructor()
 )
 
 public actual fun sqlite3_bind_blob(
@@ -57,7 +51,7 @@ public actual fun sqlite3_bind_pointer(
 ): Int = sqlite.sqlite3_bind_pointer(
     arg0 = stmt.pointer,
     arg1 = index,
-    arg2 = stmt.referencePointer(data),
+    arg2 = stmt.managedPointer(data),
     arg3 = stmt.stringPointer(ptrType),
     arg4 = sqlite.SQLITE_STATIC
 )
@@ -78,16 +72,16 @@ public actual fun sqlite3_bind_text(
 public actual fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
-    zData: String?,
+    data: String?,
     nData: ULong,
-    encoding: TextEncoding.Common
+    encoding: TextEncoding.Set1
 ): Int = sqlite.sqlite3_bind_text64(
     arg0 = stmt.pointer,
     arg1 = index,
-    arg2 = zData,
+    arg2 = data,
     arg3 = nData,
     arg4 = sqlite.SQLITE_TRANSIENT,
-    encoding = encoding.value
+    encoding = encoding.value().toUByte()
 )
 
 public actual fun sqlite3_bind_value(
@@ -98,4 +92,17 @@ public actual fun sqlite3_bind_value(
     arg0 = stmt.pointer,
     arg1 = index,
     arg2 = value.pointer
+)
+
+public actual fun sqlite3_busy_handler(
+    db: sqlite3,
+    callback: BusyHandlerCallback?
+): Int = sqlite.sqlite3_busy_handler(
+    arg0 = db.pointer,
+    arg1 = callback?.let {
+        staticCFunction { pointer, count ->
+            pointer.getManaged<BusyHandlerCallback>().invoke(count)
+        }
+    },
+    arg2 = db.managedPointer(callback)
 )

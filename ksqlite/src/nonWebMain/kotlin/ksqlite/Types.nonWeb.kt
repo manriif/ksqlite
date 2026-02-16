@@ -13,29 +13,28 @@ package ksqlite
  */
 public expect class sqlite3_backup
 
+/**
+ * An instance of this object represents an open BLOB on which incremental BLOB I/O can be
+ * performed.
+ * Objects of this type are created by [sqlite3_blob_open] and destroyed by [sqlite3_blob_close].
+ * The [sqlite3_blob_read] and [sqlite3_blob_write] interfaces can be used to read or write small
+ * subsections of the BLOB.
+ * The [sqlite3_blob_bytes] interface returns the size of the BLOB in bytes.
+ *
+ * [sqlite3_blob](https://sqlite.org/c3ref/blob.html)
+ */
+public expect class sqlite3_blob
+
 ///////////////////////////////////////////////////////////////////////////
 // Callbacks
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Callback used in [sqlite3_autovacuum_pages].
+ * Callback for [sqlite3_autovacuum_pages].
  */
-public typealias AutoVacuumPagesCallback<Data> = (
-    pArg: Data?,
+public typealias AutoVacuumPagesCallback = (
     zSchema: String,
     nDbPage: UInt,
     nFreePage: UInt,
     nBytePerPage: UInt
 ) -> UInt
-
-///////////////////////////////////////////////////////////////////////////
-// Internal
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Wrapper for [sqlite3_autovacuum_pages] parameters that can be passed as user_data pointer.
- */
-internal class AutovacuumPages<Data>(
-    val data: Data?,
-    val callback: AutoVacuumPagesCallback<Data>?
-)

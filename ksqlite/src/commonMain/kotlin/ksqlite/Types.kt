@@ -2,6 +2,8 @@
 
 package ksqlite
 
+import kotlin.reflect.KMutableProperty
+
 ///////////////////////////////////////////////////////////////////////////
 // Core
 ///////////////////////////////////////////////////////////////////////////
@@ -12,7 +14,7 @@ package ksqlite
 public expect class pointer
 
 ///////////////////////////////////////////////////////////////////////////
-// Sqlite-specific
+// Sqlite
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -64,3 +66,30 @@ public expect class sqlite3_stmt
  * [sqlite3_value](https://sqlite.org/c3ref/value.html)
  */
 public expect class sqlite3_value
+
+///////////////////////////////////////////////////////////////////////////
+// Callbacks
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Callback for [sqlite3_auto_extension]
+ */
+public typealias AutoExtensionCallback = (
+    db: sqlite3,
+    errorMsg: KMutableProperty<String>,
+    routines: sqlite3_api_routines
+) -> Int
+
+/**
+ * Callback for [sqlite3_busy_handler].
+ */
+public typealias BusyHandlerCallback = (count: Int) -> Int
+
+/**
+ * Callback for [sqlite3_collation_needed].
+ */
+public typealias CollationNeededCallback = (
+    db: sqlite3,
+    encoding: TextEncoding.Set2,
+    name: String
+) -> Int

@@ -16,6 +16,11 @@ type sqlite3_context = number;
 type pointer = number;
 type cstring = ;
 
+// Auto Extension Functions
+/*sqlite3_auto_extension(xEntryPoint: Function): number;
+sqlite3_cancel_auto_extension(xEntryPoint: Function): number;
+sqlite3_reset_auto_extension(): void;*/
+
 // Binding Functions
 sqlite3_bind_blob(stmt: sqlite3_stmt, index: number, blob: Uint8Array | pointer, nBytes: number, destructor: Function | number): number;
 sqlite3_bind_double(stmt: sqlite3_stmt, index: number, value: number): number;
@@ -65,6 +70,8 @@ sqlite3_column_type(stmt: sqlite3_stmt, iCol: number): number;
 sqlite3_column_value(stmt: sqlite3_stmt, iCol: number): sqlite3_value;
 sqlite3_data_count(stmt: sqlite3_stmt): number;
 
+
+ */
 // Commit/Rollback Hooks
 sqlite3_commit_hook(db: sqlite3, callback: Function | null, pArg: any): any;
 sqlite3_rollback_hook(db: sqlite3, callback: Function | null, pArg: any): any;
@@ -311,11 +318,6 @@ sqlite3_vtab_rhs_value(pIdxInfo: pointer, iCons: number, ppVal: pointer): number
  */
 @Suppress("FunctionName", "SpellCheckingInspection")
 internal external interface Capi : JsAny {
-
-// Auto Extension Functions
-    /*sqlite3_auto_extension(xEntryPoint: Function): number;
-    sqlite3_cancel_auto_extension(xEntryPoint: Function): number;
-    sqlite3_reset_auto_extension(): void;*/
 
     fun sqlite3_aggregate_context(ctx: sqlite3_context, nBytes: Int): JsBigInt
 

@@ -4,39 +4,60 @@ import kotlinx.cinterop.Arena
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.Pinned
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
-import kotlin.reflect.KFunction0
 
 /**
  * Manages memory.
  */
 public open class MemoryManager internal constructor() : AutoCloseable {
 
-    private lateinit var disposables: MutableList<KFunction0<Unit>>
+    private lateinit var pointers: MutableSet<ManagedPointerImpl>
+    private lateinit var pinneds: MutableList<Pinned<*>>
     private lateinit var arena: Arena
     private var closed = false
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Pointers
+    ///////////////////////////////////////////////////////////////////////////
+
     /**
-     * Adds a dispose function that will be invoked once on [clear].
+     * Implementation of [ManagedPointer].
      */
-    private fun addDisposable(dispose: KFunction0<Unit>) {
-        if (::disposables.isInitialized) {
-            disposables.add(dispose)
-        } else {
-            disposables = mutableListOf(dispose)
+    private inner class ManagedPointerImpl(private val value: Any) : ManagedPointer {
+
+        val stableRef = StableRef.create(this)
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <Data : Any> get(): Data {
+            return value as Data
+        }
+
+        override fun dispose() {
+            check(pointers.remove(this)) {
+                "Pointer is not managed"
+            }
+
+            stableRef.dispose()
         }
     }
 
     /**
-     * Returns a [CPointer] to [value]'s reference.
+     * Returns a stable [COpaquePointer] to [value].
      */
-    internal fun referencePointer(value: Any): COpaquePointer = notClosed {
-        val stableRef = StableRef.create(value)
-        addDisposable(stableRef::dispose)
-        stableRef.asCPointer()
+    internal fun managedPointer(value: Any): COpaquePointer = notClosed {
+        val managed = ManagedPointerImpl(value)
+
+        if (::pointers.isInitialized) {
+            pointers.add(managed)
+        } else {
+            pointers = mutableSetOf(managed)
+        }
+
+        managed.stableRef.asCPointer()
     }
 
     /**
@@ -44,7 +65,13 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      */
     internal fun bufferPointer(value: ByteArray): CPointer<ByteVar> = notClosed {
         val pinned = value.pin()
-        addDisposable(pinned::unpin)
+
+        if (::pinneds.isInitialized) {
+            pinneds.add(pinned)
+        } else {
+            pinneds = mutableListOf(pinned)
+        }
+
         pinned.addressOf(0)
     }
 
@@ -64,15 +91,19 @@ public open class MemoryManager internal constructor() : AutoCloseable {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Clears all the allocated memory and unpins all the pinneds objects.
+     * Clears all the allocated memory and releases all the pinned/referenced objects.
      */
     internal fun clear() = notClosed {
-        if (::arena.isInitialized) {
-            arena.clear()
+        if (::pointers.isInitialized) {
+            pointers.onEach(ManagedPointerImpl::dispose).clear()
         }
 
-        if (::disposables.isInitialized) {
-            disposables.onEach(KFunction0<Unit>::invoke).clear()
+        if (::pinneds.isInitialized) {
+            pinneds.onEach(Pinned<*>::unpin).clear()
+        }
+
+        if (::arena.isInitialized) {
+            arena.clear()
         }
     }
 
@@ -98,11 +129,11 @@ public open class MemoryManager internal constructor() : AutoCloseable {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Allocates a copy of the [value] and returns a [CPointer] to the content.
+ * Returns a stable [COpaquePointer] to [value].
  * Returns `null` if [value] is `null`.
  */
-internal fun MemoryManager.referencePointer(value: Any?): COpaquePointer? {
-    return value?.let(::referencePointer)
+internal fun MemoryManager.managedPointer(value: Any?): COpaquePointer? {
+    return value?.let(::managedPointer)
 }
 
 /**

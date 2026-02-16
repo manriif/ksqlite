@@ -23,14 +23,13 @@ public actual fun sqlite3_aggregate_context(
     )
 )
 
-public actual fun <Data> sqlite3_autovacuum_pages(
+public actual fun sqlite3_autovacuum_pages(
     db: sqlite3,
-    pArg: Data?,
-    xCallback: AutoVacuumPagesCallback<Data>?
+    callback: AutoVacuumPagesCallback?
 ): Int = nativeSqlite3.sqlite3_autovacuum_pages(
     db.pointer,
-    db.functionPointer(xCallback?.let { { AutovacuumPagesHandler<Data>(it) } }),
-    db.referencePointer(AutovacuumPages(pArg, xCallback)),
+    db.functionPointer(callback?.let { { AutovacuumPagesHandler(it) } }),
+    db.referencePointer(callback),
     db.destructorFunctionPointer
 )
 
