@@ -9,6 +9,7 @@ import ksqlite.memory.pointer
 import ksqlite.memory.referencePointer
 import ksqlite.memory.wrap
 import ksqlite.types.AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3Result
 import ksqlite.types.pointer
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
@@ -35,7 +36,7 @@ public actual fun sqlite3_aggregate_context(
 public actual fun sqlite3_autovacuum_pages(
     db: sqlite3,
     callback: AutoVacuumPagesCallback?
-): Int = nativeSqlite3.sqlite3_autovacuum_pages(
+): Sqlite3Result = nativeSqlite3.sqlite3_autovacuum_pages(
     db.pointer,
     db.functionPointer(callback?.let { { AutovacuumPagesHandler(it) } }),
     db.referencePointer(callback),
@@ -47,12 +48,14 @@ public actual fun sqlite3_bind_blob(
     index: Int,
     zData: ByteArray?,
     nData: Int
-): Int = nativeSqlite3.sqlite3_bind_blob(
-    stmt.pointer,
-    index,
-    zData.pointer(),
-    nData,
-    SqliteTransient
+): Sqlite3Result = convertResult(
+    nativeSqlite3.sqlite3_bind_blob(
+        stmt.pointer,
+        index,
+        zData.pointer(),
+        nData,
+        SqliteTransient
+    )
 )
 
 public actual fun sqlite3_bind_pointer(
@@ -60,7 +63,7 @@ public actual fun sqlite3_bind_pointer(
     index: Int,
     data: Any?,
     ptrType: String
-): Int = nativeSqlite3.sqlite3_bind_pointer(
+): Sqlite3Result = nativeSqlite3.sqlite3_bind_pointer(
     stmt.pointer,
     index,
     stmt.referencePointer(data),

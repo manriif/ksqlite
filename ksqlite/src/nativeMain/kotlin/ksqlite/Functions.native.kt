@@ -12,6 +12,7 @@ import ksqlite.memory.wrap
 import ksqlite.types.AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3BusyHandlerCallback
 import ksqlite.types.Sqlite3CollationCompareCallback
+import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
@@ -33,7 +34,7 @@ public actual fun sqlite3_aggregate_context(
 public actual fun sqlite3_autovacuum_pages(
     db: sqlite3,
     callback: AutoVacuumPagesCallback?
-): Int = sqlite.sqlite3_autovacuum_pages(
+): Sqlite3Result = sqlite.sqlite3_autovacuum_pages(
     db = db.pointer,
     arg1 = callback?.let {
         staticCFunction { pointer, zSchema, nDbPage, nFreePage, nBytePerPage ->
@@ -50,7 +51,7 @@ public actual fun sqlite3_bind_blob(
     index: Int,
     zData: ByteArray?,
     nData: Int
-): Int = sqlite.sqlite3_bind_blob(
+): Sqlite3Result = sqlite.sqlite3_bind_blob(
     arg0 = stmt.pointer,
     arg1 = index,
     arg2 = stmt.bufferPointer(zData),
@@ -63,7 +64,7 @@ public actual fun sqlite3_bind_pointer(
     index: Int,
     data: Any?,
     ptrType: String
-): Int = sqlite.sqlite3_bind_pointer(
+): Sqlite3Result = sqlite.sqlite3_bind_pointer(
     arg0 = stmt.pointer,
     arg1 = index,
     arg2 = stmt.managedPointer(data),
@@ -76,7 +77,7 @@ public actual fun sqlite3_bind_text(
     index: Int,
     zData: String?,
     nData: Int
-): Int = sqlite.sqlite3_bind_text(
+): Sqlite3Result = sqlite.sqlite3_bind_text(
     arg0 = stmt.pointer,
     arg1 = index,
     arg2 = zData,
@@ -90,7 +91,7 @@ public actual fun sqlite3_bind_text64(
     data: String?,
     nData: ULong,
     encoding: Sqlite3TextEncoding.Set1
-): Int = sqlite.sqlite3_bind_text64(
+): Sqlite3Result = sqlite.sqlite3_bind_text64(
     arg0 = stmt.pointer,
     arg1 = index,
     arg2 = data,
@@ -112,7 +113,7 @@ public actual fun sqlite3_bind_value(
 public actual fun sqlite3_busy_handler(
     db: sqlite3,
     callback: Sqlite3BusyHandlerCallback?
-): Int = sqlite.sqlite3_busy_handler(
+): Sqlite3Result = sqlite.sqlite3_busy_handler(
     arg0 = db.pointer,
     arg1 = callback?.let {
         staticCFunction { pointer, count ->

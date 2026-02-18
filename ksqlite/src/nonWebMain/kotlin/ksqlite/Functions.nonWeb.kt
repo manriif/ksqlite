@@ -3,6 +3,7 @@
 package ksqlite
 
 import ksqlite.types.AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.pointer
 import ksqlite.types.sqlite3
@@ -20,14 +21,14 @@ import ksqlite.types.sqlite3_value
 public expect fun sqlite3_autovacuum_pages(
     db: sqlite3,
     callback: AutoVacuumPagesCallback?
-): Int
+): Sqlite3Result
 
 /**
  * Release all resources associated with an [ksqlite.types.sqlite3_backup]* handle.
  *
  * [sqlite3_backup_finish()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
  */
-public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Int
+public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
 
 /**
  * Create an [sqlite3_backup] process to copy the contents of [srcDbName] from connection handle
@@ -71,7 +72,7 @@ public expect fun sqlite3_backup_remaining(backup: sqlite3_backup): Int
 public expect fun sqlite3_backup_step(
     backup: sqlite3_backup,
     nPage: Int
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -83,7 +84,7 @@ public expect fun sqlite3_bind_blob64(
     index: Int,
     data: pointer,
     nData: ULong
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -96,7 +97,7 @@ public expect fun sqlite3_bind_text64(
     data: String?,
     nData: ULong,
     encoding: Sqlite3TextEncoding.Set1
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -107,7 +108,7 @@ public expect fun sqlite3_bind_value(
     stmt: sqlite3_stmt,
     index: Int,
     value: sqlite3_value
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -118,7 +119,7 @@ public expect fun sqlite3_bind_zeroblob(
     stmt: sqlite3_stmt,
     index: Int,
     n: Int
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -129,7 +130,7 @@ public expect fun sqlite3_bind_zeroblob64(
     stmt: sqlite3_stmt,
     index: Int,
     n: ULong
-): Int
+): Sqlite3Result
 
 /**
  * Query a blob handle for the size of the data.
@@ -143,7 +144,7 @@ public expect fun sqlite3_blob_bytes(blob: sqlite3_blob): Int
  *
  * [sqlite3_blob_close()](https://sqlite.org/c3ref/blob_close.html)
  */
-public expect fun sqlite3_blob_close(blob: sqlite3_blob)
+public expect fun sqlite3_blob_close(blob: sqlite3_blob): Sqlite3Result
 
 /**
  * Open a blob handle.
@@ -158,7 +159,7 @@ public expect fun sqlite3_blob_open(
     rowIndex: Long,
     flags: Int,
     blob: sqlite3_blob,
-): Int
+): Sqlite3Result
 
 /**
  * Read data from a blob handle.
@@ -170,7 +171,7 @@ public expect fun sqlite3_blob_read(
     buffer: ByteArray,
     size: Int,
     offset: Int
-): Int
+): Sqlite3Result
 
 /**
  * Move an existing blob handle to point to a different row of the same database table.
@@ -185,7 +186,7 @@ public expect fun sqlite3_blob_read(
 public expect fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
     rowIndex: Long
-): Int
+): Sqlite3Result
 
 /**
  * Write data to a blob handle.
@@ -197,5 +198,5 @@ public expect fun sqlite3_blob_write(
     buffer: ByteArray,
     size: Int,
     offset: Int
-): Int
+): Sqlite3Result
 

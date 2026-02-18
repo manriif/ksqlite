@@ -7,8 +7,10 @@ import ksqlite.types.Sqlite3BusyHandlerCallback
 import ksqlite.types.Sqlite3CollationCompareCallback
 import ksqlite.types.Sqlite3CollationNeededCallback
 import ksqlite.types.Sqlite3CommitHookCallback
+import ksqlite.types.Sqlite3CompleteResult
 import ksqlite.types.Sqlite3ConfigOption
 import ksqlite.types.Sqlite3DataType
+import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.pointer
 import ksqlite.types.sqlite3
@@ -33,7 +35,7 @@ public expect fun sqlite3_aggregate_context(
  *
  * [sqlite3_auto_extension()](https://sqlite.org/c3ref/auto_extension.html)
  */
-public expect fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Int
+public expect fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -45,7 +47,7 @@ public expect fun sqlite3_bind_blob(
     index: Int,
     zData: ByteArray?,
     nData: Int
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -56,7 +58,7 @@ public expect fun sqlite3_bind_double(
     stmt: sqlite3_stmt,
     index: Int,
     value: Double
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -67,7 +69,7 @@ public expect fun sqlite3_bind_int(
     stmt: sqlite3_stmt,
     index: Int,
     value: Int
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -78,7 +80,7 @@ public expect fun sqlite3_bind_int64(
     stmt: sqlite3_stmt,
     index: Int,
     value: Long
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -88,16 +90,14 @@ public expect fun sqlite3_bind_int64(
 public expect fun sqlite3_bind_null(
     stmt: sqlite3_stmt,
     index: Int
-): Int
+): Sqlite3Result
 
 /**
  * Return the number of wildcards that can be potentially bound to.
  *
  * [sqlite3_bind_parameter_count()](https://sqlite.org/c3ref/bind_parameter_count.html)
  */
-public expect fun sqlite3_bind_parameter_count(
-    stmt: sqlite3_stmt
-)
+public expect fun sqlite3_bind_parameter_count(stmt: sqlite3_stmt): Int
 
 /**
  * Given a wildcard parameter name, return the index of the variable with that name.  If there is
@@ -133,7 +133,7 @@ public expect fun sqlite3_bind_pointer(
     index: Int,
     data: Any?,
     ptrType: String
-): Int
+): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -145,7 +145,7 @@ public expect fun sqlite3_bind_text(
     index: Int,
     zData: String?,
     nData: Int
-): Int
+): Sqlite3Result
 
 /**
  * This routine sets the busy callback for an SQLite database to the given callback function with
@@ -156,7 +156,7 @@ public expect fun sqlite3_bind_text(
 public expect fun sqlite3_busy_handler(
     db: sqlite3,
     callback: Sqlite3BusyHandlerCallback?
-): Int
+): Sqlite3Result
 
 /**
  * This routine installs a default busy handler that waits for the specified number of milliseconds
@@ -167,7 +167,7 @@ public expect fun sqlite3_busy_handler(
 public expect fun sqlite3_busy_timeout(
     db: sqlite3,
     ms: Int
-)
+): Sqlite3Result
 
 /**
  * Cancel a prior call to sqlite3_auto_extension.
@@ -201,7 +201,7 @@ public expect fun sqlite3_changes64(db: sqlite3): Long
  *
  * [sqlite3_clear_bindings()](https://sqlite.org/c3ref/clear_bindings.html)
  */
-public expect fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Int
+public expect fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result
 
 /**
  * Two variations on the public interface for closing a database.
@@ -211,7 +211,7 @@ public expect fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Int
  *
  * [sqlite3_close()](https://sqlite.org/c3ref/close.html)
  */
-public expect fun sqlite3_close(db: sqlite3): Int
+public expect fun sqlite3_close(db: sqlite3): Sqlite3Result
 
 /**
  * Two variations on the public interface for closing a database.
@@ -222,7 +222,7 @@ public expect fun sqlite3_close(db: sqlite3): Int
  *
  * [sqlite3_close()](https://sqlite.org/c3ref/close.html)
  */
-public expect fun sqlite3_close_v2(db: sqlite3): Int
+public expect fun sqlite3_close_v2(db: sqlite3): Sqlite3Result
 
 /**
  * Register a collation sequence factory callback with the database handle [db].
@@ -233,7 +233,7 @@ public expect fun sqlite3_close_v2(db: sqlite3): Int
 public expect fun sqlite3_collation_needed(
     db: sqlite3,
     callback: Sqlite3CollationNeededCallback,
-): Int
+): Sqlite3Result
 
 /**
  * The following routines are used to access elements of the current row in the result set.
@@ -389,8 +389,8 @@ public expect fun sqlite3_column_value(
  */
 public expect fun sqlite3_commit_hook(
     db: sqlite3,
-    callback: Sqlite3CommitHookCallback
-)
+    callback: Sqlite3CommitHookCallback?
+): Sqlite3CommitHookCallback?
 
 /**
  * Return the [index]-th compile-time option string. If [index] is out of range, return `null`.
@@ -410,14 +410,14 @@ public expect fun sqlite3_compileoption_get(
  *
  * [sqlite3_compileoption_get()](https://sqlite.org/c3ref/compileoption_get.html)
  */
-public expect fun sqlite3_compileoption_used(optName: String): Int
+public expect fun sqlite3_compileoption_used(optName: String): Boolean
 
 /**
  * Return `1` if the given SQL string ends in a semicolon.
  *
  * [sqlite3_complete()](https://sqlite.org/c3ref/complete.html)
  */
-public expect fun sqlite3_complete(): Int
+public expect fun sqlite3_complete(): Sqlite3CompleteResult
 
 /**
  * This API allows applications to modify the global configuration of the SQLite library at
@@ -429,7 +429,7 @@ public expect fun sqlite3_complete(): Int
  *
  * [sqlite3_config()](https://sqlite.org/c3ref/config.html)
  */
-public expect fun sqlite3_config(option: Sqlite3ConfigOption): Int
+public expect fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
 
 /**
  * Extract the user data from a sqlite3_context structure and return a pointer to it.
@@ -448,7 +448,7 @@ public expect fun sqlite3_create_collation(
     name: String,
     textRep: Sqlite3TextEncoding,
     callback: Sqlite3CollationCompareCallback?
-): Int
+): Sqlite3Result
 
 /**
  * Register a new collation sequence with the database handle [db].
@@ -460,4 +460,4 @@ public expect fun sqlite3_create_collation_v2(
     name: String,
     textRep: Sqlite3TextEncoding,
     callback: Sqlite3CollationCompareCallback?
-): Int
+): Sqlite3Result
