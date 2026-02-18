@@ -1,7 +1,7 @@
-package ksqlite.handler
+package ksqlite.handlers
 
-import ksqlite.AutoVacuumPagesCallback
-import ksqlite.MemoryManager
+import ksqlite.types.AutoVacuumPagesCallback
+import ksqlite.memory.MemoryManager
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout

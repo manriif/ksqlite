@@ -1,6 +1,6 @@
 package sqlite
 
-import ksqlite.sqlite3_context
+import ksqlite.types.sqlite3_context
 import kotlin.js.JsAny
 import kotlin.js.JsBigInt
 
@@ -71,7 +71,7 @@ sqlite3_column_value(stmt: sqlite3_stmt, iCol: number): sqlite3_value;
 sqlite3_data_count(stmt: sqlite3_stmt): number;
 
 
- */
+
 // Commit/Rollback Hooks
 sqlite3_commit_hook(db: sqlite3, callback: Function | null, pArg: any): any;
 sqlite3_rollback_hook(db: sqlite3, callback: Function | null, pArg: any): any;

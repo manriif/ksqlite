@@ -1,7 +1,8 @@
 @file:Suppress("ClassName")
 
-package ksqlite
+package ksqlite.types
 
+import ksqlite.memory.MemoryManager
 import java.lang.foreign.MemorySegment
 
 public actual class pointer(internal val pointer: MemorySegment)

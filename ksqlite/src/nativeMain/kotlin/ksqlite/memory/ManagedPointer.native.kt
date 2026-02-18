@@ -1,4 +1,4 @@
-package ksqlite
+package ksqlite.memory
 
 import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.COpaquePointer

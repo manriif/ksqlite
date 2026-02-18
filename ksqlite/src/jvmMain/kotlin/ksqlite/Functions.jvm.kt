@@ -3,7 +3,16 @@
 
 package ksqlite
 
-import ksqlite.handler.AutovacuumPagesHandler
+import ksqlite.handlers.AutovacuumPagesHandler
+import ksqlite.memory.functionPointer
+import ksqlite.memory.pointer
+import ksqlite.memory.referencePointer
+import ksqlite.memory.wrap
+import ksqlite.types.AutoVacuumPagesCallback
+import ksqlite.types.pointer
+import ksqlite.types.sqlite3
+import ksqlite.types.sqlite3_context
+import ksqlite.types.sqlite3_stmt
 import sqlite.sqliteLoadLibrary
 import sqlite.sqlite3 as nativeSqlite3
 

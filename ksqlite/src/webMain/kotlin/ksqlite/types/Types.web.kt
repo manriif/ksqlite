@@ -1,4 +1,4 @@
-package ksqlite
+package ksqlite.types
 
 import kotlin.js.JsBigInt
 

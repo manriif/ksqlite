@@ -1,6 +1,7 @@
-package ksqlite
+package ksqlite.memory
 
 import kotlinx.cinterop.COpaquePointer
+import ksqlite.types.pointer
 
 /**
  * Returns a [pointer] wrapping `this` [COpaquePointer].

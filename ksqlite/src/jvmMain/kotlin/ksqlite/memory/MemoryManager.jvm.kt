@@ -1,7 +1,7 @@
-package ksqlite
+package ksqlite.memory
 
-import ksqlite.handler.DestructorHandler
-import ksqlite.handler.Handler
+import ksqlite.handlers.DestructorHandler
+import ksqlite.handlers.Handler
 import java.lang.foreign.Arena
 import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment

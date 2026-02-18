@@ -1,5 +1,6 @@
-package ksqlite
+package ksqlite.memory
 
+import ksqlite.types.pointer
 import java.lang.foreign.MemorySegment
 
 ///////////////////////////////////////////////////////////////////////////

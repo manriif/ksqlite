@@ -2,6 +2,15 @@
 
 package ksqlite
 
+import ksqlite.types.AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3TextEncoding
+import ksqlite.types.pointer
+import ksqlite.types.sqlite3
+import ksqlite.types.sqlite3_backup
+import ksqlite.types.sqlite3_blob
+import ksqlite.types.sqlite3_stmt
+import ksqlite.types.sqlite3_value
+
 /**
  * Register a function to be invoked prior to each autovacuum that determines the number of pages
  * to vacuum.
@@ -14,7 +23,7 @@ public expect fun sqlite3_autovacuum_pages(
 ): Int
 
 /**
- * Release all resources associated with an [sqlite3_backup]* handle.
+ * Release all resources associated with an [ksqlite.types.sqlite3_backup]* handle.
  *
  * [sqlite3_backup_finish()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
  */
@@ -86,7 +95,7 @@ public expect fun sqlite3_bind_text64(
     index: Int,
     data: String?,
     nData: ULong,
-    encoding: TextEncoding.Set1
+    encoding: Sqlite3TextEncoding.Set1
 ): Int
 
 /**

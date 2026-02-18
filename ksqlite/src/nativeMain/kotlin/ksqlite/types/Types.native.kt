@@ -1,7 +1,7 @@
 @file:Suppress("ClassName")
 @file:OptIn(ExperimentalForeignApi::class)
 
-package ksqlite
+package ksqlite.types
 
 import cnames.structs.sqlite3
 import cnames.structs.sqlite3_context
@@ -10,6 +10,7 @@ import cnames.structs.sqlite3_value
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
+import ksqlite.memory.MemoryManager
 
 ///////////////////////////////////////////////////////////////////////////
 // Generic

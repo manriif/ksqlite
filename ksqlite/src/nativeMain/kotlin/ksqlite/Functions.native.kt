@@ -4,12 +4,27 @@ package ksqlite
 
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKString
+import ksqlite.memory.bufferPointer
+import ksqlite.memory.getManaged
+import ksqlite.memory.managedDestructor
+import ksqlite.memory.managedPointer
+import ksqlite.memory.wrap
+import ksqlite.types.AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3BusyHandlerCallback
+import ksqlite.types.Sqlite3CollationCompareCallback
+import ksqlite.types.Sqlite3TextEncoding
+import ksqlite.types.sqlite3
+import ksqlite.types.sqlite3_context
+import ksqlite.types.sqlite3_stmt
+import ksqlite.types.sqlite3_value
+import ksqlite.types.value
+import sqlite.sqlite3_aggregate_context
 
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): pointer? = wrap(
-    sqlite.sqlite3_aggregate_context(
+): ksqlite.types.pointer? = wrap(
+    sqlite3_aggregate_context(
         arg0 = context.pointer,
         nBytes = nBytes
     )
@@ -74,7 +89,7 @@ public actual fun sqlite3_bind_text64(
     index: Int,
     data: String?,
     nData: ULong,
-    encoding: TextEncoding.Set1
+    encoding: Sqlite3TextEncoding.Set1
 ): Int = sqlite.sqlite3_bind_text64(
     arg0 = stmt.pointer,
     arg1 = index,
@@ -96,12 +111,12 @@ public actual fun sqlite3_bind_value(
 
 public actual fun sqlite3_busy_handler(
     db: sqlite3,
-    callback: BusyHandlerCallback?
+    callback: Sqlite3BusyHandlerCallback?
 ): Int = sqlite.sqlite3_busy_handler(
     arg0 = db.pointer,
     arg1 = callback?.let {
         staticCFunction { pointer, count ->
-            pointer.getManaged<BusyHandlerCallback>().invoke(count)
+            pointer.getManaged<Sqlite3BusyHandlerCallback>().invoke(count)
         }
     },
     arg2 = db.managedPointer(callback)

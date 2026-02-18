@@ -1,27 +1,15 @@
 @file:Suppress("ClassName")
 
-package ksqlite
-
-import kotlin.reflect.KMutableProperty
-
-///////////////////////////////////////////////////////////////////////////
-// Core
-///////////////////////////////////////////////////////////////////////////
+package ksqlite.types
 
 /**
  * Generic pointer.
  */
 public expect class pointer
 
-///////////////////////////////////////////////////////////////////////////
-// Sqlite
-///////////////////////////////////////////////////////////////////////////
-
 /**
  * Each open SQLite database is represented by a pointer to an instance of the opaque structure
- * named "sqlite3". It is useful to think of an sqlite3 pointer as an object. The [sqlite3_open],
- * [sqlite3_open16], and [sqlite3_open_v2] interfaces are its constructors, and [sqlite3_close]
- * and [sqlite3_close_v2] are its destructors.
+ * named "sqlite3". It is useful to think of an sqlite3 pointer as an object.
  *
  * [sqlite3](https://sqlite.org/c3ref/sqlite3.html)
  */
@@ -38,9 +26,6 @@ public expect class sqlite3_api_routines
 /**
  * The context in which an SQL function executes is stored in an sqlite3_context object. A pointer
  * to an sqlite3_context object is always the first parameter to application-defined SQL functions.
- * The application-defined SQL function implementation will pass this pointer through into calls to
- * [sqlite3_result], [sqlite3_aggregate_context], [sqlite3_user_data], [sqlite3_context_db_handle],
- * [sqlite3_get_auxdata], and/or [sqlite3_set_auxdata].
  *
  * [sqlite3_context](https://sqlite.org/c3ref/context.html)
  */
@@ -66,30 +51,3 @@ public expect class sqlite3_stmt
  * [sqlite3_value](https://sqlite.org/c3ref/value.html)
  */
 public expect class sqlite3_value
-
-///////////////////////////////////////////////////////////////////////////
-// Callbacks
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Callback for [sqlite3_auto_extension]
- */
-public typealias AutoExtensionCallback = (
-    db: sqlite3,
-    errorMsg: KMutableProperty<String>,
-    routines: sqlite3_api_routines
-) -> Int
-
-/**
- * Callback for [sqlite3_busy_handler].
- */
-public typealias BusyHandlerCallback = (count: Int) -> Int
-
-/**
- * Callback for [sqlite3_collation_needed].
- */
-public typealias CollationNeededCallback = (
-    db: sqlite3,
-    encoding: TextEncoding.Set2,
-    name: String
-) -> Int

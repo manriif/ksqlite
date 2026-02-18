@@ -2,6 +2,8 @@
 
 package ksqlite
 
+import ksqlite.types.pointer
+import ksqlite.types.sqlite3_context
 import sqlite.Capi
 
 private val capi: Capi

@@ -1,4 +1,4 @@
-package ksqlite
+package ksqlite.memory
 
 import kotlinx.cinterop.Arena
 import kotlinx.cinterop.ByteVar
