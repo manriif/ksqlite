@@ -1,0 +1,46 @@
+package ksqlite.types
+
+import ksqlite.convertBooleanResult
+
+///////////////////////////////////////////////////////////////////////////
+// Int
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Int parameter which can be written by SQLite on native side.
+ */
+public expect open class Sqlite3IntBaseParam internal constructor(initialValue: Int) {
+
+    /**
+     * The actual value of the parameter.
+     */
+    internal open val rawValue: Int
+}
+
+/**
+ * Int parameter which can be written by SQLite on native side.
+ * Unless specified, it is the owner responsibility to keep the object reachable.
+ */
+public class Sqlite3IntParam(initialValue: Int) : Sqlite3IntBaseParam(initialValue) {
+
+    /**
+     * The actual value of the parameter.
+     */
+    public val value: Int
+        get() = rawValue
+}
+
+/**
+ * Parameter which can be written by SQLite on native side.
+ * Unless specified, it is the owner responsibility to keep the object reachable.
+ */
+public class Sqlite3BooleanParam(initialValue: Boolean) : Sqlite3IntBaseParam(
+    initialValue = if (initialValue) 1 else 0
+) {
+
+    /**
+     * The actual value of the parameter.
+     */
+    public val value: Boolean
+        get() = convertBooleanResult(rawValue)
+}

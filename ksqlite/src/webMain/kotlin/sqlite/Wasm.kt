@@ -9,7 +9,7 @@ public interface Wasm {
     public fun alloc(byteCount: JsNumber)
 
     public fun allocCString()
-    allocFromTypedArray()
+    /*allocFromTypedArray()
     allocMainArgv()
     allocPtr()
     bigIntEnabled = true
@@ -77,5 +77,5 @@ public interface Wasm {
     xCall()
     xCallWrapped()
     xGet()
-    xWrap()
+    xWrap()*/
 }

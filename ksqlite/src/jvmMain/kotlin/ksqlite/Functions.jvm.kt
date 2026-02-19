@@ -7,6 +7,7 @@ import ksqlite.handlers.AutovacuumPagesHandler
 import ksqlite.memory.pointer
 import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3Buffer
+import ksqlite.types.Sqlite3DbConfigOption
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.createBuffer

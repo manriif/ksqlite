@@ -32,6 +32,14 @@ public expect class sqlite3_api_routines
 public expect class sqlite3_context
 
 /**
+ * This structure, sometimes called a "virtual table module", defines the implementation of a
+ * virtual table. This structure consists mostly of methods for the module.
+ *
+ * [sqlite3_module](https://sqlite.org/c3ref/module.html)
+ */
+public expect class sqlite3_module
+
+/**
  * An instance of this object represents a single SQL statement that has been compiled into binary
  * form and is ready to be evaluated.
  *

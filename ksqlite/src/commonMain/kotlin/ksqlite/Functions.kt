@@ -16,11 +16,13 @@ import ksqlite.types.Sqlite3CreateFunctionInverseCallback
 import ksqlite.types.Sqlite3CreateFunctionStepCallback
 import ksqlite.types.Sqlite3CreateFunctionValueCallback
 import ksqlite.types.Sqlite3DataType
+import ksqlite.types.Sqlite3DbConfigOption
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
+import ksqlite.types.sqlite3_module
 import ksqlite.types.sqlite3_stmt
 import ksqlite.types.sqlite3_value
 
@@ -501,6 +503,29 @@ public expect fun sqlite3_create_function_v2(
 ): Sqlite3Result
 
 /**
+ * External API function used to create a new virtual-table module.
+ *
+ * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
+ */
+public expect fun sqlite3_create_module(
+    db: sqlite3,
+    name: String,
+    module: sqlite3_module?
+): Sqlite3Result
+
+/**
+ * External API function used to create a new virtual-table module.
+ *
+ * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
+ */
+public expect fun sqlite3_create_module_v2(
+    db: sqlite3,
+    name: String,
+    module: sqlite3_module?,
+    destructor: Sqlite3DestructorCallback?
+): Sqlite3Result
+
+/**
  * Create new user functions.
  *
  * [sqlite3_create_function()](https://sqlite.org/c3ref/create_function.html)
@@ -515,4 +540,22 @@ public expect fun sqlite3_create_window_function(
     value: Sqlite3CreateFunctionValueCallback?,
     inverse: Sqlite3CreateFunctionInverseCallback?,
     destructor: Sqlite3DestructorCallback?
+): Sqlite3Result
+
+/**
+ * Return the number of values available from the current row of the currently executing statement
+ * [stmt].
+ *
+ * [sqlite3_data_count()](https://sqlite.org/c3ref/data_count.html)
+ */
+public expect fun sqlite3_data_count(stmt: sqlite3_stmt): Int
+
+/**
+ * Configuration settings for an individual database connection.
+ *
+ * [sqlite3_db_config()](https://sqlite.org/c3ref/db_config.html)
+ */
+public expect fun sqlite3_db_config(
+    db: sqlite3,
+    option: Sqlite3DbConfigOption,
 ): Sqlite3Result

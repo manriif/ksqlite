@@ -31,8 +31,9 @@ public expect class Sqlite3Buffer {
     ): ByteArray
 
     /**
-     * Sets the native buffer content from [source], copying bytes from [start] (inclusive) to [end]
-     * (exclusive).
+     * Writes [size] bytes from [source] to the native buffer.
+     * Reading starts at [sourceOffset] from the [source] buffer and writing starts at
+     * [destinationOffset] to the native buffer.
      *
      * @throws IllegalArgumentException if any of [sourceOffset], [destinationOffset] or [size] is
      * negative.

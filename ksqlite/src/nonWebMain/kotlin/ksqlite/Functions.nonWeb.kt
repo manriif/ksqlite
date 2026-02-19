@@ -202,3 +202,9 @@ public expect fun sqlite3_blob_write(
     offset: Int
 ): Sqlite3Result
 
+/**
+ * Flush any dirty pages in the pager-cache for any attached database to disk.
+ *
+ * [sqlite3_db_cacheflush()](https://sqlite.org/c3ref/db_cacheflush.html)
+ */
+public expect fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
