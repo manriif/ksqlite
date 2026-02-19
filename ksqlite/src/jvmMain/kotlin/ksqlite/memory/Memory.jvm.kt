@@ -1,11 +1,12 @@
 package ksqlite.memory
 
-import ksqlite.types.pointer
 import java.lang.foreign.MemorySegment
 
-///////////////////////////////////////////////////////////////////////////
-// Segment
-///////////////////////////////////////////////////////////////////////////
+/**
+ * Whether `this` [MemorySegment] points to a null pointer.
+ */
+internal val MemorySegment.isNull: Boolean
+    get() = address() == MemorySegment.NULL.address()
 
 /**
  * Returns the [MemorySegment] obtained from [block] provided non-null [value] or returns
@@ -24,14 +25,3 @@ internal inline fun <T : Any> segment(value: T?, block: (T) -> MemorySegment): M
 internal fun ByteArray?.pointer(): MemorySegment {
     return segment(this, MemorySegment::ofArray)
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Pointer
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns a [functionPointer] wrapping `this` [MemorySegment].
- */
-internal fun wrap(segment: MemorySegment): pointer? = segment
-    .takeUnless { it.address() == MemorySegment.NULL.address() }
-    ?.let(::pointer)

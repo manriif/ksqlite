@@ -1,6 +1,6 @@
 package ksqlite.handlers
 
-import ksqlite.types.AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.memory.MemoryManager
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
@@ -27,7 +27,7 @@ internal class AutovacuumPagesHandler(manager: MemoryManager) : Handler(manager)
         nFreePage: Int,
         nBytePerPage: Int
     ): Int = manager
-        .get<AutoVacuumPagesCallback>(userPtr)
+        .get<Sqlite3AutoVacuumPagesCallback>(userPtr)
         .invoke(
             zSchema.getString(0),
             nDbPage.toUInt(),

@@ -2,7 +2,8 @@
 
 package ksqlite
 
-import ksqlite.types.AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.pointer
@@ -20,7 +21,8 @@ import ksqlite.types.sqlite3_value
  */
 public expect fun sqlite3_autovacuum_pages(
     db: sqlite3,
-    callback: AutoVacuumPagesCallback?
+    callback: Sqlite3AutoVacuumPagesCallback?,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
 /**

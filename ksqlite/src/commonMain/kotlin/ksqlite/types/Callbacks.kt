@@ -5,6 +5,11 @@ package ksqlite.types
 import kotlin.reflect.KMutableProperty
 
 /**
+ * Generic callback invoked when a no longer necessary object is being detroyed by sqlite.
+ */
+public typealias Sqlite3DestructorCallback = () -> Unit
+
+/**
  * Callback for [ksqlite.sqlite3_auto_extension]
  */
 public typealias Sqlite3AutoExtensionCallback = (
@@ -39,6 +44,49 @@ public typealias Sqlite3CollationCompareCallback = (
  * Callback for [ksqlite.sqlite3_commit_hook].
  */
 public typealias Sqlite3CommitHookCallback = () -> Int
+
+/**
+ * Callback with two parameters of [ksqlite.sqlite3_create_function],
+ * [ksqlite.sqlite3_create_function_v2] and [ksqlite.sqlite3_create_window_function].
+ */
+public typealias Sqlite3CreateFunction2Callback = (
+    context: sqlite3_context,
+    values: Array<sqlite3_value>
+) -> Unit
+
+/**
+ * Callback with one parameter of [ksqlite.sqlite3_create_function],
+ * [ksqlite.sqlite3_create_function_v2] and [ksqlite.sqlite3_create_window_function].
+ */
+public typealias Sqlite3CreateFunction1Callback = (context: sqlite3_context) -> Unit
+
+/**
+ * Callback for the `func` parameter of [ksqlite.sqlite3_create_function],
+ * [ksqlite.sqlite3_create_function_v2] and [ksqlite.sqlite3_create_window_function].
+ */
+public typealias Sqlite3CreateFunctionFuncCallback = Sqlite3CreateFunction2Callback
+
+/**
+ * Callback for the `step` parameter of [ksqlite.sqlite3_create_function],
+ * [ksqlite.sqlite3_create_function_v2] and [ksqlite.sqlite3_create_window_function].
+ */
+public typealias Sqlite3CreateFunctionStepCallback = Sqlite3CreateFunction2Callback
+
+/**
+ * Callback for the `inverse` parameter of [ksqlite.sqlite3_create_window_function].
+ */
+public typealias Sqlite3CreateFunctionInverseCallback = Sqlite3CreateFunction2Callback
+
+/**
+ * Callback for the `final` parameter of [ksqlite.sqlite3_create_function],
+ * [ksqlite.sqlite3_create_function_v2] and [ksqlite.sqlite3_create_window_function].
+ */
+public typealias Sqlite3CreateFunctionFinalCallback = Sqlite3CreateFunction1Callback
+
+/**
+ * Callback for the `value` parameter of [ksqlite.sqlite3_create_window_function].
+ */
+public typealias Sqlite3CreateFunctionValueCallback = Sqlite3CreateFunction1Callback
 
 /**
  * Callback for [Sqlite3ConfigOption.LOG].

@@ -284,12 +284,12 @@ private val SqliteFunctions = mapOf(
     "uri_boolean" to true,
     "uri_int64" to true,
     "uri_key" to true,
-    "filename_database" to true,
-    "filename_journal" to true,
-    "filename_wal" to true,
-    "database_file_object" to true,
-    "create_filename" to true,
-    "free_filename" to true,
+    "filename_database" to false,
+    "filename_journal" to false,
+    "filename_wal" to false,
+    "database_file_object" to false,
+    "create_filename" to false,
+    "free_filename" to false,
 
     // Virtual Tables
     "create_module" to true,

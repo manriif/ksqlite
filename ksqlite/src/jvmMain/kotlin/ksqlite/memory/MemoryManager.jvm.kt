@@ -2,6 +2,7 @@ package ksqlite.memory
 
 import ksqlite.handlers.DestructorHandler
 import ksqlite.handlers.Handler
+import ksqlite.types.Sqlite3DestructorCallback
 import java.lang.foreign.Arena
 import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
@@ -12,7 +13,7 @@ import java.lang.invoke.MethodHandles
  */
 public open class MemoryManager internal constructor() : AutoCloseable {
 
-    private lateinit var references: MutableMap<ULong, Any>
+    private lateinit var references: MutableMap<ULong, Pair<Any?, Sqlite3DestructorCallback?>>
     private var nextReferenceId: ULong = ULong.MIN_VALUE
     private var arena: Arena? = null
     private var _destructorFunctionPointer: MemorySegment? = null
@@ -35,14 +36,15 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      * Creates a reference to [value] and returns the reference identifier.
      */
     @IgnorableReturnValue
-    private fun createReference(value: Any): ULong {
+    private fun createReference(value: Any?, destructor: Sqlite3DestructorCallback?): ULong {
         val referenceId = ++nextReferenceId
         check(referenceId !in references) { "Too many managed references" }
+        val valueWithDestructor = value to destructor
 
         if (::references.isInitialized) {
-            references[referenceId] = value
+            references[referenceId] = valueWithDestructor
         } else {
-            references = mutableMapOf(referenceId to value)
+            references = mutableMapOf(referenceId to valueWithDestructor)
         }
 
         return referenceId
@@ -50,34 +52,37 @@ public open class MemoryManager internal constructor() : AutoCloseable {
 
     /**
      * Returns the object referenced by [segment]'s address.
+     * Throws [IllegalStateException] if there is no object associated with [segment].
      */
     internal inline operator fun <reified Data> get(segment: MemorySegment): Data = notClosed {
         val referenceId = segment.address().toULong()
+        val valueWithDestructor = references[referenceId]
 
-        checkNotNull(references[referenceId]) {
+        checkNotNull(valueWithDestructor?.first) {
             "No object was referenced with id $referenceId"
         } as Data
     }
 
     /**
      * Clears the reference to the object designed by [segment]'s address making it available to GC.
-     * Throws [IllegalStateException] there is no object associated with [segment].
      */
     @IgnorableReturnValue
-    internal fun clear(segment: MemorySegment): Any = notClosed {
+    internal fun clear(segment: MemorySegment): Any? = notClosed {
         val referenceId = segment.address().toULong()
-
-        checkNotNull(references.remove(referenceId)) {
-            "No object was referenced with id $referenceId"
-        }
+        val (value, destructor) = references.remove(referenceId) ?: return null
+        destructor?.invoke()
+        value
     }
 
     /**
      * Creates a strong reference to [value] preventing it from GC collection and returns a
      * [MemorySegment] that can be used to retrieve [value] using [get].
      */
-    internal fun referencePointer(value: Any): MemorySegment = notClosed {
-        MemorySegment.ofAddress(createReference(value).toLong())
+    internal fun referencePointer(
+        value: Any?,
+        destructor: Sqlite3DestructorCallback? = null
+    ): MemorySegment = notClosed {
+        MemorySegment.ofAddress(createReference(value, destructor).toLong())
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -101,23 +106,26 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      * Returns a pointer to a static function that will invoke the `handle` function of the
      * [Handler] returned by factory.
      */
-    internal fun functionPointer(factory: (MemoryManager) -> Handler): MemorySegment = notClosed {
-        val handler = factory(this)
-        val functionDescriptor = handler.createFunctionDescriptor()
+    internal fun functionPointer(factory: ((MemoryManager) -> Handler)?): MemorySegment =
+        notClosed {
+            segment(factory) { factory ->
+                val handler = factory(this)
+                val functionDescriptor = handler.createFunctionDescriptor()
 
-        val methodHandle = MethodHandles
-            .lookup()
-            .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
-            .bindTo(handler)
+                val methodHandle = MethodHandles
+                    .lookup()
+                    .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
+                    .bindTo(handler)
 
-        createReference(handler)
+                createReference(handler, null)
 
-        withArena {
-            Linker
-                .nativeLinker()
-                .upcallStub(methodHandle, functionDescriptor, this)
+                withArena {
+                    Linker
+                        .nativeLinker()
+                        .upcallStub(methodHandle, functionDescriptor, this)
+                }
+            }
         }
-    }
 
     /**
      * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
@@ -125,10 +133,12 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      * This should preferably be used if there is no option to copy [value]'s content on native
      * side.
      */
-    internal fun bufferPointer(value: ByteArray): MemorySegment = notClosed {
-        withArena {
-            allocate(value.size.toLong()).apply {
-                copyFrom(MemorySegment.ofArray(value))
+    internal fun bufferPointer(value: ByteArray?): MemorySegment = notClosed {
+        segment(value) { value ->
+            withArena {
+                allocate(value.size.toLong()).apply {
+                    copyFrom(MemorySegment.ofArray(value))
+                }
             }
         }
     }
@@ -136,9 +146,11 @@ public open class MemoryManager internal constructor() : AutoCloseable {
     /**
      * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
      */
-    internal fun stringPointer(value: String): MemorySegment = notClosed {
-        withArena {
-            allocateFrom(value)
+    internal fun stringPointer(value: String?): MemorySegment = notClosed {
+        segment(value) { value ->
+            withArena {
+                allocateFrom(value)
+            }
         }
     }
 
@@ -177,54 +189,4 @@ public open class MemoryManager internal constructor() : AutoCloseable {
             clear()
         }
     }
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns the object referenced by [segment]'s address or `null` if the [segment] points to the
- * null address.
- */
-internal inline fun <reified Data : Any> MemoryManager.getOrNull(segment: MemorySegment): Data? {
-    if (segment.address() == MemorySegment.NULL.address()) {
-        return null
-    }
-
-    return get(segment)
-}
-
-/**
- * Creates a strong reference to [value] preventing it from GC collection and returns a
- * [MemorySegment] that can be used to retrieve [value] using [getOrNull].
- */
-internal fun MemoryManager.referencePointer(value: Any?): MemorySegment {
-    return segment(value, this::referencePointer)
-}
-
-/**
- * Returns a pointer to a static function that will invoke the `handle` function of the
- * [Handler] returned by factory.
- */
-internal fun MemoryManager.functionPointer(factory: ((MemoryManager) -> Handler)?): MemorySegment {
-    return segment(factory, this::functionPointer)
-}
-
-/**
- * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
- * Returns [MemorySegment.NULL] if [value] is `null`
- *
- * This should preferably be used if there is no option to copy [value]'s content on native side.
- */
-internal fun MemoryManager.bufferPointer(value: ByteArray?): MemorySegment {
-    return segment(value, this::bufferPointer)
-}
-
-/**
- * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
- * Returns [MemorySegment.NULL] if [value] is `null`
- */
-internal fun MemoryManager.stringPointer(value: String?): MemorySegment {
-    return segment(value, this::stringPointer)
 }

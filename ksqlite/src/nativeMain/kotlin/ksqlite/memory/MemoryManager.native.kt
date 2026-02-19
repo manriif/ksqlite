@@ -9,6 +9,7 @@ import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
+import ksqlite.types.Sqlite3DestructorCallback
 
 /**
  * Manages memory.
@@ -27,29 +28,46 @@ public open class MemoryManager internal constructor() : AutoCloseable {
     /**
      * Implementation of [ManagedPointer].
      */
-    private inner class ManagedPointerImpl(private val value: Any) : ManagedPointer {
+    private inner class ManagedPointerImpl(
+        private val value: Any?,
+        private val destructor: Sqlite3DestructorCallback?
+    ) : ManagedPointer {
 
         val stableRef = StableRef.create(this)
 
         @Suppress("UNCHECKED_CAST")
         override fun <Data : Any> get(): Data {
+            checkNotNull(value)
             return value as Data
         }
 
         override fun dispose() {
-            check(pointers.remove(this)) {
-                "Pointer is not managed"
-            }
+            check(pointers.remove(this)) { "Pointer is not managed" }
+            disposeInternal()
+        }
 
+        /**
+         * Disposes without removing from [pointers].
+         */
+        fun disposeInternal() {
+            destructor?.invoke()
             stableRef.dispose()
         }
     }
 
     /**
      * Returns a stable [COpaquePointer] to [value].
+     * Returns `null` if both [value] and [destructor] are `null`.
      */
-    internal fun managedPointer(value: Any): COpaquePointer = notClosed {
-        val managed = ManagedPointerImpl(value)
+    internal fun managedPointer(
+        value: Any?,
+        destructor: Sqlite3DestructorCallback? = null
+    ): COpaquePointer? = notClosed {
+        if (value == null && destructor == null) {
+            return null
+        }
+
+        val managed = ManagedPointerImpl(value, destructor)
 
         if (::pointers.isInitialized) {
             pointers.add(managed)
@@ -62,9 +80,10 @@ public open class MemoryManager internal constructor() : AutoCloseable {
 
     /**
      * Returns a [CPointer] to [value]'s content.
+     * Returns `null` if [value] is `null`.
      */
-    internal fun bufferPointer(value: ByteArray): CPointer<ByteVar> = notClosed {
-        val pinned = value.pin()
+    internal fun bufferPointer(value: ByteArray?): CPointer<ByteVar>? = notClosed {
+        val pinned = value?.pin() ?: return null
 
         if (::pinneds.isInitialized) {
             pinneds.add(pinned)
@@ -77,8 +96,13 @@ public open class MemoryManager internal constructor() : AutoCloseable {
 
     /**
      * Allocates a copy of the [value] and returns a [CPointer] to the content.
+     * Returns `null` if [value] is `null`.
      */
-    internal fun stringPointer(value: String): CPointer<ByteVar> = notClosed {
+    internal fun stringPointer(value: String?): CPointer<ByteVar>? = notClosed {
+        if (value == null) {
+            return null
+        }
+
         if (!::arena.isInitialized) {
             arena = Arena()
         }
@@ -95,7 +119,7 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      */
     internal fun clear() = notClosed {
         if (::pointers.isInitialized) {
-            pointers.onEach(ManagedPointerImpl::dispose).clear()
+            pointers.onEach(ManagedPointerImpl::disposeInternal).clear()
         }
 
         if (::pinneds.isInitialized) {
@@ -123,29 +147,3 @@ public open class MemoryManager internal constructor() : AutoCloseable {
         }
     }
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns a stable [COpaquePointer] to [value].
- * Returns `null` if [value] is `null`.
- */
-internal fun MemoryManager.managedPointer(value: Any?): COpaquePointer? {
-    return value?.let(::managedPointer)
-}
-
-/**
- * Pins [value] and returns a [CPointer] to the content.
- * Returns `null` if [value] is `null`.
- */
-internal fun MemoryManager.bufferPointer(value: ByteArray?): CPointer<ByteVar>? =
-    value?.let(::bufferPointer)
-
-/**
- * Allocates a copy of the [value] and returns a [CPointer] to the content.
- * Returns `null` if [value] is `null`.
- */
-internal fun MemoryManager.stringPointer(value: String?): CPointer<ByteVar>? =
-    value?.let(::stringPointer)

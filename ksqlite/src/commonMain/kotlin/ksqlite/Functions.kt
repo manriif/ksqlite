@@ -2,6 +2,7 @@
 
 package ksqlite
 
+import ksqlite.types.Sqlite3Buffer
 import ksqlite.types.Sqlite3AutoExtensionCallback
 import ksqlite.types.Sqlite3BusyHandlerCallback
 import ksqlite.types.Sqlite3CollationCompareCallback
@@ -9,10 +10,15 @@ import ksqlite.types.Sqlite3CollationNeededCallback
 import ksqlite.types.Sqlite3CommitHookCallback
 import ksqlite.types.Sqlite3CompleteResult
 import ksqlite.types.Sqlite3ConfigOption
+import ksqlite.types.Sqlite3CreateFunctionFinalCallback
+import ksqlite.types.Sqlite3CreateFunctionFuncCallback
+import ksqlite.types.Sqlite3CreateFunctionInverseCallback
+import ksqlite.types.Sqlite3CreateFunctionStepCallback
+import ksqlite.types.Sqlite3CreateFunctionValueCallback
 import ksqlite.types.Sqlite3DataType
+import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
-import ksqlite.types.pointer
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
 import ksqlite.types.sqlite3_stmt
@@ -27,7 +33,7 @@ import ksqlite.types.sqlite3_value
 public expect fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): pointer?
+): Sqlite3Buffer?
 
 /**
  * Register a statically linked extension that is automatically loaded by every new database
@@ -446,7 +452,7 @@ public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3
 public expect fun sqlite3_create_collation(
     db: sqlite3,
     name: String,
-    textRep: Sqlite3TextEncoding,
+    textRep: Sqlite3TextEncoding.Set0,
     callback: Sqlite3CollationCompareCallback?
 ): Sqlite3Result
 
@@ -458,6 +464,55 @@ public expect fun sqlite3_create_collation(
 public expect fun sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
-    textRep: Sqlite3TextEncoding,
-    callback: Sqlite3CollationCompareCallback?
+    encoding: Sqlite3TextEncoding.Set0,
+    callback: Sqlite3CollationCompareCallback?,
+    destructor: Sqlite3DestructorCallback?
+): Sqlite3Result
+
+/**
+ * Create new user functions.
+ *
+ * [sqlite3_create_function()](https://sqlite.org/c3ref/create_function.html)
+ */
+public expect fun sqlite3_create_function(
+    db: sqlite3,
+    name: String,
+    nArg: Int,
+    encoding: Sqlite3TextEncoding,
+    func: Sqlite3CreateFunctionFuncCallback?,
+    step: Sqlite3CreateFunctionStepCallback?,
+    final: Sqlite3CreateFunctionFinalCallback?
+): Sqlite3Result
+
+/**
+ * Create new user functions.
+ *
+ * [sqlite3_create_function()](https://sqlite.org/c3ref/create_function.html)
+ */
+public expect fun sqlite3_create_function_v2(
+    db: sqlite3,
+    name: String,
+    nArg: Int,
+    encoding: Sqlite3TextEncoding,
+    func: Sqlite3CreateFunctionFuncCallback?,
+    step: Sqlite3CreateFunctionStepCallback?,
+    final: Sqlite3CreateFunctionFinalCallback?,
+    destructor: Sqlite3DestructorCallback?
+): Sqlite3Result
+
+/**
+ * Create new user functions.
+ *
+ * [sqlite3_create_function()](https://sqlite.org/c3ref/create_function.html)
+ */
+public expect fun sqlite3_create_window_function(
+    db: sqlite3,
+    name: String,
+    nArg: Int,
+    encoding: Sqlite3TextEncoding,
+    step: Sqlite3CreateFunctionStepCallback?,
+    final: Sqlite3CreateFunctionFinalCallback?,
+    value: Sqlite3CreateFunctionValueCallback?,
+    inverse: Sqlite3CreateFunctionInverseCallback?,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result

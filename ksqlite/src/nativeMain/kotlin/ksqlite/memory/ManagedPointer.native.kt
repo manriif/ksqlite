@@ -5,6 +5,7 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.staticCFunction
+import ksqlite.types.Sqlite3DestructorCallback
 
 /**
  * Holds reference to an object preventing GC operations on it.
@@ -17,7 +18,8 @@ internal interface ManagedPointer {
     fun <Data : Any> get(): Data
 
     /**
-     * Releases the object and making it available to GC.
+     * Releases the object making it available to GC.
+     * Also release the associated StableRef if any.
      */
     fun dispose()
 }
@@ -34,10 +36,13 @@ internal val ManagedDestructor = staticCFunction { pointer: COpaquePointer? ->
 }
 
 /**
- * Returns [ManagedDestructor] only if `this` != `null`.
+ * Returns [ManagedDestructor] only if [target] != `null` or [destructor] != `null`.
  */
-internal fun Any?.managedDestructor(): CPointer<CFunction<(COpaquePointer?) -> Unit>>? {
-    return ManagedDestructor.takeIf { this != null }
+internal fun managedDestructor(
+    target: Any?,
+    destructor: Sqlite3DestructorCallback? = null
+): CPointer<CFunction<(COpaquePointer?) -> Unit>>? {
+    return ManagedDestructor.takeIf { target != null || destructor != null }
 }
 
 /**
@@ -55,5 +60,5 @@ internal fun <Data : Any> COpaquePointer?.getManaged(): Data {
  */
 internal fun COpaquePointer?.disposeManaged() {
     checkNotNull(this)
-    asStableRef<ManagedPointer>().dispose()
+    asStableRef<ManagedPointer>().get().dispose()
 }

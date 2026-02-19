@@ -3,7 +3,7 @@ package ksqlite.types
 /**
  * Callback for [ksqlite.sqlite3_autovacuum_pages].
  */
-public typealias AutoVacuumPagesCallback = (
+public typealias Sqlite3AutoVacuumPagesCallback = (
     zSchema: String,
     nDbPage: UInt,
     nFreePage: UInt,
