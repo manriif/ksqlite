@@ -23,6 +23,7 @@ import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3ExecCallback
 import ksqlite.types.Sqlite3FileControlOpcode
 import ksqlite.types.Sqlite3IntParam
+import ksqlite.types.Sqlite3Limit
 import ksqlite.types.Sqlite3LongParam
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
@@ -780,7 +781,7 @@ public expect fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result
  *
  * [sqlite3_free()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_free(pointer: sqlite3_pointer)
+public expect fun sqlite3_free(pointer: sqlite3_pointer?)
 
 /**
  * Test to see whether or not the database connection is in autocommit mode. Return TRUE if it is
@@ -879,3 +880,69 @@ public expect fun sqlite3_keyword_name(
  * [sqlite3_keyword_check()](https://sqlite.org/c3ref/keyword_check.html)
  */
 public expect fun sqlite3_keyword_check(word: String): Boolean
+
+/**
+ * Return the ROWID of the most recent insert.
+ *
+ * [sqlite3_last_insert_rowid()](https://sqlite.org/c3ref/last_insert_rowid.html)
+ */
+public expect fun sqlite3_last_insert_rowid(db: sqlite3): Long
+
+/**
+ * Return the SQLite version in the format "X.Y.Z" where X is the major version number (always 3 for
+ * SQLite3) and Y is the minor version number and Z is the release number.
+ *
+ * [sqlite3_libversion()](https://sqlite.org/c3ref/libversion.html)
+ */
+public expect fun sqlite3_libversion(): String
+
+/**
+ * Return an integer with the value (X*1000000 + Y*1000 + Z) where X, Y, and Z are the same numbers
+ * used in [sqlite3_libversion].
+ *
+ * [sqlite3_libversion_number()](https://sqlite.org/c3ref/libversion.html)
+ */
+public expect fun sqlite3_libversion_number(db: sqlite3): Int
+
+/**
+ * Change the value of a limit. Report the old value. If an invalid limit index is supplied,
+ * report -1.
+ * Make no changes but still report the old value if the new limit is negative.
+ *
+ * A new lower limit does not shrink existing constructs.
+ * It merely prevents new constructs that exceed the limit from forming.
+ *
+ * [sqlite3_limit()](https://sqlite.org/c3ref/limit.html)
+ */
+public expect fun sqlite3_limit(
+    db: sqlite3,
+    id: Sqlite3Limit,
+    newVal: Int
+): Int
+
+/**
+ * This version of the memory allocation is for use by the application.
+ * First make sure the memory subsystem is initialized, then do the allocation.
+ *
+ * [sqlite3_malloc()](https://sqlite.org/c3ref/free.html)
+ */
+public expect fun sqlite3_malloc(size: Int): sqlite3_pointer?
+
+/**
+ * This version of the memory allocation is for use by the application.
+ * First make sure the memory subsystem is initialized, then do the allocation.
+ *
+ * [sqlite3_malloc64()](https://sqlite.org/c3ref/free.html)
+ */
+public expect fun sqlite3_malloc64(size: ULong): sqlite3_pointer?
+
+/**
+ * Returns the size of [pointer] memory allocation in bytes. The value returned by [sqlite3_msize]
+ * might be larger than the number of bytes requested when [pointer] was allocated. If [pointer] is
+ * a NULL pointer then [sqlite3_msize] returns zero. If [pointer] points to something that is not
+ * the beginning of memory allocation, or if it points to a formerly valid memory allocation that
+ * has now been freed, then the behavior of [sqlite3_msize] is undefined and possibly harmful.
+ *
+ * [sqlite3_msize()](https://sqlite.org/c3ref/free.html)
+ */
+public expect fun sqlite3_msize(pointer: sqlite3_pointer?): ULong

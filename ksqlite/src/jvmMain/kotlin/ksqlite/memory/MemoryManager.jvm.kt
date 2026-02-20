@@ -97,17 +97,25 @@ public open class MemoryManager internal constructor() : AutoCloseable {
     /**
      * Creates a strong reference to [value] preventing it from GC collection and returns a
      * [MemorySegment] that can be used to retrieve [value] using [get].
+     *
+     * Returns [MemorySegment.NULL] if both [value] and [destructor] are `null`.
      */
     internal fun referencePointer(
         value: Any?,
         destructor: Sqlite3DestructorCallback? = null
     ): MemorySegment = notClosed {
+        if (value == null && destructor == null) {
+            return MemorySegment.NULL
+        }
+
         MemorySegment.ofAddress(createReference(Reference(value, destructor)).toLong())
     }
 
     /**
      * Returns a pointer to a static function that will invoke the `handle` function of the
-     * [Handler] returned by factory.
+     * [Handler] returned by [factory].
+     *
+     * Returns [MemorySegment.NULL] if [factory] is `null`.
      */
     internal fun functionPointer(
         factory: ((MemoryManager) -> Handler)?
@@ -133,6 +141,8 @@ public open class MemoryManager internal constructor() : AutoCloseable {
 
     /**
      * Attaches the [param] and returns a [MemorySegment] the parameter value.
+     *
+     * Returns [MemorySegment.NULL] if [param] is `null`.
      */
     internal fun paramPointer(param: Sqlite3Param<*>?): MemorySegment = notClosed {
         segment(param) { param ->
@@ -149,6 +159,8 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      *
      * This should preferably be used if there is no option to copy [value]'s content on native
      * side.
+     *
+     * Returns [MemorySegment.NULL] if [value] is `null`.
      */
     internal fun bufferPointer(value: ByteArray?): MemorySegment = notClosed {
         segment(value) { value ->
@@ -162,6 +174,8 @@ public open class MemoryManager internal constructor() : AutoCloseable {
 
     /**
      * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
+     *
+     * Returns [MemorySegment.NULL] if [value] is `null`.
      */
     internal fun stringPointer(value: String?): MemorySegment = notClosed {
         segment(value) { value ->
@@ -247,3 +261,18 @@ public open class MemoryManager internal constructor() : AutoCloseable {
         }
     }
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a pointer to a static function that will invoke the `handle` function of the  [Handler]
+ * returned by [factory].
+ * 
+ * Returns [MemorySegment.NULL] if [callback] is `null`.
+ */
+internal fun MemoryManager.functionPointer(
+    callback: Any?,
+    factory: (MemoryManager) -> Handler
+): MemorySegment = functionPointer(factory.takeIf { callback != null })

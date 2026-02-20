@@ -231,10 +231,10 @@ private val SqliteFunctions = mapOf(
     "malloc64" to true,
     "realloc" to true,
     "realloc64" to true,
-    "free" to true,  // May be needed for freeing SQLite-allocated memory
+    "free" to true,
     "msize" to true,
-    "release_memory" to false,
-    "db_release_memory" to false,
+    "release_memory" to true,
+    "db_release_memory" to true,
     "memory_used" to true,
     "memory_highwater" to true,
     "hard_heap_limit64" to true,

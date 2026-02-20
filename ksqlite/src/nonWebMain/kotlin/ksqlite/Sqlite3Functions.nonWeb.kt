@@ -210,6 +210,13 @@ public expect fun sqlite3_blob_write(
 public expect fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
 
 /**
+ * Free up as much memory as we can from the given database connection.
+ *
+ * [sqlite3_db_release_memory()](https://sqlite.org/c3ref/db_release_memory.html)
+ */
+public expect fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result
+
+/**
  * Set the hard heap-size limit for the library. An argument of zero disables the hard heap limit.
  * A negative argument is a no-op used to obtain the return value without affecting the hard heap
  * limit.
@@ -222,3 +229,25 @@ public expect fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
  * [sqlite3_hard_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
  */
 public expect fun sqlite3_hard_heap_limit64(limit: Long): Long
+
+/**
+ * Write a [message] to the log if logging is enabled.
+ *
+ * [sqlite3_log()](https://sqlite.org/c3ref/log.html)
+ */
+public expect fun sqlite3_log(errCode: Int, message: String)
+
+/**
+ * Return the amount of memory currently checked out.
+ *
+ * [sqlite3_memory_used()](https://sqlite.org/c3ref/memory_highwater.html)
+ */
+public expect fun sqlite3_memory_used(): Long
+
+/**
+ * Return the maximum amount of memory that has ever been checked out since either the beginning of
+ * this process or since the most recent reset.
+ *
+ * [sqlite3_memory_highwater()](https://sqlite.org/c3ref/memory_highwater.html)
+ */
+public expect fun sqlite3_memory_highwater(): Long

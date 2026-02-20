@@ -4,6 +4,7 @@
 package ksqlite
 
 import ksqlite.handlers.AutovacuumPagesHandler
+import ksqlite.memory.functionPointer
 import ksqlite.memory.pointer
 import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3Buffer
@@ -40,7 +41,7 @@ public actual fun sqlite3_autovacuum_pages(
 ): Sqlite3Result = convertResult(
     nativeSqlite3.sqlite3_autovacuum_pages(
         db.pointer,
-        db.functionPointer(callback?.let { { AutovacuumPagesHandler(it) } }),
+        db.functionPointer(callback, ::AutovacuumPagesHandler),
         db.referencePointer(callback, destructor),
         db.destructorFunctionPointer
     )
