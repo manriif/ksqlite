@@ -4,8 +4,11 @@ package ksqlite.types
 
 /**
  * Generic pointer.
+ *
+ * This is not an official SQLite3 type but the name is used to enforce the fact that it will be
+ * managed by SQLite interface APis such as [ksqlite.sqlite3_malloc] and [ksqlite.sqlite3_free].
  */
-public expect class pointer
+public expect class sqlite3_pointer
 
 /**
  * Each open SQLite database is represented by a pointer to an instance of the opaque structure

@@ -65,7 +65,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * then SQLite goes to sqlite3_malloc() separately for each additional cache line.
      */
     public class PAGECACHE(
-        internal val pMem: pointer?,
+        internal val pMem: sqlite3_pointer?,
         internal val sz: Int,
         internal val n: Int
     ) : Sqlite3ConfigOption(7)
@@ -86,7 +86,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * allocation size are 2**5 through 2**8.
      */
     public class HEAP(
-        internal val pMem: pointer?,
+        internal val pMem: sqlite3_pointer?,
         internal val nBytes: Int,
         internal val min: Int
     ) : Sqlite3ConfigOption(8)

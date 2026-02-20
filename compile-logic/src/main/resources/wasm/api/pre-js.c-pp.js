@@ -24,7 +24,7 @@
         });
   delete globalThis.sqlite3InitModuleState;
 
-    // Check if custom locateFile was provided
+  // Check if custom debugModule was provided
   if (Module.customDebugModule && typeof Module.customDebugModule === 'function') {
     sIMS.debugModule = Module.customDebugModule;
   }

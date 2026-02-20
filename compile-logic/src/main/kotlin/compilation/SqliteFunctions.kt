@@ -227,12 +227,12 @@ private val SqliteFunctions = mapOf(
     "next_stmt" to true,
 
     // Memory Management
-    "malloc" to false,
-    "malloc64" to false,
-    "realloc" to false,
-    "realloc64" to false,
+    "malloc" to true,
+    "malloc64" to true,
+    "realloc" to true,
+    "realloc64" to true,
     "free" to true,  // May be needed for freeing SQLite-allocated memory
-    "msize" to false,
+    "msize" to true,
     "release_memory" to false,
     "db_release_memory" to false,
     "memory_used" to true,
@@ -344,8 +344,8 @@ private val SqliteFunctions = mapOf(
     "context_db_handle" to true,
     "get_auxdata" to true,
     "set_auxdata" to true,
-    "get_clientdata" to true,
-    "set_clientdata" to true,
+    "get_clientdata" to false,
+    "set_clientdata" to false,
     "set_errmsg" to true,
     "autovacuum_pages" to true,
     "db_cacheflush" to true,
@@ -354,9 +354,9 @@ private val SqliteFunctions = mapOf(
     "keyword_check" to true,
     "carray_bind" to true,
     "enable_shared_cache" to false,  // Deprecated
-    "free_table" to true,
-    "get_table" to true,
-    "setlk_timeout" to true,
+    "free_table" to false,
+    "get_table" to false,
+    "setlk_timeout" to false,
     "win32_set_directory" to false,  // Windows-specific
     "win32_set_directory8" to false,
     "win32_set_directory16" to false,

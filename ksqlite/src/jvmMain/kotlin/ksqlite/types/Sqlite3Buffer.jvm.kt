@@ -1,6 +1,6 @@
 package ksqlite.types
 
-import ksqlite.checkRange
+import ksqlite.utils.checkRange
 import ksqlite.memory.isNull
 import java.lang.foreign.MemorySegment
 
@@ -63,7 +63,7 @@ public actual class Sqlite3Buffer(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns an [Sqlite3Buffer] or `null` if [pointer] is `null`.
+ * Returns an [Sqlite3Buffer] or `null` if [sqlite3_pointer] is `null`.
  */
 internal fun createBuffer(segment: MemorySegment, size: Int): Sqlite3Buffer? {
     if (segment.isNull) {

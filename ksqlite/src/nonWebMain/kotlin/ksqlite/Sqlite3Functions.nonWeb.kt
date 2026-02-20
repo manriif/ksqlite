@@ -6,7 +6,7 @@ import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
-import ksqlite.types.pointer
+import ksqlite.types.sqlite3_pointer
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_backup
 import ksqlite.types.sqlite3_blob
@@ -79,19 +79,19 @@ public expect fun sqlite3_backup_step(
 /**
  * Bind a blob value to an SQL statement variable.
  *
- * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
+ * [sqlite3_bind_blob64()](https://sqlite.org/c3ref/bind_blob.html)
  */
 public expect fun sqlite3_bind_blob64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: pointer,
+    data: sqlite3_pointer,
     nData: ULong
 ): Sqlite3Result
 
 /**
  * Bind a blob value to an SQL statement variable.
  *
- * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
+ * [sqlite3_bind_text64()](https://sqlite.org/c3ref/bind_blob.html)
  */
 public expect fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
@@ -104,7 +104,7 @@ public expect fun sqlite3_bind_text64(
 /**
  * Bind a blob value to an SQL statement variable.
  *
- * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
+ * [sqlite3_bind_value()](https://sqlite.org/c3ref/bind_blob.html)
  */
 public expect fun sqlite3_bind_value(
     stmt: sqlite3_stmt,
@@ -115,7 +115,7 @@ public expect fun sqlite3_bind_value(
 /**
  * Bind a blob value to an SQL statement variable.
  *
- * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
+ * [sqlite3_bind_zeroblob()](https://sqlite.org/c3ref/bind_blob.html)
  */
 public expect fun sqlite3_bind_zeroblob(
     stmt: sqlite3_stmt,
@@ -126,7 +126,7 @@ public expect fun sqlite3_bind_zeroblob(
 /**
  * Bind a blob value to an SQL statement variable.
  *
- * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
+ * [sqlite3_bind_zeroblob64()](https://sqlite.org/c3ref/bind_blob.html)
  */
 public expect fun sqlite3_bind_zeroblob64(
     stmt: sqlite3_stmt,
@@ -208,3 +208,17 @@ public expect fun sqlite3_blob_write(
  * [sqlite3_db_cacheflush()](https://sqlite.org/c3ref/db_cacheflush.html)
  */
 public expect fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
+
+/**
+ * Set the hard heap-size limit for the library. An argument of zero disables the hard heap limit.
+ * A negative argument is a no-op used to obtain the return value without affecting the hard heap
+ * limit.
+ *
+ * The return value is the value of the hard heap limit just prior to calling this interface.
+ *
+ * Setting the hard heap limit will also activate the soft heap limit and constrain the soft heap
+ * limit to be no more than the hard heap limit.
+ *
+ * [sqlite3_hard_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
+ */
+public expect fun sqlite3_hard_heap_limit64(limit: Long): Long

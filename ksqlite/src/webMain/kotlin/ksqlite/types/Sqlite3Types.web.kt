@@ -2,7 +2,7 @@ package ksqlite.types
 
 import kotlin.js.JsBigInt
 
-public actual typealias pointer = JsBigInt
+public actual typealias sqlite3_pointer = JsBigInt
 
 public actual typealias sqlite3 = JsBigInt
 

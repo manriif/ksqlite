@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE")
 
-package ksqlite
+package ksqlite.utils
 
 /**
  * Ensures that [sourceOffset], [destinationOffset] and [size] are not negative and that content can

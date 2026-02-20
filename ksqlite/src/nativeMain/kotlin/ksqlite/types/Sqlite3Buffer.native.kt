@@ -6,7 +6,7 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.get
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
-import ksqlite.checkRange
+import ksqlite.utils.checkRange
 
 public actual class Sqlite3Buffer(
     private val nativeBuffer: CPointer<ByteVar>,
