@@ -89,6 +89,15 @@ public typealias Sqlite3CreateFunctionFinalCallback = Sqlite3CreateFunction1Call
 public typealias Sqlite3CreateFunctionValueCallback = Sqlite3CreateFunction1Callback
 
 /**
+ * Callback for [ksqlite.sqlite3_exec].
+ */
+public typealias Sqlite3ExecCallback = (
+    columnCount: Int,
+    columnValues: Array<String?>,
+    columnNames: Array<String>
+) -> Int
+
+/**
  * Callback for [Sqlite3ConfigOption.LOG].
  */
 public typealias Sqlite3LogCallback = (

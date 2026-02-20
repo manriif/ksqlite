@@ -1,65 +1,45 @@
 package ksqlite.memory
 
 import kotlinx.cinterop.Arena
+import kotlinx.cinterop.AutofreeScope
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
+import kotlinx.cinterop.CPointed
 import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.Pinned
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
 import ksqlite.types.Sqlite3DestructorCallback
+import ksqlite.types.Sqlite3Param
 
 /**
  * Manages memory.
  */
 public open class MemoryManager internal constructor() : AutoCloseable {
 
-    private lateinit var pointers: MutableSet<ManagedPointerImpl>
-    private lateinit var pinneds: MutableList<Pinned<*>>
+    private lateinit var disposables: MutableList<Disposable>
     private lateinit var arena: Arena
     private var closed = false
+
+    private val placement: AutofreeScope
+        get() {
+            if (!::arena.isInitialized) {
+                arena = Arena()
+            }
+
+            return arena
+        }
 
     ///////////////////////////////////////////////////////////////////////////
     // Pointers
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Implementation of [ManagedPointer].
-     */
-    private inner class ManagedPointerImpl(
-        private val value: Any?,
-        private val destructor: Sqlite3DestructorCallback?
-    ) : ManagedPointer {
-
-        val stableRef = StableRef.create(this)
-
-        @Suppress("UNCHECKED_CAST")
-        override fun <Data : Any> get(): Data {
-            checkNotNull(value)
-            return value as Data
-        }
-
-        override fun dispose() {
-            check(pointers.remove(this)) { "Pointer is not managed" }
-            disposeInternal()
-        }
-
-        /**
-         * Disposes without removing from [pointers].
-         */
-        fun disposeInternal() {
-            destructor?.invoke()
-            stableRef.dispose()
-        }
-    }
-
-    /**
      * Returns a stable [COpaquePointer] to [value].
      * Returns `null` if both [value] and [destructor] are `null`.
      */
-    internal fun managedPointer(
+    internal fun referencePointer(
         value: Any?,
         destructor: Sqlite3DestructorCallback? = null
     ): COpaquePointer? = notClosed {
@@ -67,15 +47,26 @@ public open class MemoryManager internal constructor() : AutoCloseable {
             return null
         }
 
-        val managed = ManagedPointerImpl(value, destructor)
+        val reference = ReferenceImpl(value, destructor)
+        addDisposable(reference)
 
-        if (::pointers.isInitialized) {
-            pointers.add(managed)
-        } else {
-            pointers = mutableSetOf(managed)
+        return reference.stableRef.asCPointer()
+    }
+
+    /**
+     * Attaches the [param] and returns a [CPointer] to a [P] instance.
+     * Returns `null` if [param] is `null`.
+     */
+    internal fun <P : CPointed> paramPointer(param: Sqlite3Param<*, P>?): CPointer<P>? = notClosed {
+        if (param == null) {
+            return null
         }
 
-        managed.stableRef.asCPointer()
+        val pointer = param.attach(placement)
+        val disposable = CallbackDisposable(param::detach)
+        addDisposable(disposable)
+
+        return pointer
     }
 
     /**
@@ -84,14 +75,10 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      */
     internal fun bufferPointer(value: ByteArray?): CPointer<ByteVar>? = notClosed {
         val pinned = value?.pin() ?: return null
+        val disposable = CallbackDisposable(pinned::unpin)
+        addDisposable(disposable)
 
-        if (::pinneds.isInitialized) {
-            pinneds.add(pinned)
-        } else {
-            pinneds = mutableListOf(pinned)
-        }
-
-        pinned.addressOf(0)
+        return pinned.addressOf(0)
     }
 
     /**
@@ -103,11 +90,7 @@ public open class MemoryManager internal constructor() : AutoCloseable {
             return null
         }
 
-        if (!::arena.isInitialized) {
-            arena = Arena()
-        }
-
-        value.cstr.getPointer(arena)
+        value.cstr.getPointer(placement)
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -118,12 +101,8 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      * Clears all the allocated memory and releases all the pinned/referenced objects.
      */
     internal fun clear() = notClosed {
-        if (::pointers.isInitialized) {
-            pointers.onEach(ManagedPointerImpl::disposeInternal).clear()
-        }
-
-        if (::pinneds.isInitialized) {
-            pinneds.onEach(Pinned<*>::unpin).clear()
+        if (::disposables.isInitialized) {
+            disposables.onEach(Disposable::dispose).clear()
         }
 
         if (::arena.isInitialized) {
@@ -144,6 +123,66 @@ public open class MemoryManager internal constructor() : AutoCloseable {
         if (!closed) {
             clear()
             closed = true
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Disposable
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Adds [disposable] to the objects that should be disposed on [clear].
+     */
+    private fun addDisposable(disposable: Disposable) {
+        if (::disposables.isInitialized) {
+            disposables.add(disposable)
+        } else {
+            disposables = mutableListOf(disposable)
+        }
+    }
+
+    /**
+     * Removes [disposable] from the objects that should be disposed on [clear] and disposes it.
+     */
+    private fun removeDisposable(disposable: Disposable) {
+        check(disposables.remove(disposable)) { "Resource is not managed" }
+        disposable.dispose()
+    }
+
+    /**
+     * Disposable which call the given [dispose] function on dispose called.
+     */
+    private class CallbackDisposable(private val dispose: () -> Unit) : Disposable {
+
+        override fun dispose() {
+            dispose.invoke()
+        }
+    }
+
+    /**
+     * Implementation of [Reference].
+     */
+    private inner class ReferenceImpl(
+        private val value: Any?,
+        private val destructor: Sqlite3DestructorCallback?
+    ) : Reference,
+        Disposable {
+
+        val stableRef = StableRef.create(this)
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <Data : Any> get(): Data {
+            checkNotNull(value)
+            return value as Data
+        }
+
+        override fun release() {
+            removeDisposable(this)
+        }
+
+        override fun dispose() {
+            destructor?.invoke()
+            stableRef.dispose()
         }
     }
 }

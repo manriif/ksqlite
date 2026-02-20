@@ -3,6 +3,7 @@ package ksqlite.memory
 import ksqlite.handlers.DestructorHandler
 import ksqlite.handlers.Handler
 import ksqlite.types.Sqlite3DestructorCallback
+import ksqlite.types.Sqlite3Param
 import java.lang.foreign.Arena
 import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
@@ -13,7 +14,7 @@ import java.lang.invoke.MethodHandles
  */
 public open class MemoryManager internal constructor() : AutoCloseable {
 
-    private lateinit var references: MutableMap<ULong, Pair<Any?, Sqlite3DestructorCallback?>>
+    private lateinit var disposables: MutableMap<ULong, Disposable>
     private var nextReferenceId: ULong = ULong.MIN_VALUE
     private var arena: Arena? = null
     private var _destructorFunctionPointer: MemorySegment? = null
@@ -27,63 +28,6 @@ public open class MemoryManager internal constructor() : AutoCloseable {
 
             return checkNotNull(_destructorFunctionPointer)
         }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // References
-    ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Creates a reference to [value] and returns the reference identifier.
-     */
-    @IgnorableReturnValue
-    private fun createReference(value: Any?, destructor: Sqlite3DestructorCallback?): ULong {
-        val referenceId = ++nextReferenceId
-        check(referenceId !in references) { "Too many managed references" }
-        val valueWithDestructor = value to destructor
-
-        if (::references.isInitialized) {
-            references[referenceId] = valueWithDestructor
-        } else {
-            references = mutableMapOf(referenceId to valueWithDestructor)
-        }
-
-        return referenceId
-    }
-
-    /**
-     * Returns the object referenced by [segment]'s address.
-     * Throws [IllegalStateException] if there is no object associated with [segment].
-     */
-    internal inline operator fun <reified Data> get(segment: MemorySegment): Data = notClosed {
-        val referenceId = segment.address().toULong()
-        val valueWithDestructor = references[referenceId]
-
-        checkNotNull(valueWithDestructor?.first) {
-            "No object was referenced with id $referenceId"
-        } as Data
-    }
-
-    /**
-     * Clears the reference to the object designed by [segment]'s address making it available to GC.
-     */
-    @IgnorableReturnValue
-    internal fun clear(segment: MemorySegment): Any? = notClosed {
-        val referenceId = segment.address().toULong()
-        val (value, destructor) = references.remove(referenceId) ?: return null
-        destructor?.invoke()
-        value
-    }
-
-    /**
-     * Creates a strong reference to [value] preventing it from GC collection and returns a
-     * [MemorySegment] that can be used to retrieve [value] using [get].
-     */
-    internal fun referencePointer(
-        value: Any?,
-        destructor: Sqlite3DestructorCallback? = null
-    ): MemorySegment = notClosed {
-        MemorySegment.ofAddress(createReference(value, destructor).toLong())
-    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Arena
@@ -102,30 +46,103 @@ public open class MemoryManager internal constructor() : AutoCloseable {
         return arena.block()
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // References
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Creates a reference to [disposable] and returns the reference identifier.
+     */
+    @IgnorableReturnValue
+    private fun createReference(disposable: Disposable): ULong {
+        val referenceId = ++nextReferenceId
+        check(referenceId !in disposables) { "Too many managed references" }
+
+        if (::disposables.isInitialized) {
+            disposables[referenceId] = disposable
+        } else {
+            disposables = mutableMapOf(referenceId to disposable)
+        }
+
+        return referenceId
+    }
+
+    /**
+     * Returns the object referenced by [segment]'s address.
+     * Throws [IllegalStateException] if there is no object associated with [segment].
+     */
+    internal operator fun <Data> get(segment: MemorySegment): Data = notClosed {
+        val referenceId = segment.address().toULong()
+
+        val reference = checkNotNull(disposables[referenceId]) {
+            "No object was referenced with id $referenceId"
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        checkNotNull(reference as? Reference).value as Data
+    }
+
+    /**
+     * Disposes the  object designed by [segment]'s address making it available to GC.
+     */
+    internal fun dispose(segment: MemorySegment): Unit = notClosed {
+        val referenceId = segment.address().toULong()
+        disposables.remove(referenceId)?.dispose()
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Pointers
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Creates a strong reference to [value] preventing it from GC collection and returns a
+     * [MemorySegment] that can be used to retrieve [value] using [get].
+     */
+    internal fun referencePointer(
+        value: Any?,
+        destructor: Sqlite3DestructorCallback? = null
+    ): MemorySegment = notClosed {
+        MemorySegment.ofAddress(createReference(Reference(value, destructor)).toLong())
+    }
+
     /**
      * Returns a pointer to a static function that will invoke the `handle` function of the
      * [Handler] returned by factory.
      */
-    internal fun functionPointer(factory: ((MemoryManager) -> Handler)?): MemorySegment =
-        notClosed {
-            segment(factory) { factory ->
-                val handler = factory(this)
-                val functionDescriptor = handler.createFunctionDescriptor()
+    internal fun functionPointer(
+        factory: ((MemoryManager) -> Handler)?
+    ): MemorySegment = notClosed {
+        segment(factory) { factory ->
+            val handler = factory(this)
+            val functionDescriptor = handler.createFunctionDescriptor()
 
-                val methodHandle = MethodHandles
-                    .lookup()
-                    .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
-                    .bindTo(handler)
+            val methodHandle = MethodHandles
+                .lookup()
+                .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
+                .bindTo(handler)
 
-                createReference(handler, null)
+            createReference(HandlerHolder(handler))
 
-                withArena {
-                    Linker
-                        .nativeLinker()
-                        .upcallStub(methodHandle, functionDescriptor, this)
+            withArena {
+                Linker
+                    .nativeLinker()
+                    .upcallStub(methodHandle, functionDescriptor, this)
+            }
+        }
+    }
+
+    /**
+     * Attaches the [param] and returns a [MemorySegment] the parameter value.
+     */
+    internal fun paramPointer(param: Sqlite3Param<*>?): MemorySegment = notClosed {
+        segment(param) { param ->
+            withArena {
+                param.attach(this).also {
+                    createReference(ParamDetacher(param))
                 }
             }
         }
+    }
 
     /**
      * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
@@ -162,13 +179,13 @@ public open class MemoryManager internal constructor() : AutoCloseable {
      * Clears all the allocated memory and releases all the referenced objects.
      */
     internal fun clear() {
+        if (::disposables.isInitialized) {
+            disposables.onEach { it.value.dispose() }.clear()
+        }
+
         arena?.let { instance ->
             arena = null
             instance.close()
-        }
-
-        if (::references.isInitialized) {
-            references.clear()
         }
 
         nextReferenceId = ULong.MIN_VALUE
@@ -187,6 +204,46 @@ public open class MemoryManager internal constructor() : AutoCloseable {
         if (!closed) {
             closed = true
             clear()
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Disposable
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Hold [handler].
+     * Does nothing but required to keep [handler] away from GC.
+     */
+    private class HandlerHolder(handler: Handler) : Disposable {
+
+        private var handler: Handler? = handler
+
+        override fun dispose() {
+            handler = null
+        }
+    }
+
+    /**
+     * Detaches [param] in disposing.
+     */
+    private class ParamDetacher(private val param: Sqlite3Param<*>) : Disposable {
+
+        override fun dispose() {
+            param.detach()
+        }
+    }
+
+    /**
+     * Hold [value] and invoke [destructor] on disposing.
+     */
+    private class Reference(
+        val value: Any?,
+        private val destructor: Sqlite3DestructorCallback?
+    ) : Disposable {
+
+        override fun dispose() {
+            destructor?.invoke()
         }
     }
 }

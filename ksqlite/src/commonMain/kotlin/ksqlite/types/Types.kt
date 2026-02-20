@@ -32,6 +32,15 @@ public expect class sqlite3_api_routines
 public expect class sqlite3_context
 
 /**
+ * Type sqlite3_filename is used by SQLite to pass filenames to the xOpen method of a VFS. It may
+ * be cast to (const char*) and treated as a normal, nul-terminated, UTF-8 buffer containing the
+ * filename, but may also be passed to special APIs.
+ *
+ * [sqlite3_filename](https://sqlite.org/c3ref/filename.html)
+ */
+public typealias sqlite3_filename = String
+
+/**
  * This structure, sometimes called a "virtual table module", defines the implementation of a
  * virtual table. This structure consists mostly of methods for the module.
  *

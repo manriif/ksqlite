@@ -14,7 +14,7 @@ public expect open class Sqlite3IntBaseParam internal constructor(initialValue: 
     /**
      * The actual value of the parameter.
      */
-    internal open val rawValue: Int
+    internal open val intValue: Int
 }
 
 /**
@@ -27,7 +27,7 @@ public class Sqlite3IntParam(initialValue: Int) : Sqlite3IntBaseParam(initialVal
      * The actual value of the parameter.
      */
     public val value: Int
-        get() = rawValue
+        get() = intValue
 }
 
 /**
@@ -42,5 +42,35 @@ public class Sqlite3BooleanParam(initialValue: Boolean) : Sqlite3IntBaseParam(
      * The actual value of the parameter.
      */
     public val value: Boolean
-        get() = convertBooleanResult(rawValue)
+        get() = convertBooleanResult(intValue)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Long
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Long parameter which can be written by SQLite on native side.
+ */
+public expect class Sqlite3LongParam(initialValue: Long) {
+
+    /**
+     * The actual value of the parameter.
+     */
+    public val value: Long
+}
+
+///////////////////////////////////////////////////////////////////////////
+// String
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * String parameter which can be written by SQLite on native side.
+ */
+public expect class Sqlite3Utf8Param(initialValue: String?) {
+
+    /**
+     * The actual value of the parameter.
+     */
+    public val value: String?
 }

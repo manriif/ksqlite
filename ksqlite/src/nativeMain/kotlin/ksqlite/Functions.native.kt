@@ -4,15 +4,17 @@ package ksqlite
 
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKString
-import ksqlite.memory.getManaged
-import ksqlite.memory.managedDestructor
-import ksqlite.types.Sqlite3Buffer
+import ksqlite.memory.getReferencedData
+import ksqlite.memory.referenceDestructor
+import ksqlite.memory.useMemoryManager
 import ksqlite.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3Buffer
 import ksqlite.types.Sqlite3BusyHandlerCallback
-import ksqlite.types.Sqlite3DbConfigOption
 import ksqlite.types.Sqlite3DestructorCallback
+import ksqlite.types.Sqlite3ExecCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
+import ksqlite.types.Sqlite3Utf8Param
 import ksqlite.types.createBuffer
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
@@ -39,13 +41,13 @@ public actual fun sqlite3_autovacuum_pages(
     sqlite.sqlite3_autovacuum_pages(
         db = db.pointer,
         arg1 = callback?.let {
-            staticCFunction { pointer, zSchema, nDbPage, nFreePage, nBytePerPage ->
-                pointer.getManaged<Sqlite3AutoVacuumPagesCallback>()
+            staticCFunction { userPtr, zSchema, nDbPage, nFreePage, nBytePerPage ->
+                userPtr.getReferencedData<Sqlite3AutoVacuumPagesCallback>()
                     .invoke(zSchema!!.toKString(), nDbPage, nFreePage, nBytePerPage)
             }
         },
-        arg2 = db.managedPointer(callback, destructor),
-        arg3 = managedDestructor(callback, destructor)
+        arg2 = db.referencePointer(callback, destructor),
+        arg3 = referenceDestructor(callback, destructor)
     )
 )
 
@@ -73,7 +75,7 @@ public actual fun sqlite3_bind_pointer(
     sqlite.sqlite3_bind_pointer(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = stmt.managedPointer(data),
+        arg2 = stmt.referencePointer(data),
         arg3 = stmt.stringPointer(ptrType),
         arg4 = sqlite.SQLITE_STATIC
     )
@@ -130,10 +132,36 @@ public actual fun sqlite3_busy_handler(
     sqlite.sqlite3_busy_handler(
         arg0 = db.pointer,
         arg1 = callback?.let {
-            staticCFunction { pointer, count ->
-                pointer.getManaged<Sqlite3BusyHandlerCallback>().invoke(count)
+            staticCFunction { userPtr, count ->
+                userPtr.getReferencedData<Sqlite3BusyHandlerCallback>()
+                    .invoke(count)
             }
         },
-        arg2 = db.managedPointer(callback)
+        arg2 = db.referencePointer(callback)
     )
 )
+
+public actual fun sqlite3_exec(
+    db: sqlite3,
+    sql: String,
+    callback: Sqlite3ExecCallback?,
+    errMsg: Sqlite3Utf8Param?
+): Sqlite3Result = useMemoryManager {
+    convertResult(
+        sqlite.sqlite3_exec(
+            arg0 = db.pointer,
+            sql = sql,
+            callback = callback?.let {
+                staticCFunction { userPtr, columnCount, values, names ->
+                    val columnValues = emptyArray<String?>() // TODO
+                    val columnNames = emptyArray<String>() // TODO
+
+                    userPtr.getReferencedData<Sqlite3ExecCallback>()
+                        .invoke(columnCount, columnValues, columnNames)
+                }
+            },
+            arg3 = referencePointer(callback),
+            errmsg = paramPointer(errMsg)
+        )
+    )
+}

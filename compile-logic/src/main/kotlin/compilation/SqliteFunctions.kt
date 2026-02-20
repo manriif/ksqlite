@@ -227,7 +227,7 @@ private val SqliteFunctions = mapOf(
     "next_stmt" to true,
 
     // Memory Management
-    "malloc" to false,  // Use Java memory instead
+    "malloc" to false,
     "malloc64" to false,
     "realloc" to false,
     "realloc64" to false,
@@ -241,7 +241,7 @@ private val SqliteFunctions = mapOf(
     "soft_heap_limit64" to true,
 
     // String Functions
-    "mprintf" to false,  // Use Java String.format instead
+    "mprintf" to false,
     "vmprintf" to false,
     "snprintf" to false,
     "vsnprintf" to false,
@@ -295,7 +295,7 @@ private val SqliteFunctions = mapOf(
     "create_module" to true,
     "create_module_v2" to true,
     "declare_vtab" to true,
-    "drop_modules" to false,
+    "drop_modules" to true,
     "overload_function" to true,
     "vtab_collation" to true,
     "vtab_config" to true,
@@ -324,8 +324,8 @@ private val SqliteFunctions = mapOf(
     "auto_extension" to true,
     "cancel_auto_extension" to true,
     "reset_auto_extension" to true,
-    "load_extension" to true,
-    "enable_load_extension" to true,
+    "load_extension" to false,
+    "enable_load_extension" to false,
 
     // Miscellaneous
     "interrupt" to true,

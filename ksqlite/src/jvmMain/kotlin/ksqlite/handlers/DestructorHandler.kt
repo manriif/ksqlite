@@ -14,6 +14,6 @@ internal class DestructorHandler(manager: MemoryManager) : Handler(manager) {
         FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
 
     fun handle(userPtr: MemorySegment) {
-        manager.clear(userPtr)
+        manager.dispose(userPtr)
     }
 }
