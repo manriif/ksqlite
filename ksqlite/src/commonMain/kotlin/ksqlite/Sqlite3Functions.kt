@@ -22,17 +22,18 @@ import ksqlite.types.Sqlite3DeserializeFlag
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3ExecCallback
 import ksqlite.types.Sqlite3FileControlOpcode
+import ksqlite.types.Sqlite3FileOpenFlag
 import ksqlite.types.Sqlite3IntParam
 import ksqlite.types.Sqlite3Limit
 import ksqlite.types.Sqlite3LongParam
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.Sqlite3Utf8Param
-import ksqlite.types.sqlite3_pointer
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
 import ksqlite.types.sqlite3_filename
 import ksqlite.types.sqlite3_module
+import ksqlite.types.sqlite3_pointer
 import ksqlite.types.sqlite3_stmt
 import ksqlite.types.sqlite3_value
 
@@ -946,3 +947,37 @@ public expect fun sqlite3_malloc64(size: ULong): sqlite3_pointer?
  * [sqlite3_msize()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_msize(pointer: sqlite3_pointer?): ULong
+
+/**
+ * Return a pointer to the next prepared statement after pStmt associated with database connection
+ * [db]. If [stmt] is NULL, return the first prepared statement for the database connection.
+ * Return NULL if there are no more.
+ *
+ * [sqlite3_next_stmt()](https://sqlite.org/c3ref/next_stmt.html)
+ */
+public expect fun sqlite3_next_stmt(
+    db: sqlite3,
+    stmt: sqlite3_stmt?
+): sqlite3_stmt?
+
+/**
+ * Open a new database handle.
+ *
+ * [sqlite3_open()](https://sqlite.org/c3ref/open.html)
+ */
+public expect fun sqlite3_open(
+    name: String,
+    db: sqlite3
+): Sqlite3Result
+
+/**
+ * Open a new database handle.
+ *
+ * [sqlite3_open_v2()](https://sqlite.org/c3ref/open.html)
+ */
+public expect fun sqlite3_open_v2(
+    name: String,
+    db: sqlite3,
+    flags: Sqlite3FileOpenFlag.Valid,
+    vfs: String?
+): Sqlite3Result

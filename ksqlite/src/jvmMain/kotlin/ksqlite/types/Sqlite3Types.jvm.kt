@@ -2,11 +2,13 @@
 
 package ksqlite.types
 
-import ksqlite.memory.MemoryManager
+import ksqlite.memory.Pointer
 import java.lang.foreign.MemorySegment
 
-public actual class sqlite3(internal val pointer: MemorySegment) : MemoryManager()
+public actual class sqlite3_pointer(internal val pointer: MemorySegment)
 
-public actual class sqlite3_context(internal val pointer: MemorySegment)
+public actual class sqlite3 : Pointer()
 
-public actual class sqlite3_stmt(internal val pointer: MemorySegment) : MemoryManager()
+public actual class sqlite3_context : Pointer()
+
+public actual class sqlite3_stmt : Pointer()

@@ -8,7 +8,7 @@ package ksqlite.types
  *
  * [Text Encodings](https://sqlite.org/c3ref/c_any.html)
  */
-public sealed class Sqlite3TextEncoding(internal val value: Int) {
+public sealed class Sqlite3TextEncoding(internal open val value: Int) {
 
     /**
      * Set of [Sqlite3TextEncoding] including [UTF8], [UFT16LE], [UTF16BE].
@@ -53,12 +53,9 @@ public sealed class Sqlite3TextEncoding(internal val value: Int) {
     /**
      * [Sqlite3TextEncoding] applying a mask and that can be used with create functions routines.
      */
-    internal class Masked(mask: Int) : Sqlite3TextEncoding(mask) {
-
-        override fun toString(): String {
-            return "Masked(mask=$value)"
-        }
-    }
+    @ConsistentCopyVisibility
+    public data class Masked internal constructor(override val value: Int) :
+        Sqlite3TextEncoding(value)
 
     /**
      * Returns an [Sqlite3TextEncoding] which is ORed with [flag].

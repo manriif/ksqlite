@@ -13,10 +13,7 @@ import kotlinx.cinterop.pin
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3Param
 
-/**
- * Manages memory.
- */
-public open class MemoryManager internal constructor() : AutoCloseable {
+internal actual class MemoryManager : AutoCloseable {
 
     private lateinit var disposables: MutableList<Disposable>
     private lateinit var arena: Arena
@@ -119,7 +116,7 @@ public open class MemoryManager internal constructor() : AutoCloseable {
         return block()
     }
 
-    override fun close() {
+    actual override fun close() {
         if (!closed) {
             clear()
             closed = true

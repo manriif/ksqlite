@@ -41,9 +41,9 @@ public actual fun sqlite3_autovacuum_pages(
 ): Sqlite3Result = convertResult(
     nativeSqlite3.sqlite3_autovacuum_pages(
         db.pointer,
-        db.functionPointer(callback, ::AutovacuumPagesHandler),
-        db.referencePointer(callback, destructor),
-        db.destructorFunctionPointer
+        db.memory.functionPointer(callback, ::AutovacuumPagesHandler),
+        db.memory.referencePointer(callback, destructor),
+        db.memory.destructorFunctionPointer
     )
 )
 
@@ -71,8 +71,8 @@ public actual fun sqlite3_bind_pointer(
     nativeSqlite3.sqlite3_bind_pointer(
         stmt.pointer,
         index,
-        stmt.referencePointer(data),
-        stmt.stringPointer(ptrType),
+        stmt.memory.referencePointer(data),
+        stmt.memory.stringPointer(ptrType),
         SqliteStatic
     )
 )

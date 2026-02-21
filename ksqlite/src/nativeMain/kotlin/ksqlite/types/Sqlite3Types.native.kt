@@ -3,29 +3,16 @@
 
 package ksqlite.types
 
-import cnames.structs.sqlite3
-import cnames.structs.sqlite3_context
-import cnames.structs.sqlite3_stmt
-import cnames.structs.sqlite3_value
 import kotlinx.cinterop.COpaquePointer
-import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
-import ksqlite.memory.MemoryManager
-
-///////////////////////////////////////////////////////////////////////////
-// Generic
-///////////////////////////////////////////////////////////////////////////
+import ksqlite.memory.Pointer
 
 public actual class sqlite3_pointer(internal val pointer: COpaquePointer)
 
-///////////////////////////////////////////////////////////////////////////
-// Sqlite
-///////////////////////////////////////////////////////////////////////////
+public actual class sqlite3 : Pointer<cnames.structs.sqlite3>()
 
-public actual class sqlite3(internal val pointer: CPointer<sqlite3>) : MemoryManager()
+public actual class sqlite3_context : Pointer<cnames.structs.sqlite3_context>()
 
-public actual class sqlite3_context(internal val pointer: CPointer<sqlite3_context>)
+public actual class sqlite3_stmt : Pointer<cnames.structs.sqlite3_stmt>()
 
-public actual class sqlite3_stmt(internal val pointer: CPointer<sqlite3_stmt>) : MemoryManager()
-
-public actual class sqlite3_value(internal val pointer: CPointer<sqlite3_value>)
+public actual class sqlite3_value : Pointer<cnames.structs.sqlite3_value>()

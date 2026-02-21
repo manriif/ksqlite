@@ -16,7 +16,7 @@ public expect class sqlite3_pointer
  *
  * [sqlite3](https://sqlite.org/c3ref/sqlite3.html)
  */
-public expect class sqlite3
+public expect class sqlite3 public constructor()
 
 /**
  * A pointer to the opaque sqlite3_api_routines structure is passed as the third parameter to entry

@@ -266,6 +266,5 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * usual and recommended case) then the integer is always filled with zero, regardless if its
      * initial value.
      */
-    public class ROWID_IN_VIEW(internal val param: Sqlite3IntParam<Int>) :
-        Sqlite3ConfigOption(30)
+    public class ROWID_IN_VIEW(internal val param: Sqlite3IntParam) : Sqlite3ConfigOption(30)
 }

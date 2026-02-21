@@ -8,14 +8,7 @@ package ksqlite.types
  *
  * [Flags for sqlite3_deserialize()](https://sqlite.org/c3ref/c_deserialize_freeonclose.html).
  */
-public sealed class Sqlite3DeserializeFlag(internal val value: Int) {
-
-    /**
-     * Returns an [Sqlite3DeserializeFlag] which also enables [flag].
-     */
-    public infix fun or(flag: Sqlite3DeserializeFlag): Sqlite3DeserializeFlag {
-        return Mask(value or flag.value)
-    }
+public sealed class Sqlite3DeserializeFlag(internal open val value: Int) {
 
     /**
      * The SQLITE_DESERIALIZE_FREEONCLOSE means that the database serialization in the P argument is
@@ -42,5 +35,14 @@ public sealed class Sqlite3DeserializeFlag(internal val value: Int) {
     /**
      * Holder for the flags to be passed to [ksqlite.sqlite3_deserialize].
      */
-    public class Mask internal constructor(value: Int) : Sqlite3DeserializeFlag(value)
+    @ConsistentCopyVisibility
+    public data class Masked internal constructor(override val value: Int) :
+        Sqlite3DeserializeFlag(value)
+
+    /**
+     * Returns an [Sqlite3DeserializeFlag] which is ORed with [flag].
+     */
+    public infix fun or(flag: Sqlite3DeserializeFlag): Sqlite3DeserializeFlag {
+        return Masked(value or flag.value)
+    }
 }

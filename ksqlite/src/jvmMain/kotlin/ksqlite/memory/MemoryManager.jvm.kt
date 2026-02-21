@@ -9,10 +9,7 @@ import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
 import java.lang.invoke.MethodHandles
 
-/**
- * Manages memory.
- */
-public open class MemoryManager internal constructor() : AutoCloseable {
+internal actual class MemoryManager : AutoCloseable {
 
     private lateinit var disposables: MutableMap<ULong, Disposable>
     private var nextReferenceId: ULong = ULong.MIN_VALUE
@@ -214,7 +211,7 @@ public open class MemoryManager internal constructor() : AutoCloseable {
         return block()
     }
 
-    override fun close() {
+    actual override fun close() {
         if (!closed) {
             closed = true
             clear()

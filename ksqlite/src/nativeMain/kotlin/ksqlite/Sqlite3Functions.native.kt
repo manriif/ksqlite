@@ -46,7 +46,7 @@ public actual fun sqlite3_autovacuum_pages(
                     .invoke(zSchema!!.toKString(), nDbPage, nFreePage, nBytePerPage)
             }
         },
-        arg2 = db.referencePointer(callback, destructor),
+        arg2 = db.memory.referencePointer(callback, destructor),
         arg3 = referenceDestructor(callback, destructor)
     )
 )
@@ -60,7 +60,7 @@ public actual fun sqlite3_bind_blob(
     sqlite.sqlite3_bind_blob(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = stmt.bufferPointer(zData),
+        arg2 = stmt.memory.bufferPointer(zData),
         n = nData,
         arg4 = sqlite.SQLITE_STATIC
     )
@@ -75,8 +75,8 @@ public actual fun sqlite3_bind_pointer(
     sqlite.sqlite3_bind_pointer(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = stmt.referencePointer(data),
-        arg3 = stmt.stringPointer(ptrType),
+        arg2 = stmt.memory.referencePointer(data),
+        arg3 = stmt.memory.stringPointer(ptrType),
         arg4 = sqlite.SQLITE_STATIC
     )
 )
@@ -137,9 +137,17 @@ public actual fun sqlite3_busy_handler(
                     .invoke(count)
             }
         },
-        arg2 = db.referencePointer(callback)
+        arg2 = db.memory.referencePointer(callback)
     )
 )
+
+public actual fun sqlite3_close(db: sqlite3): Sqlite3Result = db.deallocate { pointer ->
+    sqlite.sqlite3_close(pointer)
+}
+
+public actual fun sqlite3_close_v2(db: sqlite3): Sqlite3Result = db.deallocate { pointer ->
+    sqlite.sqlite3_close_v2(pointer)
+}
 
 public actual fun sqlite3_exec(
     db: sqlite3,
@@ -164,4 +172,11 @@ public actual fun sqlite3_exec(
             errmsg = paramPointer(errMsg)
         )
     )
+}
+
+public actual fun sqlite3_open(
+    name: String,
+    db: sqlite3
+): Sqlite3Result = db.allocate { pointer ->
+    sqlite.sqlite3_open(name, pointer)
 }

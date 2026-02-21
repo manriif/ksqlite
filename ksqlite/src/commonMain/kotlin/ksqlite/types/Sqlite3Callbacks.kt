@@ -10,7 +10,7 @@ import kotlin.reflect.KMutableProperty
 public typealias Sqlite3DestructorCallback = () -> Unit
 
 /**
- * Callback for [ksqlite.sqlite3_auto_extension]
+ * Callback for [ksqlite.sqlite3_auto_extension].
  */
 public typealias Sqlite3AutoExtensionCallback = (
     db: sqlite3,

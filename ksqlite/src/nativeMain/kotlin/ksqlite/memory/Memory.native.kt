@@ -8,27 +8,13 @@ import kotlinx.cinterop.staticCFunction
 import ksqlite.types.Sqlite3DestructorCallback
 
 ///////////////////////////////////////////////////////////////////////////
-// Manager
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Invokes and returns [block]'s result with a [MemoryManager] receiver that is closed before
- * function returns.
- */
-internal inline fun <R> useMemoryManager(block: MemoryManager.() -> R): R {
-    return MemoryManager().use { manager ->
-        block(manager)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////
 // Reference
 ///////////////////////////////////////////////////////////////////////////
 
 /**
  * Destructor releasing a [Reference].
  */
-internal val ReferenceDestructor = staticCFunction { pointer: COpaquePointer? ->
+private val ReferenceDestructor = staticCFunction { pointer: COpaquePointer? ->
     pointer.releaseReference()
 }
 
