@@ -26,6 +26,7 @@ import ksqlite.types.Sqlite3FileOpenFlag
 import ksqlite.types.Sqlite3IntParam
 import ksqlite.types.Sqlite3Limit
 import ksqlite.types.Sqlite3LongParam
+import ksqlite.types.Sqlite3PrepareFlag
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.Sqlite3Utf8Param
@@ -981,3 +982,52 @@ public expect fun sqlite3_open_v2(
     flags: Sqlite3FileOpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result
+
+/**
+ * Declare that a function has been overloaded by a virtual table.
+ *
+ * If the function already exists as a regular global function, then this routine is a no-op.
+ * If the function does not exist, then create a new one that always throws a run-time error.
+ *
+ * When virtual tables intend to provide an overloaded function, they should call this routine to
+ * make sure the global function exists.
+ * A global function must exist in order for name resolution to work properly.
+ *
+ * [sqlite3_overload_function()](https://sqlite.org/c3ref/overload_function.html)
+ */
+public expect fun sqlite3_overload_function(
+    db: sqlite3,
+    name: String,
+    nArg: Int
+): Sqlite3Result
+
+/**
+ * To execute an SQL statement, it must first be compiled into a byte-code program using one of
+ * [sqlite3_prepare_v2] or [sqlite3_prepare_v3]. Or, in other words, these routines are constructors
+ * for the prepared statement object.
+ *
+ * [sqlite3_prepare_v2()](https://sqlite.org/c3ref/prepare.html)
+ */
+public expect fun sqlite3_prepare_v2(
+    db: sqlite3,
+    sql: String,
+    size: Int,
+    stmt: sqlite3_stmt,
+    tail: Sqlite3Utf8Param?
+)
+
+/**
+ * To execute an SQL statement, it must first be compiled into a byte-code program using one of
+ * [sqlite3_prepare_v2] or [sqlite3_prepare_v3]. Or, in other words, these routines are constructors
+ * for the prepared statement object.
+ *
+ * [sqlite3_prepare_v2()](https://sqlite.org/c3ref/prepare.html)
+ */
+public expect fun sqlite3_prepare_v3(
+    db: sqlite3,
+    sql: String,
+    size: Int,
+    stmt: sqlite3_stmt,
+    flags: Sqlite3PrepareFlag,
+    tail: Sqlite3Utf8Param?
+)

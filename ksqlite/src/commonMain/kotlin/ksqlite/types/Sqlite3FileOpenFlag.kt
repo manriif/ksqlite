@@ -2,8 +2,6 @@
 
 package ksqlite.types
 
-import ksqlite.types.Sqlite3FileOpenFlag.Valid.Masked
-
 /**
  * These bit values are intended for use in the 3rd parameter to the sqlite3_open_v2() interface and
  * in the 4th parameter to the sqlite3_vfs.xOpen method.
@@ -87,7 +85,7 @@ public sealed class Sqlite3FileOpenFlag(internal open val value: Int) {
          * Returns a [Valid] which is ORed with [flag].
          */
         public infix fun or(flag: READWRITE): Valid {
-            return Masked(value or flag.value)
+            return Valid.Masked(value or flag.value)
         }
     }
 

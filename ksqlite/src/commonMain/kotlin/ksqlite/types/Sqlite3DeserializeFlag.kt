@@ -33,7 +33,7 @@ public sealed class Sqlite3DeserializeFlag(internal open val value: Int) {
     public data object READONLY : Sqlite3DeserializeFlag(4)
 
     /**
-     * Holder for the flags to be passed to [ksqlite.sqlite3_deserialize].
+     * Holder for the flags to be passed to the deserialize API function.
      */
     @ConsistentCopyVisibility
     public data class Masked internal constructor(override val value: Int) :
