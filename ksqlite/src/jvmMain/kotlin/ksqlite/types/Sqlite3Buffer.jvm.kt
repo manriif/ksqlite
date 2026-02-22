@@ -1,31 +1,30 @@
 package ksqlite.types
 
-import ksqlite.utils.checkRange
-import ksqlite.memory.isNull
+import ksqlite.utils.checkBufferRange
 import java.lang.foreign.MemorySegment
 
 public actual class Sqlite3Buffer(
     private val nativeSegment: MemorySegment,
-    public actual val nativeSize: Int
+    public actual val nativeSize: Long
 ) {
 
     public actual fun read(
-        sourceOffset: Int,
-        destinationOffset: Int,
         size: Int,
+        sourceOffset: Long,
+        destinationOffset: Int,
         destination: ByteArray
     ): ByteArray {
-        checkRange(
+        checkBufferRange(
             sourceOffset = sourceOffset,
             sourceSize = nativeSize,
-            destinationOffset = destinationOffset,
-            destinationSize = destination.size,
+            destinationOffset = destinationOffset.toLong(),
+            destinationSize = destination.size.toLong(),
             size = size
         )
 
         MemorySegment.copy(
             nativeSegment,
-            sourceOffset.toLong(),
+            sourceOffset,
             MemorySegment.ofArray(destination),
             destinationOffset.toLong(),
             size.toLong()
@@ -36,13 +35,13 @@ public actual class Sqlite3Buffer(
 
     public actual fun write(
         source: ByteArray,
+        size: Int,
         sourceOffset: Int,
-        destinationOffset: Int,
-        size: Int
+        destinationOffset: Long
     ) {
-        checkRange(
-            sourceOffset = sourceOffset,
-            sourceSize = source.size,
+        checkBufferRange(
+            sourceOffset = sourceOffset.toLong(),
+            sourceSize = source.size.toLong(),
             destinationOffset = destinationOffset,
             destinationSize = nativeSize,
             size = size
@@ -52,26 +51,8 @@ public actual class Sqlite3Buffer(
             MemorySegment.ofArray(source),
             sourceOffset.toLong(),
             nativeSegment,
-            destinationOffset.toLong(),
+            destinationOffset,
             size.toLong()
         )
     }
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Factory
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns an [Sqlite3Buffer] or `null` if [sqlite3_pointer] is `null`.
- */
-internal fun createBuffer(segment: MemorySegment, size: Int): Sqlite3Buffer? {
-    if (segment.isNull) {
-        return null
-    }
-
-    return Sqlite3Buffer(
-        nativeSegment = segment,
-        nativeSize = size
-    )
 }

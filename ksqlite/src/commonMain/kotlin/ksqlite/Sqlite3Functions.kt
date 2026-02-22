@@ -3,7 +3,6 @@
 package ksqlite
 
 import ksqlite.types.Sqlite3AutoExtensionCallback
-import ksqlite.types.Sqlite3Buffer
 import ksqlite.types.Sqlite3BusyHandlerCallback
 import ksqlite.types.Sqlite3CollationCompareCallback
 import ksqlite.types.Sqlite3CollationNeededCallback
@@ -26,7 +25,9 @@ import ksqlite.types.Sqlite3FileOpenFlag
 import ksqlite.types.Sqlite3IntParam
 import ksqlite.types.Sqlite3Limit
 import ksqlite.types.Sqlite3LongParam
+import ksqlite.types.Sqlite3PreUpdateCallback
 import ksqlite.types.Sqlite3PrepareFlag
+import ksqlite.types.Sqlite3ProgressCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.Sqlite3Utf8Param
@@ -47,7 +48,7 @@ import ksqlite.types.sqlite3_value
 public expect fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): Sqlite3Buffer?
+): sqlite3_pointer?
 
 /**
  * Register a statically linked extension that is automatically loaded by every new database
@@ -809,7 +810,7 @@ public expect fun sqlite3_get_autocommit(db: sqlite3): Boolean
 public expect fun sqlite3_get_auxdata(
     context: sqlite3_context,
     index: Int
-): Sqlite3Buffer?
+): sqlite3_pointer?
 
 /**
  * Initialize SQLite.
@@ -936,7 +937,7 @@ public expect fun sqlite3_malloc(size: Int): sqlite3_pointer?
  *
  * [sqlite3_malloc64()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_malloc64(size: ULong): sqlite3_pointer?
+public expect fun sqlite3_malloc64(size: Long): sqlite3_pointer?
 
 /**
  * Returns the size of [pointer] memory allocation in bytes. The value returned by [sqlite3_msize]
@@ -1030,4 +1031,141 @@ public expect fun sqlite3_prepare_v3(
     stmt: sqlite3_stmt,
     flags: Sqlite3PrepareFlag,
     tail: Sqlite3Utf8Param?
+)
+
+/**
+ * This function is designed to be called from within a pre-update callback only.
+ *
+ * [sqlite3_preupdate_blobwrite()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
+ */
+public expect fun sqlite3_preupdate_blobwrite(db: sqlite3): Int
+
+/**
+ * This function is called from within a pre-update callback to retrieve the number of columns in
+ * the row being updated, deleted or inserted.
+ *
+ * [sqlite3_preupdate_count()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
+ */
+public expect fun sqlite3_preupdate_count(db: sqlite3): Int
+
+/**
+ * This function is designed to be called from within a pre-update callback only. It returns zero if
+ * the change that caused the callback was made immediately by a user SQL statement. Or, if the
+ * change was made by a trigger program, it returns the number of trigger programs currently on the
+ * stack (1 for a top-level trigger, 2 for a trigger fired by a top-level trigger etc.).
+ *
+ * For the purposes of the previous paragraph, a foreign key CASCADE, SET NULL or SET DEFAULT action
+ * is considered a trigger.
+ *
+ * [sqlite3_preupdate_depth()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
+ */
+public expect fun sqlite3_preupdate_depth(db: sqlite3): Int
+
+/**
+ * Register a callback to be invoked each time a row is updated, inserted or deleted using this
+ * database connection.
+ *
+ * [sqlite3_preupdate_hook()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
+ */
+public expect fun sqlite3_preupdate_hook(
+    db: sqlite3,
+    callback: Sqlite3PreUpdateCallback
+)
+
+/**
+ * This function is called from within a pre-update callback to retrieve a field of the row
+ * currently being updated or inserted.
+ *
+ * [sqlite3_preupdate_new()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
+ */
+public expect fun sqlite3_preupdate_new(
+    db: sqlite3,
+    index: Int,
+    value: sqlite3_value
+): Sqlite3Result
+
+/**
+ * This function is called from within a pre-update callback to retrieve a field of the row
+ * currently being updated or deleted.
+ *
+ * [sqlite3_preupdate_old()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
+ */
+public expect fun sqlite3_preupdate_old(
+    db: sqlite3,
+    index: Int,
+    value: sqlite3_value
+): Sqlite3Result
+
+/**
+ * This routine sets the progress callback for an Sqlite database to the given callback function
+ * with the given argument. The progress callback will be invoked every nOps opcodes.
+ *
+ * [sqlite3_progress_handler()](https://sqlite.org/c3ref/progress_handler.html)
+ */
+public expect fun sqlite3_progress_handler(
+    db: sqlite3,
+    nOps: Int,
+    callback: Sqlite3ProgressCallback
+)
+
+/**
+ * Return [size] random bytes.
+ *
+ * [sqlite3_randomness()](https://sqlite.org/c3ref/randomness.html)
+ */
+public expect fun sqlite3_randomness(
+    size: Int,
+    pointer: sqlite3_pointer?
+)
+
+/**
+ * The public interface to sqlite3Realloc. Make sure that the memory subsystem is initialized prior
+ * to invoking sqliteRealloc.
+ *
+ * [sqlite3_realloc()](https://sqlite.org/c3ref/free.html)
+ */
+public expect fun sqlite3_realloc(
+    pointer: sqlite3_pointer?,
+    size: Int
+): sqlite3_pointer?
+
+/**
+ * The public interface to sqlite3Realloc. Make sure that the memory subsystem is initialized prior
+ * to invoking sqliteRealloc.
+ *
+ * [sqlite3_realloc64()](https://sqlite.org/c3ref/free.html)
+ */
+public expect fun sqlite3_realloc64(
+    pointer: sqlite3_pointer?,
+    size: Long
+): sqlite3_pointer?
+
+/**
+ * Terminate the current execution of an SQL statement and reset it back to its starting state so
+ * that it can be reused. A success code from the prior execution is returned.
+ *
+ * This routine sets the error code and string returned by [sqlite3_errcode], [sqlite3_errmsg] and
+ * sqlite3_errmsg16().
+ *
+ * [sqlite3_reset()](https://sqlite.org/c3ref/reset.html)
+ */
+public expect fun sqlite3_reset(stmt: sqlite3_stmt): Sqlite3Result
+
+/**
+ * Reset the automatic extension loading mechanism.
+ *
+ * [sqlite3_reset_auto_extension()](https://sqlite.org/c3ref/reset_auto_extension.html)
+ */
+public expect fun sqlite3_reset_auto_extension()
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_blob()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_blob(
+    context: sqlite3_context,
+    data: ByteArray,
+    nData: Int,
+    destructor: Sqlite3DestructorCallback?
 )

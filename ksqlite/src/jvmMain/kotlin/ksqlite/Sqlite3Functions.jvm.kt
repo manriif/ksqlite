@@ -7,12 +7,11 @@ import ksqlite.handlers.AutovacuumPagesHandler
 import ksqlite.memory.functionPointer
 import ksqlite.memory.pointer
 import ksqlite.types.Sqlite3AutoVacuumPagesCallback
-import ksqlite.types.Sqlite3Buffer
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3Result
-import ksqlite.types.createBuffer
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
+import ksqlite.types.sqlite3_pointer
 import ksqlite.types.sqlite3_stmt
 import sqlite.sqliteLoadLibrary
 import sqlite.sqlite3 as nativeSqlite3
@@ -26,12 +25,12 @@ private val nativeInit = run { sqliteLoadLibrary() }
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): Sqlite3Buffer? = createBuffer(
+): sqlite3_pointer? = sqlite3_pointer.from(
     segment = nativeSqlite3.sqlite3_aggregate_context(
         context.pointer,
         nBytes
     ),
-    size = nBytes
+    size = nBytes.toLong()
 )
 
 public actual fun sqlite3_autovacuum_pages(

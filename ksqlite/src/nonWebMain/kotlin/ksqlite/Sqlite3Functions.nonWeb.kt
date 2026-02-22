@@ -6,10 +6,11 @@ import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
-import ksqlite.types.sqlite3_pointer
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_backup
 import ksqlite.types.sqlite3_blob
+import ksqlite.types.sqlite3_context
+import ksqlite.types.sqlite3_pointer
 import ksqlite.types.sqlite3_stmt
 import ksqlite.types.sqlite3_value
 
@@ -84,8 +85,8 @@ public expect fun sqlite3_backup_step(
 public expect fun sqlite3_bind_blob64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_pointer,
-    nData: ULong
+    data: sqlite3_pointer?,
+    nData: Long
 ): Sqlite3Result
 
 /**
@@ -96,8 +97,8 @@ public expect fun sqlite3_bind_blob64(
 public expect fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: String?,
-    nData: ULong,
+    data: sqlite3_pointer?,
+    nData: Long,
     encoding: Sqlite3TextEncoding.Set1
 ): Sqlite3Result
 
@@ -261,3 +262,24 @@ public expect fun sqlite3_memory_highwater(): Long
  * [sqlite3_normalized_sql()](https://sqlite.org/c3ref/expanded_sql.html)
  */
 public expect fun sqlite3_normalized_sql(stmt: sqlite3_stmt): String
+
+/**
+ * Attempt to release up to [size] bytes of non-essential memory currently held by SQLite. An
+ * example of non-essential memory is memory used to cache database pages that are not currently in
+ * use.
+ *
+ * [sqlite3_release_memory()](https://sqlite.org/c3ref/release_memory.html)
+ */
+public expect fun sqlite3_release_memory(size: Int): Int
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_blob64()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_blob64(
+    context: sqlite3_context,
+    data: sqlite3_pointer?,
+    nData: Long,
+    destructor: Sqlite3DestructorCallback?
+)

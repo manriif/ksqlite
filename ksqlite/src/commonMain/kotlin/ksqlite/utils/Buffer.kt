@@ -6,11 +6,11 @@ package ksqlite.utils
  * Ensures that [sourceOffset], [destinationOffset] and [size] are not negative and that content can
  * fit in source and destination.
  */
-internal inline fun checkRange(
-    sourceOffset: Int,
-    sourceSize: Int,
-    destinationOffset: Int,
-    destinationSize: Int,
+internal inline fun checkBufferRange(
+    sourceOffset: Long,
+    sourceSize: Long,
+    destinationOffset: Long,
+    destinationSize: Long,
     size: Int
 ) {
     require(sourceOffset >= 0) {
@@ -25,11 +25,11 @@ internal inline fun checkRange(
         "size must not be negative ($size)"
     }
 
-    require((sourceOffset + size) <= sourceSize) {
+    require((sourceSize - sourceOffset) >= size) {
         "source buffer cannot provides the requested number of bytes"
     }
 
-    require((destinationOffset + size) <= destinationSize) {
+    require((destinationSize - destinationOffset) >= size) {
         "destination buffer cannot receives the requested number of bytes"
     }
 }

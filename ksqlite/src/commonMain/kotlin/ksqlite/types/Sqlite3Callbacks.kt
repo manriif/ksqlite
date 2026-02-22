@@ -112,3 +112,20 @@ public typealias Sqlite3SqlLogCallback = (
     db: sqlite3,
     event: Sqlite3SqlLogEvent
 ) -> Unit
+
+/**
+ * Callback for [ksqlite.sqlite3_preupdate_hook].
+ */
+public typealias Sqlite3PreUpdateCallback = (
+    db: sqlite3,
+    action: Sqlite3ActionCode.Dml,
+    dbName: String,
+    tableName: String,
+    oldRowId: Long,
+    newRowId: Long
+) -> Unit
+
+/**
+ * Callback for [ksqlite.sqlite3_progress_handler].
+ */
+public typealias Sqlite3ProgressCallback = () -> Int

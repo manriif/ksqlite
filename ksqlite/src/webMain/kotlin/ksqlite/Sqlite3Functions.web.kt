@@ -2,8 +2,8 @@
 
 package ksqlite
 
-import ksqlite.types.Sqlite3Buffer
 import ksqlite.types.sqlite3_context
+import ksqlite.types.sqlite3_pointer
 import sqlite.Capi
 
 private val capi: Capi
@@ -12,7 +12,7 @@ private val capi: Capi
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): Sqlite3Buffer? = capi.sqlite3_aggregate_context(
+): sqlite3_pointer? = capi.sqlite3_aggregate_context(
     context,
     nBytes
 )

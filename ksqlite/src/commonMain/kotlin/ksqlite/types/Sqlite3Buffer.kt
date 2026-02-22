@@ -8,7 +8,7 @@ public expect class Sqlite3Buffer {
     /**
      * Size of the buffer allocated by SQLite.
      */
-    public val nativeSize: Int
+    public val nativeSize: Long
 
     /**
      * Reads [size] bytes from the native buffer into [destination] and returns [destination].
@@ -21,9 +21,9 @@ public expect class Sqlite3Buffer {
      * from native buffer.
      */
     public fun read(
-        sourceOffset: Int = 0,
+        size: Int,
+        sourceOffset: Long = 0,
         destinationOffset: Int = 0,
-        size: Int = this.nativeSize,
         destination: ByteArray = run {
             require(size >= 0) { "size must not be negative ($size)" }
             ByteArray(size)
@@ -42,8 +42,8 @@ public expect class Sqlite3Buffer {
      */
     public fun write(
         source: ByteArray,
-        sourceOffset: Int = 0,
-        destinationOffset: Int = 0,
         size: Int = source.size,
+        sourceOffset: Int = 0,
+        destinationOffset: Long = 0,
     )
 }

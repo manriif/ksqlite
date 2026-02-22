@@ -61,7 +61,7 @@ public expect class sqlite3_module
  *
  * [sqlite3_stmt](https://sqlite.org/c3ref/stmt.html)
  */
-public expect class sqlite3_stmt
+public expect class sqlite3_stmt public constructor()
 
 /**
  * SQLite uses the sqlite3_value object to represent all values that can be stored in a database
@@ -70,4 +70,4 @@ public expect class sqlite3_stmt
  *
  * [sqlite3_value](https://sqlite.org/c3ref/value.html)
  */
-public expect class sqlite3_value
+public expect class sqlite3_value public constructor()

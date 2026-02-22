@@ -1,34 +1,32 @@
 package ksqlite.types
 
 import kotlinx.cinterop.ByteVar
-import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.get
-import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.set
-import ksqlite.utils.checkRange
+import ksqlite.utils.checkBufferRange
 
 public actual class Sqlite3Buffer(
     private val nativeBuffer: CPointer<ByteVar>,
-    public actual val nativeSize: Int
+    public actual val nativeSize: Long
 ) {
 
     public actual fun read(
-        sourceOffset: Int,
-        destinationOffset: Int,
         size: Int,
+        sourceOffset: Long,
+        destinationOffset: Int,
         destination: ByteArray
     ): ByteArray {
-        checkRange(
+        checkBufferRange(
             sourceOffset = sourceOffset,
             sourceSize = nativeSize,
-            destinationOffset = destinationOffset,
-            destinationSize = destination.size,
+            destinationOffset = destinationOffset.toLong(),
+            destinationSize = destination.size.toLong(),
             size = size
         )
 
         repeat(size) { index ->
-            destination[index + destinationOffset] = nativeBuffer[index + sourceOffset]
+            destination[destinationOffset + index] = nativeBuffer[sourceOffset + index]
         }
 
         return destination
@@ -36,38 +34,20 @@ public actual class Sqlite3Buffer(
 
     public actual fun write(
         source: ByteArray,
+        size: Int,
         sourceOffset: Int,
-        destinationOffset: Int,
-        size: Int
+        destinationOffset: Long
     ) {
-        checkRange(
-            sourceOffset = sourceOffset,
-            sourceSize = source.size,
+        checkBufferRange(
+            sourceOffset = sourceOffset.toLong(),
+            sourceSize = source.size.toLong(),
             destinationOffset = destinationOffset,
             destinationSize = nativeSize,
             size = size
         )
 
         repeat(size) { index ->
-            nativeBuffer[index + destinationOffset] = source[index + sourceOffset]
+            nativeBuffer[destinationOffset + index] = source[sourceOffset + index]
         }
     }
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Factory
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns an [Sqlite3Buffer] or `null` if [pointer] is `null`.
- */
-internal fun createBuffer(pointer: COpaquePointer?, size: Int): Sqlite3Buffer? {
-    if (pointer == null) {
-        return null
-    }
-
-    return Sqlite3Buffer(
-        nativeBuffer = pointer.reinterpret(),
-        nativeSize = size
-    )
 }

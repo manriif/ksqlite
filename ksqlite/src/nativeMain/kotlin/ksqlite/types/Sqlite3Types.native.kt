@@ -7,7 +7,16 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import ksqlite.memory.Pointer
 
-public actual class sqlite3_pointer(internal val pointer: COpaquePointer)
+public actual class sqlite3_pointer private constructor(
+    internal val pointer: COpaquePointer?,
+    internal val size: Long
+) {
+    public companion object {
+        internal fun from(pointer: COpaquePointer?, size: Long): sqlite3_pointer? {
+            return pointer?.let { sqlite3_pointer(it, size) }
+        }
+    }
+}
 
 public actual class sqlite3 : Pointer<cnames.structs.sqlite3>()
 

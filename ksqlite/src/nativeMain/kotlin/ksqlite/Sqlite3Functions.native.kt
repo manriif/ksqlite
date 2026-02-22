@@ -8,16 +8,15 @@ import ksqlite.memory.getReferencedData
 import ksqlite.memory.referenceDestructor
 import ksqlite.memory.useMemoryManager
 import ksqlite.types.Sqlite3AutoVacuumPagesCallback
-import ksqlite.types.Sqlite3Buffer
 import ksqlite.types.Sqlite3BusyHandlerCallback
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3ExecCallback
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.Sqlite3Utf8Param
-import ksqlite.types.createBuffer
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
+import ksqlite.types.sqlite3_pointer
 import ksqlite.types.sqlite3_stmt
 import ksqlite.types.sqlite3_value
 import sqlite.sqlite3_aggregate_context
@@ -25,12 +24,12 @@ import sqlite.sqlite3_aggregate_context
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): Sqlite3Buffer? = createBuffer(
+): sqlite3_pointer? = sqlite3_pointer.from(
     pointer = sqlite3_aggregate_context(
         arg0 = context.pointer,
         nBytes = nBytes
     ),
-    size = nBytes
+    size = nBytes.toLong()
 )
 
 public actual fun sqlite3_autovacuum_pages(
