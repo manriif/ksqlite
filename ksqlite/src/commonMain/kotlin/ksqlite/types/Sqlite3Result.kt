@@ -919,7 +919,7 @@ public sealed class Sqlite3Result(public val code: Int) {
      * The SQLITE_OK result code means that the operation was successful and that there were no
      * errors. Most other result codes indicate an error.
      */
-    public sealed class OK(raw: Int) : Sqlite3Result(raw) {
+    public sealed class OK(code: Int) : Sqlite3Result(code) {
 
         /**
          * The sqlite3_load_extension() interface loads an extension into a single database

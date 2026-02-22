@@ -11,6 +11,5 @@ public actual class Sqlite3LongParam actual constructor(initialValue: Long) {
 }
 
 public actual class Sqlite3Utf8Param actual constructor(initialValue: String?) {
-    public actual val value: String?
-        get() = TODO("Not yet implemented")
+    public actual fun readValue(): String? = TODO("Not yet implemented")
 }

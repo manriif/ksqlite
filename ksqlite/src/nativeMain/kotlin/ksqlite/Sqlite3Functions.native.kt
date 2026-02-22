@@ -11,6 +11,7 @@ import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3BusyHandlerCallback
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3ExecCallback
+import ksqlite.types.Sqlite3PointerParam
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.Sqlite3Utf8Param
@@ -53,14 +54,15 @@ public actual fun sqlite3_autovacuum_pages(
 public actual fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
-    zData: ByteArray?,
-    nData: Int
+    data: ByteArray?,
+    size: Int,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
     sqlite.sqlite3_bind_blob(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = stmt.memory.bufferPointer(zData),
-        n = nData,
+        arg2 = stmt.memory.bufferPointer(data),
+        n = size,
         arg4 = sqlite.SQLITE_STATIC
     )
 )
@@ -68,14 +70,15 @@ public actual fun sqlite3_bind_blob(
 public actual fun sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
-    data: Any?,
-    ptrType: String
+    data: sqlite3_pointer?,
+    type: String,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
     sqlite.sqlite3_bind_pointer(
         arg0 = stmt.pointer,
         arg1 = index,
         arg2 = stmt.memory.referencePointer(data),
-        arg3 = stmt.memory.stringPointer(ptrType),
+        arg3 = stmt.memory.stringPointer(type),
         arg4 = sqlite.SQLITE_STATIC
     )
 )
@@ -175,7 +178,7 @@ public actual fun sqlite3_exec(
 
 public actual fun sqlite3_open(
     name: String,
-    db: sqlite3
+    db: Sqlite3PointerParam<sqlite3>
 ): Sqlite3Result = db.allocate { pointer ->
     sqlite.sqlite3_open(name, pointer)
 }

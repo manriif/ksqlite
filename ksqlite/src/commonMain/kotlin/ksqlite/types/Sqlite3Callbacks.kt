@@ -16,7 +16,7 @@ public typealias Sqlite3AutoExtensionCallback = (
     db: sqlite3,
     errorMsg: KMutableProperty<String>,
     routines: sqlite3_api_routines
-) -> Int
+) -> Sqlite3Result
 
 /**
  * Callback for [ksqlite.sqlite3_busy_handler].
@@ -30,7 +30,7 @@ public typealias Sqlite3CollationNeededCallback = (
     db: sqlite3,
     encoding: Sqlite3TextEncoding.Set2,
     name: String
-) -> Int
+) -> Unit
 
 /**
  * Callback for [ksqlite.sqlite3_create_collation] and [ksqlite.sqlite3_create_collation_v2].
@@ -43,7 +43,7 @@ public typealias Sqlite3CollationCompareCallback = (
 /**
  * Callback for [ksqlite.sqlite3_commit_hook].
  */
-public typealias Sqlite3CommitHookCallback = () -> Int
+public typealias Sqlite3CommitCallback = () -> Int
 
 /**
  * Callback with two parameters of [ksqlite.sqlite3_create_function],
@@ -129,3 +129,20 @@ public typealias Sqlite3PreUpdateCallback = (
  * Callback for [ksqlite.sqlite3_progress_handler].
  */
 public typealias Sqlite3ProgressCallback = () -> Int
+
+/**
+ * Callback for [ksqlite.sqlite3_rollback_hook].
+ */
+public typealias Sqlite3RollbackCallback = () -> Unit
+
+/**
+ * Callback for [ksqlite.sqlite3_set_authorizer].
+ */
+public typealias Sqlite3SetAuthorizerCallback = (
+    action: Sqlite3ActionCode,
+    param3: String?,
+    param4: String?,
+    param5: String?,
+    param6: String?
+) -> Sqlite3AuthorizerCode
+

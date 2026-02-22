@@ -49,14 +49,15 @@ public actual fun sqlite3_autovacuum_pages(
 public actual fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
-    zData: ByteArray?,
-    nData: Int
+    data: ByteArray?,
+    size: Int,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
     nativeSqlite3.sqlite3_bind_blob(
         stmt.pointer,
         index,
-        zData.pointer(),
-        nData,
+        data.pointer(),
+        size,
         SqliteTransient
     )
 )
@@ -64,14 +65,15 @@ public actual fun sqlite3_bind_blob(
 public actual fun sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
-    data: Any?,
-    ptrType: String
+    data: sqlite3_pointer?,
+    type: String,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
     nativeSqlite3.sqlite3_bind_pointer(
         stmt.pointer,
         index,
         stmt.memory.referencePointer(data),
-        stmt.memory.stringPointer(ptrType),
+        stmt.memory.stringPointer(type),
         SqliteStatic
     )
 )

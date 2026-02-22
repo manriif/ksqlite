@@ -8,8 +8,11 @@ import kotlinx.cinterop.IntVar
 import kotlinx.cinterop.LongVar
 import kotlinx.cinterop.NativePlacement
 import kotlinx.cinterop.alloc
+import kotlinx.cinterop.allocPointerTo
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.interpretCPointer
+import kotlinx.cinterop.interpretNullablePointed
+import kotlinx.cinterop.pointed
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.value
@@ -52,6 +55,47 @@ public abstract class Sqlite3Param<Type, Var : CPointed> internal constructor(in
 }
 
 ///////////////////////////////////////////////////////////////////////////
+// Pointer
+///////////////////////////////////////////////////////////////////////////
+
+public actual typealias PointerType = CPointed
+
+public actual class Sqlite3PointerParam<Pointer: PointerType> actual constructor():
+    Sqlite3Param<Pointer?, CPointerVar<CPointed>>(null) {
+
+    public actual val value: Pointer?
+        get() = currentValue
+
+    override val CPointerVar<CPointed>.memValue: Pointer?
+        get() = TODO("Not yet implemented")
+
+    override fun NativePlacement.allocate(value: Pointer?): CPointerVar<CPointed> {
+        return allocPointerTo()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// String
+///////////////////////////////////////////////////////////////////////////
+
+public actual class Sqlite3Utf8Param actual constructor(initialValue: String?) :
+    Sqlite3Param<String?, CPointerVar<ByteVar>>(initialValue) {
+
+    public actual fun readValue(): String? = currentValue
+
+    override val CPointerVar<ByteVar>.memValue: String?
+        get() = this.value?.toKStringFromUtf8()
+
+    override fun NativePlacement.allocate(value: String?): CPointerVar<ByteVar> {
+        return allocPointerTo<ByteVar>().apply {
+            this.value = value?.cstr?.run {
+                place(interpretCPointer(alloc(size, align).rawPtr)!!)
+            }
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
@@ -80,27 +124,5 @@ public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
 
     override fun NativePlacement.allocate(value: Long): LongVar {
         return alloc(value)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////
-// String
-///////////////////////////////////////////////////////////////////////////
-
-public actual class Sqlite3Utf8Param actual constructor(initialValue: String?) :
-    Sqlite3Param<String?, CPointerVar<ByteVar>>(initialValue) {
-
-    public actual val value: String?
-        get() = currentValue
-
-    override val CPointerVar<ByteVar>.memValue: String?
-        get() = value?.toKStringFromUtf8()
-
-    override fun NativePlacement.allocate(value: String?): CPointerVar<ByteVar> {
-        return alloc<CPointerVar<ByteVar>>().apply {
-            this.value = value?.cstr?.run {
-                place(interpretCPointer(alloc(size, align).rawPtr)!!)
-            }
-        }
     }
 }

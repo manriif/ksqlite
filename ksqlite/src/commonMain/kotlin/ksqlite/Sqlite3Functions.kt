@@ -6,7 +6,7 @@ import ksqlite.types.Sqlite3AutoExtensionCallback
 import ksqlite.types.Sqlite3BusyHandlerCallback
 import ksqlite.types.Sqlite3CollationCompareCallback
 import ksqlite.types.Sqlite3CollationNeededCallback
-import ksqlite.types.Sqlite3CommitHookCallback
+import ksqlite.types.Sqlite3CommitCallback
 import ksqlite.types.Sqlite3CompleteResult
 import ksqlite.types.Sqlite3ConfigOption
 import ksqlite.types.Sqlite3CreateFunctionFinalCallback
@@ -25,10 +25,14 @@ import ksqlite.types.Sqlite3FileOpenFlag
 import ksqlite.types.Sqlite3IntParam
 import ksqlite.types.Sqlite3Limit
 import ksqlite.types.Sqlite3LongParam
+import ksqlite.types.Sqlite3PointerParam
 import ksqlite.types.Sqlite3PreUpdateCallback
 import ksqlite.types.Sqlite3PrepareFlag
 import ksqlite.types.Sqlite3ProgressCallback
 import ksqlite.types.Sqlite3Result
+import ksqlite.types.Sqlite3RollbackCallback
+import ksqlite.types.Sqlite3SerializeFlag
+import ksqlite.types.Sqlite3SetAuthorizerCallback
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.Sqlite3Utf8Param
 import ksqlite.types.sqlite3
@@ -66,8 +70,9 @@ public expect fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback)
 public expect fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
-    zData: ByteArray?,
-    nData: Int
+    data: ByteArray?,
+    size: Int,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
 /**
@@ -128,7 +133,7 @@ public expect fun sqlite3_bind_parameter_count(stmt: sqlite3_stmt): Int
  */
 public expect fun sqlite3_bind_parameter_index(
     stmt: sqlite3_stmt,
-    zName: String
+    name: String
 ): Int
 
 /**
@@ -152,8 +157,9 @@ public expect fun sqlite3_bind_parameter_name(
 public expect fun sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
-    data: Any?,
-    ptrType: String
+    data: sqlite3_pointer?,
+    type: String,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
 /**
@@ -164,8 +170,9 @@ public expect fun sqlite3_bind_pointer(
 public expect fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    zData: String?,
-    nData: Int
+    text: String?,
+    size: Int,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
 /**
@@ -232,7 +239,7 @@ public expect fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result
  *
  * [sqlite3_close()](https://sqlite.org/c3ref/close.html)
  */
-public expect fun sqlite3_close(db: sqlite3): Sqlite3Result
+public expect fun sqlite3_close(db: sqlite3?): Sqlite3Result
 
 /**
  * Two variations on the public interface for closing a database.
@@ -243,7 +250,7 @@ public expect fun sqlite3_close(db: sqlite3): Sqlite3Result
  *
  * [sqlite3_close_v2()](https://sqlite.org/c3ref/close.html)
  */
-public expect fun sqlite3_close_v2(db: sqlite3): Sqlite3Result
+public expect fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result
 
 /**
  * Register a collation sequence factory callback with the database handle [db].
@@ -253,7 +260,7 @@ public expect fun sqlite3_close_v2(db: sqlite3): Sqlite3Result
  */
 public expect fun sqlite3_collation_needed(
     db: sqlite3,
-    callback: Sqlite3CollationNeededCallback,
+    callback: Sqlite3CollationNeededCallback?,
 ): Sqlite3Result
 
 /**
@@ -410,8 +417,8 @@ public expect fun sqlite3_column_value(
  */
 public expect fun sqlite3_commit_hook(
     db: sqlite3,
-    callback: Sqlite3CommitHookCallback?
-): Sqlite3CommitHookCallback?
+    callback: Sqlite3CommitCallback?
+): Sqlite3CommitCallback?
 
 /**
  * Return the [index]-th compile-time option string. If [index] is out of range, return `null`.
@@ -657,10 +664,10 @@ public expect fun sqlite3_declare_vtab(
 public expect fun sqlite3_deserialize(
     db: sqlite3,
     schema: String?,
-    data: ByteArray,
-    szDb: Long,
-    szBuf: Long,
-    mFlags: Sqlite3DeserializeFlag?
+    data: sqlite3_pointer?,
+    dbSize: Long,
+    dataSize: Long,
+    flags: Sqlite3DeserializeFlag?
 ): Sqlite3Result
 
 /**
@@ -764,7 +771,7 @@ public expect fun sqlite3_file_control(
     db: sqlite3,
     name: String,
     opcode: Sqlite3FileControlOpcode,
-    pointer: sqlite3_pointer?
+    data: sqlite3_pointer?
 ): Sqlite3Result
 
 /**
@@ -784,7 +791,7 @@ public expect fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result
  *
  * [sqlite3_free()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_free(pointer: sqlite3_pointer?)
+public expect fun sqlite3_free(data: sqlite3_pointer?)
 
 /**
  * Test to see whether or not the database connection is in autocommit mode. Return TRUE if it is
@@ -948,7 +955,7 @@ public expect fun sqlite3_malloc64(size: Long): sqlite3_pointer?
  *
  * [sqlite3_msize()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_msize(pointer: sqlite3_pointer?): ULong
+public expect fun sqlite3_msize(data: sqlite3_pointer?): ULong
 
 /**
  * Return a pointer to the next prepared statement after pStmt associated with database connection
@@ -969,7 +976,7 @@ public expect fun sqlite3_next_stmt(
  */
 public expect fun sqlite3_open(
     name: String,
-    db: sqlite3
+    db: Sqlite3PointerParam<sqlite3>
 ): Sqlite3Result
 
 /**
@@ -979,7 +986,7 @@ public expect fun sqlite3_open(
  */
 public expect fun sqlite3_open_v2(
     name: String,
-    db: sqlite3,
+    db: Sqlite3PointerParam<sqlite3>,
     flags: Sqlite3FileOpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result
@@ -1029,7 +1036,7 @@ public expect fun sqlite3_prepare_v3(
     sql: String,
     size: Int,
     stmt: sqlite3_stmt,
-    flags: Sqlite3PrepareFlag,
+    flags: Sqlite3PrepareFlag?,
     tail: Sqlite3Utf8Param?
 )
 
@@ -1115,7 +1122,7 @@ public expect fun sqlite3_progress_handler(
  */
 public expect fun sqlite3_randomness(
     size: Int,
-    pointer: sqlite3_pointer?
+    data: sqlite3_pointer?
 )
 
 /**
@@ -1125,7 +1132,7 @@ public expect fun sqlite3_randomness(
  * [sqlite3_realloc()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_realloc(
-    pointer: sqlite3_pointer?,
+    data: sqlite3_pointer?,
     size: Int
 ): sqlite3_pointer?
 
@@ -1136,7 +1143,7 @@ public expect fun sqlite3_realloc(
  * [sqlite3_realloc64()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_realloc64(
-    pointer: sqlite3_pointer?,
+    data: sqlite3_pointer?,
     size: Long
 ): sqlite3_pointer?
 
@@ -1165,7 +1172,244 @@ public expect fun sqlite3_reset_auto_extension()
  */
 public expect fun sqlite3_result_blob(
     context: sqlite3_context,
-    data: ByteArray,
+    data: ByteArray?,
     nData: Int,
     destructor: Sqlite3DestructorCallback?
 )
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_double()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_double(
+    context: sqlite3_context,
+    value: Double
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_error()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_error(
+    context: sqlite3_context,
+    message: String,
+    size: Int
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_error_code()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_error_code(
+    context: sqlite3_context,
+    code: Int
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_error_nomem()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_error_nomem(context: sqlite3_context)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_error_toobig()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_error_toobig(context: sqlite3_context)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_int()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_int(
+    context: sqlite3_context,
+    value: Int
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_int64()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_int64(
+    context: sqlite3_context,
+    value: Long
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_null()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_null(context: sqlite3_context)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_pointer()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_pointer(
+    context: sqlite3_context,
+    data: sqlite3_pointer?,
+    type: String,
+    destructor: Sqlite3DestructorCallback?
+)
+
+/**
+ * Set the subtype of the result from the application-defined SQL function with sqlite3_context
+ * [context] to [subtype].
+ *
+ * [sqlite3_result_subtype()](https://sqlite.org/c3ref/result_subtype.html)
+ */
+public expect fun sqlite3_result_subtype(
+    context: sqlite3_context,
+    subtype: UInt
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_text()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_text(
+    context: sqlite3_context,
+    text: String?,
+    size: Int,
+    destructor: Sqlite3DestructorCallback?
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_value()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_value(
+    context: sqlite3_context,
+    value: sqlite3_value?,
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_zeroblob()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_zeroblob(
+    context: sqlite3_context,
+    size: Int
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_zeroblob64()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_zeroblob64(
+    context: sqlite3_context,
+    size: UInt
+)
+
+/**
+ * Register a callback to be invoked each time a transaction is rolled back by this database
+ * connection.
+ *
+ * [sqlite3_rollback_hook()](https://sqlite.org/c3ref/commit_hook.html)
+ */
+public expect fun sqlite3_rollback_hook(
+    db: sqlite3,
+    callback: Sqlite3RollbackCallback?
+): Sqlite3RollbackCallback?
+
+/**
+ * Return the serialization of a database.
+ *
+ * [sqlite3_serialize()](https://sqlite.org/c3ref/serialize.html)
+ */
+public expect fun sqlite3_serialize(
+    db: sqlite3,
+    schema: String?,
+    dbSize: Sqlite3LongParam?,
+    flags: Sqlite3SerializeFlag?
+): sqlite3_pointer?
+
+/**
+ * Set or clear the access authorization function.
+ *
+ * [sqlite3_set_authorizer()](https://sqlite.org/c3ref/set_authorizer.html)
+ */
+public expect fun sqlite3_set_authorizer(
+    db: sqlite3,
+    callback: Sqlite3SetAuthorizerCallback?
+)
+
+/**
+ * Set the auxiliary data pointer and delete function, for the [index]-th argument to the
+ * user-function defined by [context]. Any previous value is deleted by calling the delete function
+ * specified when it was set.
+ *
+ * The left-most argument is 0.
+ *
+ * Undocumented behavior: If [index] is negative then make the data available to all functions
+ * within the current prepared statement using [index] as an access code.
+ *
+ * [sqlite3_set_auxdata()](https://sqlite.org/c3ref/get_auxdata.html)
+ */
+public expect fun sqlite3_set_auxdata(
+    context: sqlite3_context,
+    index: Int,
+    data: sqlite3_pointer?,
+    destructor: Sqlite3DestructorCallback?
+)
+
+/**
+ * Set the error code and error message associated with the database handle.
+ *
+ * [sqlite3_set_errmsg()](https://sqlite.org/c3ref/set_errmsg.html)
+ */
+public expect fun sqlite3_set_errmsg(
+    db: sqlite3,
+    errorCode: Sqlite3Result.Failure,
+    message: String?
+): Sqlite3Result
+
+/**
+ * Set the value returned by the [sqlite3_last_insert_rowid] API function.
+ *
+ * [sqlite3_set_last_insert_rowid()](https://sqlite.org/c3ref/set_last_insert_rowid.html)
+ */
+public expect fun sqlite3_set_last_insert_rowid(
+    db: sqlite3,
+    rowId: Long
+)
+
+/**
+ * Undo the effects of sqlite3_initialize(). Must not be called while there are outstanding database
+ * connections or memory allocations or while any part of SQLite is otherwise in use in any thread.
+ * This  routine is not threadsafe. But it is safe to invoke this routine on when SQLite is already
+ * shut down. If SQLite is already shut down when this routine is invoked, then this routine is a
+ * harmless no-op.
+ *
+ * [sqlite3_shutdown()](https://sqlite.org/c3ref/initialize.html)
+ */
+public expect fun sqlite3_shutdown(): Sqlite3Result
+
+/**
+ * Return a string that identifies the specific version of the source code that was used to build
+ * the SQLite library.
+ *
+ * [sqlite3_sourceid()](https://sqlite.org/c3ref/libversion.html)
+ */
+public expect fun sqlite3_sourceid(): String
+
+/**
+ * Return the SQL associated with a prepared statement.
+ *
+ * [sqlite3_sql()](https://sqlite.org/c3ref/expanded_sql.html)
+ */
+public expect fun sqlite3_sql(stmt: sqlite3_stmt): String
+

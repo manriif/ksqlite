@@ -86,8 +86,7 @@ public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
 public actual class Sqlite3Utf8Param actual constructor(initialValue: String?) :
     Sqlite3Param<String?>(initialValue) {
 
-    public actual val value: String?
-        get() = currentValue
+    public actual fun readValue(): String? = currentValue
 
     override fun SegmentAllocator.allocate(value: String?): MemorySegment {
         return allocate(ValueLayout.ADDRESS).apply {

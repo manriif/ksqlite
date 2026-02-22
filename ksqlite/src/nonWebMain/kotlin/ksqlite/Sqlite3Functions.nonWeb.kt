@@ -3,7 +3,9 @@
 package ksqlite
 
 import ksqlite.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.types.Sqlite3BlobOpenFlag
 import ksqlite.types.Sqlite3DestructorCallback
+import ksqlite.types.Sqlite3PointerParam
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.sqlite3
@@ -11,6 +13,7 @@ import ksqlite.types.sqlite3_backup
 import ksqlite.types.sqlite3_blob
 import ksqlite.types.sqlite3_context
 import ksqlite.types.sqlite3_pointer
+import ksqlite.types.sqlite3_snapshot
 import ksqlite.types.sqlite3_stmt
 import ksqlite.types.sqlite3_value
 
@@ -55,9 +58,7 @@ public expect fun sqlite3_backup_init(
  *
  * [sqlite3_backup_pagecount()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backuppagecount)
  */
-public expect fun sqlite3_backup_pagecount(
-    backup: sqlite3_backup
-): Int
+public expect fun sqlite3_backup_pagecount(backup: sqlite3_backup): Int
 
 /**
  * Return the number of pages still to be backed up as of the most recent call to
@@ -86,7 +87,8 @@ public expect fun sqlite3_bind_blob64(
     stmt: sqlite3_stmt,
     index: Int,
     data: sqlite3_pointer?,
-    nData: Long
+    size: Long,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
 /**
@@ -98,8 +100,9 @@ public expect fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
     data: sqlite3_pointer?,
-    nData: Long,
-    encoding: Sqlite3TextEncoding.Set1
+    size: Long,
+    encoding: Sqlite3TextEncoding.Set1,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
 /**
@@ -121,7 +124,7 @@ public expect fun sqlite3_bind_value(
 public expect fun sqlite3_bind_zeroblob(
     stmt: sqlite3_stmt,
     index: Int,
-    n: Int
+    size: Int
 ): Sqlite3Result
 
 /**
@@ -132,7 +135,7 @@ public expect fun sqlite3_bind_zeroblob(
 public expect fun sqlite3_bind_zeroblob64(
     stmt: sqlite3_stmt,
     index: Int,
-    n: ULong
+    size: ULong
 ): Sqlite3Result
 
 /**
@@ -160,7 +163,7 @@ public expect fun sqlite3_blob_open(
     tableName: String,
     columnName: String,
     rowIndex: Long,
-    flags: Int,
+    flags: Sqlite3BlobOpenFlag,
     blob: sqlite3_blob,
 ): Sqlite3Result
 
@@ -280,6 +283,83 @@ public expect fun sqlite3_release_memory(size: Int): Int
 public expect fun sqlite3_result_blob64(
     context: sqlite3_context,
     data: sqlite3_pointer?,
-    nData: Long,
+    size: Long,
     destructor: Sqlite3DestructorCallback?
 )
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_text64()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_text64(
+    context: sqlite3_context,
+    data: sqlite3_pointer?,
+    size: Long,
+    encoding: Sqlite3TextEncoding.Set1,
+    destructor: Sqlite3DestructorCallback?
+)
+
+/**
+ * Return a +ve value if snapshot [snapshot1] is newer than [snapshot2]. A -ve value if [snapshot1]
+ * is older than [snapshot2] and zero if [snapshot1] and [snapshot2] are the same snapshot.
+ *
+ * [sqlite3_snapshot_cmp()](https://sqlite.org/c3ref/snapshot_cmp.html)
+ */
+public expect fun sqlite3_snapshot_cmp(
+    snapshot1: sqlite3_snapshot,
+    snapshot2: sqlite3_snapshot
+): Int
+
+/**
+ * Free a snapshot handle obtained from [sqlite3_snapshot_get].
+ *
+ * [sqlite3_snapshot_free()](https://sqlite.org/c3ref/snapshot_free.html)
+ */
+public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Int
+
+/**
+ * Obtain a snapshot handle for the snapshot of database zDb currently being read by handle db.
+ *
+ * [sqlite3_snapshot_get()](https://sqlite.org/c3ref/snapshot_get.html)
+ */
+public expect fun sqlite3_snapshot_get(
+    db: sqlite3,
+    name: String?,
+    snapshot: Sqlite3PointerParam<sqlite3_snapshot>
+): Sqlite3Result
+
+/**
+ * Open a read-transaction on the snapshot identified by [snapshot].
+ *
+ * [sqlite3_snapshot_open()](https://sqlite.org/c3ref/snapshot_open.html)
+ */
+public expect fun sqlite3_snapshot_open(
+    db: sqlite3,
+    name: String?,
+    snapshot: sqlite3_snapshot
+): Sqlite3Result
+
+/**
+ * Recover as many snapshots as possible from the wal file associated with schema zDb of database
+ * [db].
+ *
+ * [sqlite3_snapshot_recover()](https://sqlite.org/c3ref/snapshot_recover.html)
+ */
+public expect fun sqlite3_snapshot_recover(
+    db: sqlite3,
+    name: String?
+): Sqlite3Result
+
+/**
+ * Set the soft heap-size limit for the library. An argument of zero disables the limit. A negative
+ * argument is a no-op used to obtain the return value.
+ *
+ * The return value is the value of the heap limit just before this interface was called.
+ *
+ * If the hard heap limit is enabled, then the soft heap limit cannot  be disabled nor raised above
+ * the hard heap limit.
+ *
+ * [sqlite3_soft_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
+ */
+public expect fun sqlite3_soft_heap_limit64(limit: Long): Long
