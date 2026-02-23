@@ -878,6 +878,7 @@ fun Project.registerSqliteGenerateCInteropDefTask(
             createDefContent(
                 packageName = packageName,
                 libraryFile = target.libraryFile.get().asFile,
+                operatingSystem = target.platform.get().operatingSystem,
                 params = extension.compilationParams.get()
             )
         )

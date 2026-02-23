@@ -11,12 +11,17 @@ package ksqlite.types
 public sealed class Sqlite3DeserializeFlag(internal open val value: Int) {
 
     /**
+     * Flag that is a constant.
+     */
+    public sealed class Constant(value: Int) : Sqlite3DeserializeFlag(value)
+
+    /**
      * The SQLITE_DESERIALIZE_FREEONCLOSE means that the database serialization in the P argument is
      * held in memory obtained from sqlite3_malloc64() and that SQLite should take ownership of this
      * memory and automatically free it when it has finished using it. Without this flag, the caller
      * is responsible for freeing any dynamically allocated memory.
      */
-    public data object FREEONCLOSE : Sqlite3DeserializeFlag(1)
+    public data object FREEONCLOSE : Constant(1)
 
     /**
      * The SQLITE_DESERIALIZE_RESIZEABLE flag means that SQLite is allowed to grow the size of the
@@ -24,13 +29,13 @@ public sealed class Sqlite3DeserializeFlag(internal open val value: Int) {
      * SQLITE_DESERIALIZE_FREEONCLOSE is also used. Without this flag, the deserialized database
      * cannot increase in size beyond the number of bytes specified by the M parameter.
      */
-    public data object RESIZEABLE : Sqlite3DeserializeFlag(2)
+    public data object RESIZEABLE : Constant(2)
 
     /**
      * The SQLITE_DESERIALIZE_READONLY flag means that the deserialized database should be treated
      * as read-only.
      */
-    public data object READONLY : Sqlite3DeserializeFlag(4)
+    public data object READONLY : Constant(4)
 
     /**
      * Holder for the flags to be passed to the deserialize API function.

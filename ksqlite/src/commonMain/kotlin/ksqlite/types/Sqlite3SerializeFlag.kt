@@ -11,12 +11,17 @@ package ksqlite.types
 public sealed class Sqlite3SerializeFlag(internal open val value: Int) {
 
     /**
+     * Flag that is a constant.
+     */
+    public sealed class Constant(value: Int) : Sqlite3SerializeFlag(value)
+
+    /**
      * If the F argument contains the SQLITE_SERIALIZE_NOCOPY bit, then no memory allocations are
      * made, and the sqlite3_serialize() function will return a pointer to the contiguous memory
      * representation of the database that SQLite is currently using for that database, or NULL if
      * no such contiguous memory representation of the database exist.
      */
-    public data object NOCOPY : Sqlite3SerializeFlag(0x001)
+    public data object NOCOPY : Constant(0x001)
 
     /**
      * Holder for the flags to be passed to the serialize API function.

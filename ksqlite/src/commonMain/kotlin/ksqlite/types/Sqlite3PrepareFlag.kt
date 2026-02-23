@@ -11,6 +11,11 @@ package ksqlite.types
 public sealed class Sqlite3PrepareFlag(internal open val value: Int) {
 
     /**
+     * Flag that is a constant.
+     */
+    public sealed class Constant(value: Int) : Sqlite3PrepareFlag(value)
+
+    /**
      * The SQLITE_PREPARE_PERSISTENT flag is a hint to the query planner that the prepared statement
      * will be retained for a long time and probably reused many times. Without this flag,
      * sqlite3_prepare_v3() and sqlite3_prepare16_v3() assume that the prepared statement will be
@@ -19,7 +24,7 @@ public sealed class Sqlite3PrepareFlag(internal open val value: Int) {
      * as not to deplete the limited store of lookaside memory. Future versions of SQLite may act on
      * this hint differently.
      */
-    public data object PERSISTENT : Sqlite3PrepareFlag(0x01)
+    public data object PERSISTENT : Constant(0x01)
 
     /**
      * The SQLITE_PREPARE_NORMALIZE flag is a no-op. This flag used to be required for any prepared
@@ -27,13 +32,13 @@ public sealed class Sqlite3PrepareFlag(internal open val value: Int) {
      * sqlite3_normalized_sql() interface is now available to all prepared statements, regardless of
      * whether or not they use this flag.
      */
-    public data object NORMALIZE : Sqlite3PrepareFlag(0x02)
+    public data object NORMALIZE : Constant(0x02)
 
     /**
      * The SQLITE_PREPARE_NO_VTAB flag causes the SQL compiler to return an error (error code
      * SQLITE_ERROR) if the statement uses any virtual tables.
      */
-    public data object NO_VTAB : Sqlite3PrepareFlag(0x04)
+    public data object NO_VTAB : Constant(0x04)
 
     /**
      * The SQLITE_PREPARE_DONT_LOG flag prevents SQL compiler errors from being sent to the error
@@ -43,7 +48,7 @@ public sealed class Sqlite3PrepareFlag(internal open val value: Int) {
      * indications with or without this flag; it just omits the call to sqlite3_log() that logs the
      * error.
      */
-    public data object DONT_LOG : Sqlite3PrepareFlag(0x10)
+    public data object DONT_LOG : Constant(0x10)
 
     /**
      * Holder for the flags to be passed to the prepare API functions.

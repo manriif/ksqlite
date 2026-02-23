@@ -39,6 +39,10 @@ import ksqlite.types.Sqlite3StatementStatusCounter
 import ksqlite.types.Sqlite3StatusOption
 import ksqlite.types.Sqlite3StringUtf8Param
 import ksqlite.types.Sqlite3TextEncoding
+import ksqlite.types.Sqlite3TraceCallback
+import ksqlite.types.Sqlite3TraceFlag
+import ksqlite.types.Sqlite3TransactionState
+import ksqlite.types.Sqlite3UpdateCallback
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
 import ksqlite.types.sqlite3_filename
@@ -596,7 +600,7 @@ public expect fun sqlite3_db_filename(
 
 /**
  * Return the sqlite3* database handle to which the prepared statement given in the argument
- * belongs. This is the same database handle that was the first argument to the [sqlite3_prepare]
+ * belongs. This is the same database handle that was the first argument to the sqlite3_prepare()
  * that was used to create the statement in the first place.
  *
  * [sqlite3_db_handle()](https://sqlite.org/c3ref/db_handle.html)
@@ -951,11 +955,11 @@ public expect fun sqlite3_malloc(size: Int): sqlite3_pointer?
 public expect fun sqlite3_malloc64(size: Long): sqlite3_pointer?
 
 /**
- * Returns the size of [pointer] memory allocation in bytes. The value returned by [sqlite3_msize]
- * might be larger than the number of bytes requested when [pointer] was allocated. If [pointer] is
- * a NULL pointer then [sqlite3_msize] returns zero. If [pointer] points to something that is not
- * the beginning of memory allocation, or if it points to a formerly valid memory allocation that
- * has now been freed, then the behavior of [sqlite3_msize] is undefined and possibly harmful.
+ * Returns the size of [data] memory allocation in bytes. The value returned by [sqlite3_msize]
+ * might be larger than the number of bytes requested when [data] was allocated. If [data] is a NULL
+ * pointer then [sqlite3_msize] returns zero. If [data] points to something that is not the
+ * beginning of memory allocation, or if it points to a formerly valid memory allocation that has
+ * now been freed, then the behavior of [sqlite3_msize] is undefined and possibly harmful.
  *
  * [sqlite3_msize()](https://sqlite.org/c3ref/free.html)
  */
@@ -1567,3 +1571,93 @@ public expect fun sqlite3_total_changes(db: sqlite3): Int
  * [sqlite3_total_changes64()](https://sqlite.org/c3ref/total_changes.html)
  */
 public expect fun sqlite3_total_changes64(db: sqlite3): Long
+
+/**
+ * Register a trace callback using the version-2 interface.
+ *
+ * [sqlite3_trace_v2()](https://sqlite.org/c3ref/trace_v2.html)
+ */
+public expect fun sqlite3_trace_v2(
+    sqlite3: sqlite3,
+    mask: Sqlite3TraceFlag?,
+    callback: Sqlite3TraceCallback?
+)
+
+/**
+ * Return the transaction state for a single database, or the maximum transaction state over all
+ * attached databases if [schema] is null.
+ *
+ * [sqlite3_txn_state()](https://sqlite.org/c3ref/txn_state.html)
+ */
+public expect fun sqlite3_txn_state(
+    db: sqlite3,
+    schema: String?
+): Sqlite3TransactionState?
+
+/**
+ * Register a callback to be invoked each time a row is updated, inserted or deleted using this
+ * database connection.
+ *
+ * [sqlite3_update_hook()](https://sqlite.org/c3ref/update_hook.html)
+ */
+public expect fun sqlite3_update_hook(
+    db: sqlite3,
+    callback: Sqlite3UpdateCallback?
+): Sqlite3UpdateCallback?
+
+/**
+ * Return a boolean value for a query parameter.
+ *
+ * [sqlite3_uri_boolean()](https://sqlite.org/c3ref/uri_boolean.html)
+ */
+public expect fun sqlite3_uri_boolean(
+    fileName: sqlite3_filename,
+    parameter: String,
+    default: Int
+): Int
+
+/**
+ * Return a 64-bit integer value for a query parameter.
+ *
+ * [sqlite3_uri_int64()](https://sqlite.org/c3ref/uri_boolean.html)
+ */
+public expect fun sqlite3_uri_int64(
+    fileName: sqlite3_filename,
+    parameter: String,
+    default: Long
+): Long
+
+/**
+ * Return a pointer to the name of [index]-th query parameter of the filename.
+ *
+ * [sqlite3_uri_key()](https://sqlite.org/c3ref/uri_boolean.html)
+ */
+public expect fun sqlite3_uri_key(
+    fileName: sqlite3_filename,
+    index: Int
+): String?
+
+/**
+ * This is a utility routine, useful to VFS implementations, that checks to see if a database file
+ * was a URI that contained a specific query parameter, and if so obtains the value of the query
+ * parameter.
+ *
+ * The [fileName] argument is the filename pointer passed into the xOpen() method of a VFS
+ * implementation. The [parameter] argument is the name of the query parameter we seek. This routine
+ * returns the value of the [parameter] parameter if it exists. If the parameter does not exist,
+ * this routine returns a NULL pointer.
+ *
+ * [sqlite3_uri_parameter()](https://sqlite.org/c3ref/uri_boolean.html)
+ */
+public expect fun sqlite3_uri_parameter(
+    fileName: sqlite3_filename,
+    parameter: String
+): String?
+
+/**
+ * Extract the user data from a sqlite3_context structure and return a
+ * pointer to it.
+ *
+ * [sqlite3_user_data()](https://sqlite.org/c3ref/user_data.html)
+ */
+public expect fun sqlite3_user_data(context: sqlite3_context): sqlite3_pointer?

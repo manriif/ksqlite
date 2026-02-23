@@ -146,3 +146,17 @@ public typealias Sqlite3SetAuthorizerCallback = (
     param6: String?
 ) -> Sqlite3AuthorizerCode
 
+/**
+ * Callback for [ksqlite.sqlite3_trace_v2].
+ */
+public typealias Sqlite3TraceCallback = (event: Sqlite3TraceEvent) -> Int
+
+/**
+ * Callback for [ksqlite.sqlite3_update_hook].
+ */
+public typealias Sqlite3UpdateCallback = (
+    action: Sqlite3ActionCode.Dml,
+    dbName: String,
+    tableName: String,
+    rowId: Long
+) -> Unit
