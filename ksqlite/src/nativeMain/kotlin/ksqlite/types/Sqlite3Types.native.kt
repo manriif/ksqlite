@@ -23,11 +23,16 @@ internal typealias s3_value = cnames.structs.sqlite3_value
 
 public actual class sqlite3_pointer private constructor(
     internal val pointer: COpaquePointer?,
-    internal val size: Long
+    internal val size: Long,
+    internal val writable: Boolean
 ) {
     public companion object {
-        internal fun from(pointer: COpaquePointer?, size: Long): sqlite3_pointer? {
-            return pointer?.let { sqlite3_pointer(it, size) }
+        internal fun from(
+            pointer: COpaquePointer?,
+            size: Long,
+            writable: Boolean
+        ): sqlite3_pointer? {
+            return pointer?.let { sqlite3_pointer(it, size, writable) }
         }
     }
 }

@@ -5,10 +5,13 @@ package ksqlite
 import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3BlobOpenFlag
 import ksqlite.types.Sqlite3BlobParam
+import ksqlite.types.Sqlite3CheckpointMode
 import ksqlite.types.Sqlite3DestructorCallback
-import ksqlite.types.Sqlite3DatabaseConnectionParam
+import ksqlite.types.Sqlite3IntParam
 import ksqlite.types.Sqlite3Result
+import ksqlite.types.Sqlite3SnapshotParam
 import ksqlite.types.Sqlite3TextEncoding
+import ksqlite.types.Sqlite3WalCallback
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_backup
 import ksqlite.types.sqlite3_blob
@@ -165,7 +168,7 @@ public expect fun sqlite3_blob_open(
     columnName: String,
     rowIndex: Long,
     flags: Sqlite3BlobOpenFlag,
-    blob: Sqlite3BlobParam
+    outBlob: Sqlite3BlobParam
 ): Sqlite3Result
 
 /**
@@ -327,7 +330,7 @@ public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Int
 public expect fun sqlite3_snapshot_get(
     db: sqlite3,
     name: String?,
-    snapshot: Sqlite3DatabaseConnectionParam<sqlite3_snapshot>
+    outSnapshot: Sqlite3SnapshotParam
 ): Sqlite3Result
 
 /**
@@ -372,3 +375,63 @@ public expect fun sqlite3_soft_heap_limit64(limit: Long): Long
  * [sqlite3_system_errno()](https://sqlite.org/c3ref/system_errno.html)
  */
 public expect fun sqlite3_system_errno(db: sqlite3): Int
+
+/**
+ * Return the current text encoding of the [value].
+ *
+ * [sqlite3_value_encoding()](https://sqlite.org/c3ref/value_encoding.html)
+ */
+public expect fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2?
+
+/**
+ * Configure an [sqlite3_wal_hook] callback to automatically checkpoint a database after committing
+ * a transaction if there are [nFrame] or more frames in the log file. Passing zero or a negative
+ * value as the [nFrame] parameter disables automatic checkpoints entirely.
+ *
+ * The callback registered by this function replaces any existing callback egistered using
+ * [sqlite3_wal_hook]. Likewise, registering a callback using [sqlite3_wal_hook] disables the
+ * automatic checkpoint mechanism configured by this function.
+ *
+ * [sqlite3_wal_autocheckpoint()](https://sqlite.org/c3ref/wal_autocheckpoint.html)
+ */
+public expect fun sqlite3_wal_autocheckpoint(
+    db: sqlite3,
+    nFrame: Int
+): Sqlite3Result
+
+/**
+ * Checkpoint database [name]. If [name] is NULL, or if the buffer [name] points to contains a
+ * zero-length string, all attached databases are checkpointed.
+ *
+ * [sqlite3_wal_checkpoint()](https://sqlite.org/c3ref/wal_checkpoint.html)
+ */
+public expect fun sqlite3_wal_checkpoint(
+    db: sqlite3,
+    name: String?
+): Sqlite3Result
+
+/**
+ * Checkpoint database [name]. If [name] is NULL, or if the buffer [name] points to contains a
+ * zero-length string, all attached databases are checkpointed.
+ *
+ * [sqlite3_wal_checkpoint_v2()](https://sqlite.org/c3ref/wal_checkpoint_v2.html)
+ */
+public expect fun sqlite3_wal_checkpoint_v2(
+    db: sqlite3,
+    name: String?,
+    mode: Sqlite3CheckpointMode,
+    outNLog: Sqlite3IntParam?,
+    outNCkpt: Sqlite3IntParam?
+): Sqlite3Result
+
+/**
+ * Register a callback to be invoked each time a transaction is written into the write-ahead-log by
+ * this database connection.
+ *
+ * [sqlite3_wal_hook()](https://sqlite.org/c3ref/wal_hook.html)
+ */
+public expect fun sqlite3_wal_hook(
+    sqlite3: sqlite3,
+    callback: Sqlite3WalCallback?,
+    userData: sqlite3_pointer?
+): sqlite3_pointer?

@@ -43,13 +43,18 @@ import ksqlite.types.Sqlite3TraceCallback
 import ksqlite.types.Sqlite3TraceFlag
 import ksqlite.types.Sqlite3TransactionState
 import ksqlite.types.Sqlite3UpdateCallback
+import ksqlite.types.Sqlite3ValueParam
+import ksqlite.types.Sqlite3VirtualTableConfigOption
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
 import ksqlite.types.sqlite3_filename
+import ksqlite.types.sqlite3_index_info
 import ksqlite.types.sqlite3_module
 import ksqlite.types.sqlite3_pointer
+import ksqlite.types.sqlite3_pointer_mutable
 import ksqlite.types.sqlite3_stmt
 import ksqlite.types.sqlite3_value
+import ksqlite.types.sqlite3_vfs
 
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
@@ -166,7 +171,7 @@ public expect fun sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
     data: sqlite3_pointer?,
-    type: String,
+    type: String?,
     destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
@@ -415,7 +420,7 @@ public expect fun sqlite3_column_type(
 public expect fun sqlite3_column_value(
     stmt: sqlite3_stmt,
     index: Int
-): sqlite3_value
+): sqlite3_value?
 
 /**
  * Register a function to be invoked when a transaction commits. If the invoked function returns
@@ -472,7 +477,7 @@ public expect fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
  *
  * [sqlite3_context_db_handle()](https://sqlite.org/c3ref/context_db_handle.html)
  */
-public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3
+public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
 
 /**
  * Register a new collation sequence with the database handle [db].
@@ -596,7 +601,7 @@ public expect fun sqlite3_db_config(
 public expect fun sqlite3_db_filename(
     db: sqlite3,
     name: String
-): sqlite3_filename
+): sqlite3_filename?
 
 /**
  * Return the sqlite3* database handle to which the prepared statement given in the argument
@@ -605,7 +610,7 @@ public expect fun sqlite3_db_filename(
  *
  * [sqlite3_db_handle()](https://sqlite.org/c3ref/db_handle.html)
  */
-public expect fun sqlite3_db_handle(stmt: sqlite3_stmt): sqlite3
+public expect fun sqlite3_db_handle(stmt: sqlite3_stmt): sqlite3?
 
 /**
  * Return the name of the [index]-th database schema. Return `null` if [index] is out of range.
@@ -984,7 +989,7 @@ public expect fun sqlite3_next_stmt(
  */
 public expect fun sqlite3_open(
     name: String,
-    db: Sqlite3DatabaseConnectionParam
+    outDb: Sqlite3DatabaseConnectionParam
 ): Sqlite3Result
 
 /**
@@ -994,7 +999,7 @@ public expect fun sqlite3_open(
  */
 public expect fun sqlite3_open_v2(
     name: String,
-    db: Sqlite3DatabaseConnectionParam,
+    outDb: Sqlite3DatabaseConnectionParam,
     flags: Sqlite3FileOpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result
@@ -1028,8 +1033,8 @@ public expect fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
     size: Int,
-    stmt: Sqlite3StatementParam,
-    tail: Sqlite3StringUtf8Param?
+    outStmt: Sqlite3StatementParam,
+    outTail: Sqlite3StringUtf8Param?
 )
 
 /**
@@ -1043,9 +1048,9 @@ public expect fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: String,
     size: Int,
-    stmt: Sqlite3StatementParam,
+    outStmt: Sqlite3StatementParam,
     flags: Sqlite3PrepareFlag?,
-    tail: Sqlite3StringUtf8Param?
+    outTail: Sqlite3StringUtf8Param?
 )
 
 /**
@@ -1265,7 +1270,7 @@ public expect fun sqlite3_result_null(context: sqlite3_context)
 public expect fun sqlite3_result_pointer(
     context: sqlite3_context,
     data: sqlite3_pointer?,
-    type: String,
+    type: String?,
     destructor: Sqlite3DestructorCallback?
 )
 
@@ -1655,9 +1660,232 @@ public expect fun sqlite3_uri_parameter(
 ): String?
 
 /**
- * Extract the user data from a sqlite3_context structure and return a
- * pointer to it.
+ * Extract the user data from a sqlite3_context structure and return a pointer to it.
  *
  * [sqlite3_user_data()](https://sqlite.org/c3ref/user_data.html)
  */
 public expect fun sqlite3_user_data(context: sqlite3_context): sqlite3_pointer?
+
+/**
+ * Extract information from sqlite3_value structure.
+ *
+ * [sqlite3_value_bytes()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_bytes(value: sqlite3_value): Int
+
+/**
+ * Extract information from sqlite3_value structure.
+ *
+ * [sqlite3_value_double()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_double(value: sqlite3_value): Double
+
+/**
+ * Make a copy of an sqlite3_value object.
+ *
+ * [sqlite3_value_dup()](https://sqlite.org/c3ref/value_dup.html)
+ */
+public expect fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value?
+
+/**
+ * Extract information from sqlite3_value structure.
+ *
+ * [sqlite3_value_free()](https://sqlite.org/c3ref/value_dup.html)
+ */
+public expect fun sqlite3_value_free(value: sqlite3_value)
+
+/**
+ * Return true if a parameter value originated from an sqlite3_bind().
+ *
+ * [sqlite3_value_frombind()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_frombind(value: sqlite3_value): Int
+
+/**
+ * Extract information from sqlite3_value structure.
+ *
+ * [sqlite3_value_int()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_int(value: sqlite3_value): Int
+
+/**
+ * Extract information from sqlite3_value structure.
+ *
+ * [sqlite3_value_int64()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_int64(value: sqlite3_value): Long
+
+/**
+ * Return true if a parameter to xUpdate represents an unchanged column.
+ *
+ * [sqlite3_value_nochange()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_nochange(value: sqlite3_value): Int
+
+/**
+ * Try to convert the type of a function argument or a result column into a numeric representation.
+ * Use either INTEGER or REAL whichever is appropriate.  But only do the conversion if it is
+ * possible without loss of information and return the revised type of the argument.
+ *
+ * [sqlite3_value_numeric_type()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_numeric_type(value: sqlite3_value): Sqlite3DataType
+
+/**
+ * Extract information from sqlite3_value structure.
+ *
+ * [sqlite3_value_pointer()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_pointer(
+    value: sqlite3_value,
+    type: String?
+): sqlite3_pointer_mutable?
+
+/**
+ * Return the subtype for an application-defined SQL function argument [value].
+ *
+ * [sqlite3_value_subtype()](https://sqlite.org/c3ref/value_subtype.html)
+ */
+public expect fun sqlite3_value_subtype(value: sqlite3_value): UInt
+
+/**
+ * Extract information from sqlite3_value structure.
+ *
+ * [sqlite3_value_text()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_text(value: sqlite3_value): String?
+
+/**
+ * Return the default datatype of the [value].
+ *
+ * [sqlite3_value_type()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_type(value: sqlite3_value): Sqlite3DataType
+
+/**
+ * Locate a VFS by name. If no name is given, simply return the first VFS on the list.
+ *
+ * [sqlite3_vfs_find()](https://sqlite.org/c3ref/vfs_find.html)
+ */
+public expect fun sqlite3_vfs_find(name: String?): sqlite3_vfs?
+
+/**
+ * Register a VFS with the system. It is harmless to register the same VFS multiple times. The new
+ * VFS becomes the default if [makeDefault] is true.
+ *
+ * [sqlite3_vfs_register()](https://sqlite.org/c3ref/vfs_find.html)
+ */
+public expect fun sqlite3_vfs_register(
+    vfs: sqlite3_vfs,
+    makeDefault: Int
+): Sqlite3Result
+
+/**
+ * Unregister a VFS so that it is no longer accessible.
+ *
+ * [sqlite3_vfs_find()](https://sqlite.org/c3ref/vfs_find.html)
+ */
+public expect fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): Sqlite3Result
+
+/**
+ * Return the collating sequence for a constraint passed into xBestIndex.
+ *
+ * [sqlite3_vtab_collation()](https://sqlite.org/c3ref/vtab_collation.html)
+ */
+public expect fun sqlite3_vtab_collation(
+    info: sqlite3_index_info,
+    index: Int
+): String?
+
+/**
+ * Call from within the xCreate() or xConnect() methods to provide the SQLite core with additional
+ * information about the behavior of the virtual table being implemented.
+ *
+ * [sqlite3_vtab_config()](https://sqlite.org/c3ref/vtab_config.html)
+ */
+public expect fun sqlite3_vtab_config(
+    db: sqlite3,
+    option: Sqlite3VirtualTableConfigOption
+): Sqlite3Result
+
+/**
+ * Return true if ORDER BY clause may be handled as DISTINCT.
+ *
+ * [sqlite3_vtab_distinct()](https://sqlite.org/c3ref/vtab_distinct.html)
+ */
+public expect fun sqlite3_vtab_distinct(info: sqlite3_index_info): Int
+
+/**
+ *  Return true if constraint iCons is really an IN(...) constraint, or false otherwise. If iCons
+ *  is an IN(...) constraint, set (if bHandle!=0) or clear (if bHandle==0) the flag to handle it
+ *  using an iterator.
+ *
+ * [sqlite3_vtab_in()](https://sqlite.org/c3ref/vtab_in.html)
+ */
+public expect fun sqlite3_vtab_in(
+    info: sqlite3_index_info,
+    index: Int,
+    handle: Int
+): Int
+
+/**
+ * Set the iterator value [value] to point to the first value in the set.
+ * Set [outValue] to point to this value before returning.
+ *
+ * [sqlite3_vtab_in_first()](https://sqlite.org/c3ref/vtab_in_first.html)
+ */
+public expect fun sqlite3_vtab_in_first(
+    value: sqlite3_value,
+    outValue: Sqlite3ValueParam?
+): Sqlite3Result
+
+/**
+ * Set the iterator value [value] to point to the next value in the set.
+ * Set [outValue] to point to this value before returning.
+ *
+ * [sqlite3_vtab_in_next()](https://sqlite.org/c3ref/vtab_in_first.html)
+ */
+public expect fun sqlite3_vtab_in_next(
+    value: sqlite3_value,
+    outValue: Sqlite3ValueParam?
+): Sqlite3Result
+
+/**
+ * If this routine is invoked from within an xColumn method of a virtual table, then it returns true
+ * if and only if the call is during an UPDATE operation and the value of the column will not be
+ * modified by the UPDATE.
+ *
+ * If this routine is called from any context other than within the Column method of a virtual
+ * table, then the return value is meaningless and arbitrary.
+ *
+ * Virtual table implements might use this routine to optimize their performance by substituting a
+ * NULL result, or some other light-weight value, as a signal to the xUpdate routine that the column
+ * is unchanged.
+ *
+ * [sqlite3_vtab_nochange()](https://sqlite.org/c3ref/vtab_nochange.html)
+ */
+public expect fun sqlite3_vtab_nochange(context: sqlite3_context): Int
+
+/**
+ * Return the ON CONFLICT resolution mode in effect for the virtual table update operation currently
+ * in progress.
+ *
+ * The results of this routine are undefined unless it is called from  within an xUpdate method.
+ *
+ * [sqlite3_vtab_on_conflict()](https://sqlite.org/c3ref/vtab_on_conflict.html)
+ */
+public expect fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result
+
+/**
+ * This interface is callable from within the xBestIndex callback only.
+ *
+ * If possible, set (*ppVal) to point to an object containing the value on the right-hand-side of
+ * constraint iCons.
+ *
+ * [sqlite3_vtab_rhs_value()](https://sqlite.org/c3ref/vtab_rhs_value.html)
+ */
+public expect fun sqlite3_vtab_rhs_value(
+    info: sqlite3_index_info,
+    index: Int,
+    outValue: Sqlite3ValueParam?
+)

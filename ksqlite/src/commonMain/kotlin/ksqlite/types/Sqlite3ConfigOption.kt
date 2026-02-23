@@ -104,7 +104,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * SQLITE_DEFAULT_MEMSTATUS=0 in which case memory allocation statistics are disabled by
      * default.
      */
-    public class MEMSTATUS(internal val enabled: Boolean) : Sqlite3ConfigOption(9)
+    public class MEMSTATUS(internal val enabled: Int) : Sqlite3ConfigOption(9)
 
     /**
      * The SQLITE_CONFIG_LOOKASIDE option takes two arguments that determine the default size of
@@ -160,7 +160,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * is enabled. Providing the ability to disable the optimization allows the older, buggy 
      * application code to work without change even with newer versions of SQLite.
      */
-    public class COVERING_INDEX_SCAN(internal val enabled: Boolean) : Sqlite3ConfigOption(20)
+    public class COVERING_INDEX_SCAN(internal val enabled: Int) : Sqlite3ConfigOption(20)
 
     /**
      * This option is only available if sqlite is compiled with the SQLITE_ENABLE_SQLLOG
@@ -226,7 +226,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * prefer to run slower in exchange for guarantees about memory fragmentation that are possible
      * if large allocations are avoided. This hint is normally off.
      */
-    public class SMALL_MALLOC(internal val enabled: Boolean) : Sqlite3ConfigOption(27)
+    public class SMALL_MALLOC(internal val enabled: Int) : Sqlite3ConfigOption(27)
 
     /**
      * The SQLITE_CONFIG_SORTERREF_SIZE option accepts a single parameter of type (int) - the new

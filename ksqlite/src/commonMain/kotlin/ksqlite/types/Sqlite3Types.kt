@@ -2,13 +2,29 @@
 
 package ksqlite.types
 
+///////////////////////////////////////////////////////////////////////////
+// Pointers
+///////////////////////////////////////////////////////////////////////////
+
 /**
  * Generic pointer.
  *
  * This is not an official SQLite3 type but the name is used to enforce the fact that it will be
  * managed by SQLite interface APis such as [ksqlite.sqlite3_malloc] and [ksqlite.sqlite3_free].
  */
-public expect class sqlite3_pointer
+public expect open class sqlite3_pointer
+
+/**
+ * Generic mutable pointer.
+ *
+ * This is not an official SQLite3 type but the name is used to enforce the fact that it will be
+ * managed by SQLite interface APis such as [ksqlite.sqlite3_malloc] and [ksqlite.sqlite3_free].
+ */
+public expect class sqlite3_pointer_mutable : sqlite3_pointer
+
+///////////////////////////////////////////////////////////////////////////
+// Types
+///////////////////////////////////////////////////////////////////////////s
 
 /**
  * Each open SQLite database is represented by a pointer to an instance of the opaque structure
@@ -44,6 +60,15 @@ public expect class sqlite3_context
 public typealias sqlite3_filename = String
 
 /**
+ * The sqlite3_index_info structure and its substructures is used as part of the virtual table
+ * interface to pass information into and receive the reply from the xBestIndex method of a virtual
+ * table module.
+ *
+ * [sqlite3_index_info](https://sqlite.org/c3ref/index_info.html)
+ */
+public expect class sqlite3_index_info
+
+/**
  * This structure, sometimes called a "virtual table module", defines the implementation of a
  * virtual table. This structure consists mostly of methods for the module.
  *
@@ -71,3 +96,12 @@ public expect class sqlite3_stmt
  * [sqlite3_value](https://sqlite.org/c3ref/value.html)
  */
 public expect class sqlite3_value
+
+/**
+ * An instance of the sqlite3_vfs object defines the interface between the SQLite core and the
+ * underlying operating system. The "vfs" in the name of the object stands for "virtual file
+ * system". See the VFS documentation for further information.
+ *
+ * [sqlite3_vfs](https://sqlite.org/c3ref/vfs.html)
+ */
+public expect class sqlite3_vfs

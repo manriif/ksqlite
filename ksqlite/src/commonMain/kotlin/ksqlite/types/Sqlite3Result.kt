@@ -14,9 +14,14 @@ package ksqlite.types
 public sealed class Sqlite3Result(public val code: Int) {
 
     /**
-     * [Failure] are a subset of "result codes" that indicate that something has gone wrong.
+     * Subset of "result codes" that are either a success or an error.
      */
-    public sealed class Failure(code: Int) : Sqlite3Result(code)
+    public sealed class OkOrFailure(code: Int) : Sqlite3Result(code)
+
+    /**
+     * Subset of "result codes" that indicate that something has gone wrong.
+     */
+    public sealed class Failure(code: Int) : OkOrFailure(code)
 
     /**
      * The SQLITE_ABORT result code indicates that an operation was aborted prior to completion,
@@ -919,7 +924,7 @@ public sealed class Sqlite3Result(public val code: Int) {
      * The SQLITE_OK result code means that the operation was successful and that there were no
      * errors. Most other result codes indicate an error.
      */
-    public sealed class OK(code: Int) : Sqlite3Result(code) {
+    public sealed class OK(code: Int) : OkOrFailure(code) {
 
         /**
          * The sqlite3_load_extension() interface loads an extension into a single database

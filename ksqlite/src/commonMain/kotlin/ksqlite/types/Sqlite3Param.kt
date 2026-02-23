@@ -12,16 +12,24 @@ public interface Sqlite3Param<Value> {
     /**
      * Value written on native side.
      *
-     * ## Pointer
+     * ## Pointer to sqlite3* structs.
      *
-     * For pointers, [Value] is a wrapper enclosing the pointer to the allocated struct.
-     * The wrapper can be `null` in the following cases:
+     * For pointers to sqlite3* structs, [Value] is a wrapper enclosing the pointer to the allocated
+     * struct which can be `null` in the following cases:
      *
-     * - This instance was not passed to any SQLite interface intended to allocate the struct
+     * - This [Sqlite3Param] instance was not passed to any SQLite interface intended to allocate
+     * the struct
      * - The SQLite interface failed to make the allocation
      *
      * If the returned wrapper was passed to an SQLite interface intended to deallocate the
      * struct, then it should no longer be used.
+     *
+     * ## Callback
+     *
+     * For non-primitives [Value] types, the returned [Value] may be lazily computed the first time
+     * it is accessed if `this` [Sqlite3Param] instance was supplied as a callback argument.
+     *
+     * The value must not be accessed after the callback returns.
      */
     public val value: Value
 }
