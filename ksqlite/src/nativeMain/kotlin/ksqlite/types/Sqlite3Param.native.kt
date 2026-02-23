@@ -9,89 +9,68 @@ import kotlinx.cinterop.LongVar
 import kotlinx.cinterop.NativePlacement
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.allocPointerTo
-import kotlinx.cinterop.cstr
-import kotlinx.cinterop.interpretCPointer
-import kotlinx.cinterop.interpretNullablePointed
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.value
 
+///////////////////////////////////////////////////////////////////////////
+// Param
+///////////////////////////////////////////////////////////////////////////
+
 /**
  * Base for output parameter.
  */
-public abstract class Sqlite3Param<Type, Var : CPointed> internal constructor(initialValue: Type) {
+public abstract class Sqlite3ParamBase<Value, Var : CPointed>
+internal constructor(initialValue: Value) : Sqlite3Param<Value> {
 
-    private var nativeVar: Var? = null
-    private var lastValue: Type = initialValue
+    private var actualValue: Value = initialValue
 
-    protected abstract val Var.memValue: Type
-
-    protected val currentValue: Type
-        get() = nativeVar?.memValue ?: lastValue
+    final override val value: Value
+        get() = actualValue
 
     /**
-     * Allocates memory and initializes with [value].
+     * Allocates memory for [Var] and initializes with [initialValue].
      */
-    protected abstract fun NativePlacement.allocate(value: Type): Var
+    protected abstract fun NativePlacement.allocate(initialValue: Value): Var
 
     /**
-     * Allocates memory into [placement] and returns the pointer to the allocated [Var].
+     * Reads the [Value] of [Var] pointed by [pointer].
+     */
+    protected abstract fun readValue(pointer: CPointer<Var>): Value
+
+    /**
+     * Allocates memory into [placement] and returns the [CPointer] to the allocated [Var].
      */
     internal fun attach(placement: NativePlacement): CPointer<Var> {
-        check(nativeVar == null) { "Param is already attached" }
-        val allocated = placement.allocate(lastValue)
-        nativeVar = allocated
-        return allocated.ptr
+        return placement.allocate(actualValue).ptr
     }
 
     /**
-     * Invalidates the previously allocated [Var].
+     * Extracts the value of the previously allocated [Var] from [pointer].
      */
-    internal fun detach() {
-        lastValue = checkNotNull(nativeVar) { "Param is not attached" }.memValue
-        nativeVar = null
+    internal fun detach(pointer: CPointer<Var>) {
+        actualValue = readValue(pointer)
     }
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Pointer
-///////////////////////////////////////////////////////////////////////////
+/**
+ * Base for pointer output parameter.
+ */
+public abstract class Sqlite3PointerParamBase<Value, Var : CPointed> :
+    Sqlite3ParamBase<Value?, CPointerVar<Var>>(null) {
 
-public actual typealias PointerType = CPointed
-
-public actual class Sqlite3PointerParam<Pointer: PointerType> actual constructor():
-    Sqlite3Param<Pointer?, CPointerVar<CPointed>>(null) {
-
-    public actual val value: Pointer?
-        get() = currentValue
-
-    override val CPointerVar<CPointed>.memValue: Pointer?
-        get() = TODO("Not yet implemented")
-
-    override fun NativePlacement.allocate(value: Pointer?): CPointerVar<CPointed> {
+    final override fun NativePlacement.allocate(initialValue: Value?): CPointerVar<Var> {
         return allocPointerTo()
     }
-}
 
-///////////////////////////////////////////////////////////////////////////
-// String
-///////////////////////////////////////////////////////////////////////////
+    /**
+     * Creates a new [Value] instance from [pointer].
+     */
+    protected abstract fun create(pointer: CPointer<Var>): Value
 
-public actual class Sqlite3Utf8Param actual constructor(initialValue: String?) :
-    Sqlite3Param<String?, CPointerVar<ByteVar>>(initialValue) {
-
-    public actual fun readValue(): String? = currentValue
-
-    override val CPointerVar<ByteVar>.memValue: String?
-        get() = this.value?.toKStringFromUtf8()
-
-    override fun NativePlacement.allocate(value: String?): CPointerVar<ByteVar> {
-        return allocPointerTo<ByteVar>().apply {
-            this.value = value?.cstr?.run {
-                place(interpretCPointer(alloc(size, align).rawPtr)!!)
-            }
-        }
+    final override fun readValue(pointer: CPointer<CPointerVar<Var>>): Value? {
+        return pointer.pointed.value?.let(::create)
     }
 }
 
@@ -99,30 +78,99 @@ public actual class Sqlite3Utf8Param actual constructor(initialValue: String?) :
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
-public actual open class Sqlite3IntBaseParam internal actual constructor(initialValue: Int) :
-    Sqlite3Param<Int, IntVar>(initialValue) {
 
-    internal actual open val intValue: Int
-        get() = currentValue
+public actual class Sqlite3IntParam actual constructor(initialValue: Int) :
+    Sqlite3ParamBase<Int, IntVar>(initialValue) {
 
-    override val IntVar.memValue: Int
-        get() = value
-
-    override fun NativePlacement.allocate(value: Int): IntVar {
+    override fun NativePlacement.allocate(initialValue: Int): IntVar {
         return alloc(value)
+    }
+
+    override fun readValue(pointer: CPointer<IntVar>): Int {
+        return pointer.pointed.value
     }
 }
 
 public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
-    Sqlite3Param<Long, LongVar>(initialValue) {
+    Sqlite3ParamBase<Long, LongVar>(initialValue) {
 
-    public actual val value: Long
-        get() = currentValue
-
-    override val LongVar.memValue: Long
-        get() = value
-
-    override fun NativePlacement.allocate(value: Long): LongVar {
+    override fun NativePlacement.allocate(initialValue: Long): LongVar {
         return alloc(value)
     }
+
+    override fun readValue(pointer: CPointer<LongVar>): Long {
+        return pointer.pointed.value
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// String
+///////////////////////////////////////////////////////////////////////////
+
+public actual class Sqlite3StringUtf8Param actual constructor() :
+    Sqlite3PointerParamBase<String?, ByteVar>() {
+
+    override fun create(pointer: CPointer<ByteVar>): String {
+        return pointer.toKStringFromUtf8()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Structs
+///////////////////////////////////////////////////////////////////////////
+
+public actual class Sqlite3DatabaseConnectionParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3, s3>() {
+
+    override fun create(pointer: CPointer<s3>): sqlite3 {
+        return sqlite3(pointer)
+    }
+}
+
+public actual class Sqlite3ContextParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3_context, s3_context>() {
+
+    override fun create(pointer: CPointer<s3_context>): sqlite3_context {
+        return sqlite3_context(pointer)
+    }
+}
+
+public actual class Sqlite3StatementParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3_stmt, s3_stmt>() {
+
+    override fun create(pointer: CPointer<s3_stmt>): sqlite3_stmt {
+        return sqlite3_stmt(pointer)
+    }
+}
+
+public actual class Sqlite3ValueParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3_value, s3_value>() {
+
+    override fun create(pointer: CPointer<s3_value>): sqlite3_value {
+        return sqlite3_value(pointer)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Allocates [Var] into [placement], invokes [block] with a pointer to it and returns [block]'s
+ * result.
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.use(
+    placement: NativePlacement,
+    block: (CPointer<Var>) -> R
+): R {
+    val pointer = attach(placement)
+
+    val result = try {
+        block(pointer)
+    } finally {
+        detach(pointer)
+    }
+
+    return result
 }

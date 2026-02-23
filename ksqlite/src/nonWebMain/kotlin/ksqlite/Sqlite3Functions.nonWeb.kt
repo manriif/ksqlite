@@ -4,8 +4,9 @@ package ksqlite
 
 import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3BlobOpenFlag
+import ksqlite.types.Sqlite3BlobParam
 import ksqlite.types.Sqlite3DestructorCallback
-import ksqlite.types.Sqlite3PointerParam
+import ksqlite.types.Sqlite3DatabaseConnectionParam
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
 import ksqlite.types.sqlite3
@@ -41,7 +42,7 @@ public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
  * [srcDb] to [destDbName] in [destDb].
  * If successful, return a pointer to the new [sqlite3_backup] object.
  * If an error occurs, NULL is returned and an error code and error message stored in database
- * handle pDestDb.
+ * handle [destDb].
  *
  * [sqlite3_backup_init()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit)
  */
@@ -164,7 +165,7 @@ public expect fun sqlite3_blob_open(
     columnName: String,
     rowIndex: Long,
     flags: Sqlite3BlobOpenFlag,
-    blob: sqlite3_blob,
+    blob: Sqlite3BlobParam
 ): Sqlite3Result
 
 /**
@@ -326,7 +327,7 @@ public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Int
 public expect fun sqlite3_snapshot_get(
     db: sqlite3,
     name: String?,
-    snapshot: Sqlite3PointerParam<sqlite3_snapshot>
+    snapshot: Sqlite3DatabaseConnectionParam<sqlite3_snapshot>
 ): Sqlite3Result
 
 /**
@@ -363,3 +364,11 @@ public expect fun sqlite3_snapshot_recover(
  * [sqlite3_soft_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
  */
 public expect fun sqlite3_soft_heap_limit64(limit: Long): Long
+
+/**
+ * Attempt to return the underlying operating system error code or error number that caused the most
+ * recent I/O error or failure to open a file. The return value is OS-dependent.
+ *
+ * [sqlite3_system_errno()](https://sqlite.org/c3ref/system_errno.html)
+ */
+public expect fun sqlite3_system_errno(db: sqlite3): Int

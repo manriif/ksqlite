@@ -11,7 +11,7 @@ import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
 import ksqlite.types.Sqlite3DestructorCallback
-import ksqlite.types.Sqlite3Param
+import ksqlite.types.Sqlite3ParamBase
 
 internal actual class MemoryManager : AutoCloseable {
 
@@ -54,7 +54,7 @@ internal actual class MemoryManager : AutoCloseable {
      * Attaches the [param] and returns a [CPointer] to a [P] instance.
      * Returns `null` if [param] is `null`.
      */
-    internal fun <P : CPointed> paramPointer(param: Sqlite3Param<*, P>?): CPointer<P>? = notClosed {
+    internal fun <P : CPointed> paramPointer(param: Sqlite3ParamBase<*, P>?): CPointer<P>? = notClosed {
         if (param == null) {
             return null
         }

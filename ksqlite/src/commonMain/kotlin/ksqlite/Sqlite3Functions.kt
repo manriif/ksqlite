@@ -15,17 +15,18 @@ import ksqlite.types.Sqlite3CreateFunctionInverseCallback
 import ksqlite.types.Sqlite3CreateFunctionStepCallback
 import ksqlite.types.Sqlite3CreateFunctionValueCallback
 import ksqlite.types.Sqlite3DataType
+import ksqlite.types.Sqlite3DatabaseConnectionParam
 import ksqlite.types.Sqlite3DbConfigOption
 import ksqlite.types.Sqlite3DbStatusOption
 import ksqlite.types.Sqlite3DeserializeFlag
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3ExecCallback
+import ksqlite.types.Sqlite3ExplainMode
 import ksqlite.types.Sqlite3FileControlOpcode
 import ksqlite.types.Sqlite3FileOpenFlag
 import ksqlite.types.Sqlite3IntParam
 import ksqlite.types.Sqlite3Limit
 import ksqlite.types.Sqlite3LongParam
-import ksqlite.types.Sqlite3PointerParam
 import ksqlite.types.Sqlite3PreUpdateCallback
 import ksqlite.types.Sqlite3PrepareFlag
 import ksqlite.types.Sqlite3ProgressCallback
@@ -33,8 +34,11 @@ import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3RollbackCallback
 import ksqlite.types.Sqlite3SerializeFlag
 import ksqlite.types.Sqlite3SetAuthorizerCallback
+import ksqlite.types.Sqlite3StatementParam
+import ksqlite.types.Sqlite3StatementStatusCounter
+import ksqlite.types.Sqlite3StatusOption
+import ksqlite.types.Sqlite3StringUtf8Param
 import ksqlite.types.Sqlite3TextEncoding
-import ksqlite.types.Sqlite3Utf8Param
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
 import ksqlite.types.sqlite3_filename
@@ -438,7 +442,7 @@ public expect fun sqlite3_compileoption_get(
  *
  * [sqlite3_compileoption_used()](https://sqlite.org/c3ref/compileoption_get.html)
  */
-public expect fun sqlite3_compileoption_used(optName: String): Boolean
+public expect fun sqlite3_compileoption_used(optName: String): Int
 
 /**
  * Return `1` if the given SQL string ends in a semicolon.
@@ -629,7 +633,7 @@ public expect fun sqlite3_db_status(
     option: Sqlite3DbStatusOption,
     current: Sqlite3IntParam,
     highwtr: Sqlite3IntParam,
-    resetFlag: Boolean
+    resetFlag: Int
 ): Sqlite3Result
 
 /**
@@ -642,7 +646,7 @@ public expect fun sqlite3_db_status64(
     option: Sqlite3DbStatusOption,
     current: Sqlite3LongParam,
     highwtr: Sqlite3LongParam,
-    resetFlag: Boolean
+    resetFlag: Int
 ): Sqlite3Result
 
 /**
@@ -730,7 +734,7 @@ public expect fun sqlite3_exec(
     db: sqlite3,
     sql: String,
     callback: Sqlite3ExecCallback?,
-    errMsg: Sqlite3Utf8Param?
+    errMsg: Sqlite3StringUtf8Param?
 ): Sqlite3Result
 
 /**
@@ -759,7 +763,7 @@ public expect fun sqlite3_extended_errcode(db: sqlite3): Int
  */
 public expect fun sqlite3_extended_result_codes(
     db: sqlite3,
-    enabled: Boolean
+    enabled: Int
 ): Sqlite3Result
 
 /**
@@ -800,7 +804,7 @@ public expect fun sqlite3_free(data: sqlite3_pointer?)
  *
  * [sqlite3_get_autocommit()](https://sqlite.org/c3ref/get_autocommit.html)
  */
-public expect fun sqlite3_get_autocommit(db: sqlite3): Boolean
+public expect fun sqlite3_get_autocommit(db: sqlite3): Int
 
 /**
  * Return the auxiliary data pointer, if any, for the [index]-th argument to the user-function
@@ -860,7 +864,7 @@ public expect fun sqlite3_interrupt(db: sqlite3)
  *
  * [sqlite3_is_interrupted()](https://sqlite.org/c3ref/interrupt.html)
  */
-public expect fun sqlite3_is_interrupted(db: sqlite3): Boolean
+public expect fun sqlite3_is_interrupted(db: sqlite3): Int
 
 /**
  * The sqlite3_keyword_count() interface returns the number of distinct keywords understood by
@@ -880,7 +884,7 @@ public expect fun sqlite3_keyword_count(): Int
  */
 public expect fun sqlite3_keyword_name(
     index: Int,
-    name: Sqlite3Utf8Param,
+    name: Sqlite3StringUtf8Param,
 ): Sqlite3Result
 
 /**
@@ -889,7 +893,7 @@ public expect fun sqlite3_keyword_name(
  *
  * [sqlite3_keyword_check()](https://sqlite.org/c3ref/keyword_check.html)
  */
-public expect fun sqlite3_keyword_check(word: String): Boolean
+public expect fun sqlite3_keyword_check(word: String): Int
 
 /**
  * Return the ROWID of the most recent insert.
@@ -976,7 +980,7 @@ public expect fun sqlite3_next_stmt(
  */
 public expect fun sqlite3_open(
     name: String,
-    db: Sqlite3PointerParam<sqlite3>
+    db: Sqlite3DatabaseConnectionParam
 ): Sqlite3Result
 
 /**
@@ -986,7 +990,7 @@ public expect fun sqlite3_open(
  */
 public expect fun sqlite3_open_v2(
     name: String,
-    db: Sqlite3PointerParam<sqlite3>,
+    db: Sqlite3DatabaseConnectionParam,
     flags: Sqlite3FileOpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result
@@ -1020,8 +1024,8 @@ public expect fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
     size: Int,
-    stmt: sqlite3_stmt,
-    tail: Sqlite3Utf8Param?
+    stmt: Sqlite3StatementParam,
+    tail: Sqlite3StringUtf8Param?
 )
 
 /**
@@ -1035,9 +1039,9 @@ public expect fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: String,
     size: Int,
-    stmt: sqlite3_stmt,
+    stmt: Sqlite3StatementParam,
     flags: Sqlite3PrepareFlag?,
-    tail: Sqlite3Utf8Param?
+    tail: Sqlite3StringUtf8Param?
 )
 
 /**
@@ -1413,3 +1417,153 @@ public expect fun sqlite3_sourceid(): String
  */
 public expect fun sqlite3_sql(stmt: sqlite3_stmt): String
 
+/**
+ * Query status information.
+ *
+ * [sqlite3_status()](https://sqlite.org/c3ref/status.html)
+ */
+public expect fun sqlite3_status(
+    option: Sqlite3StatusOption,
+    current: Sqlite3IntParam,
+    highwtr: Sqlite3IntParam,
+    resetFlag: Int
+)
+
+/**
+ * Query status information.
+ *
+ * [sqlite3_status64()](https://sqlite.org/c3ref/status.html)
+ */
+public expect fun sqlite3_status64(
+    option: Sqlite3StatusOption,
+    current: Sqlite3LongParam,
+    highwtr: Sqlite3LongParam,
+    resetFlag: Int
+)
+
+/**
+ * Execute the statement [stmt], either until a row of data is ready, the statement is completely
+ * executed or an error occurs.
+ *
+ * [sqlite3_step()](https://sqlite.org/c3ref/step.html)
+ */
+public expect fun sqlite3_step(stmt: sqlite3_stmt): Sqlite3Result
+
+/**
+ * Return true if the prepared statement is in need of being reset.
+ *
+ * [sqlite3_stmt_busy()](https://sqlite.org/c3ref/stmt_busy.html)
+ */
+public expect fun sqlite3_stmt_busy(stmt: sqlite3_stmt): Int
+
+/**
+ * Set the explain mode for a statement.
+ *
+ * [sqlite3_stmt_explain()](https://sqlite.org/c3ref/stmt_explain.html)
+ */
+public expect fun sqlite3_stmt_explain(
+    stmt: sqlite3_stmt,
+    mode: Sqlite3ExplainMode
+): Sqlite3Result
+
+/**
+ * Return 1 if the statement is an EXPLAIN and return 2 if the statement is an EXPLAIN QUERY PLAN.
+ *
+ * [sqlite3_stmt_isexplain()](https://sqlite.org/c3ref/stmt_isexplain.html)
+ */
+public expect fun sqlite3_stmt_isexplain(stmt: sqlite3_stmt): Sqlite3ExplainMode
+
+/**
+ * Return true if the prepared statement is guaranteed to not modify the database.
+ *
+ * [sqlite3_stmt_readonly()](https://sqlite.org/c3ref/stmt_readonly.html)
+ */
+public expect fun sqlite3_stmt_readonly(stmt: sqlite3_stmt): Sqlite3ExplainMode
+
+/**
+ * Return the value of a status counter for a prepared statement.
+ *
+ * [sqlite3_stmt_status()](https://sqlite.org/c3ref/stmt_status.html)
+ */
+public expect fun sqlite3_stmt_status(
+    stmt: sqlite3_stmt,
+    counter: Sqlite3StatementStatusCounter,
+    resetFlag: Int
+): Int
+
+/**
+ * Return 0 on a match (like strcmp()) and  non-zero if there is no match.
+ *
+ * [sqlite3_strglob()](https://sqlite.org/c3ref/strglob.html)
+ */
+public expect fun sqlite3_strglob(
+    pattern: String,
+    string: String
+): Int
+
+/**
+ * Allow applications and extensions to compare the contents of two buffers containing UTF-8 strings
+ * in a case-independent fashion, using the same definition of "case independence" that SQLite uses
+ * internally when comparing identifiers.
+ *
+ * [sqlite3_stricmp()](https://sqlite.org/c3ref/stricmp.html)
+ */
+public expect fun sqlite3_stricmp(
+    left: String,
+    right: String
+): Int
+
+/**
+ * Return 0 on a match and non-zero for  a miss - like strcmp().
+ *
+ * [sqlite3_strlike()](https://sqlite.org/c3ref/strlike.html)
+ */
+public expect fun sqlite3_strlike(
+    pattern: String,
+    string: String,
+    escape: UInt
+): Int
+
+/**
+ * Allow applications and extensions to compare the contents of two buffers containing UTF-8 strings
+ * in a case-independent fashion, using the same definition of "case independence" that SQLite uses
+ * internally when comparing identifiers.
+ *
+ * [sqlite3_strnicmp()](https://sqlite.org/c3ref/stricmp.html)
+ */
+public expect fun sqlite3_strnicmp(
+    left: String,
+    right: String,
+    n: Int
+): Int
+
+/**
+ * Return meta information about a specific column of a database table.
+ *
+ * [sqlite3_table_column_metadata()](https://sqlite.org/c3ref/table_column_metadata.html)
+ */
+public expect fun sqlite3_table_column_metadata(
+    db: sqlite3,
+    dbName: String?,
+    tableName: String,
+    columnName: String,
+    dataType: Sqlite3StringUtf8Param?,
+    collationName: Sqlite3StringUtf8Param?,
+    notNull: Sqlite3IntParam?,
+    primaryKey: Sqlite3IntParam?,
+    autoIncrement: Sqlite3IntParam?
+): Sqlite3Result
+
+/**
+ * Return the number of changes since the database handle was opened.
+ *
+ * [sqlite3_total_changes()](https://sqlite.org/c3ref/total_changes.html)
+ */
+public expect fun sqlite3_total_changes(db: sqlite3): Int
+
+/**
+ * Return the number of changes since the database handle was opened.
+ *
+ * [sqlite3_total_changes64()](https://sqlite.org/c3ref/total_changes.html)
+ */
+public expect fun sqlite3_total_changes64(db: sqlite3): Long

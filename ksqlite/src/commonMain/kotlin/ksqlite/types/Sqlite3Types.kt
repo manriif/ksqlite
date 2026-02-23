@@ -16,7 +16,7 @@ public expect class sqlite3_pointer
  *
  * [sqlite3](https://sqlite.org/c3ref/sqlite3.html)
  */
-public expect class sqlite3 public constructor()
+public expect class sqlite3
 
 /**
  * A pointer to the opaque sqlite3_api_routines structure is passed as the third parameter to entry
@@ -61,7 +61,7 @@ public expect class sqlite3_module
  *
  * [sqlite3_stmt](https://sqlite.org/c3ref/stmt.html)
  */
-public expect class sqlite3_stmt public constructor()
+public expect class sqlite3_stmt
 
 /**
  * SQLite uses the sqlite3_value object to represent all values that can be stored in a database
@@ -70,4 +70,4 @@ public expect class sqlite3_stmt public constructor()
  *
  * [sqlite3_value](https://sqlite.org/c3ref/value.html)
  */
-public expect class sqlite3_value public constructor()
+public expect class sqlite3_value

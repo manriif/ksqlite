@@ -4,8 +4,22 @@
 package ksqlite.types
 
 import kotlinx.cinterop.COpaquePointer
+import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import ksqlite.memory.Pointer
+
+///////////////////////////////////////////////////////////////////////////
+// Aliases
+///////////////////////////////////////////////////////////////////////////
+
+internal typealias s3 = cnames.structs.sqlite3
+internal typealias s3_context = cnames.structs.sqlite3_context
+internal typealias s3_stmt = cnames.structs.sqlite3_stmt
+internal typealias s3_value = cnames.structs.sqlite3_value
+
+///////////////////////////////////////////////////////////////////////////
+// Types
+///////////////////////////////////////////////////////////////////////////
 
 public actual class sqlite3_pointer private constructor(
     internal val pointer: COpaquePointer?,
@@ -18,10 +32,10 @@ public actual class sqlite3_pointer private constructor(
     }
 }
 
-public actual class sqlite3 : Pointer<cnames.structs.sqlite3>()
+public actual class sqlite3(pointer: CPointer<s3>) : Pointer<s3>(pointer)
 
-public actual class sqlite3_context : Pointer<cnames.structs.sqlite3_context>()
+public actual class sqlite3_context(pointer: CPointer<s3_context>) : Pointer<s3_context>(pointer)
 
-public actual class sqlite3_stmt : Pointer<cnames.structs.sqlite3_stmt>()
+public actual class sqlite3_stmt(pointer: CPointer<s3_stmt>) : Pointer<s3_stmt>(pointer)
 
-public actual class sqlite3_value : Pointer<cnames.structs.sqlite3_value>()
+public actual class sqlite3_value(pointer: CPointer<s3_value>) : Pointer<s3_value>(pointer)

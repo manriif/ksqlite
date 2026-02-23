@@ -1,47 +1,70 @@
 package ksqlite.types
 
-import ksqlite.memory.segment
+import ksqlite.memory.isNull
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
 
+///////////////////////////////////////////////////////////////////////////
+// Param
+///////////////////////////////////////////////////////////////////////////
+
 /**
  * Base for output parameter.
  */
-public abstract class Sqlite3Param<Type> internal constructor(initialValue: Type) {
+public abstract class Sqlite3ParamBase<Value> internal constructor(initialValue: Value) :
+    Sqlite3Param<Value> {
 
-    private var segment: MemorySegment? = null
-    private var lastValue: Type = initialValue
+    private var actualValue: Value = initialValue
 
-    protected val currentValue: Type
-        get() = segment?.value() ?: lastValue
+    final override val value: Value
+        get() = actualValue
 
     /**
-     * Allocates memory and initializes with [value].
+     * Allocates memory and initializes with [initialValue].
      */
-    protected abstract fun SegmentAllocator.allocate(value: Type): MemorySegment
+    protected abstract fun SegmentAllocator.allocate(initialValue: Value): MemorySegment
 
     /**
-     * Reads the current value from [MemorySegment].
+     * Reads the current [Value] from [segment].
      */
-    protected abstract fun MemorySegment.value(): Type
+    protected abstract fun readValue(segment: MemorySegment): Value
 
     /**
-     * Allocates memory into [allocator] and returns the [MemorySegment] to the allocated memory.
+     * Allocates memory into [allocator] and returns the [MemorySegment] to the allocated [Value].
      */
     internal fun attach(allocator: SegmentAllocator): MemorySegment {
-        check(segment == null) { "Param is already attached" }
-        val allocated = allocator.allocate(lastValue)
-        segment = allocated
-        return allocated
+        return allocator.allocate(actualValue)
     }
 
     /**
-     * Invalidates the previously allocated [MemorySegment].
+     * Extracts the value of the previously allocated [Value] from [segment].
      */
-    internal fun detach() {
-        lastValue = checkNotNull(segment) { "Param is not attached" }.value()
-        segment = null
+    internal fun detach(segment: MemorySegment) {
+        actualValue = readValue(segment)
+    }
+}
+
+/**
+ * Base for pointer output parameter.
+ */
+public abstract class Sqlite3PointerParamBase<Value> : Sqlite3ParamBase<Value?>(null) {
+
+    final override fun SegmentAllocator.allocate(initialValue: Value?): MemorySegment {
+        return allocate(ValueLayout.ADDRESS)
+    }
+
+    /**
+     * Creates a new [Value] from non-null pointing [pointer]
+     */
+    protected abstract fun create(pointer: MemorySegment): Value
+
+    final override fun readValue(segment: MemorySegment): Value? {
+        if (segment.isNull) {
+            return null
+        }
+
+        return create(segment)
     }
 }
 
@@ -49,33 +72,27 @@ public abstract class Sqlite3Param<Type> internal constructor(initialValue: Type
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
-public actual open class Sqlite3IntBaseParam internal actual constructor(initialValue: Int) :
-    Sqlite3Param<Int>(initialValue) {
+public actual open class Sqlite3IntParam actual constructor(initialValue: Int) :
+    Sqlite3ParamBase<Int>(initialValue) {
 
-    internal actual open val intValue: Int
-        get() = currentValue
-
-    override fun SegmentAllocator.allocate(value: Int): MemorySegment {
-        return allocateFrom(ValueLayout.JAVA_INT, value)
+    override fun SegmentAllocator.allocate(initialValue: Int): MemorySegment {
+        return allocateFrom(ValueLayout.JAVA_INT, initialValue)
     }
 
-    override fun MemorySegment.value(): Int {
-        return get(ValueLayout.JAVA_INT, 0)
+    override fun readValue(segment: MemorySegment): Int {
+        return segment.get(ValueLayout.JAVA_INT, 0)
     }
 }
 
 public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
-    Sqlite3Param<Long>(initialValue) {
+    Sqlite3ParamBase<Long>(initialValue) {
 
-    public actual val value: Long
-        get() = currentValue
-
-    override fun SegmentAllocator.allocate(value: Long): MemorySegment {
-        return allocateFrom(ValueLayout.JAVA_LONG, value)
+    override fun SegmentAllocator.allocate(initialValue: Long): MemorySegment {
+        return allocateFrom(ValueLayout.JAVA_LONG, initialValue)
     }
 
-    override fun MemorySegment.value(): Long {
-        return get(ValueLayout.JAVA_LONG, 0)
+    override fun readValue(segment: MemorySegment): Long {
+        return segment.get(ValueLayout.JAVA_LONG, 0)
     }
 }
 
@@ -83,20 +100,70 @@ public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
 // String
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3Utf8Param actual constructor(initialValue: String?) :
-    Sqlite3Param<String?>(initialValue) {
+public actual class Sqlite3StringUtf8Param actual constructor() :
+    Sqlite3PointerParamBase<String>() {
 
-    public actual fun readValue(): String? = currentValue
+    override fun create(pointer: MemorySegment): String {
+        return pointer.getString(0, Charsets.UTF_8)
+    }
+}
 
-    override fun SegmentAllocator.allocate(value: String?): MemorySegment {
-        return allocate(ValueLayout.ADDRESS).apply {
-            set(ValueLayout.ADDRESS, 0, segment(value) { value ->
-                allocateFrom(value, Charsets.UTF_8)
-            })
-        }
+///////////////////////////////////////////////////////////////////////////
+// Structs
+///////////////////////////////////////////////////////////////////////////
+
+public actual class Sqlite3DatabaseConnectionParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3>() {
+
+    override fun create(pointer: MemorySegment): sqlite3 {
+        return sqlite3(pointer)
+    }
+}
+
+public actual class Sqlite3ContextParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3_context>() {
+
+    override fun create(pointer: MemorySegment): sqlite3_context {
+        return sqlite3_context(pointer)
+    }
+}
+
+public actual class Sqlite3StatementParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3_stmt>() {
+
+    override fun create(pointer: MemorySegment): sqlite3_stmt {
+        return sqlite3_stmt(pointer)
+    }
+}
+
+public actual class Sqlite3ValueParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3_value>() {
+
+    override fun create(pointer: MemorySegment): sqlite3_value {
+        return sqlite3_value(pointer)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Allocates value into [allocator], invokes [block] with a pointer to it and returns [block]'s
+ * result.
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <R> Sqlite3ParamBase<*>.use(
+    allocator: SegmentAllocator,
+    block: (MemorySegment) -> R
+): R {
+    val pointer = attach(allocator)
+
+    val result = try {
+        block(pointer)
+    } finally {
+        detach(pointer)
     }
 
-    override fun MemorySegment.value(): String? {
-        return getString(0, Charsets.UTF_8)
-    }
+    return result
 }

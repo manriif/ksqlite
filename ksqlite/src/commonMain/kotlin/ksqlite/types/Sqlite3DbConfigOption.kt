@@ -72,7 +72,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_FKEY(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1002)
 
     /**
@@ -85,7 +85,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_TRIGGER(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1003)
 
     /**
@@ -102,7 +102,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_FTS3_TOKENIZER(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1004)
 
     /**
@@ -120,7 +120,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_LOAD_EXTENSION(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1005)
 
     /**
@@ -137,7 +137,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class NO_CKPT_ON_CLOSE(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1006)
 
     /**
@@ -154,7 +154,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_QPSG(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1007)
 
     /**
@@ -168,7 +168,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class TRIGGER_EQP(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1008)
 
     /**
@@ -227,7 +227,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class WRITABLE_SCHEMA(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1011)
 
     /**
@@ -239,7 +239,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class LEGACY_ALTER_TABLE(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1012)
 
     /**
@@ -250,7 +250,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class DQS_DML(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1013)
 
     /**
@@ -260,7 +260,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class DQS_DDL(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1014)
 
     /**
@@ -276,7 +276,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_VIEW(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1015)
 
     /**
@@ -319,7 +319,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class TRUSTED_SCHEMA(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1017)
 
     /**
@@ -353,7 +353,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class REVERSE_SCANORDER(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1019)
 
     /**
@@ -371,7 +371,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_ATTACH_CREATE(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1020)
 
     /**
@@ -392,7 +392,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_ATTACH_WRITE(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1021)
 
     /**
@@ -408,6 +408,6 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_COMMENTS(
         internal val value: Int,
-        internal val state: Sqlite3BooleanParam?
+        internal val state: Sqlite3IntParam?
     ) : Sqlite3DbConfigOption(1022)
 }

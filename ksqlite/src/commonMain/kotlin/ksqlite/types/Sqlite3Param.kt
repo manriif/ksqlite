@@ -1,39 +1,29 @@
 package ksqlite.types
 
-import ksqlite.convertBooleanResult
-
 ///////////////////////////////////////////////////////////////////////////
-// Pointer
-///////////////////////////////////////////////////////////////////////////
-
-public expect abstract class PointerType
-
-/**
- * Parameter of type [Pointer], intended to be allocated by SQLite.
- */
-public expect class Sqlite3PointerParam<Pointer : PointerType>() {
-
-    /**
-     * The pointer to the struct value.
-     * May be `null` if an error occurred while SQLite tried to allocate the struct.
-     */
-    public val value: Pointer?
-}
-
-///////////////////////////////////////////////////////////////////////////
-// String
+// Param
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Parameter of type [String], encoded as UTF8, intended to be written by SQLite.
- * The owner can optionally supply an [initialValue].
+ * Base for output parameter.
  */
-public expect class Sqlite3Utf8Param(initialValue: String?) {
+public interface Sqlite3Param<Value> {
 
     /**
-     * Reads the actual value of the parameter and returns a new UTF8 encoded [String].
+     * Value written on native side.
+     *
+     * ## Pointer
+     *
+     * For pointers, [Value] is a wrapper enclosing the pointer to the allocated struct.
+     * The wrapper can be `null` in the following cases:
+     *
+     * - This instance was not passed to any SQLite interface intended to allocate the struct
+     * - The SQLite interface failed to make the allocation
+     *
+     * If the returned wrapper was passed to an SQLite interface intended to deallocate the
+     * struct, then it should no longer be used.
      */
-    public fun readValue(): String?
+    public val value: Value
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -41,52 +31,66 @@ public expect class Sqlite3Utf8Param(initialValue: String?) {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Int parameter which can be written by SQLite on native side.
+ * Wrapper around [Int] intended to be passed as parameter and written by SQLite.
+ *
+ * An [initialValue] can optionally be supplied.
  */
-public expect open class Sqlite3IntBaseParam internal constructor(initialValue: Int) {
-
-    /**
-     * The actual value of the parameter.
-     */
-    internal open val intValue: Int
+public expect class Sqlite3IntParam(initialValue: Int) : Sqlite3Param<Int> {
+    override val value: Int
 }
 
 /**
- * Parameter of type [Int] intended to be written by SQLite.
- * The owner can optionally supply an [initialValue].
+ * Wrapper around [Long] intended to be passed as parameter and written by SQLite.
+ *
+ * An [initialValue] can optionally be supplied.
  */
-public class Sqlite3IntParam(initialValue: Int) : Sqlite3IntBaseParam(initialValue) {
+public expect class Sqlite3LongParam(initialValue: Long) : Sqlite3Param<Long> {
+    override val value: Long
+}
+
+///////////////////////////////////////////////////////////////////////////
+// String
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Wrapper around UTF-8 encoded [String] intended to be passed as parameter and written by SQLite.
+ */
+public expect class Sqlite3StringUtf8Param() : Sqlite3Param<String?> {
 
     /**
-     * The actual value of the parameter.
+     * UTF-8 encoded [String] or `null` if no string has been allocated or allocation failed.
      */
-    public val value: Int
-        get() = intValue
+    override val value: String?
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Structs
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Wrapper around [sqlite3] intended to be passed as parameter and allocated by SQLite.
+ */
+public expect class Sqlite3DatabaseConnectionParam() : Sqlite3Param<sqlite3?> {
+    override val value: sqlite3?
 }
 
 /**
- * Parameter of type [Int], interpreted as [Boolean], intended to be written by SQLite.
- * The owner can optionally supply an [initialValue].
+ * Wrapper around [sqlite3_context] intended to be passed as parameter and allocated by SQLite.
  */
-public class Sqlite3BooleanParam(initialValue: Boolean) : Sqlite3IntBaseParam(
-    initialValue = if (initialValue) 1 else 0
-) {
-
-    /**
-     * The actual value of the parameter.
-     */
-    public val value: Boolean
-        get() = convertBooleanResult(intValue)
+public expect class Sqlite3ContextParam() : Sqlite3Param<sqlite3_context?> {
+    override val value: sqlite3_context?
 }
 
 /**
- * Parameter of type [Long] intended to be written by SQLite.
- * The owner can optionally supply an [initialValue].
+ * Wrapper around [sqlite3_stmt] intended to be passed as parameter and allocated by SQLite.
  */
-public expect class Sqlite3LongParam(initialValue: Long) {
+public expect class Sqlite3StatementParam() : Sqlite3Param<sqlite3_stmt?> {
+    override val value: sqlite3_stmt?
+}
 
-    /**
-     * The actual value of the parameter.
-     */
-    public val value: Long
+/**
+ * Wrapper around [sqlite3_value] intended to be passed as parameter and allocated by SQLite.
+ */
+public expect class Sqlite3ValueParam() : Sqlite3Param<sqlite3_value?> {
+    override val value: sqlite3_value?
 }

@@ -11,10 +11,10 @@ import ksqlite.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.types.Sqlite3BusyHandlerCallback
 import ksqlite.types.Sqlite3DestructorCallback
 import ksqlite.types.Sqlite3ExecCallback
-import ksqlite.types.Sqlite3PointerParam
+import ksqlite.types.Sqlite3DatabaseConnectionParam
 import ksqlite.types.Sqlite3Result
 import ksqlite.types.Sqlite3TextEncoding
-import ksqlite.types.Sqlite3Utf8Param
+import ksqlite.types.Sqlite3StringUtf8Param
 import ksqlite.types.sqlite3
 import ksqlite.types.sqlite3_context
 import ksqlite.types.sqlite3_pointer
@@ -155,7 +155,7 @@ public actual fun sqlite3_exec(
     db: sqlite3,
     sql: String,
     callback: Sqlite3ExecCallback?,
-    errMsg: Sqlite3Utf8Param?
+    errMsg: Sqlite3StringUtf8Param?
 ): Sqlite3Result = useMemoryManager {
     convertResult(
         sqlite.sqlite3_exec(
@@ -178,7 +178,7 @@ public actual fun sqlite3_exec(
 
 public actual fun sqlite3_open(
     name: String,
-    db: Sqlite3PointerParam<sqlite3>
+    db: Sqlite3DatabaseConnectionParam<sqlite3>
 ): Sqlite3Result = db.allocate { pointer ->
     sqlite.sqlite3_open(name, pointer)
 }

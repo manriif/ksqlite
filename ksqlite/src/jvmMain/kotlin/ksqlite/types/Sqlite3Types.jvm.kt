@@ -21,8 +21,10 @@ public actual class sqlite3_pointer private constructor(
     }
 }
 
-public actual class sqlite3 : Pointer()
+public actual class sqlite3(pointer: MemorySegment) : Pointer(pointer)
 
-public actual class sqlite3_context : Pointer()
+public actual class sqlite3_context(pointer: MemorySegment) : Pointer(pointer)
 
-public actual class sqlite3_stmt : Pointer()
+public actual class sqlite3_stmt(pointer: MemorySegment) : Pointer(pointer)
+
+public actual class sqlite3_value(pointer: MemorySegment) : Pointer(pointer)

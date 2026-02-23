@@ -3,7 +3,7 @@ package ksqlite.memory
 import ksqlite.handlers.DestructorHandler
 import ksqlite.handlers.Handler
 import ksqlite.types.Sqlite3DestructorCallback
-import ksqlite.types.Sqlite3Param
+import ksqlite.types.Sqlite3ParamBase
 import java.lang.foreign.Arena
 import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
@@ -141,7 +141,7 @@ internal actual class MemoryManager : AutoCloseable {
      *
      * Returns [MemorySegment.NULL] if [param] is `null`.
      */
-    internal fun paramPointer(param: Sqlite3Param<*>?): MemorySegment = notClosed {
+    internal fun paramPointer(param: Sqlite3ParamBase<*>?): MemorySegment = notClosed {
         segment(param) { param ->
             withArena {
                 param.attach(this).also {
@@ -238,7 +238,7 @@ internal actual class MemoryManager : AutoCloseable {
     /**
      * Detaches [param] in disposing.
      */
-    private class ParamDetacher(private val param: Sqlite3Param<*>) : Disposable {
+    private class ParamDetacher(private val param: Sqlite3ParamBase<*>) : Disposable {
 
         override fun dispose() {
             param.detach()

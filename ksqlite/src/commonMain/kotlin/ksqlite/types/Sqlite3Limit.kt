@@ -1,3 +1,5 @@
+@file:Suppress("SpellCheckingInspection")
+
 package ksqlite.types
 
 /**

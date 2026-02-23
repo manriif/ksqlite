@@ -164,7 +164,7 @@ private val SqliteFunctions = mapOf(
     "libversion" to true,
     "libversion_number" to true,
     "sourceid" to true,
-    "threadsafe" to true,
+    "threadsafe" to false,
     "version" to true,
 
     // Compilation Options
@@ -215,9 +215,9 @@ private val SqliteFunctions = mapOf(
     "stmt_readonly" to true,
     "stmt_isexplain" to true,
     "stmt_explain" to true,
-    "stmt_scanstatus" to true,
-    "stmt_scanstatus_v2" to true,
-    "stmt_scanstatus_reset" to true,
+    "stmt_scanstatus" to false,
+    "stmt_scanstatus_v2" to false,
+    "stmt_scanstatus_reset" to false,
 
     // Database Information
     "db_filename" to true,
