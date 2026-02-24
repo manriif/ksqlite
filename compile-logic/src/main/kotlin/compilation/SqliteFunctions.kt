@@ -381,10 +381,26 @@ private val SqliteFunctions = mapOf(
 )
 
 /**
- * Returns a list of SQLite functions. If enabled is `true` then only the functions which are
- * enabled (available in the public ksqlite API) are returned, otherwise those who are excluded are
- * returned.
+ * List of Ksqlite functions extending SQLite ones.
+ * Ksqlite library prefix need to be added before each function name.
+ */
+private val KsqliteFunctions = listOf(
+    "auto_extension"
+)
+
+/**
+ * Returns a list of SQLite functions. If [enabled] is `true` then only the functions which are
+ * enabled (available in the public Ksqlite C-API) are returned, otherwise those who are excluded
+ * are returned.
  */
 fun SqliteCompilationParameters.sqliteFunctions(enabled: Boolean): List<String> {
-    return SqliteFunctions.filter { it.value == enabled }.map { "${sqliteName}_${it.key}" }
+    val functions = SqliteFunctions
+        .filter { it.value == enabled }
+        .map { "${sqliteName}_${it.key}" }
+
+    return if (enabled) {
+        functions + KsqliteFunctions.map { "${libraryName}_${it}" }
+    } else {
+        functions
+    }
 }

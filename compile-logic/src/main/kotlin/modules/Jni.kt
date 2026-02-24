@@ -9,7 +9,7 @@ import java.io.File
  */
 fun createSqliteCMakeListsContent(
     cmakeVersion: String,
-    headerFile: File,
+    includeDirectories: Collection<File>,
     sourceFiles: Collection<File>,
     params: SqliteCompilationParameters,
 ): String = """
@@ -20,7 +20,7 @@ fun createSqliteCMakeListsContent(
     |)
     |
     |target_include_directories(${params.libraryName} PUBLIC 
-    |    ${headerFile.parentFile.absolutePath}
+    |    ${includeDirectories.joinToString("\n\t", transform = File::getAbsolutePath)}
     |)
     |
     |target_compile_definitions(${params.libraryName} PRIVATE

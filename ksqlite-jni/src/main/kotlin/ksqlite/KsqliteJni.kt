@@ -1,4 +1,4 @@
-@file:JvmName("SqliteNative")
+@file:JvmName("KsqliteJni")
 
 package ksqlite
 

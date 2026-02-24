@@ -14,7 +14,7 @@ import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.sqliteLoadLibrary
-import sqlite.sqlite3 as nativeSqlite3
+import ksqlite.sqlite3 as nativeSqlite3
 
 /**
  * Workaround to load the native library at file level.

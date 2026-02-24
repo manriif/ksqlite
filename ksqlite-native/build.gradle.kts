@@ -16,8 +16,8 @@ plugins {
     alias(libs.plugins.conventions.kmp)
 }
 
-val sqliteDirectory = layout.buildDirectory.dir("sqlite")
-val nativeArtifactDirectory = sqliteDirectory.map { it.dir("native") }
+val ksqliteDirectory = layout.buildDirectory.dir("ksqlite")
+val nativeArtifactDirectory = ksqliteDirectory.map { it.dir("native") }
 val sqliteCompileStaticXcodeTaskProvider = registerSqliteCompileStaticTask("Xcode")
 
 val sqliteCompileStaticAndroidTaskProvider = registerSqliteCompileStaticTask("Android") {
@@ -89,7 +89,7 @@ fun KotlinNativeTarget.configureNativeTarget() {
 
             definitionFile = defFile
             extraOpts += listOf("-Xccall-mode", "direct")
-            includeDirs(extension.sqliteSourcesDirectory)
+            includeDirs(extension.ksqliteDirectory)
         }
     }
 }

@@ -1,9 +1,9 @@
 #include <jni.h>
+#include <ksqlite.h>
 #include <string>
-#include "jni/src/c/sqlite3-jni.h"
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_ksqlite_KsqliteNative_ksqliteHello(
+Java_ksqlite_KsqliteJni_ksqliteHello(
     JNIEnv* env,
     jclass clazz
 ) {

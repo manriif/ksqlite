@@ -26,7 +26,7 @@ public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
 ): sqlite3_mutable_pointer? = sqlite3_mutable_pointer.from(
-    pointer = sqlite3_aggregate_context(
+    pointer = ksqlite (
         arg0 = context.pointer,
         nBytes = nBytes
     ),

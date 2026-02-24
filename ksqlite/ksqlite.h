@@ -8,7 +8,7 @@
  * @param xEntryPoint the XEntryPoint with real signature.
  * @return sqlite3_auto_extension() result
  */
-int ksqlite3_auto_extension(
+int ksqlite_auto_extension(
     int (* xEntryPoint)(
         sqlite3*,
         const char**,

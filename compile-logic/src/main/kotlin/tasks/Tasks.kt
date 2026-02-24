@@ -11,6 +11,8 @@ import emscriptenInstallTaskProvider
 import gnuSedInstallTaskProvider
 import jextractInstallTaskProvider
 import ksqliteExtension
+import ksqliteHeaderFile
+import ksqliteSourceFiles
 import modules.configureSqliteWasmTrunk
 import modules.createDefContent
 import modules.createSqliteCMakeListsContent
@@ -32,9 +34,7 @@ import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.gradle.process.ExecOperations
 import platform.Platform
-import ksqliteHeaderFile
 import sqliteInstallTaskProvider
-import ksqliteSourceFiles
 import toolDirectory
 import tools.androidNdk
 import tools.androidNdkDownloadUrl
@@ -868,9 +868,12 @@ fun Project.registerSqliteGenerateCInteropDefTask(
 
     // Explicit dependency on the sqlite install task
     dependsOn(sqliteInstallTaskProvider)
-    outputs.file(defFile)
 
     val extension = ksqliteExtension
+    val headerFile = ksqliteHeaderFile(extension)
+
+    outputs.file(defFile)
+    inputs.file(headerFile)
 
     doLast {
         defFile.get().asFile.parentFile.mkdirs()
@@ -878,6 +881,7 @@ fun Project.registerSqliteGenerateCInteropDefTask(
         defFile.get().asFile.writeText(
             createDefContent(
                 packageName = packageName,
+                headerFile = headerFile.get().asFile,
                 libraryFile = target.libraryFile.get().asFile,
                 operatingSystem = target.platform.get().operatingSystem,
                 params = extension.compilationParams.get()
@@ -890,7 +894,7 @@ fun Project.registerSqliteGenerateCInteropDefTask(
  * Registers and returns the task responsible for generating the CMakeList.txt file for SQLite.
  * The returned task depends on SQLite installation.
  */
-fun Project.registerSqliteGenerateCMakeListsTask(
+fun Project.registerSqliteJniGenerateCMakeListsTask(
     cmakeListsFile: Provider<RegularFile>,
     cmakeVersion: String
 ): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_GENERATE_CMAKE_LISTS) {
@@ -900,17 +904,21 @@ fun Project.registerSqliteGenerateCMakeListsTask(
     dependsOn(sqliteInstallTaskProvider)
 
     val extension = ksqliteExtension
+    val jniDirectory = extension.sqliteSourcesDirectory.dir("ext/jni/src/c")
+    val jniHeaderFile = jniDirectory.map { it.file("sqlite3-jni.h") }
+    val jniSourceFile = jniDirectory.map { it.file("sqlite3-jni.c") }
     val headerFile = ksqliteHeaderFile(extension)
-    val sourceFiles = ksqliteSourceFiles(extension)
+    val sourceFiles = ksqliteSourceFiles(extension).from(jniSourceFile)
 
-    inputs.files(headerFile, sourceFiles)
+    inputs.files(jniHeaderFile, headerFile, sourceFiles)
     outputs.file(cmakeListsFile)
 
     doLast {
         cmakeListsFile.get().asFile.apply { parentFile.mkdirs() }.writeText(
             createSqliteCMakeListsContent(
                 cmakeVersion = cmakeVersion,
-                headerFile = headerFile.get().asFile,
+                includeDirectories = listOf(jniHeaderFile, headerFile)
+                    .map { it.get().asFile.parentFile },
                 sourceFiles = sourceFiles.files,
                 params = extension.compilationParams.get()
             )

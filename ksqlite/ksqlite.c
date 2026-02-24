@@ -1,6 +1,6 @@
 #include "ksqlite.h"
 
-int ksqlite3_auto_extension(
+int ksqlite_auto_extension(
     int (* xEntryPoint)(
         sqlite3*,
         const char**,

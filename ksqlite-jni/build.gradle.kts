@@ -1,7 +1,7 @@
 @file:Suppress("HasPlatformType")
 
 import tasks.registerSqliteCopyJniJavaSourceTask
-import tasks.registerSqliteGenerateCMakeListsTask
+import tasks.registerSqliteJniGenerateCMakeListsTask
 import tasks.registerSqliteJniRuntimeMetadataTask
 
 plugins {
@@ -14,7 +14,7 @@ val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java")
 val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
 val ksqliteCmakeDirectory = layout.buildDirectory.map { it.dir("ksqlite") }
 
-val generateSqliteCMakeListsTaskProvider = registerSqliteGenerateCMakeListsTask(
+val generateSqliteJniCMakeListsTaskProvider = registerSqliteJniGenerateCMakeListsTask(
     cmakeListsFile = ksqliteCmakeDirectory.map { it.file("CMakeLists.txt") },
     cmakeVersion = libs.versions.cmake.get()
 )
@@ -26,19 +26,19 @@ val generateSqliteJniRuntimeMetadataTaskProvider = registerSqliteJniRuntimeMetad
     }
 )
 
-val copySqliteJniRuntimeMetadataTaskProvider = registerSqliteCopyJniJavaSourceTask(
+val copySqliteJniJavaSourcesTaskProvider = registerSqliteCopyJniJavaSourceTask(
     sourcesDirectory = generatedJavaSourceDirectory
 )
 
 val generateSources by tasks.registering {
-    dependsOn(generateSqliteCMakeListsTaskProvider)
+    dependsOn(generateSqliteJniCMakeListsTaskProvider)
     dependsOn(generateSqliteJniRuntimeMetadataTaskProvider)
-    dependsOn(copySqliteJniRuntimeMetadataTaskProvider)
+    dependsOn(copySqliteJniJavaSourcesTaskProvider)
 }
 
 registerTaskForIde(generateSources) {
     // CMakeLists.txt file need to be generated or sync will fail so force task action(s) execution
-    generateSqliteCMakeListsTaskProvider.get().let { generateTask ->
+    generateSqliteJniCMakeListsTaskProvider.get().let { generateTask ->
         generateTask.actions.forEach { it(generateTask) }
     }
 }
