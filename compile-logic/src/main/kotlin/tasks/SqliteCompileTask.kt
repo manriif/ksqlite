@@ -6,14 +6,14 @@ import compilation.worker.SqliteCompileSharedWorker
 import compilation.worker.SqliteCompileStaticWorker
 import compilation.worker.SqliteCompileWorker
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFile
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputFiles
@@ -45,9 +45,9 @@ abstract class SqliteCompileTask(
     @get:Internal
     abstract val checksumFile: RegularFileProperty
 
-    @get:InputDirectory
+    @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val sqliteSourcesDirectory: DirectoryProperty
+    abstract val sourceFiles: ListProperty<RegularFile>
 
     @get:Nested
     abstract val targets: ListProperty<SqliteTarget>
@@ -60,14 +60,17 @@ abstract class SqliteCompileTask(
 
     @TaskAction
     fun compile() {
-        executeIfChecksumChanged(checksumFile.get(), outputLibraries.get()::sha256) {
+        executeIfChecksumChanged(
+            checksumFile = checksumFile.get(),
+            currentChecksum = outputLibraries.get().filter(File::exists)::sha256
+        ) {
             val workQueue = workerExecutor.noIsolation()
 
             let { task ->
                 targets.get().forEach { target ->
                     workQueue.submit(workerClass) {
                         this.compilationParameters = task.compilationParameters
-                        this.sqliteSourcesDirectory = task.sqliteSourcesDirectory
+                        this.sourceFiles = task.sourceFiles
                         this.target = target
                     }
                 }

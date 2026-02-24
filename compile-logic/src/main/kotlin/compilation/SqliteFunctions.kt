@@ -82,7 +82,7 @@ private val SqliteFunctions = mapOf(
     "total_changes" to true,
     "total_changes64" to true,
     "last_insert_rowid" to true,
-    "set_last_insert_rowid" to false,  // Rarely needed
+    "set_last_insert_rowid" to true,
     "get_autocommit" to true,
 
     // BLOB I/O

@@ -13,5 +13,9 @@ class KsqlitePlugin : Plugin<Project> {
             target.extensions.create<KsqliteExtension>(KSQLITE_EXTENSION_NAME)
 
         target.registerRootTasks(extension)
+
+        target.afterEvaluate {
+            configureKsqliteSources(extension)
+        }
     }
 }

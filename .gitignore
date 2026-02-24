@@ -3,7 +3,9 @@
 .kotlin/
 .ksqlite/
 .cxx/
-.run
+.run/
+
+./ksqlite/ksqlite-generated.h
 
 build
 local.properties

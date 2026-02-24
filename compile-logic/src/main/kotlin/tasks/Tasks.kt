@@ -32,9 +32,9 @@ import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.gradle.process.ExecOperations
 import platform.Platform
-import sqliteHeaderFile
+import ksqliteHeaderFile
 import sqliteInstallTaskProvider
-import sqliteSourceFile
+import ksqliteSourceFiles
 import toolDirectory
 import tools.androidNdk
 import tools.androidNdkDownloadUrl
@@ -602,11 +602,7 @@ fun Project.registerJextractGenerateBindingsTask(
     val execOperations = serviceOf<ExecOperations>()
     val extension = ksqliteExtension
     val jextractDirectory = layout.toolDirectory(extension.tools.map { it.jextract })
-
-    val headerFile = sqliteHeaderFile(
-        sources = extension.sqliteSourcesDirectory,
-        params = extension.compilationParams
-    )
+    val headerFile = ksqliteHeaderFile(extension.ksqliteDirectory)
 
     // Explicit dependency on sqlite and jextract extract tasks
     dependsOn(sqliteInstallTaskProvider)
@@ -768,8 +764,13 @@ private fun SqliteCompileTask.configureCompileTask() {
 
     val extension = project.ksqliteExtension
     compilationParameters = extension.compilationParams
+    ksqliteSourcesDirectory = extension.ksqliteDirectory
     sqliteSourcesDirectory = extension.sqliteSourcesDirectory
     checksumFile = checksumFile()
+
+    sourceFiles = ksqliteSourceFiles(
+
+    )
 }
 
 /**
@@ -899,26 +900,18 @@ fun Project.registerSqliteGenerateCMakeListsTask(
     dependsOn(sqliteInstallTaskProvider)
 
     val extension = ksqliteExtension
+    val headerFile = extension.ksqliteHeaderFile()
+    val sourceFiles = extension.ksqliteSourceFiles()
 
-    val headerFile = sqliteHeaderFile(
-        sources = extension.sqliteSourcesDirectory,
-        params = extension.compilationParams
-    )
-
-    val sourceFile = sqliteSourceFile(
-        sources = extension.sqliteSourcesDirectory,
-        params = extension.compilationParams
-    )
-
-    inputs.files(headerFile, sourceFile)
+    inputs.files(headerFile, sourceFiles)
     outputs.file(cmakeListsFile)
 
     doLast {
         cmakeListsFile.get().asFile.apply { parentFile.mkdirs() }.writeText(
             createSqliteCMakeListsContent(
                 cmakeVersion = cmakeVersion,
-                sqliteHeaderFile = headerFile.get().asFile,
-                sqliteSourceFile = sourceFile.get().asFile,
+                headerFile = headerFile.get().asFile,
+                sqliteSourceFile = sourceFiles.get().asFile,
                 params = extension.compilationParams.get()
             )
         )

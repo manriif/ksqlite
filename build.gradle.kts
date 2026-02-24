@@ -21,7 +21,8 @@ allprojects {
 }
 
 ksqlite {
-    val ksqliteDir = layout.buildDirectory.dir("ksqlite")
+    val ksqliteBuildDir = layout.buildDirectory.dir("ksqlite")
+    ksqliteDirectory = layout.projectDirectory.dir("ksqlite")
 
     checksums = Properties()
         .apply { file("checksums.properties").inputStream().use { load(it) } }
@@ -52,7 +53,7 @@ ksqlite {
         iosVersionMin = libs.versions.ios.version.min.get(),
         tvosVersionMin = libs.versions.tvos.version.min.get(),
         watchosVersionMin = libs.versions.watchos.version.min.get(),
-        toolchains = ksqliteDir.map { it.dir("toolchains") }.run {
+        toolchains = ksqliteBuildDir.map { it.dir("toolchains") }.run {
             Toolchains(
                 android = Tool(
                     version = libs.versions.toolchain.android.get(),
@@ -62,7 +63,7 @@ ksqlite {
         },
     )
 
-    tools = ksqliteDir.map { it.dir("tools") }.run {
+    tools = ksqliteBuildDir.map { it.dir("tools") }.run {
         Tools(
             emsdk = Tool(
                 version = libs.versions.emsdk.get(),
@@ -85,6 +86,6 @@ ksqlite {
 
     downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
     sqliteReleaseYear = libs.versions.sqliteReleaseYear.get()
-    sqliteSourcesDirectory = ksqliteDir.map { it.dir("sqlite") }
+    sqliteSourcesDirectory = ksqliteBuildDir.map { it.dir("sqlite") }
     jdkVersion = libs.versions.jvm.toolchain.get()
 }

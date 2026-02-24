@@ -1,6 +1,7 @@
 import compilation.SqliteCompilationParameters
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.Directory
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFile
@@ -100,25 +101,49 @@ fun KsqliteExtension.androidToolchain(): Provider<Tool> {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the sqlite header file (.h).
+ * Configures ksqlite sources directory.
  */
-fun sqliteHeaderFile(
-    sources: Provider<Directory>,
-    params: Provider<SqliteCompilationParameters>
-): Provider<RegularFile> {
-    return sources.zip(params) { directory, params ->
-        directory.file("${params.sqliteMcAmalgamationName}.h")
+fun configureKsqliteSources(extension: KsqliteExtension) {
+    val generatedHeaderFile = extension.ksqliteDirectory.file("ksqlite-generated.h").get().asFile
+
+    if (!generatedHeaderFile.exists()) {
+        val amalgamationHeaderFile = extension.sqliteSourcesDirectory
+            .zip(extension.compilationParams) { directory, params ->
+                directory.file("${params.sqliteMcAmalgamationName}.h")
+            }
+            .get()
+            .asFile
+
+        generatedHeaderFile.writeText(
+            """
+                |#include "${amalgamationHeaderFile.absolutePath}"
+            """.trimMargin()
+        )
     }
 }
 
 /**
- * Returns the sqlite source file (.c).
+ * Returns the sqlite header file (.h).
  */
-fun sqliteSourceFile(
-    sources: Provider<Directory>,
-    params: Provider<SqliteCompilationParameters>
-): Provider<RegularFile> {
-    return sources.zip(params) { directory, params ->
-        directory.file("${params.sqliteMcAmalgamationName}.c")
-    }
+fun KsqliteExtension.ksqliteHeaderFile(): Provider<RegularFile> {
+    return ksqliteDirectory.map { it.file("ksqlite.h") }
+}
+
+/**
+ * Returns the directories to search for the headers.
+ */
+fun KsqliteExtension.ksqliteIncludeDirectories(): ConfigurableFileCollection {
+
+}
+
+/**
+ * Returns the sqlite source files (.c).
+ */
+fun KsqliteExtension.ksqliteSourceFiles(): ConfigurableFileCollection {
+    listOf(
+        ksqliteDirectory.map { it.file("ksqlite.c") },
+        sqliteSourcesDirectory.zip(compilationParams) { directory, params ->
+            directory.file("${params.sqliteMcAmalgamationName}.c")
+        }
+    )
 }

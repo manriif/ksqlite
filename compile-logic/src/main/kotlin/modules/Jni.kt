@@ -9,20 +9,20 @@ import java.io.File
  */
 fun createSqliteCMakeListsContent(
     cmakeVersion: String,
-    sqliteHeaderFile: File,
-    sqliteSourceFile: File,
+    headerFile: File,
+    sourceFiles: List<File>,
     params: SqliteCompilationParameters,
 ): String = """
     |cmake_minimum_required(VERSION $cmakeVersion)
     |
     |add_library(${params.sqliteName} STATIC 
-    |    ${sqliteSourceFile.absolutePath}
+    |    ${sourceFiles.joinToString("\n\t", transform = File::getAbsolutePath)}
     |)
     |
     |add_library(sqlite ALIAS ${params.sqliteName})
     |
     |target_include_directories(${params.sqliteName} PUBLIC 
-    |    ${sqliteHeaderFile.parentFile.absolutePath}
+    |    ${headerFile.parentFile.absolutePath}
     |)
     |
     |target_compile_definitions(${params.sqliteName} PRIVATE

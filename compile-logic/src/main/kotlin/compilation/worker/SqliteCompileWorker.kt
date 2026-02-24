@@ -2,7 +2,8 @@ package compilation.worker
 
 import compilation.SqliteCompilationParameters
 import compilation.SqliteTarget
-import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFile
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.process.ExecOperations
 import org.gradle.workers.WorkAction
@@ -23,7 +24,7 @@ abstract class SqliteCompileWorker : WorkAction<SqliteCompileWorker.Parameters> 
 
     interface Parameters : WorkParameters {
         val compilationParameters: Property<SqliteCompilationParameters>
-        val sqliteSourcesDirectory: DirectoryProperty
+        val sourceFiles: ListProperty<RegularFile>
         val target: Property<SqliteTarget>
     }
 }

@@ -9,6 +9,11 @@ import tools.Tools
 interface KsqliteExtension {
 
     /**
+     * Directory where the additional ksqlite C related files are located.
+     */
+    val ksqliteDirectory: DirectoryProperty
+
+    /**
      * Checksums of downloaded sources.
      */
     val checksums: Property<KsqliteChecksums>
