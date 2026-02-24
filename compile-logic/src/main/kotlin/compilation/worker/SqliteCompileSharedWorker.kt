@@ -17,8 +17,8 @@ abstract class SqliteCompileSharedWorker : SqliteCompileWorker() {
         val compilerFlags = sharedCompilerFlags(params, platform)
         val compiler = compiler(platform.operatingSystem, params)
 
-        val sourceFiles = parameters.sourceFiles.get()
-            .map { it.asFile.absolutePath }
+        val sourceFiles = parameters.sourceFiles
+            .map { it.absolutePath }
             .toTypedArray()
 
         execOperations.exec {

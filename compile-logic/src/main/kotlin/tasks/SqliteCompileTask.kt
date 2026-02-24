@@ -6,7 +6,7 @@ import compilation.worker.SqliteCompileSharedWorker
 import compilation.worker.SqliteCompileStaticWorker
 import compilation.worker.SqliteCompileWorker
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.RegularFile
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -47,7 +47,7 @@ abstract class SqliteCompileTask(
 
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val sourceFiles: ListProperty<RegularFile>
+    abstract val sourceFiles: ConfigurableFileCollection
 
     @get:Nested
     abstract val targets: ListProperty<SqliteTarget>

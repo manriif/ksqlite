@@ -1,4 +1,3 @@
-import compilation.SqliteCompilationParameters
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.ConfigurableFileCollection
@@ -125,24 +124,17 @@ fun configureKsqliteSources(extension: KsqliteExtension) {
 /**
  * Returns the sqlite header file (.h).
  */
-fun KsqliteExtension.ksqliteHeaderFile(): Provider<RegularFile> {
-    return ksqliteDirectory.map { it.file("ksqlite.h") }
-}
-
-/**
- * Returns the directories to search for the headers.
- */
-fun KsqliteExtension.ksqliteIncludeDirectories(): ConfigurableFileCollection {
-
+fun ksqliteHeaderFile(extension: KsqliteExtension): Provider<RegularFile> {
+    return extension.ksqliteDirectory.map { it.file("ksqlite.h") }
 }
 
 /**
  * Returns the sqlite source files (.c).
  */
-fun KsqliteExtension.ksqliteSourceFiles(): ConfigurableFileCollection {
-    listOf(
-        ksqliteDirectory.map { it.file("ksqlite.c") },
-        sqliteSourcesDirectory.zip(compilationParams) { directory, params ->
+fun Project.ksqliteSourceFiles(extension: KsqliteExtension): ConfigurableFileCollection {
+    return objects.fileCollection().from(
+        extension.ksqliteDirectory.map { it.file("ksqlite.c") },
+        extension.sqliteSourcesDirectory.zip(extension.compilationParams) { directory, params ->
             directory.file("${params.sqliteMcAmalgamationName}.c")
         }
     )

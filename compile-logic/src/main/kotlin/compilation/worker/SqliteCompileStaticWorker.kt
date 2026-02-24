@@ -20,14 +20,12 @@ abstract class SqliteCompileStaticWorker : SqliteCompileWorker() {
         val compiler = compiler(platform.operatingSystem, params)
         val archiver = archiver(platform.operatingSystem, params)
 
-        val sourceFilesWithObjects = parameters.sourceFiles.get()
-            .map { it.asFile }
-            .associateWith { file ->
-                createTempFile(
-                    prefix = "${params.libraryName}${file.nameWithoutExtension}",
-                    suffix = libraryFile.extension
-                ).toFile()
-            }
+        val sourceFilesWithObjects = parameters.sourceFiles.files.associateWith { file ->
+            createTempFile(
+                prefix = "${params.libraryName}${file.nameWithoutExtension}",
+                suffix = libraryFile.extension
+            ).toFile()
+        }
 
         sourceFilesWithObjects.forEach { (sourceFile, objectFile) ->
             execOperations.exec {

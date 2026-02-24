@@ -2,6 +2,7 @@ package compilation.worker
 
 import compilation.SqliteCompilationParameters
 import compilation.SqliteTarget
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -24,7 +25,7 @@ abstract class SqliteCompileWorker : WorkAction<SqliteCompileWorker.Parameters> 
 
     interface Parameters : WorkParameters {
         val compilationParameters: Property<SqliteCompilationParameters>
-        val sourceFiles: ListProperty<RegularFile>
+        val sourceFiles: ConfigurableFileCollection
         val target: Property<SqliteTarget>
     }
 }

@@ -1,12 +1,12 @@
 plugins {
-    alias(libs.plugins.android.multiplatformLibrary)
+    //alias(libs.plugins.android.multiplatformLibrary)
     alias(libs.plugins.conventions.kmp)
     alias(libs.plugins.opensavvy.resources.consumer)
     alias(libs.plugins.opensavvy.resources.producer)
 }
 
 kotlin {
-    androidJvmTargets()
+    //androidJvmTargets()
     jvmTargets()
     macosX64()
     macosArm64()
@@ -20,7 +20,8 @@ kotlin {
         }
 
         commonMain.dependencies {
-            implementation(projects.ksqlite.capi)
+            implementation(projects.ksqliteCapi)
+            implementation(libs.kotlinx.coroutinesCore)
         }
     }
 }

@@ -27,14 +27,14 @@ jvm-target-android = "17"
 jvm-target-jvm = "22"
 jvm-toolchain = "22"
 
-android-gradlePlugin = "9.0.0"
+android-gradlePlugin = "9.0.1"
 cmake = "3.22.1"
 dokka = "2.1.0"
 emsdk = "5.0.0"
 gnuSed = "4.9"
 gradle-pluginPublish = "2.0.0"
 jextract = "6-47"
-kotlin = "2.3.20-Beta2"
+kotlin = "2.3.20-RC"
 kotlinTransitiveResources = "0.6.0"
 kotlinx-coroutines = "1.10.2"
 sqliteMultipleCiphers = "2.2.7"
@@ -66,6 +66,7 @@ copyWebpackPlugin = { module = "npm:copy-webpack-plugin", version.ref = "copyWeb
 dokka-gradlePlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 undercouch-dowload = { module = "de.undercouch.download:de.undercouch.download.gradle.plugin", version.ref = "undercouch-download" }
 vanniktech-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech-mavenPublish" }

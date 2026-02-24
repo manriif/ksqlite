@@ -1,12 +1,12 @@
 plugins {
-    alias(libs.plugins.android.multiplatformLibrary)
+    //alias(libs.plugins.android.multiplatformLibrary)
     alias(libs.plugins.conventions.kmp)
     alias(libs.plugins.opensavvy.resources.consumer)
     alias(libs.plugins.opensavvy.resources.producer)
 }
 
 kotlin {
-    androidJvmTargets()
+    //androidJvmTargets()
     jvmTargets()
     macosX64()
     macosArm64()
@@ -19,21 +19,21 @@ kotlin {
             implementation(libs.kotlinx.coroutinesTest)
         }
 
-        androidMain.dependencies {
+        /*androidMain.dependencies {
             implementation(projects.sqliteJni)
-        }
+        }*/
 
         jvmMain.dependencies {
-            implementation(projects.sqliteFfm)
+            implementation(projects.ksqliteFfm)
         }
 
         nativeMain.dependencies {
-            implementation(projects.sqliteNative)
+            implementation(projects.ksqliteNative)
         }
 
         webMain.dependencies {
             implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
-            implementation(projects.sqliteWeb)
+            implementation(projects.ksqliteWeb)
         }
     }
 }
@@ -43,6 +43,6 @@ kotlinJsResConsumer {
 }
 
 dependencies {
-    jsConsumedResources(projects.sqliteWeb)
-    wasmConsumedResources(projects.sqliteWeb)
+    jsConsumedResources(projects.ksqliteWeb)
+    wasmConsumedResources(projects.ksqliteWeb)
 }

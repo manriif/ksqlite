@@ -602,7 +602,7 @@ fun Project.registerJextractGenerateBindingsTask(
     val execOperations = serviceOf<ExecOperations>()
     val extension = ksqliteExtension
     val jextractDirectory = layout.toolDirectory(extension.tools.map { it.jextract })
-    val headerFile = ksqliteHeaderFile(extension.ksqliteDirectory)
+    val headerFile = ksqliteHeaderFile(extension)
 
     // Explicit dependency on sqlite and jextract extract tasks
     dependsOn(sqliteInstallTaskProvider)
@@ -725,6 +725,7 @@ private fun Project.registerSqliteInstallTask(
     sqliteExtractTaskProvider: TaskProvider<Task>,
     sqliteMcExtractTaskProvider: TaskProvider<Task>,
 ): TaskProvider<Task> {
+    val ksqliteDirectory = extension.ksqliteDirectory
     val sqliteDirectory = sqliteExtractTaskProvider.outputDirectory()
     val sqliteMcDirectory = sqliteMcExtractTaskProvider.outputDirectory()
 
@@ -732,6 +733,7 @@ private fun Project.registerSqliteInstallTask(
         name = TASK_SQLITE_INSTALL,
         outputDirectoryProvider = extension.sqliteSourcesDirectory,
         configureTask = {
+            inputs.dir(ksqliteDirectory)
             inputs.dir(sqliteDirectory)
             inputs.dir(sqliteMcDirectory)
         },
@@ -746,7 +748,10 @@ private fun Project.registerSqliteInstallTask(
                 into(outputDirectory)
             }
 
-            configureSqliteWasmTrunk(sqliteSourcesDirectory = outputDirectory)
+            configureSqliteWasmTrunk(
+                ksqliteDirectory = ksqliteDirectory.get().asFile,
+                sqliteDirectory = outputDirectory
+            )
         }
     )
 }
@@ -764,13 +769,8 @@ private fun SqliteCompileTask.configureCompileTask() {
 
     val extension = project.ksqliteExtension
     compilationParameters = extension.compilationParams
-    ksqliteSourcesDirectory = extension.ksqliteDirectory
-    sqliteSourcesDirectory = extension.sqliteSourcesDirectory
     checksumFile = checksumFile()
-
-    sourceFiles = ksqliteSourceFiles(
-
-    )
+    sourceFiles = project.ksqliteSourceFiles(extension)
 }
 
 /**
@@ -900,8 +900,8 @@ fun Project.registerSqliteGenerateCMakeListsTask(
     dependsOn(sqliteInstallTaskProvider)
 
     val extension = ksqliteExtension
-    val headerFile = extension.ksqliteHeaderFile()
-    val sourceFiles = extension.ksqliteSourceFiles()
+    val headerFile = ksqliteHeaderFile(extension)
+    val sourceFiles = ksqliteSourceFiles(extension)
 
     inputs.files(headerFile, sourceFiles)
     outputs.file(cmakeListsFile)
@@ -911,7 +911,7 @@ fun Project.registerSqliteGenerateCMakeListsTask(
             createSqliteCMakeListsContent(
                 cmakeVersion = cmakeVersion,
                 headerFile = headerFile.get().asFile,
-                sqliteSourceFile = sourceFiles.get().asFile,
+                sourceFiles = sourceFiles.files,
                 params = extension.compilationParams.get()
             )
         )

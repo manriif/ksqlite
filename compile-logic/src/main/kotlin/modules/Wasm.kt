@@ -2,6 +2,7 @@ package modules
 
 import java.io.File
 
+private const val EXT_WASM_PATH = "ext/wasm"
 private const val GNU_MAKEFILE = "GNUmakefile"
 private const val PRE_JS_CPP_JS = "api/pre-js.c-pp.js"
 private const val ASSIGN_WASM_EXPORT_GLUE = "function assignWasmExports(wasmExports) {"
@@ -18,23 +19,18 @@ fun sqliteWasmExtraResourceFileNames(sqliteName: String) = listOf(
 /**
  * Performs some adjustments and fixes for WASM compilation.
  */
-fun configureSqliteWasmTrunk(sqliteSourcesDirectory: File) {
-    val wasmDirectory = sqliteSourcesDirectory.resolve("ext/wasm")
-    replaceFile(wasmDirectory, GNU_MAKEFILE)
-    replaceFile(wasmDirectory, PRE_JS_CPP_JS)
-}
-
-/**
- * Replaces file [fileName] in [wasmDirectory] by the one in resources.
- */
-private fun replaceFile(wasmDirectory: File, fileName: String) {
-    val resource = Thread.currentThread().contextClassLoader
-        .getResourceAsStream("wasm/$fileName")
-        ?: error("File resource $fileName not found in /wasm")
-
-    resource.use { input ->
-        wasmDirectory.resolve(fileName).outputStream().use { output ->
-            input.copyTo(output)
+fun configureSqliteWasmTrunk(
+    ksqliteDirectory: File,
+    sqliteDirectory: File
+) {
+    listOf(
+        GNU_MAKEFILE,
+        PRE_JS_CPP_JS
+    ).forEach { fileName ->
+        ksqliteDirectory.resolve("$EXT_WASM_PATH/$fileName").inputStream().use { input ->
+            sqliteDirectory.resolve("$EXT_WASM_PATH/$fileName").outputStream().use { output ->
+                input.copyTo(output)
+            }
         }
     }
 }
