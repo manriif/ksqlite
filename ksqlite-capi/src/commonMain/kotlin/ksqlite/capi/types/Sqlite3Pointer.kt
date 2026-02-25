@@ -2,8 +2,8 @@
 
 package ksqlite.capi.types
 
-import ksqlite.capi.memory.ReadableMemoryRegion
-import ksqlite.capi.memory.WritableMemoryRegion
+import ksqlite.capi.memory.ReadableMemoryBlock
+import ksqlite.capi.memory.WritableMemoryBlock
 
 /**
  * Generic pointer.
@@ -14,7 +14,7 @@ import ksqlite.capi.memory.WritableMemoryRegion
  * It is unsafe to read a memory region that have been deallocated.
  * Developer are responsible for managing pointer they've reclaimed.
  */
-public expect open class sqlite3_pointer : ReadableMemoryRegion {
+public expect open class sqlite3_pointer : ReadableMemoryBlock {
 
     /**
      * Size of the readable memory region.
@@ -34,7 +34,7 @@ public expect open class sqlite3_pointer : ReadableMemoryRegion {
  *
  * It is unsafe to write a memory region that have been deallocated.
  */
-public expect class sqlite3_mutable_pointer : sqlite3_pointer, WritableMemoryRegion {
+public expect class sqlite3_mutable_pointer : sqlite3_pointer, WritableMemoryBlock {
 
     override fun write(
         source: ByteArray,

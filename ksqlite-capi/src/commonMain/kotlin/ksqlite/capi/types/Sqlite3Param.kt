@@ -7,7 +7,7 @@ package ksqlite.capi.types
 /**
  * Base for output parameter.
  */
-public interface Sqlite3Param<Value> {
+public abstract class Sqlite3Param<Value> {
 
     /**
      * Value written on native side.
@@ -31,15 +31,14 @@ public interface Sqlite3Param<Value> {
      *
      * The value must not be accessed after the callback returns.
      */
-    public val value: Value
+    public abstract val value: Value
 }
 
 /**
  * [Sqlite3Param] which instantiate [Value] lazily using [factory].
  */
-internal class LazySqlite3Param<Value>(factory: () -> Value) : Sqlite3Param<Value> {
-
-    override val value: Value by lazy(factory)
+internal expect class LazySqlite3Param<Value>(factory: () -> Value) : Sqlite3Param<Value> {
+    override val value: Value
 }
 
 /**

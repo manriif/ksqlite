@@ -2,18 +2,18 @@
 
 package ksqlite.capi.types
 
-import ksqlite.capi.memory.MemoryRegion
-import ksqlite.capi.memory.ReadableMemoryRegion
-import ksqlite.capi.memory.WritableMemoryRegion
+import ksqlite.capi.memory.MemoryBlock
+import ksqlite.capi.memory.ReadableMemoryBlock
+import ksqlite.capi.memory.WritableMemoryBlock
 import ksqlite.capi.memory.isNull
 import java.lang.foreign.MemorySegment
 
 public actual open class sqlite3_pointer internal constructor(
-    private val region: MemoryRegion
-) : ReadableMemoryRegion by region {
+    private val region: MemoryBlock
+) : ReadableMemoryBlock by region {
 
     public actual val size: Long
-        get() = region.nativeSize
+        get() = region.blockSize
 
     internal companion object {
 
@@ -22,14 +22,14 @@ public actual open class sqlite3_pointer internal constructor(
                 return null
             }
 
-            return sqlite3_pointer(MemoryRegion(segment, size))
+            return sqlite3_pointer(MemoryBlock(segment, size))
         }
     }
 }
 
-public actual class sqlite3_mutable_pointer internal constructor(region: MemoryRegion) :
+public actual class sqlite3_mutable_pointer internal constructor(region: MemoryBlock) :
     sqlite3_pointer(region),
-    WritableMemoryRegion by region {
+    WritableMemoryBlock by region {
 
     internal companion object {
 
@@ -38,7 +38,7 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryR
                 return null
             }
 
-            return sqlite3_mutable_pointer(MemoryRegion(segment, size))
+            return sqlite3_mutable_pointer(MemoryBlock(segment, size))
         }
     }
 }

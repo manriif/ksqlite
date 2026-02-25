@@ -36,7 +36,7 @@ internal actual class MemoryManager : AutoCloseable {
      * Returns a stable [COpaquePointer] to [value].
      * Returns `null` if both [value] and [destructor] are `null`.
      *
-     * [value] can later be accessed within a callback using [data] and disposed using
+     * [value] can later be accessed within a callback using [userData] and disposed using
      * [refDisposer].
      */
     internal fun refPointer(

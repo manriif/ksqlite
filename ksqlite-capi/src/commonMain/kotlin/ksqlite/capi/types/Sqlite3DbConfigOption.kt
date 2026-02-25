@@ -56,7 +56,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * "sz" and 40 to 100 for "cnt".
      */
     public class LOOKASIDE(
-        internal val buf: sqlite3_pointer?,
+        internal val buf: sqlite3_mutable_pointer?,
         internal val sz: Int,
         internal val cnt: Int
     ) : Sqlite3DbConfigOption(1001)

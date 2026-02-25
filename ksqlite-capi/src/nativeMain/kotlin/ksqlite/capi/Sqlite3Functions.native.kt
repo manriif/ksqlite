@@ -2,22 +2,29 @@
 
 package ksqlite.capi
 
+import kotlinx.cinterop.convert
+import kotlinx.cinterop.refTo
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKString
 import ksqlite.SQLITE_OK
 import ksqlite.capi.memory.data
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.refDisposer
+import ksqlite.capi.memory.userDataDisposer
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.types.Sqlite3BlobOpenFlag
+import ksqlite.capi.types.Sqlite3BlobParam
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
+import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.utils.transform
 
 public actual fun sqlite3_aggregate_context(
@@ -130,40 +137,104 @@ public actual fun sqlite3_bind_blob64(
     ksqlite.sqlite3_bind_blob64(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = data?.region?.nativeBuffer,
-        arg3 = size.toULong(),
-        arg4 =
+        arg2 = data?.block?.pointer,
+        arg3 = size.convert(),
+        arg4 = userDataDisposer(data, destructor)
     )
 )
 
-/*
+public actual fun sqlite3_bind_double(
+    stmt: sqlite3_stmt,
+    index: Int,
+    value: Double
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_bind_double(
+        arg0 = stmt.pointer,
+        arg1 = index,
+        arg2 = value
+    )
+)
+
+public actual fun sqlite3_bind_int(
+    stmt: sqlite3_stmt,
+    index: Int,
+    value: Int
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_bind_int(
+        arg0 = stmt.pointer,
+        arg1 = index,
+        arg2 = value
+    )
+)
+
+public actual fun sqlite3_bind_int64(
+    stmt: sqlite3_stmt,
+    index: Int,
+    value: Long
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_bind_int64(
+        arg0 = stmt.pointer,
+        arg1 = index,
+        arg2 = value
+    )
+)
+
+public actual fun sqlite3_bind_null(
+    stmt: sqlite3_stmt,
+    index: Int
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_bind_null(
+        arg0 = stmt.pointer,
+        arg1 = index,
+    )
+)
+
+public actual fun sqlite3_bind_parameter_count(stmt: sqlite3_stmt): Int =
+    ksqlite.sqlite3_bind_parameter_count(stmt.pointer)
+
+public actual fun sqlite3_bind_parameter_index(
+    stmt: sqlite3_stmt,
+    name: String
+): Int = ksqlite.sqlite3_bind_parameter_index(
+    arg0 = stmt.pointer,
+    zName = name
+)
+
+public actual fun sqlite3_bind_parameter_name(
+    stmt: sqlite3_stmt,
+    index: Int
+): String? = ksqlite.sqlite3_bind_parameter_name(
+    arg0 = stmt.pointer,
+    arg1 = index
+)?.toKString()
+
 public actual fun sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_pointer?,
-    type: String,
+    data: sqlite3_mutable_pointer?,
+    type: String?,
     destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
     ksqlite.sqlite3_bind_pointer(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = stmt.memory.refPointer(data),
+        arg2 = data?.block?.pointer,
         arg3 = stmt.memory.stringPointer(type),
-        arg4 = ksqlite.SQLITE_STATIC
+        arg4 = userDataDisposer(data, destructor)
     )
 )
 
 public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    zData: String?,
-    nData: Int
+    text: String?,
+    size: Int
 ): Sqlite3Result = convertResult(
     ksqlite.sqlite3_bind_text(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = zData,
-        arg3 = nData,
+        arg2 = text,
+        arg3 = size,
         arg4 = ksqlite.SQLITE_TRANSIENT
     )
 )
@@ -171,17 +242,18 @@ public actual fun sqlite3_bind_text(
 public actual fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: String?,
-    nData: ULong,
-    encoding: Sqlite3TextEncoding.Set1
+    data: sqlite3_mutable_pointer?,
+    size: Long,
+    encoding: Sqlite3TextEncoding.Set1,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
     ksqlite.sqlite3_bind_text64(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = data,
-        arg3 = nData,
-        arg4 = ksqlite.SQLITE_TRANSIENT,
-        encoding = encoding.value.toUByte()
+        arg2 = data?.block?.pointer,
+        arg3 = size.convert(),
+        arg4 = userDataDisposer(data, destructor),
+        encoding = encoding.value.convert()
     )
 )
 
@@ -197,7 +269,96 @@ public actual fun sqlite3_bind_value(
     )
 )
 
-public actual fun sqlite3_busy_handler(
+public actual fun sqlite3_bind_zeroblob(
+    stmt: sqlite3_stmt,
+    index: Int,
+    size: Int
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_bind_zeroblob(
+        arg0 = stmt.pointer,
+        arg1 = index,
+        n = size
+    )
+)
+
+public actual fun sqlite3_bind_zeroblob64(
+    stmt: sqlite3_stmt,
+    index: Int,
+    size: ULong
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_bind_zeroblob64(
+        arg0 = stmt.pointer,
+        arg1 = index,
+        arg2 = size
+    )
+)
+
+public actual fun sqlite3_blob_bytes(blob: sqlite3_blob): Int =
+    ksqlite.sqlite3_blob_bytes(blob.pointer)
+
+public actual fun sqlite3_blob_close(blob: sqlite3_blob): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_blob_close(blob.pointer)
+)
+
+public actual fun sqlite3_blob_open(
+    db: sqlite3,
+    databaseName: String,
+    tableName: String,
+    columnName: String,
+    rowIndex: Long,
+    flags: Sqlite3BlobOpenFlag,
+    outBlob: Sqlite3BlobParam
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_blob_open(
+        arg0 = db.pointer,
+        zDb = databaseName,
+        zTable = tableName,
+        zColumn = columnName,
+        iRow = rowIndex,
+        flags = flags.value,
+        ppBlob = outBlob
+    )
+)
+
+public actual fun sqlite3_blob_read(
+    blob: sqlite3_blob,
+    buffer: ByteArray,
+    size: Int,
+    offset: Int
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_blob_read(
+        arg0 = blob.pointer,
+        Z = buffer.refTo(0),
+        N = size,
+        iOffset = offset
+    )
+)
+
+public actual fun sqlite3_blob_reopen(
+    blob: sqlite3_blob,
+    rowIndex: Long
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_blob_reopen(
+        arg0 = blob.pointer,
+        arg1 = rowIndex
+    )
+)
+
+public actual fun sqlite3_blob_write(
+    blob: sqlite3_blob,
+    buffer: ByteArray,
+    size: Int,
+    offset: Int
+): Sqlite3Result = convertResult(
+    ksqlite.sqlite3_blob_write(
+        arg0 = blob.pointer,
+        z = buffer.refTo(0),
+        n = size,
+        iOffset = offset
+    )
+)
+
+/*public actual fun sqlite3_busy_handler(
     db: sqlite3,
     callback: Sqlite3BusyHandlerCallback?
 ): Sqlite3Result = convertResult(

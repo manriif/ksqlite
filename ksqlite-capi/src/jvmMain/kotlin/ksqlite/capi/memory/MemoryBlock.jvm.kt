@@ -1,15 +1,13 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.memory.ReadableMemoryRegion
-import ksqlite.capi.memory.WritableMemoryRegion
 import ksqlite.capi.utils.checkBufferRange
 import java.lang.foreign.MemorySegment
 
-internal class MemoryRegion(
-    private val nativeSegment: MemorySegment,
-    val nativeSize: Long
-) : ReadableMemoryRegion,
-    WritableMemoryRegion {
+internal class MemoryBlock(
+    val pointer: MemorySegment,
+    val blockSize: Long
+) : ReadableMemoryBlock,
+    WritableMemoryBlock {
 
     override fun read(
         size: Int,
@@ -19,14 +17,14 @@ internal class MemoryRegion(
     ): ByteArray {
         checkBufferRange(
             sourceOffset = sourceOffset,
-            sourceSize = nativeSize,
+            sourceSize = blockSize,
             destinationOffset = destinationOffset.toLong(),
             destinationSize = destination.size.toLong(),
             size = size
         )
 
         MemorySegment.copy(
-            nativeSegment,
+            pointer,
             sourceOffset,
             MemorySegment.ofArray(destination),
             destinationOffset.toLong(),
@@ -46,14 +44,14 @@ internal class MemoryRegion(
             sourceOffset = sourceOffset.toLong(),
             sourceSize = source.size.toLong(),
             destinationOffset = destinationOffset,
-            destinationSize = nativeSize,
+            destinationSize = blockSize,
             size = size
         )
 
         MemorySegment.copy(
             MemorySegment.ofArray(source),
             sourceOffset.toLong(),
-            nativeSegment,
+            pointer,
             destinationOffset,
             size.toLong()
         )

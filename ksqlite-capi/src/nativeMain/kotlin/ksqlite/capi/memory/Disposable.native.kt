@@ -8,7 +8,7 @@ import kotlinx.cinterop.staticCFunction
 /**
  * Disposables living shortly.
  */
-private val Disposables: MutableMap<COpaquePointer, Disposable> by lazy(::mutableMapOf)
+private val Disposables: MutableMap<COpaquePointer, Disposable> by lazy(::hashMapOf)
 
 /**
  * C-static function disposing a [Disposable].

@@ -4,48 +4,47 @@ import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
+import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.Sqlite3DestructorCallback as Destructor
 
 /**
- * Holder for user data and its
+ * Holder for user data and its destructor.
  */
 private class UserData(
-    val pointer: sqlite3_mutable_pointer,
-    val destructorCallback: Destructor,
+    val userData: sqlite3_mutable_pointer,
+    val destructor: Sqlite3DestructorCallback,
 )
 
 /**
  * Globally referenced [UserData]
  */
-private val GlobalUserData: MutableMap<COpaquePointer, UserData> by lazy(::mutableMapOf)
+private val GlobalUserData: MutableMap<COpaquePointer, UserData> by lazy(::hashMapOf)
 
 /**
- * C-static function invoking a [Destructor] for a user data pointer.
+ * C-static function invoking a [Sqlite3DestructorCallback] against a user data pointer.
+ * Removes the stored user data from [GlobalUserData]
  *
  * Throws [IllegalStateException] if the [COpaquePointer] passed to the function is `null`.
  */
 private val UserDataDestructor = staticCFunction { pointer: COpaquePointer? ->
     checkNotNull(pointer)
-    checkNotNull(UserDataDestructors[pointer]).invoke()
-    check(Disposables[pointer] == null)
-}
 
-/**
- * Returns [GlobalDisposer] only if [data] != `null`.
- */
-internal fun globalDisposer(data: Any?): CPointer<CFunction<(COpaquePointer?) -> Unit>>? {
-    return GlobalDisposer.takeIf { data != null }
-}
-
-/**
- * Registers [disposable] pointed by [pointer].
- * [disposable] is expected to be disposed later and a [globalDisposer] should be requested to
- * dispose it.
- */
-internal fun registerGlobalDisposable(pointer: COpaquePointer, disposable: Disposable) {
-    check(Disposables.put(pointer, disposable) == null) {
-        "A disposable is already registered for the pointed address"
+    checkNotNull(GlobalUserData.remove(pointer)).run {
+        destructor.invoke(userData)
     }
 }
 
+/**
+ * Returns [UserDataDestructor] only if [userData] != `null` and [destructor] != `null`.
+ */
+internal fun userDataDisposer(
+    userData: sqlite3_mutable_pointer?,
+    destructor: Sqlite3DestructorCallback?
+): CPointer<CFunction<(COpaquePointer?) -> Unit>>? {
+    if (userData == null || destructor == null) {
+        return null
+    }
+
+    GlobalUserData[userData.block.pointer] = UserData(userData, destructor)
+    return UserDataDestructor
+}

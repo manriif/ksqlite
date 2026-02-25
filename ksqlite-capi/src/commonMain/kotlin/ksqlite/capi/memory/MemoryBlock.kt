@@ -1,19 +1,19 @@
 package ksqlite.capi.memory
 
 /**
- * Region of memory which can be read.
+ * Block of memory which can be read.
  */
-public interface ReadableMemoryRegion {
+public interface ReadableMemoryBlock {
 
     /**
-     * Reads [size] bytes from the native buffer into [destination] and returns [destination].
-     * Reading starts at [sourceOffset] from the native buffer and writing starts at
+     * Reads [size] bytes from the memory block into [destination] and returns [destination].
+     * Reading starts at [sourceOffset] from the memory block and writing starts at
      * [destinationOffset] to the [destination] buffer.
      *
      * @throws IllegalArgumentException if any of [sourceOffset], [destinationOffset] or [size] is
      * negative.
      * @throws IndexOutOfBoundsException if not all bytes can fit in [destination] or can be read
-     * from native buffer.
+     * from memory block.
      */
     public fun read(
         size: Int,
@@ -27,18 +27,18 @@ public interface ReadableMemoryRegion {
 }
 
 /**
- * Region of memory which can be written.
+ * Block of memory which can be written.
  */
-public interface WritableMemoryRegion {
+public interface WritableMemoryBlock {
 
     /**
-     * Writes [size] bytes from [source] to the native buffer.
+     * Writes [size] bytes from [source] to the memory block.
      * Reading starts at [sourceOffset] from the [source] buffer and writing starts at
-     * [destinationOffset] to the native buffer.
+     * [destinationOffset] to the memory block.
      *
      * @throws IllegalArgumentException if any of [sourceOffset], [destinationOffset] or [size] is
      * negative.
-     * @throws IndexOutOfBoundsException if not all bytes can fit in native buffer or can be read
+     * @throws IndexOutOfBoundsException if not all bytes can fit in the memory block or can be read
      * from [source].
      */
     public fun write(

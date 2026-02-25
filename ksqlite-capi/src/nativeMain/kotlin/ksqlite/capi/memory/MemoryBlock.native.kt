@@ -2,20 +2,21 @@ package ksqlite.capi.memory
 
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.get
-import kotlinx.cinterop.set
-import ksqlite.capi.memory.ReadableMemoryRegion
-import ksqlite.capi.memory.WritableMemoryRegion
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.convert
+import kotlinx.cinterop.plus
+import kotlinx.cinterop.usePinned
 import ksqlite.capi.utils.checkBufferRange
+import platform.posix.memcpy
 
 /**
- * Implementation of both [ReadableMemoryRegion] and [WritableMemoryRegion] for native.
+ * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for native.
  */
-internal class MemoryRegion(
-    val nativeBuffer: CPointer<ByteVar>,
-    val nativeSize: Long
-) : ReadableMemoryRegion,
-    WritableMemoryRegion {
+internal class MemoryBlock(
+    val pointer: CPointer<ByteVar>,
+    val blockSize: Long
+) : ReadableMemoryBlock,
+    WritableMemoryBlock {
 
     override fun read(
         size: Int,
@@ -25,14 +26,18 @@ internal class MemoryRegion(
     ): ByteArray {
         checkBufferRange(
             sourceOffset = sourceOffset,
-            sourceSize = nativeSize,
+            sourceSize = blockSize,
             destinationOffset = destinationOffset.toLong(),
             destinationSize = destination.size.toLong(),
             size = size
         )
 
-        repeat(size) { index ->
-            destination[destinationOffset + index] = nativeBuffer[sourceOffset + index]
+        destination.usePinned { pinned ->
+            val _ = memcpy(
+                __dst = pinned.addressOf(destinationOffset),
+                __src = pointer + sourceOffset,
+                __n = size.convert()
+            )
         }
 
         return destination
@@ -48,12 +53,16 @@ internal class MemoryRegion(
             sourceOffset = sourceOffset.toLong(),
             sourceSize = source.size.toLong(),
             destinationOffset = destinationOffset,
-            destinationSize = nativeSize,
+            destinationSize = blockSize,
             size = size
         )
 
-        repeat(size) { index ->
-            nativeBuffer[destinationOffset + index] = source[sourceOffset + index]
+        source.usePinned { pinned ->
+            val _ = memcpy(
+                __dst = pointer + destinationOffset,
+                __src = pinned.addressOf(sourceOffset),
+                __n = size.convert()
+            )
         }
     }
 }

@@ -159,7 +159,7 @@ public expect fun sqlite3_bind_parameter_index(
 public expect fun sqlite3_bind_parameter_name(
     stmt: sqlite3_stmt,
     index: Int
-): String
+): String?
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -169,7 +169,7 @@ public expect fun sqlite3_bind_parameter_name(
 public expect fun sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_pointer?,
+    data: sqlite3_mutable_pointer?,
     type: String?,
     destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
@@ -183,8 +183,7 @@ public expect fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
     text: String?,
-    size: Int,
-    destructor: Sqlite3DestructorCallback?
+    size: Int
 ): Sqlite3Result
 
 /**

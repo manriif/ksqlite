@@ -105,7 +105,7 @@ public expect fun sqlite3_bind_blob64(
 public expect fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_pointer?,
+    data: sqlite3_mutable_pointer?,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
     destructor: Sqlite3DestructorCallback?

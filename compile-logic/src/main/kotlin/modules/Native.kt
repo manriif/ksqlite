@@ -11,7 +11,8 @@ import java.io.File
 private val NoStringConversions = listOf(
     "prepare_v2",
     "prepare_v3",
-    "bind_pointer"
+    "bind_pointer",
+    "bind_text64"
 )
 
 /**
