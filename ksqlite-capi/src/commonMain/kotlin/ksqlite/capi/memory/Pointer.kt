@@ -3,10 +3,20 @@ package ksqlite.capi.memory
 /**
  * Base for pointer of sqlite3_* types.
  */
-public abstract class PointerBase<Pointer : Any>
-internal constructor(internal val pointer: Pointer) {
+public abstract class Pointer<Pointer : Any> internal constructor(
+    internal val pointer: Pointer,
+    restricted: Boolean
+) {
 
-    private var _memory = lazy(::MemoryManager)
+    private var _memory = lazy {
+        check(!restricted) {
+            "This pointer is limited and some sqlite APIs cannot be called in a callback function" +
+                    "because of not yet resolved memory management concerns."
+        }
+
+        MemoryManager()
+    }
+
     internal val memory by _memory
 
     /**

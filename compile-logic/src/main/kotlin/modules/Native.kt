@@ -19,8 +19,9 @@ private val NoStringConversions = listOf(
  */
 fun createDefContent(
     packageName: String,
-    headerFile: File,
     libraryFile: File,
+    headerFile: File,
+    sqliteMcHeaderFile: File,
     operatingSystem: OperatingSystem,
     params: SqliteCompilationParameters,
 ): String {
@@ -28,7 +29,7 @@ fun createDefContent(
         |language = C
         |package = $packageName
         |headers = ${headerFile.name}
-        |headerFilter = ${headerFile.name} ${params.sqliteMcAmalgamationName}.h
+        |headerFilter = ${headerFile.name} ${sqliteMcHeaderFile.absolutePath}
         |staticLibraries = ${libraryFile.name}
         |libraryPaths = ${libraryFile.parentFile.absolutePath}
         |noStringConversion = ${NoStringConversions.joinToString(" ") { "${params.sqliteName}_$it" }}

@@ -34,6 +34,21 @@ public interface Sqlite3Param<Value> {
     public val value: Value
 }
 
+/**
+ * [Sqlite3Param] which instantiate [Value] lazily using [factory].
+ */
+internal class LazySqlite3Param<Value>(factory: () -> Value) : Sqlite3Param<Value> {
+
+    override val value: Value by lazy(factory)
+}
+
+/**
+ * Returns a [LazySqlite3Param] instance.
+ */
+internal fun <Value> param(factory: () -> Value): LazySqlite3Param<Value> {
+    return LazySqlite3Param(factory)
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Primitives
 ///////////////////////////////////////////////////////////////////////////

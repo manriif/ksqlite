@@ -9,7 +9,7 @@ import ksqlite.capi.memory.ReadableMemoryRegion
 import ksqlite.capi.memory.WritableMemoryRegion
 
 public actual open class sqlite3_pointer internal constructor(
-    private val region: MemoryRegion
+    internal val region: MemoryRegion
 ) : ReadableMemoryRegion by region {
 
     public actual val size: Long

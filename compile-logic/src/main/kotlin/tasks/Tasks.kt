@@ -872,6 +872,12 @@ fun Project.registerSqliteGenerateCInteropDefTask(
     val extension = ksqliteExtension
     val headerFile = ksqliteHeaderFile(extension)
 
+    val sqliteMcHeaderFile = extension.run {
+        sqliteSourcesDirectory.zip(compilationParams) { directory, params ->
+            directory.file("${params.sqliteMcAmalgamationName}.h")
+        }
+    }
+
     outputs.file(defFile)
     inputs.file(headerFile)
 
@@ -881,8 +887,9 @@ fun Project.registerSqliteGenerateCInteropDefTask(
         defFile.get().asFile.writeText(
             createDefContent(
                 packageName = packageName,
-                headerFile = headerFile.get().asFile,
                 libraryFile = target.libraryFile.get().asFile,
+                headerFile = headerFile.get().asFile,
+                sqliteMcHeaderFile = sqliteMcHeaderFile.get().asFile,
                 operatingSystem = target.platform.get().operatingSystem,
                 params = extension.compilationParams.get()
             )

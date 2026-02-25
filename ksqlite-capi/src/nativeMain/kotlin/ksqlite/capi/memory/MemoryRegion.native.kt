@@ -12,7 +12,7 @@ import ksqlite.capi.utils.checkBufferRange
  * Implementation of both [ReadableMemoryRegion] and [WritableMemoryRegion] for native.
  */
 internal class MemoryRegion(
-    private val nativeBuffer: CPointer<ByteVar>,
+    val nativeBuffer: CPointer<ByteVar>,
     val nativeSize: Long
 ) : ReadableMemoryRegion,
     WritableMemoryRegion {

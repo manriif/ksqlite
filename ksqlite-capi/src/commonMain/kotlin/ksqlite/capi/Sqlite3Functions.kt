@@ -84,8 +84,7 @@ public expect fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
     data: ByteArray?,
-    size: Int,
-    destructor: Sqlite3DestructorCallback?
+    size: Int
 ): Sqlite3Result
 
 /**
@@ -196,7 +195,7 @@ public expect fun sqlite3_bind_text(
  */
 public expect fun sqlite3_busy_handler(
     db: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3BusyHandlerCallback?
 ): Sqlite3Result
 
@@ -274,7 +273,7 @@ public expect fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result
  */
 public expect fun sqlite3_collation_needed(
     db: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CollationNeededCallback?,
 ): Sqlite3Result
 
@@ -432,7 +431,7 @@ public expect fun sqlite3_column_value(
  */
 public expect fun sqlite3_commit_hook(
     db: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CommitCallback?
 ): sqlite3_mutable_pointer?
 
@@ -491,7 +490,7 @@ public expect fun sqlite3_create_collation(
     db: sqlite3,
     name: String,
     textRep: Sqlite3TextEncoding.Set0,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CollationCompareCallback?
 ): Sqlite3Result
 
@@ -504,7 +503,7 @@ public expect fun sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
     encoding: Sqlite3TextEncoding.Set0,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     destructor: Sqlite3DestructorCallback?,
     callback: Sqlite3CollationCompareCallback?
 ): Sqlite3Result
@@ -519,7 +518,7 @@ public expect fun sqlite3_create_function(
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     func: Sqlite3CreateFunctionFuncCallback?,
     step: Sqlite3CreateFunctionStepCallback?,
     final: Sqlite3CreateFunctionFinalCallback?
@@ -535,7 +534,7 @@ public expect fun sqlite3_create_function_v2(
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     func: Sqlite3CreateFunctionFuncCallback?,
     step: Sqlite3CreateFunctionStepCallback?,
     final: Sqlite3CreateFunctionFinalCallback?,
@@ -575,7 +574,7 @@ public expect fun sqlite3_create_window_function(
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     step: Sqlite3CreateFunctionStepCallback?,
     final: Sqlite3CreateFunctionFinalCallback?,
     value: Sqlite3CreateFunctionValueCallback?,
@@ -751,7 +750,7 @@ public expect fun sqlite3_exec(
     db: sqlite3,
     sql: String,
     errMsg: Sqlite3StringUtf8Param?,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3ExecCallback?
 ): Sqlite3Result
 
@@ -1098,7 +1097,7 @@ public expect fun sqlite3_preupdate_depth(db: sqlite3): Int
  */
 public expect fun sqlite3_preupdate_hook(
     db: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3PreUpdateCallback
 ): sqlite3_mutable_pointer?
 
@@ -1135,7 +1134,7 @@ public expect fun sqlite3_preupdate_old(
 public expect fun sqlite3_progress_handler(
     db: sqlite3,
     nOps: Int,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3ProgressCallback
 )
 
@@ -1346,7 +1345,7 @@ public expect fun sqlite3_result_zeroblob64(
  */
 public expect fun sqlite3_rollback_hook(
     db: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3RollbackCallback?
 ): sqlite3_mutable_pointer?
 
@@ -1369,7 +1368,7 @@ public expect fun sqlite3_serialize(
  */
 public expect fun sqlite3_set_authorizer(
     db: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3SetAuthorizerCallback?
 ): Sqlite3Result
 
@@ -1598,7 +1597,7 @@ public expect fun sqlite3_total_changes64(db: sqlite3): Long
 public expect fun sqlite3_trace_v2(
     sqlite3: sqlite3,
     mask: Sqlite3TraceFlag?,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3TraceCallback?
 )
 
@@ -1621,7 +1620,7 @@ public expect fun sqlite3_txn_state(
  */
 public expect fun sqlite3_update_hook(
     db: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3UpdateCallback?
 ): Sqlite3UpdateCallback?
 

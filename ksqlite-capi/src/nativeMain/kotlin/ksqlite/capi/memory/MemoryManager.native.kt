@@ -4,18 +4,18 @@ import kotlinx.cinterop.Arena
 import kotlinx.cinterop.AutofreeScope
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
-import kotlinx.cinterop.CPointed
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.Pinned
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
 import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.Sqlite3ParamBase
+import ksqlite.capi.types.sqlite3_mutable_pointer
 
 internal actual class MemoryManager : AutoCloseable {
 
-    private lateinit var disposables: MutableList<Disposable>
+    private lateinit var disposables: MutableList<SelfDisposable>
     private lateinit var arena: Arena
     private var closed = false
 
@@ -35,47 +35,40 @@ internal actual class MemoryManager : AutoCloseable {
     /**
      * Returns a stable [COpaquePointer] to [value].
      * Returns `null` if both [value] and [destructor] are `null`.
+     *
+     * [value] can later be accessed within a callback using [data] and disposed using
+     * [refDisposer].
      */
-    internal fun referencePointer(
+    internal fun refPointer(
         value: Any?,
-        destructor: Sqlite3DestructorCallback? = null
+        destructor: Sqlite3DestructorCallback? = null,
+        userData: sqlite3_mutable_pointer? = null
     ): COpaquePointer? = notClosed {
         if (value == null && destructor == null) {
             return null
         }
 
-        val reference = ReferenceImpl(value, destructor)
+        val reference = ReferenceDisposable(value, destructor, userData)
         addDisposable(reference)
 
         return reference.stableRef.asCPointer()
     }
 
     /**
-     * Attaches the [param] and returns a [CPointer] to a [P] instance.
-     * Returns `null` if [param] is `null`.
-     */
-    internal fun <P : CPointed> paramPointer(param: Sqlite3ParamBase<*, P>?): CPointer<P>? = notClosed {
-        if (param == null) {
-            return null
-        }
-
-        val pointer = param.attach(placement)
-        val disposable = CallbackDisposable(param::detach)
-        addDisposable(disposable)
-
-        return pointer
-    }
-
-    /**
      * Returns a [CPointer] to [value]'s content.
      * Returns `null` if [value] is `null`.
+     *
+     * [value] can be disposed using [globalDisposer].
      */
     internal fun bufferPointer(value: ByteArray?): CPointer<ByteVar>? = notClosed {
         val pinned = value?.pin() ?: return null
-        val disposable = CallbackDisposable(pinned::unpin)
-        addDisposable(disposable)
+        val address = pinned.addressOf(0)
+        val disposable = PinnedDisposable(pinned, address)
 
-        return pinned.addressOf(0)
+        addDisposable(disposable)
+        registerGlobalDisposable(address, disposable)
+
+        return address
     }
 
     /**
@@ -87,7 +80,7 @@ internal actual class MemoryManager : AutoCloseable {
             return null
         }
 
-        value.cstr.getPointer(placement)
+        return value.cstr.getPointer(placement)
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -99,7 +92,7 @@ internal actual class MemoryManager : AutoCloseable {
      */
     internal fun clear() = notClosed {
         if (::disposables.isInitialized) {
-            disposables.onEach(Disposable::dispose).clear()
+            disposables.onEach(SelfDisposable::release).clear()
         }
 
         if (::arena.isInitialized) {
@@ -130,7 +123,7 @@ internal actual class MemoryManager : AutoCloseable {
     /**
      * Adds [disposable] to the objects that should be disposed on [clear].
      */
-    private fun addDisposable(disposable: Disposable) {
+    private fun addDisposable(disposable: SelfDisposable) {
         if (::disposables.isInitialized) {
             disposables.add(disposable)
         } else {
@@ -139,31 +132,34 @@ internal actual class MemoryManager : AutoCloseable {
     }
 
     /**
-     * Removes [disposable] from the objects that should be disposed on [clear] and disposes it.
+     * [Disposable] which can self removes from [disposables].
+     * [release] should be used to make the actual disposing.
      */
-    private fun removeDisposable(disposable: Disposable) {
-        check(disposables.remove(disposable)) { "Resource is not managed" }
-        disposable.dispose()
-    }
+    private abstract inner class SelfDisposable : Disposable {
 
-    /**
-     * Disposable which call the given [dispose] function on dispose called.
-     */
-    private class CallbackDisposable(private val dispose: () -> Unit) : Disposable {
+        /**
+         * Disposes the resource.
+         */
+        abstract fun release()
 
-        override fun dispose() {
-            dispose.invoke()
+        /**
+         * Removes `this` from the [disposables] and [release].
+         */
+        final override fun dispose() {
+            check(disposables.remove(this)) { "Resource is not managed" }
+            release()
         }
     }
 
     /**
      * Implementation of [Reference].
      */
-    private inner class ReferenceImpl(
+    private inner class ReferenceDisposable(
         private val value: Any?,
-        private val destructor: Sqlite3DestructorCallback?
+        private val destructor: Sqlite3DestructorCallback?,
+        override val userData: sqlite3_mutable_pointer?
     ) : Reference,
-        Disposable {
+        SelfDisposable() {
 
         val stableRef = StableRef.create(this)
 
@@ -174,12 +170,22 @@ internal actual class MemoryManager : AutoCloseable {
         }
 
         override fun release() {
-            removeDisposable(this)
-        }
-
-        override fun dispose() {
-            destructor?.invoke()
+            destructor?.invoke(userData)
             stableRef.dispose()
+        }
+    }
+
+    /**
+     * Unpins [pinned] on [dispose].
+     */
+    private inner class PinnedDisposable(
+        private val pinned: Pinned<*>,
+        private val pointer: COpaquePointer
+    ) : SelfDisposable() {
+
+        override fun release() {
+            unregisterGlobalDisposable(pointer)
+            pinned.unpin()
         }
     }
 }

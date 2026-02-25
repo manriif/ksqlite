@@ -30,7 +30,7 @@ import ksqlite.capi.types.sqlite3_value
  */
 public expect fun sqlite3_autovacuum_pages(
     db: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     destructor: Sqlite3DestructorCallback?,
     callback: Sqlite3AutoVacuumPagesCallback?
 ): Sqlite3Result
@@ -92,7 +92,7 @@ public expect fun sqlite3_backup_step(
 public expect fun sqlite3_bind_blob64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_pointer?,
+    data: sqlite3_mutable_pointer?,
     size: Long,
     destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
@@ -434,6 +434,6 @@ public expect fun sqlite3_wal_checkpoint_v2(
  */
 public expect fun sqlite3_wal_hook(
     sqlite3: sqlite3,
-    userData: sqlite3_pointer?,
+    userData: sqlite3_mutable_pointer?,
     callback: Sqlite3WalCallback?
 ): sqlite3_mutable_pointer?

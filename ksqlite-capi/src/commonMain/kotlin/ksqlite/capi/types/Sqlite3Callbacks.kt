@@ -2,20 +2,18 @@
 
 package ksqlite.capi.types
 
-import kotlin.reflect.KMutableProperty0
-
 /**
  * Generic callback invoked when a no longer necessary object is being detroyed by sqlite.
  */
-public typealias Sqlite3DestructorCallback = (userData: sqlite3_mutable_pointer) -> Unit
+public typealias Sqlite3DestructorCallback = (userData: sqlite3_mutable_pointer?) -> Unit
 
 /**
  * Callback for [ksqlite.capi.sqlite3_auto_extension].
  */
 public typealias Sqlite3AutoExtensionCallback = (
     db: Sqlite3Param<sqlite3>,
-    errorMsg: KMutableProperty0<String?>,
-    routines: Sqlite3Param<sqlite3_api_routines>
+    routines: Sqlite3Param<sqlite3_api_routines>,
+    errorMsg: (String) -> Unit
 ) -> Sqlite3Result
 
 /**

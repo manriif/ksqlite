@@ -62,7 +62,7 @@ fun KotlinNativeTarget.configureNativeTarget() {
     }
 
     val generateCInteropDefTaskProvider = registerSqliteGenerateCInteropDefTask(
-        packageName = "sqlite",
+        packageName = projectNamespace,
         targetName = name,
         target = sqliteTarget,
         defFile = defFile
@@ -89,7 +89,11 @@ fun KotlinNativeTarget.configureNativeTarget() {
 
             definitionFile = defFile
             extraOpts += listOf("-Xccall-mode", "direct")
-            includeDirs(extension.ksqliteDirectory)
+
+            includeDirs(
+                extension.ksqliteDirectory,
+                extension.sqliteSourcesDirectory
+            )
         }
     }
 }
