@@ -17,12 +17,15 @@ public actual open class sqlite3_pointer internal constructor(
 
     internal companion object {
 
-        fun from(segment: MemorySegment, size: Long): sqlite3_pointer? {
-            if (segment.isNull) {
+        /**
+         * Returns a [sqlite3_pointer] from [pointer] or `null` if [pointer] is `null`.
+         */
+        fun from(pointer: MemorySegment, size: Long): sqlite3_pointer? {
+            if (pointer.isNull) {
                 return null
             }
 
-            return sqlite3_pointer(MemoryBlock(segment, size))
+            return sqlite3_pointer(MemoryBlock(pointer, size))
         }
     }
 }
@@ -33,12 +36,15 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryB
 
     internal companion object {
 
-        fun from(segment: MemorySegment, size: Long): sqlite3_mutable_pointer? {
-            if (segment.isNull) {
+        /**
+         * Returns a [sqlite3_pointer] from [pointer] or `null` if [pointer] is `null`.
+         */
+        fun from(pointer: MemorySegment, size: Long): sqlite3_mutable_pointer? {
+            if (pointer.isNull) {
                 return null
             }
 
-            return sqlite3_mutable_pointer(MemoryBlock(segment, size))
+            return sqlite3_mutable_pointer(MemoryBlock(pointer, size))
         }
     }
 }

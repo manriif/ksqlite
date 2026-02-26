@@ -1,7 +1,9 @@
 package ksqlite.capi
 
 import ksqlite.capi.types.Sqlite3CompleteResult
+import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.sqlite3DataTypes
 import ksqlite.capi.types.sqlite3Results
 
 ///////////////////////////////////////////////////////////////////////////
@@ -23,7 +25,25 @@ internal fun convertResult(resultCode: Int): Sqlite3Result {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Complete
+// Data types
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * [Sqlite3DataType]s associated by their integer code.
+ */
+private val Sqlite3DataTypeMap = sqlite3DataTypes().associateBy(Sqlite3DataType::code)
+
+/**
+ * Converts [dataType] to [Sqlite3DataType].
+ */
+internal fun convertDataType(dataType: Int): Sqlite3DataType {
+    return checkNotNull(Sqlite3DataTypeMap[dataType]) {
+        "Unknown sqlite3 data type $dataType"
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Complete result
 ///////////////////////////////////////////////////////////////////////////
 
 /**

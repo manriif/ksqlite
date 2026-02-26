@@ -13,7 +13,7 @@ public abstract class SimplePointer<Struct : CPointed> internal constructor(
 /**
  * Holder for pointer to [Struct] with an associated [MemoryManager].
  */
-public abstract class MemoryPointer<Struct : CPointed> internal constructor(
+public abstract class ManagedPointer<Struct : CPointed> internal constructor(
     pointer: CPointer<Struct>,
     restricted: Boolean
-) : Pointer<CPointer<Struct>>(pointer, restricted)
+) : MemoryPointer<CPointer<Struct>>(pointer, restricted)

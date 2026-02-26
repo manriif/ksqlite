@@ -17,8 +17,8 @@ public sealed interface Sqlite3TraceEvent {
      */
     public class Stmt(
         override val constant: Sqlite3TraceFlag.Constant,
-        public val stmt: Sqlite3Param<sqlite3_stmt>,
-        public val sql: Sqlite3Param<String>
+        public val stmt: Sqlite3RestrictedStruct<sqlite3_stmt>,
+        public val sql: String
     ) : Sqlite3TraceEvent
 
     /**
@@ -26,8 +26,8 @@ public sealed interface Sqlite3TraceEvent {
      */
     public class Profile(
         override val constant: Sqlite3TraceFlag.Constant,
-        public val stmt: Sqlite3Param<sqlite3_stmt>,
-        public val nanos: Sqlite3Param<Long>
+        public val stmt: Sqlite3RestrictedStruct<sqlite3_stmt>,
+        public val nanos: Long
     ) : Sqlite3TraceEvent
 
     /**
@@ -35,7 +35,7 @@ public sealed interface Sqlite3TraceEvent {
      */
     public class Row(
         override val constant: Sqlite3TraceFlag.Constant,
-        public val stmt: Sqlite3Param<sqlite3_stmt>,
+        public val stmt: Sqlite3RestrictedStruct<sqlite3_stmt>,
     ) : Sqlite3TraceEvent
 
     /**
@@ -43,6 +43,6 @@ public sealed interface Sqlite3TraceEvent {
      */
     public class Close(
         override val constant: Sqlite3TraceFlag.Constant,
-        public val db: Sqlite3Param<sqlite3>,
+        public val db: Sqlite3RestrictedStruct<sqlite3>,
     ) : Sqlite3TraceEvent
 }

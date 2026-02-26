@@ -16,7 +16,7 @@ public typealias Sqlite3AutoVacuumPagesCallback = (
  */
 public typealias Sqlite3WalCallback = (
     userData: sqlite3_mutable_pointer?,
-    db: Sqlite3Param<sqlite3>,
+    db: Sqlite3RestrictedStruct<sqlite3>,
     dbName: String,
     nPage: Int
 ) -> Sqlite3Result.OkOrFailure

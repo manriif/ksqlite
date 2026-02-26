@@ -39,10 +39,10 @@ internal actual class MemoryManager : AutoCloseable {
      * [value] can later be accessed within a callback using [userData] and disposed using
      * [refDisposer].
      */
-    internal fun refPointer(
+    fun refPointer(
         value: Any?,
-        destructor: Sqlite3DestructorCallback? = null,
-        userData: sqlite3_mutable_pointer? = null
+        userData: sqlite3_mutable_pointer? = null,
+        destructor: Sqlite3DestructorCallback? = null
     ): COpaquePointer? = notClosed {
         if (value == null && destructor == null) {
             return null
@@ -75,7 +75,7 @@ internal actual class MemoryManager : AutoCloseable {
      * Allocates a copy of the [value] and returns a [CPointer] to the content.
      * Returns `null` if [value] is `null`.
      */
-    internal fun stringPointer(value: String?): CPointer<ByteVar>? = notClosed {
+    fun stringPointer(value: String?): CPointer<ByteVar>? = notClosed {
         if (value == null) {
             return null
         }
@@ -90,7 +90,7 @@ internal actual class MemoryManager : AutoCloseable {
     /**
      * Clears all the allocated memory and releases all the pinned/referenced objects.
      */
-    internal fun clear() = notClosed {
+    actual fun clear() = notClosed {
         if (::disposables.isInitialized) {
             disposables.onEach(SelfDisposable::release).clear()
         }

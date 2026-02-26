@@ -157,7 +157,7 @@ private val SqliteFunctions = mapOf(
     "create_collation" to true,
     "create_collation_v2" to true,
     "create_collation16" to false,
-    "collation_needed" to false,
+    "collation_needed" to true,
     "collation_needed16" to false,
 
     // Library Information

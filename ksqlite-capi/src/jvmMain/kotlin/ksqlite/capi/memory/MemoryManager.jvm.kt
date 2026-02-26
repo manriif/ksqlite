@@ -17,7 +17,7 @@ internal actual class MemoryManager : AutoCloseable {
     private var _destructorFunctionPointer: MemorySegment? = null
     private var closed = false
 
-    internal val destructorFunctionPointer: MemorySegment
+    val destructorFunctionPointer: MemorySegment
         get() {
             if (_destructorFunctionPointer == null) {
                 _destructorFunctionPointer = functionPointer(::DestructorHandler)
@@ -97,7 +97,7 @@ internal actual class MemoryManager : AutoCloseable {
      *
      * Returns [MemorySegment.NULL] if both [value] and [destructor] are `null`.
      */
-    internal fun referencePointer(
+    fun referencePointer(
         value: Any?,
         destructor: Sqlite3DestructorCallback? = null
     ): MemorySegment = notClosed {
@@ -114,7 +114,7 @@ internal actual class MemoryManager : AutoCloseable {
      *
      * Returns [MemorySegment.NULL] if [factory] is `null`.
      */
-    internal fun functionPointer(
+    fun functionPointer(
         factory: ((MemoryManager) -> Handler)?
     ): MemorySegment = notClosed {
         segment(factory) { factory ->
@@ -141,7 +141,7 @@ internal actual class MemoryManager : AutoCloseable {
      *
      * Returns [MemorySegment.NULL] if [param] is `null`.
      */
-    internal fun paramPointer(param: Sqlite3ParamBase<*>?): MemorySegment = notClosed {
+    fun paramPointer(param: Sqlite3ParamBase<*>?): MemorySegment = notClosed {
         segment(param) { param ->
             withArena {
                 param.attach(this).also {
@@ -159,7 +159,7 @@ internal actual class MemoryManager : AutoCloseable {
      *
      * Returns [MemorySegment.NULL] if [value] is `null`.
      */
-    internal fun bufferPointer(value: ByteArray?): MemorySegment = notClosed {
+    fun bufferPointer(value: ByteArray?): MemorySegment = notClosed {
         segment(value) { value ->
             withArena {
                 allocate(value.size.toLong()).apply {
@@ -174,7 +174,7 @@ internal actual class MemoryManager : AutoCloseable {
      *
      * Returns [MemorySegment.NULL] if [value] is `null`.
      */
-    internal fun stringPointer(value: String?): MemorySegment = notClosed {
+    fun stringPointer(value: String?): MemorySegment = notClosed {
         segment(value) { value ->
             withArena {
                 allocateFrom(value)
@@ -189,7 +189,7 @@ internal actual class MemoryManager : AutoCloseable {
     /**
      * Clears all the allocated memory and releases all the referenced objects.
      */
-    internal fun clear() {
+    actual fun clear() {
         if (::disposables.isInitialized) {
             disposables.onEach { it.value.dispose() }.clear()
         }

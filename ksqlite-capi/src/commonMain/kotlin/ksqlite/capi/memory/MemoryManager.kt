@@ -4,6 +4,12 @@ package ksqlite.capi.memory
  * Manages memory.
  */
 internal expect class MemoryManager() : AutoCloseable {
+
+    /**
+     * Releases all the resources but keep the manager alive.
+     */
+    fun clear()
+
     override fun close()
 }
 

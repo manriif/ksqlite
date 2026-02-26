@@ -11,8 +11,8 @@ public typealias Sqlite3DestructorCallback = (userData: sqlite3_mutable_pointer?
  * Callback for [ksqlite.capi.sqlite3_auto_extension].
  */
 public typealias Sqlite3AutoExtensionCallback = (
-    db: Sqlite3Param<sqlite3>,
-    routines: Sqlite3Param<sqlite3_api_routines>,
+    db: Sqlite3RestrictedStruct<sqlite3>,
+    routines: sqlite3_api_routines,
     errorMsg: (String) -> Unit
 ) -> Sqlite3Result
 
@@ -29,7 +29,7 @@ public typealias Sqlite3BusyHandlerCallback = (
  */
 public typealias Sqlite3CollationNeededCallback = (
     userData: sqlite3_mutable_pointer?,
-    db: Sqlite3Param<sqlite3>,
+    db: Sqlite3RestrictedStruct<sqlite3>,
     encoding: Sqlite3TextEncoding.Set2,
     name: String
 ) -> Unit
@@ -53,7 +53,7 @@ public typealias Sqlite3CommitCallback = (userData: sqlite3_mutable_pointer?) ->
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
 public typealias Sqlite3CreateFunction2Callback = (
-    context: Sqlite3Param<sqlite3_context>,
+    context: sqlite3_context,
     values: Array<sqlite3_value>
 ) -> Unit
 
@@ -61,7 +61,7 @@ public typealias Sqlite3CreateFunction2Callback = (
  * Callback with one parameter of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunction1Callback = (context: Sqlite3Param<sqlite3_context>) -> Unit
+public typealias Sqlite3CreateFunction1Callback = (context: sqlite3_context) -> Unit
 
 /**
  * Callback for the `func` parameter of [ksqlite.capi.sqlite3_create_function],
@@ -107,7 +107,7 @@ public typealias Sqlite3ExecCallback = (
 public typealias Sqlite3LogCallback = (
     userData: sqlite3_mutable_pointer?,
     errorCode: Int,
-    errorMsg: String
+    errorMsg: String?
 ) -> Unit
 
 /**
@@ -115,7 +115,7 @@ public typealias Sqlite3LogCallback = (
  */
 public typealias Sqlite3SqlLogCallback = (
     userData: sqlite3_mutable_pointer?,
-    db: Sqlite3Param<sqlite3>,
+    db: Sqlite3RestrictedStruct<sqlite3>,
     event: Sqlite3SqlLogEvent
 ) -> Unit
 
@@ -124,7 +124,7 @@ public typealias Sqlite3SqlLogCallback = (
  */
 public typealias Sqlite3PreUpdateCallback = (
     userData: sqlite3_mutable_pointer?,
-    db: Sqlite3Param<sqlite3>,
+    db: Sqlite3RestrictedStruct<sqlite3>,
     action: Sqlite3ActionCode.Dml,
     dbName: String,
     tableName: String,

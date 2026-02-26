@@ -9,6 +9,7 @@ import kotlinx.cinterop.LongVar
 import kotlinx.cinterop.NativePlacement
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.allocPointerTo
+import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKStringFromUtf8
@@ -123,7 +124,15 @@ public actual class Sqlite3DatabaseConnectionParam actual constructor() :
     Sqlite3PointerParamBase<sqlite3, s3>() {
 
     override fun create(pointer: CPointer<s3>): sqlite3 {
-        return sqlite3(pointer)
+        return sqlite3(pointer, false)
+    }
+}
+
+public actual class Sqlite3BlobParam actual constructor() :
+    Sqlite3PointerParamBase<sqlite3_blob, s3_blob>() {
+
+    override fun create(pointer: CPointer<s3_blob>): sqlite3_blob {
+        return sqlite3_blob(pointer, false)
     }
 }
 
@@ -131,7 +140,7 @@ public actual class Sqlite3ContextParam actual constructor() :
     Sqlite3PointerParamBase<sqlite3_context, s3_context>() {
 
     override fun create(pointer: CPointer<s3_context>): sqlite3_context {
-        return sqlite3_context(pointer)
+        return sqlite3_context(pointer, false)
     }
 }
 
@@ -139,7 +148,7 @@ public actual class Sqlite3StatementParam actual constructor() :
     Sqlite3PointerParamBase<sqlite3_stmt, s3_stmt>() {
 
     override fun create(pointer: CPointer<s3_stmt>): sqlite3_stmt {
-        return sqlite3_stmt(pointer)
+        return sqlite3_stmt(pointer, false)
     }
 }
 
@@ -173,4 +182,15 @@ internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.use(
     }
 
     return result
+}
+
+/**
+ * Allocates [Var] into a [kotlinx.cinterop.MemScope], invokes [block] with a pointer to it and
+ * returns [block]'s result.
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.useMemScoped(
+    block: (CPointer<Var>) -> R
+): R = memScoped {
+    use(this, block)
 }

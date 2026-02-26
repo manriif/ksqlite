@@ -194,8 +194,8 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * default.
      */
     public class MMAP_SIZE(
-        internal val defaultMmapSizeLimit: Long,
-        internal val maxAllowedMmapSizeLimit: Long
+        internal val sz: Long,
+        internal val mx: Long
     ) : Sqlite3ConfigOption(22)
 
     /**

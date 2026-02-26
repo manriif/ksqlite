@@ -7,6 +7,7 @@ import kotlinx.cinterop.reinterpret
 import ksqlite.capi.memory.MemoryBlock
 import ksqlite.capi.memory.ReadableMemoryBlock
 import ksqlite.capi.memory.WritableMemoryBlock
+import ksqlite.capi.memory.disposeRef
 
 public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :
     ReadableMemoryBlock by block {
@@ -16,7 +17,10 @@ public actual open class sqlite3_pointer internal constructor(internal val block
 
     internal companion object {
 
-        fun from(pointer: COpaquePointer?, size: Long) = pointer?.let { pointer ->
+        /**
+         * Returns a [sqlite3_pointer] from [pointer] or `null` if [pointer] is `null`.
+         */
+        fun from(pointer: COpaquePointer?, size: Long): sqlite3_pointer? = pointer?.let {
             sqlite3_pointer(MemoryBlock(pointer.reinterpret(), size))
         }
     }
@@ -28,8 +32,19 @@ public actual class sqlite3_mutable_pointer internal constructor(block: MemoryBl
 
     internal companion object {
 
-        fun from(pointer: COpaquePointer?, size: Long) = pointer?.let { pointer ->
+        /**
+         * Returns a [sqlite3_mutable_pointer] from [pointer] or `null` if [pointer] is `null`.
+         */
+        fun from(pointer: COpaquePointer?, size: Long): sqlite3_mutable_pointer? = pointer?.let {
             sqlite3_mutable_pointer(MemoryBlock(pointer.reinterpret(), size))
+        }
+
+        /**
+         * Returns a [sqlite3_mutable_pointer] from [pointer] or `null` if [pointer] is `null`.
+         * The returned [sqlite3_mutable_pointer] is obtained from [disposeRef].
+         */
+        fun fromDisposeRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? = pointer?.let { pointer ->
+            disposeRef(pointer)
         }
     }
 }

@@ -206,7 +206,7 @@ public expect fun sqlite3_busy_handler(
  */
 public expect fun sqlite3_busy_timeout(
     db: sqlite3,
-    ms: Int
+    millis: Int
 ): Sqlite3Result
 
 /**
@@ -284,7 +284,7 @@ public expect fun sqlite3_collation_needed(
 public expect fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): ByteArray
+): sqlite3_pointer?
 
 /**
  * The following routines are used to access elements of the current row in the result set.
@@ -399,7 +399,7 @@ public expect fun sqlite3_column_table_name(
 public expect fun sqlite3_column_text(
     stmt: sqlite3_stmt,
     index: Int
-): String
+): String?
 
 /**
  * The following routines are used to access elements of the current row in the result set.
@@ -439,10 +439,7 @@ public expect fun sqlite3_commit_hook(
  *
  * [sqlite3_compileoption_get()](https://sqlite.org/c3ref/compileoption_get.html)
  */
-public expect fun sqlite3_compileoption_get(
-    db: sqlite3,
-    index: Int
-): String?
+public expect fun sqlite3_compileoption_get(index: Int): String?
 
 /**
  * Given the name of a compile-time option, return true if that option was used and false if not.
@@ -459,7 +456,7 @@ public expect fun sqlite3_compileoption_used(optName: String): Int
  *
  * [sqlite3_complete()](https://sqlite.org/c3ref/complete.html)
  */
-public expect fun sqlite3_complete(): Sqlite3CompleteResult
+public expect fun sqlite3_complete(sql: String): Sqlite3CompleteResult
 
 /**
  * This API allows applications to modify the global configuration of the SQLite library at
@@ -488,7 +485,7 @@ public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
 public expect fun sqlite3_create_collation(
     db: sqlite3,
     name: String,
-    textRep: Sqlite3TextEncoding.Set0,
+    encoding: Sqlite3TextEncoding.Set0,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CollationCompareCallback?
 ): Sqlite3Result

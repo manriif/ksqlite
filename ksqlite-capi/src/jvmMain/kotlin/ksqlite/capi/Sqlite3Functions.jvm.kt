@@ -26,7 +26,7 @@ public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
 ): sqlite3_pointer? = sqlite3_pointer.from(
-    segment = nativeSqlite3.sqlite3_aggregate_context(
+    pointer = nativeSqlite3.sqlite3_aggregate_context(
         context.pointer,
         nBytes
     ),

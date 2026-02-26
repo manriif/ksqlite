@@ -11,6 +11,15 @@ package ksqlite.capi.types
 public sealed class Sqlite3DbConfigOption(internal val id: Int) {
 
     /**
+     * Option that accept an int [value] and a [state] output paramater.
+     */
+    public sealed class IntOutput(
+        id: Int,
+        internal val value: Int,
+        internal val state: Sqlite3IntParam?
+    ) : Sqlite3DbConfigOption(id)
+
+    /**
      * This option is used to change the name of the "main" database schema. This option does not
      * follow the usual SQLITE_DBCONFIG argument format. This option takes exactly one additional
      * argument so that the sqlite3_db_config() call has a total of three parameters. The extra
@@ -71,9 +80,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * enforcement setting is not reported back.
      */
     public class ENABLE_FKEY(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1002)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1002, value, state)
 
     /**
      * This option is used to enable or disable triggers. There should be two additional arguments.
@@ -84,9 +93,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * not reported back.
      */
     public class ENABLE_TRIGGER(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1003)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1003, value, state)
 
     /**
      * This option is used to enable or disable using the fts3_tokenizer() function - part of the
@@ -101,9 +110,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * value of the setting is not reported back. Refer to FTS3 documentation for further details.
      */
     public class ENABLE_FTS3_TOKENIZER(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1004)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1004, value, state)
 
     /**
      * This option is used to enable or disable the sqlite3_load_extension() interface independently
@@ -119,9 +128,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * reported back.
      */
     public class ENABLE_LOAD_EXTENSION(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1005)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1005, value, state)
 
     /**
      * Usually, when a database in WAL mode is closed or detached from a database handle, SQLite
@@ -136,9 +145,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * checkpoints-on-close have been disabled - 0 if they are not disabled, 1 if they are.
      */
     public class NO_CKPT_ON_CLOSE(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1006)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1006, value, state)
 
     /**
      * The SQLITE_DBCONFIG_ENABLE_QPSG option activates or deactivates the query planner stability
@@ -153,9 +162,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * or enabled following this call.
      */
     public class ENABLE_QPSG(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1007)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1007, value, state)
 
     /**
      * By default, the output of EXPLAIN QUERY PLAN commands does not include output for any 
@@ -167,9 +176,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * 1 if it is.
      */
     public class TRIGGER_EQP(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1008)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1008, value, state)
 
     /**
      * Set the SQLITE_DBCONFIG_RESET_DATABASE flag and then run VACUUM in order to reset a database
@@ -195,9 +204,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * installed virtual tables without calling their xDestroy() methods.
      */
     public class RESET_DATABASE(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1009)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1009, value, state)
 
     /**
      * The SQLITE_DBCONFIG_DEFENSIVE option activates or deactivates the "defensive" flag for a
@@ -212,9 +221,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * - Direct writes to shadow tables.
      */
     public class DEFENSIVE(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1010)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1010, value, state)
 
     /**
      * The SQLITE_DBCONFIG_WRITABLE_SCHEMA option activates or deactivates the "writable_schema"
@@ -226,9 +235,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * following this call.
      */
     public class WRITABLE_SCHEMA(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1011)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1011, value, state)
 
     /**
      * The SQLITE_DBCONFIG_LEGACY_ALTER_TABLE option activates or deactivates the legacy behavior of
@@ -238,9 +247,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * legacy_alter_table statement.
      */
     public class LEGACY_ALTER_TABLE(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1012)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1012, value, state)
 
     /**
      * The SQLITE_DBCONFIG_DQS_DML option activates or deactivates the legacy double-quoted string
@@ -249,9 +258,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * option.
      */
     public class DQS_DML(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1013)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1013, value, state)
 
     /**
      * The SQLITE_DBCONFIG_DQS option activates or deactivates the legacy double-quoted string
@@ -259,9 +268,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * value of this setting is determined by the -DSQLITE_DQS compile-time option.
      */
     public class DQS_DDL(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1014)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1014, value, state)
 
     /**
      * This option is used to enable or disable views. There must be two additional arguments. The
@@ -275,9 +284,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * disables views in the main database schema or in the schemas of ATTACH-ed databases.
      */
     public class ENABLE_VIEW(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1015)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1015, value, state)
 
     /**
      * The SQLITE_DBCONFIG_LEGACY_FILE_FORMAT option activates or deactivates the legacy file format
@@ -297,9 +306,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * support either generated columns or descending indexes.
      */
     public class LEGACY_FILE_FORMAT(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1016)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1016, value, state)
 
     /**
      * The SQLITE_DBCONFIG_TRUSTED_SCHEMA option tells SQLite to assume that database schemas are
@@ -318,9 +327,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * trusted_schema statement.
      */
     public class TRUSTED_SCHEMA(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1017)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1017, value, state)
 
     /**
      * The SQLITE_DBCONFIG_STMT_SCANSTATUS option is only useful in SQLITE_ENABLE_STMT_SCANSTATUS
@@ -335,9 +344,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * processing the first argument is written into the integer that the second argument points to.
      */
     public class STMT_SCANSTATUS(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1018)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1018, value, state)
 
     /**
      * The SQLITE_DBCONFIG_REVERSE_SCANORDER option changes the default order in which tables and
@@ -352,9 +361,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * processing the first argument.
      */
     public class REVERSE_SCANORDER(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1019)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1019, value, state)
 
     /**
      * The SQLITE_DBCONFIG_ENABLE_ATTACH_CREATE option enables or disables the ability of the ATTACH
@@ -370,9 +379,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * processing the first argument.
      */
     public class ENABLE_ATTACH_CREATE(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1020)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1020, value, state)
 
     /**
      * The SQLITE_DBCONFIG_ENABLE_ATTACH_WRITE option enables or disables the ability of the ATTACH
@@ -391,9 +400,9 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * argument.
      */
     public class ENABLE_ATTACH_WRITE(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1021)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1021, value, state)
 
     /**
      * The SQLITE_DBCONFIG_ENABLE_COMMENTS option enables or disables the ability to include
@@ -407,7 +416,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * after processing the first argument.
      */
     public class ENABLE_COMMENTS(
-        internal val value: Int,
-        internal val state: Sqlite3IntParam?
-    ) : Sqlite3DbConfigOption(1022)
+        value: Int,
+        state: Sqlite3IntParam?
+    ) : IntOutput(1022, value, state)
 }

@@ -7,7 +7,7 @@ package ksqlite.capi.types
 /**
  * Base for output parameter.
  */
-public abstract class Sqlite3Param<Value> {
+public interface Sqlite3Param<Value> {
 
     /**
      * Value written on native side.
@@ -23,29 +23,8 @@ public abstract class Sqlite3Param<Value> {
      *
      * If the returned wrapper was passed to an SQLite interface intended to deallocate the
      * struct, then it should no longer be used.
-     *
-     * ## Callback
-     *
-     * For non-primitives [Value] types, the returned [Value] may be lazily computed the first time
-     * it is accessed if `this` [Sqlite3Param] instance was supplied as a callback argument.
-     *
-     * The value must not be accessed after the callback returns.
      */
-    public abstract val value: Value
-}
-
-/**
- * [Sqlite3Param] which instantiate [Value] lazily using [factory].
- */
-internal expect class LazySqlite3Param<Value>(factory: () -> Value) : Sqlite3Param<Value> {
-    override val value: Value
-}
-
-/**
- * Returns a [LazySqlite3Param] instance.
- */
-internal fun <Value> param(factory: () -> Value): LazySqlite3Param<Value> {
-    return LazySqlite3Param(factory)
+    public val value: Value
 }
 
 ///////////////////////////////////////////////////////////////////////////

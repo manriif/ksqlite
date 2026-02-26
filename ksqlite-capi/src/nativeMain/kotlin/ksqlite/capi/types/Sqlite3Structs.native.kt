@@ -5,7 +5,7 @@ package ksqlite.capi.types
 
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
-import ksqlite.capi.memory.MemoryPointer
+import ksqlite.capi.memory.ManagedPointer
 import ksqlite.capi.memory.SimplePointer
 
 ///////////////////////////////////////////////////////////////////////////
@@ -27,8 +27,8 @@ internal typealias s3_snapshot = ksqlite.sqlite3_snapshot
 
 public actual class sqlite3 internal constructor(
     pointer: CPointer<s3>,
-    restricted: Boolean
-) : MemoryPointer<s3>(pointer, restricted)
+    restricted: Boolean = true
+) : ManagedPointer<s3>(pointer, restricted)
 
 public actual class sqlite3_backup internal constructor(
     pointer: CPointer<s3_backup>
@@ -36,30 +36,25 @@ public actual class sqlite3_backup internal constructor(
 
 public actual class sqlite3_blob internal constructor(
     pointer: CPointer<s3_blob>,
-    restricted: Boolean
-) : MemoryPointer<s3_blob>(pointer, restricted)
+) : SimplePointer<s3_blob>(pointer)
 
 public actual class sqlite3_api_routines internal constructor(
-    pointer: CPointer<s3_api_routines>,
-    restricted: Boolean
-) : MemoryPointer<s3_api_routines>(pointer, restricted)
+    pointer: CPointer<s3_api_routines>
+) : SimplePointer<s3_api_routines>(pointer)
 
 public actual class sqlite3_context internal constructor(
-    pointer: CPointer<s3_context>,
-    restricted: Boolean
-) : MemoryPointer<s3_context>(pointer, restricted)
+    pointer: CPointer<s3_context>
+) : SimplePointer<s3_context>(pointer)
 
 public actual class sqlite3_stmt internal constructor(
     pointer: CPointer<s3_stmt>,
-    restricted: Boolean
-) : MemoryPointer<s3_stmt>(pointer, restricted)
+    restricted: Boolean = true
+) : ManagedPointer<s3_stmt>(pointer, restricted)
 
 public actual class sqlite3_value internal constructor(
-    pointer: CPointer<s3_value>,
-    restricted: Boolean
-) : MemoryPointer<s3_value>(pointer, restricted)
+    pointer: CPointer<s3_value>
+) : SimplePointer<s3_value>(pointer)
 
 public actual class sqlite3_snapshot internal constructor(
     pointer: CPointer<s3_snapshot>,
-    restricted: Boolean
-) : MemoryPointer<s3_snapshot>(pointer, restricted)
+) : SimplePointer<s3_snapshot>(pointer)

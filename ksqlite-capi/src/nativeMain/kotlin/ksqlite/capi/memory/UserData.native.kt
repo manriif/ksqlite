@@ -18,18 +18,18 @@ private class UserData(
 /**
  * Globally referenced [UserData]
  */
-private val GlobalUserData: MutableMap<COpaquePointer, UserData> by lazy(::hashMapOf)
+private val UserDataMap: MutableMap<COpaquePointer, UserData> by lazy(::hashMapOf)
 
 /**
  * C-static function invoking a [Sqlite3DestructorCallback] against a user data pointer.
- * Removes the stored user data from [GlobalUserData]
+ * Removes the stored user data from [UserDataMap]
  *
  * Throws [IllegalStateException] if the [COpaquePointer] passed to the function is `null`.
  */
 private val UserDataDestructor = staticCFunction { pointer: COpaquePointer? ->
     checkNotNull(pointer)
 
-    checkNotNull(GlobalUserData.remove(pointer)).run {
+    checkNotNull(UserDataMap.remove(pointer)).run {
         destructor.invoke(userData)
     }
 }
@@ -37,7 +37,7 @@ private val UserDataDestructor = staticCFunction { pointer: COpaquePointer? ->
 /**
  * Returns [UserDataDestructor] only if [userData] != `null` and [destructor] != `null`.
  */
-internal fun userDataDisposer(
+internal fun userDataDestructor(
     userData: sqlite3_mutable_pointer?,
     destructor: Sqlite3DestructorCallback?
 ): CPointer<CFunction<(COpaquePointer?) -> Unit>>? {
@@ -45,6 +45,6 @@ internal fun userDataDisposer(
         return null
     }
 
-    GlobalUserData[userData.block.pointer] = UserData(userData, destructor)
+    UserDataMap[userData.block.pointer] = UserData(userData, destructor)
     return UserDataDestructor
 }
