@@ -64,3 +64,18 @@ public sealed class Sqlite3TextEncoding(internal open val value: Int) {
         return Masked(value or flag.value)
     }
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Values
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns all [Sqlite3TextEncoding]s.
+ */
+internal fun sqlite3TextEncodings(): Set<Sqlite3TextEncoding> = setOf(
+    Sqlite3TextEncoding.UTF8,
+    Sqlite3TextEncoding.UFT16LE,
+    Sqlite3TextEncoding.UTF16BE,
+    Sqlite3TextEncoding.UTF16,
+    Sqlite3TextEncoding.UTF16_ALIGNED,
+)

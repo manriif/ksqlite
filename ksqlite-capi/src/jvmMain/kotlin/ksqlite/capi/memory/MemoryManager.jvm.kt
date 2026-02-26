@@ -96,7 +96,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if both [value] and [destructor] are `null`.
      */
-    fun referencePointer(
+    fun refPointer(
         value: Any?,
         destructor: Sqlite3DestructorCallback? = null
     ): MemorySegment = notClosed {

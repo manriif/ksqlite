@@ -12,9 +12,17 @@ import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.SQLITE_OK
 import ksqlite.SQLITE_TRANSIENT
+import ksqlite.capi.handlers.AutoExtensionHandler
+import ksqlite.capi.handlers.AutoExtensions
+import ksqlite.capi.handlers.AutoVacuumPagesHandler
+import ksqlite.capi.handlers.BusyHandlerHandler
+import ksqlite.capi.handlers.CollationNeededHandler
+import ksqlite.capi.handlers.CreateCollationHandler
+import ksqlite.capi.handlers.handle
 import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
-import ksqlite.capi.memory.globalRefPointer
+import ksqlite.capi.memory.globalMemory
+import ksqlite.capi.memory.keyedRefPointer
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.refData
 import ksqlite.capi.memory.refDisposer
@@ -51,7 +59,6 @@ import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.useMemScoped
-import ksqlite.capi.utils.toKString
 import ksqlite.capi.utils.transform
 import ksqlite.ksqlite_auto_extension
 import ksqlite.sqlite3_aggregate_context
@@ -89,6 +96,7 @@ import ksqlite.sqlite3_changes64
 import ksqlite.sqlite3_clear_bindings
 import ksqlite.sqlite3_close
 import ksqlite.sqlite3_close_v2
+import ksqlite.sqlite3_collation_needed
 import ksqlite.sqlite3_column_blob
 import ksqlite.sqlite3_column_bytes
 import ksqlite.sqlite3_column_count
@@ -142,19 +150,7 @@ public actual fun sqlite3_autovacuum_pages(
 ): Sqlite3Result = convertResult(
     sqlite3_autovacuum_pages(
         db = db.pointer,
-        arg1 = callback?.let {
-            staticCFunction { refPointer, zSchema, nDbPage, nFreePage, nBytePerPage ->
-                val (callback, userData) = refData<Sqlite3AutoVacuumPagesCallback>(refPointer)
-
-                callback(
-                    userData,
-                    zSchema!!.toKStringFromUtf8(),
-                    nDbPage,
-                    nFreePage,
-                    nBytePerPage
-                )
-            }
-        },
+        arg1 = AutoVacuumPagesHandler.handle(callback),
         arg2 = db.memory.refPointer(callback, userData, destructor),
         arg3 = refDisposer(callback, destructor)
     )
@@ -335,7 +331,7 @@ public actual fun sqlite3_bind_text64(
         arg2 = data?.block?.pointer,
         arg3 = size.convert(),
         arg4 = userDataDestructor(data, destructor),
-        encoding = encoding.value.convert()
+        encoding = encoding.utf8OrThrow().value.convert()
     )
 )
 
@@ -449,12 +445,7 @@ public actual fun sqlite3_busy_handler(
 ): Sqlite3Result = convertResult(
     sqlite3_busy_handler(
         arg0 = db.pointer,
-        arg1 = callback?.let {
-            staticCFunction { refPointer, count ->
-                val (callback, userData) = refData<Sqlite3BusyHandlerCallback>(refPointer)
-                callback(userData, count)
-            }
-        },
+        arg1 = BusyHandlerHandler.handle(callback),
         arg2 = db.memory.refPointer(callback, userData)
     )
 )
@@ -501,7 +492,11 @@ public actual fun sqlite3_collation_needed(
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CollationNeededCallback?,
 ): Sqlite3Result = convertResult(
-    ksqlite.collation_needed()
+    sqlite3_collation_needed(
+        arg0 = db.pointer,
+        arg1 = db.memory.keyedRefPointer("collation_needed", callback, userData),
+        arg2 = CollationNeededHandler.handle(callback)
+    )
 )
 
 public actual fun sqlite3_column_blob(
@@ -671,7 +666,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result {
                         callback(userData, errCode, errMsg?.toKStringFromUtf8())
                     }
                 },
-                globalRefPointer("sqlite3_config_log", callback, userData)
+                globalMemory.keyedRefPointer("config_log", callback, userData)
             )
 
             is Sqlite3ConfigOption.LOOKASIDE -> arrayOf(sz, cnt)
@@ -700,7 +695,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result {
                         )
                     }
                 },
-                globalRefPointer("sqlite3_config_sqllog", callback, userData)
+                globalMemory.keyedRefPointer("config_sqllog", callback, userData)
             )
 
             is Sqlite3ConfigOption.STMTJRNL_SPILL -> arrayOf(nByte)
@@ -727,14 +722,7 @@ public actual fun sqlite3_create_collation(
         zName = name,
         eTextRep = encoding.utf8OrThrow().value,
         pArg = db.memory.refPointer(callback, userData),
-        xCompare = callback?.let {
-            staticCFunction { pointer, size1, text1, size2, text2 ->
-                val (callback, userData) = refData<Sqlite3CollationCompareCallback>(pointer)
-                val left = text1!!.toKString(size1)
-                val right = text2!!.toKString(size2)
-                callback(userData, left, right)
-            }
-        }
+        xCompare = CreateCollationHandler
     )
 )
 
@@ -751,14 +739,7 @@ public actual fun sqlite3_create_collation_v2(
         zName = name,
         eTextRep = encoding.utf8OrThrow().value,
         pArg = db.memory.refPointer(callback, userData),
-        xCompare = callback?.let {
-            staticCFunction { pointer, size1, text1, size2, text2 ->
-                val (callback, userData) = refData<Sqlite3CollationCompareCallback>(pointer)
-                val left = text1!!.toKString(size1)
-                val right = text2!!.toKString(size2)
-                callback(userData, left, right)
-            }
-        },
+        xCompare = CreateCollationHandler,
         xDestroy = refDisposer(callback, destructor)
     )
 )

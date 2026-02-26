@@ -3,8 +3,10 @@ package ksqlite.capi
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3DataTypes
 import ksqlite.capi.types.sqlite3Results
+import ksqlite.capi.types.sqlite3TextEncodings
 
 ///////////////////////////////////////////////////////////////////////////
 // Result
@@ -40,6 +42,25 @@ internal fun convertDataType(dataType: Int): Sqlite3DataType {
     return checkNotNull(Sqlite3DataTypeMap[dataType]) {
         "Unknown sqlite3 data type $dataType"
     }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Collation
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * [Sqlite3TextEncoding]s associated by their integer value.
+ */
+private val Sqlite3TextEncodings = sqlite3TextEncodings()
+
+/**
+ * Converts [encoding] into [Sqlite3TextEncoding].
+ */
+internal inline fun <reified E : Sqlite3TextEncoding> convertTextEncoding(encoding: Int): E {
+    val value = Sqlite3TextEncodings.firstOrNull { (encoding and it.value) == it.value }
+    checkNotNull(value) { "Unknown sqlite3 text encoding $encoding" }
+    check(value is E) { "Unexpected encoding type $value" }
+    return value
 }
 
 ///////////////////////////////////////////////////////////////////////////

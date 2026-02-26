@@ -17,10 +17,6 @@ public fun ksqliteCleanup() {
         .onEach { it.key.memory.close() }
         .clear()
 
-    KeyedPointers
-        .onEach { disposePointer(it.value) }
-        .clear()
-
     GlobalMemoryManager.clear()
 }
 
@@ -32,35 +28,12 @@ public fun ksqliteCleanup() {
  * Memory manager for top level objects.
  */
 private val GlobalMemoryManager: MemoryManager by lazy(::MemoryManager)
-private val KeyedPointers: MutableMap<String, GenericPointer> by lazy(::mutableMapOf)
 
 /**
- * Disposes [pointer].
+ * Returns the global [MemoryManager] instance.
  */
-internal expect fun disposePointer(pointer: GenericPointer)
-
-/**
- * Disposes any resource previously associated with [key] and stores new resource obtained from
- * [block].
- */
-internal inline fun <Pointer : GenericPointer> globalPointer(
-    key: String,
-    block: MemoryManager.() -> Pointer?
-): Pointer? {
-    val pointer = block(GlobalMemoryManager)
-
-    val oldPointer = if (pointer != null) {
-        KeyedPointers.put(key, pointer)
-    } else {
-        KeyedPointers.remove(key)
-    }
-
-    if (oldPointer != null) {
-        disposePointer(oldPointer)
-    }
-
-    return pointer
-}
+internal val globalMemory: MemoryManager
+    get() = GlobalMemoryManager
 
 ///////////////////////////////////////////////////////////////////////////
 // Scoped
@@ -106,7 +79,7 @@ internal inline fun <R> useMemoryManager(block: MemoryManager.() -> R): R {
  * all the resources associated with [Pointer] through [memory] are disposed and [memory] is
  * closed before the function returns.
  */
-internal inline fun <Pointer: GenericPointer> Pointer.deallocate(
+internal inline fun <Pointer : GenericPointer> Pointer.deallocate(
     block: (Pointer) -> Int
 ): Sqlite3Result {
     val result = convertResult(block(this))

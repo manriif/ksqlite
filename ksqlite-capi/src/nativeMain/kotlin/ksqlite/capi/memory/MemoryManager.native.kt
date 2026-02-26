@@ -15,6 +15,7 @@ import ksqlite.capi.types.sqlite3_mutable_pointer
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
+    private lateinit var keyedDisposables: MutableMap<String, SelfDisposable>
     private lateinit var disposables: MutableList<SelfDisposable>
     private lateinit var arena: Arena
 
@@ -32,23 +33,24 @@ internal actual class MemoryManager : MemoryManagerBase() {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Returns a stable [COpaquePointer] to [value].
-     * Returns `null` if both [value] and [destructor] are `null`.
+     * Returns a stable [COpaquePointer] to [data].
+     * Returns `null` if both [data] and [destructor] are `null`.
      *
-     * [value] can later be accessed within a callback using [userData] and disposed using
+     * [data] can later be accessed within a callback using [userData] and disposed using
      * [refDisposer].
      */
     fun refPointer(
-        value: Any?,
+        data: Any?,
         userData: sqlite3_mutable_pointer? = null,
-        destructor: Sqlite3DestructorCallback? = null
+        destructor: Sqlite3DestructorCallback? = null,
+        key: String? = null
     ): COpaquePointer? = notClosed {
-        if (value == null && destructor == null) {
+        if (data == null && destructor == null) {
             return null
         }
 
-        val reference = ReferenceDisposable(value, destructor, userData)
-        addDisposable(reference)
+        val reference = ReferenceDisposable(data, destructor, userData)
+        addDisposable(reference, key)
 
         return reference.stableRef.asCPointer()
     }
@@ -94,6 +96,10 @@ internal actual class MemoryManager : MemoryManagerBase() {
             disposables.onEach(SelfDisposable::release).clear()
         }
 
+        if (::keyedDisposables.isInitialized) {
+            keyedDisposables.onEach { it.value.release() }.clear()
+        }
+
         if (::arena.isInitialized) {
             arena.clear()
         }
@@ -106,11 +112,22 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Adds [disposable] to the objects that should be disposed on [clear].
      */
-    private fun addDisposable(disposable: SelfDisposable) {
-        if (::disposables.isInitialized) {
-            disposables.add(disposable)
+    private fun addDisposable(disposable: SelfDisposable, key: String? = null) {
+        if (key == null) {
+            if (::disposables.isInitialized) {
+                disposables.add(disposable)
+            } else {
+                disposables = mutableListOf(disposable)
+            }
         } else {
-            disposables = mutableListOf(disposable)
+            if (::keyedDisposables.isInitialized) {
+                // Dispose previous disposable with the same key
+                keyedDisposables
+                    .put(key, disposable)
+                    ?.release()
+            } else {
+                keyedDisposables = mutableMapOf(key to disposable)
+            }
         }
     }
 
@@ -138,7 +155,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Implementation of [Reference].
      */
     private inner class ReferenceDisposable(
-        private val value: Any?,
+        private val data: Any?,
         private val destructor: Sqlite3DestructorCallback?,
         override val userData: sqlite3_mutable_pointer?
     ) : Reference,
@@ -148,8 +165,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
 
         @Suppress("UNCHECKED_CAST")
         override fun <Data : Any> get(): Data {
-            checkNotNull(value)
-            return value as Data
+            checkNotNull(data)
+            return data as Data
         }
 
         override fun release() {

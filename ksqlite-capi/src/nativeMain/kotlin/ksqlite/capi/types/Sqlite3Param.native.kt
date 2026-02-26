@@ -124,7 +124,7 @@ public actual class Sqlite3DatabaseConnectionParam actual constructor() :
     Sqlite3PointerParamBase<sqlite3, s3>() {
 
     override fun create(pointer: CPointer<s3>): sqlite3 {
-        return sqlite3(pointer, false)
+        return sqlite3(pointer)
     }
 }
 
@@ -132,7 +132,7 @@ public actual class Sqlite3BlobParam actual constructor() :
     Sqlite3PointerParamBase<sqlite3_blob, s3_blob>() {
 
     override fun create(pointer: CPointer<s3_blob>): sqlite3_blob {
-        return sqlite3_blob(pointer, false)
+        return sqlite3_blob(pointer)
     }
 }
 
@@ -140,7 +140,7 @@ public actual class Sqlite3ContextParam actual constructor() :
     Sqlite3PointerParamBase<sqlite3_context, s3_context>() {
 
     override fun create(pointer: CPointer<s3_context>): sqlite3_context {
-        return sqlite3_context(pointer, false)
+        return sqlite3_context(pointer)
     }
 }
 
@@ -148,7 +148,7 @@ public actual class Sqlite3StatementParam actual constructor() :
     Sqlite3PointerParamBase<sqlite3_stmt, s3_stmt>() {
 
     override fun create(pointer: CPointer<s3_stmt>): sqlite3_stmt {
-        return sqlite3_stmt(pointer, false)
+        return sqlite3_stmt(pointer)
     }
 }
 
@@ -167,6 +167,7 @@ public actual class Sqlite3ValueParam actual constructor() :
 /**
  * Allocates [Var] into [placement], invokes [block] with a pointer to it and returns [block]'s
  * result.
+ * 
  * The pointer passed to [block] must not escape.
  */
 internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.use(
@@ -187,6 +188,7 @@ internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.use(
 /**
  * Allocates [Var] into a [kotlinx.cinterop.MemScope], invokes [block] with a pointer to it and
  * returns [block]'s result.
+ *
  * The pointer passed to [block] must not escape.
  */
 internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.useMemScoped(

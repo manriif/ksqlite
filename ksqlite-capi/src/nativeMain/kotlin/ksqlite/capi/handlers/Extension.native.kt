@@ -1,4 +1,4 @@
-package ksqlite.capi
+package ksqlite.capi.handlers
 
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.CPointer
