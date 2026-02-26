@@ -12,9 +12,10 @@ import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.SQLITE_OK
 import ksqlite.SQLITE_TRANSIENT
-import ksqlite.capi.memory.deallocate
+import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalRefPointer
+import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.refData
 import ksqlite.capi.memory.refDisposer
 import ksqlite.capi.memory.userDataDestructor
@@ -490,10 +491,10 @@ public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
     convertResult(sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3?): Sqlite3Result =
-    db.deallocate { sqlite3_close(it) }
+    db.deallocateNullable { sqlite3_close(it?.pointer) }
 
 public actual fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result =
-    db.deallocate { sqlite3_close_v2(it) }
+    db.deallocateNullable { sqlite3_close_v2(it?.pointer) }
 
 public actual fun sqlite3_collation_needed(
     db: sqlite3,
@@ -694,8 +695,8 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result {
                             callback = callback,
                             userData = userData,
                             type = type,
-                            name = { name!!.toKStringFromUtf8() },
-                            db = { sqlite3(db!!) }
+                            db = sqlite3(db!!),
+                            name = name?.toKStringFromUtf8()
                         )
                     }
                 },

@@ -9,13 +9,12 @@ import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
 import java.lang.invoke.MethodHandles
 
-internal actual class MemoryManager : AutoCloseable {
+internal actual class MemoryManager : MemoryManagerBase() {
 
     private lateinit var disposables: MutableMap<ULong, Disposable>
     private var nextReferenceId: ULong = ULong.MIN_VALUE
     private var arena: Arena? = null
     private var _destructorFunctionPointer: MemorySegment? = null
-    private var closed = false
 
     val destructorFunctionPointer: MemorySegment
         get() {
@@ -189,7 +188,7 @@ internal actual class MemoryManager : AutoCloseable {
     /**
      * Clears all the allocated memory and releases all the referenced objects.
      */
-    actual fun clear() {
+    actual override fun clear() {
         if (::disposables.isInitialized) {
             disposables.onEach { it.value.dispose() }.clear()
         }
@@ -200,22 +199,6 @@ internal actual class MemoryManager : AutoCloseable {
         }
 
         nextReferenceId = ULong.MIN_VALUE
-    }
-
-    /**
-     * Invokes and returns [block]'s result throwing an [IllegalStateException] if this instance is
-     * closed.
-     */
-    private inline fun <T> notClosed(block: () -> T): T {
-        check(!closed) { "Manager is closed" }
-        return block()
-    }
-
-    actual override fun close() {
-        if (!closed) {
-            closed = true
-            clear()
-        }
     }
 
     ///////////////////////////////////////////////////////////////////////////

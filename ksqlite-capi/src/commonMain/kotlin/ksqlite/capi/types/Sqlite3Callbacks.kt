@@ -11,7 +11,7 @@ public typealias Sqlite3DestructorCallback = (userData: sqlite3_mutable_pointer?
  * Callback for [ksqlite.capi.sqlite3_auto_extension].
  */
 public typealias Sqlite3AutoExtensionCallback = (
-    db: Sqlite3RestrictedStruct<sqlite3>,
+    db: sqlite3,
     routines: sqlite3_api_routines,
     errorMsg: (String) -> Unit
 ) -> Sqlite3Result
@@ -29,7 +29,7 @@ public typealias Sqlite3BusyHandlerCallback = (
  */
 public typealias Sqlite3CollationNeededCallback = (
     userData: sqlite3_mutable_pointer?,
-    db: Sqlite3RestrictedStruct<sqlite3>,
+    db: sqlite3,
     encoding: Sqlite3TextEncoding.Set2,
     name: String
 ) -> Unit
@@ -115,7 +115,7 @@ public typealias Sqlite3LogCallback = (
  */
 public typealias Sqlite3SqlLogCallback = (
     userData: sqlite3_mutable_pointer?,
-    db: Sqlite3RestrictedStruct<sqlite3>,
+    db: sqlite3,
     event: Sqlite3SqlLogEvent
 ) -> Unit
 
@@ -124,7 +124,7 @@ public typealias Sqlite3SqlLogCallback = (
  */
 public typealias Sqlite3PreUpdateCallback = (
     userData: sqlite3_mutable_pointer?,
-    db: Sqlite3RestrictedStruct<sqlite3>,
+    db: sqlite3,
     action: Sqlite3ActionCode.Dml,
     dbName: String,
     tableName: String,

@@ -4,9 +4,15 @@ import kotlinx.cinterop.COpaquePointer
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 
-internal actual class RawPointer(val pointer: COpaquePointer)
+public actual open class GenericPointer internal constructor(
+    internal open val pointer: COpaquePointer
+)
 
-internal actual fun disposeRawPointer(pointer: RawPointer) {
+///////////////////////////////////////////////////////////////////////////
+// Global
+///////////////////////////////////////////////////////////////////////////
+
+internal actual fun disposePointer(pointer: GenericPointer) {
     disposeRef(pointer.pointer)
 }
 
@@ -25,6 +31,6 @@ internal fun globalRefPointer(
     }
 
     return globalPointer(key) {
-        refPointer(value, userData, destructor)?.let(::RawPointer)
+        refPointer(value, userData, destructor)?.let(::GenericPointer)
     }?.pointer
 }

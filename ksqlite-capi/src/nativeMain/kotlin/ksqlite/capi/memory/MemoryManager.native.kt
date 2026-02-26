@@ -13,11 +13,10 @@ import kotlinx.cinterop.pin
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 
-internal actual class MemoryManager : AutoCloseable {
+internal actual class MemoryManager : MemoryManagerBase() {
 
     private lateinit var disposables: MutableList<SelfDisposable>
     private lateinit var arena: Arena
-    private var closed = false
 
     private val placement: AutofreeScope
         get() {
@@ -90,29 +89,13 @@ internal actual class MemoryManager : AutoCloseable {
     /**
      * Clears all the allocated memory and releases all the pinned/referenced objects.
      */
-    actual fun clear() = notClosed {
+    actual override fun clear() = notClosed {
         if (::disposables.isInitialized) {
             disposables.onEach(SelfDisposable::release).clear()
         }
 
         if (::arena.isInitialized) {
             arena.clear()
-        }
-    }
-
-    /**
-     * Invokes and returns [block]'s result throwing an [IllegalStateException] if this instance is
-     * closed.
-     */
-    private inline fun <T> notClosed(block: () -> T): T {
-        check(!closed) { "Manager is closed" }
-        return block()
-    }
-
-    actual override fun close() {
-        if (!closed) {
-            clear()
-            closed = true
         }
     }
 
