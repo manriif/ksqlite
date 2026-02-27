@@ -11,6 +11,7 @@ import java.io.File
  */
 private val NoStringConversions = listOf(
     "bind_pointer",
+    "bind_text",
     "bind_text64",
     "blob_open",
     "exec",
@@ -19,6 +20,9 @@ private val NoStringConversions = listOf(
     "open_v2",
     "prepare_v2",
     "prepare_v3",
+    "result_error",
+    "result_text",
+    "result_text64",
     "serialize",
     "table_column_metadata"
 )

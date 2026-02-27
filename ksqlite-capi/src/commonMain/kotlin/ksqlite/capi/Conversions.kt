@@ -1,9 +1,11 @@
 package ksqlite.capi
 
+import ksqlite.capi.types.Sqlite3ActionCode
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
+import ksqlite.capi.types.sqlite3ActionCodes
 import ksqlite.capi.types.sqlite3DataTypes
 import ksqlite.capi.types.sqlite3Results
 import ksqlite.capi.types.sqlite3TextEncodings
@@ -24,6 +26,27 @@ internal fun convertResult(resultCode: Int): Sqlite3Result {
     return checkNotNull(Sqlite3ResultMap[resultCode]) {
         "Unknown sqlite3 result code $resultCode"
     }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Action codes
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * [Sqlite3ActionCode]s associated by their integer code.
+ */
+private val Sqlite3ActionCodeMap = sqlite3ActionCodes().associateBy(Sqlite3ActionCode::code)
+
+/**
+ * Converts [actionCode] to [Sqlite3ActionCode].
+ */
+internal inline fun <reified A: Sqlite3ActionCode> convertActionCode(actionCode: Int): A {
+    val code = checkNotNull(Sqlite3ActionCodeMap[actionCode]) {
+        "Unknown sqlite3 action code $actionCode"
+    }
+
+    check(code is A) { "Unexpected action type $code" }
+    return code
 }
 
 ///////////////////////////////////////////////////////////////////////////

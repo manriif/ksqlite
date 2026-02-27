@@ -61,7 +61,7 @@ internal fun <Data : Any> refData(pointer: COpaquePointer?): Pair<Data, sqlite3_
 }
 
 /**
- * Disposes the object referenced [pointer] and returns the associated user data if any.
+ * Disposes the object referenced by [pointer] and returns the associated user data pointer if any.
  *
  * Throws [IllegalStateException] if `this` [COpaquePointer] is `null`.
  */

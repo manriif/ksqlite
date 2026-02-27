@@ -260,3 +260,47 @@ public sealed class Sqlite3ActionCode(internal val code: Int) {
      */
     public data object RECURSIVE : Sqlite3ActionCode(33)
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Values
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns all [Sqlite3ActionCode]s.
+ */
+internal fun sqlite3ActionCodes(): Set<Sqlite3ActionCode> = setOf(
+    Sqlite3ActionCode.INDEX,
+    Sqlite3ActionCode.TABLE,
+    Sqlite3ActionCode.TEMP_INDEX,
+    Sqlite3ActionCode.TEMP_TABLE,
+    Sqlite3ActionCode.TEMP_TRIGGER,
+    Sqlite3ActionCode.TEMP_VIEW,
+    Sqlite3ActionCode.TRIGGER,
+    Sqlite3ActionCode.VIEW,
+    Sqlite3ActionCode.DELETE,
+    Sqlite3ActionCode.DROP_INDEX,
+    Sqlite3ActionCode.DROP_TABLE,
+    Sqlite3ActionCode.DROP_TEMP_INDEX,
+    Sqlite3ActionCode.DROP_TEMP_TABLE,
+    Sqlite3ActionCode.DROP_TEMP_TRIGGER,
+    Sqlite3ActionCode.DROP_TEMP_VIEW,
+    Sqlite3ActionCode.DROP_TRIGGER,
+    Sqlite3ActionCode.DROP_VIEW,
+    Sqlite3ActionCode.INSERT,
+    Sqlite3ActionCode.PRAGMA,
+    Sqlite3ActionCode.READ,
+    Sqlite3ActionCode.SELECT,
+    Sqlite3ActionCode.TRANSACTION,
+    Sqlite3ActionCode.UPDATE,
+    Sqlite3ActionCode.ATTACH,
+    Sqlite3ActionCode.DETACH,
+    Sqlite3ActionCode.ALTER_TABLE,
+    Sqlite3ActionCode.REINDEX,
+    Sqlite3ActionCode.ANALYZE,
+    Sqlite3ActionCode.VTABLE,
+    Sqlite3ActionCode.DROP_VTABLE,
+    Sqlite3ActionCode.FUNCTION,
+    Sqlite3ActionCode.SAVEPOINT,
+    Sqlite3ActionCode.COPY,
+    Sqlite3ActionCode.RECURSIVE
+)

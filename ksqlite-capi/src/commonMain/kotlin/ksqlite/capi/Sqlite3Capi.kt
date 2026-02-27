@@ -27,7 +27,7 @@ import ksqlite.capi.types.Sqlite3FileOpenFlag
 import ksqlite.capi.types.Sqlite3IntParam
 import ksqlite.capi.types.Sqlite3Limit
 import ksqlite.capi.types.Sqlite3LongParam
-import ksqlite.capi.types.Sqlite3PreUpdateHookCallback
+import ksqlite.capi.types.Sqlite3PreupdateHookCallback
 import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.types.Sqlite3Result
@@ -42,7 +42,7 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.Sqlite3TraceFlag
 import ksqlite.capi.types.Sqlite3TransactionState
-import ksqlite.capi.types.Sqlite3UpdateCallback
+import ksqlite.capi.types.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.Sqlite3ValueParam
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.sqlite3
@@ -183,7 +183,7 @@ public expect fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
     text: String?,
-    size: Int
+    size: Int?
 ): Sqlite3Result
 
 /**
@@ -1091,7 +1091,7 @@ public expect fun sqlite3_preupdate_depth(db: sqlite3): Int
 public expect fun sqlite3_preupdate_hook(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3PreUpdateHookCallback
+    callback: Sqlite3PreupdateHookCallback?
 ): sqlite3_mutable_pointer?
 
 /**
@@ -1128,7 +1128,7 @@ public expect fun sqlite3_progress_handler(
     db: sqlite3,
     nOps: Int,
     userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3ProgressHandlerCallback
+    callback: Sqlite3ProgressHandlerCallback?
 )
 
 /**
@@ -1138,7 +1138,7 @@ public expect fun sqlite3_progress_handler(
  */
 public expect fun sqlite3_randomness(
     size: Int,
-    data: sqlite3_pointer?
+    data: sqlite3_mutable_pointer?
 )
 
 /**
@@ -1211,7 +1211,7 @@ public expect fun sqlite3_result_double(
 public expect fun sqlite3_result_error(
     context: sqlite3_context,
     message: String,
-    size: Int
+    size: Int?
 )
 
 /**
@@ -1296,8 +1296,7 @@ public expect fun sqlite3_result_subtype(
 public expect fun sqlite3_result_text(
     context: sqlite3_context,
     text: String?,
-    size: Int,
-    destructor: Sqlite3DestructorCallback?
+    size: Int?
 )
 
 /**
@@ -1327,8 +1326,8 @@ public expect fun sqlite3_result_zeroblob(
  */
 public expect fun sqlite3_result_zeroblob64(
     context: sqlite3_context,
-    size: UInt
-)
+    size: ULong
+): Int
 
 /**
  * Register a callback to be invoked each time a transaction is rolled back by this database
@@ -1350,7 +1349,6 @@ public expect fun sqlite3_rollback_hook(
 public expect fun sqlite3_serialize(
     db: sqlite3,
     schema: String?,
-    dbSize: Sqlite3LongParam?,
     flags: Sqlite3SerializeFlag?
 ): sqlite3_mutable_pointer?
 
@@ -1380,7 +1378,7 @@ public expect fun sqlite3_set_authorizer(
 public expect fun sqlite3_set_auxdata(
     context: sqlite3_context,
     index: Int,
-    data: sqlite3_pointer?,
+    data: sqlite3_mutable_pointer?,
     destructor: Sqlite3DestructorCallback?
 )
 
@@ -1614,8 +1612,8 @@ public expect fun sqlite3_txn_state(
 public expect fun sqlite3_update_hook(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3UpdateCallback?
-): Sqlite3UpdateCallback?
+    callback: Sqlite3UpdateHookCallback?
+): Sqlite3UpdateHookCallback?
 
 /**
  * Return a boolean value for a query parameter.
@@ -1695,7 +1693,7 @@ public expect fun sqlite3_value_double(value: sqlite3_value): Double
 public expect fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value?
 
 /**
- * Extract information from sqlite3_value structure.
+ * Free an sqlite3_value object previously obtained from sqlite3_value_dup().
  *
  * [sqlite3_value_free()](https://sqlite.org/c3ref/value_dup.html)
  */

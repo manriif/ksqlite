@@ -126,7 +126,7 @@ public typealias Sqlite3ExecCallback = (
 /**
  * Callback for [ksqlite.capi.sqlite3_preupdate_hook].
  */
-public typealias Sqlite3PreUpdateHookCallback = (
+public typealias Sqlite3PreupdateHookCallback = (
     userData: sqlite3_mutable_pointer?,
     db: sqlite3,
     action: Sqlite3ActionCode.Dml,
@@ -169,7 +169,7 @@ public typealias Sqlite3TraceCallback = (
 /**
  * Callback for [ksqlite.capi.sqlite3_update_hook].
  */
-public typealias Sqlite3UpdateCallback = (
+public typealias Sqlite3UpdateHookCallback = (
     userData: sqlite3_mutable_pointer?,
     action: Sqlite3ActionCode.Dml,
     dbName: String,

@@ -17,7 +17,6 @@ import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
@@ -281,7 +280,7 @@ public expect fun sqlite3_release_memory(size: Int): Int
  */
 public expect fun sqlite3_result_blob64(
     context: sqlite3_context,
-    data: sqlite3_pointer?,
+    data: sqlite3_mutable_pointer?,
     size: Long,
     destructor: Sqlite3DestructorCallback?
 )
@@ -293,7 +292,7 @@ public expect fun sqlite3_result_blob64(
  */
 public expect fun sqlite3_result_text64(
     context: sqlite3_context,
-    data: sqlite3_pointer?,
+    data: sqlite3_mutable_pointer?,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
     destructor: Sqlite3DestructorCallback?

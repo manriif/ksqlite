@@ -3,7 +3,6 @@
 package ksqlite.capi
 
 import kotlinx.cinterop.ByteVar
-import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
@@ -28,6 +27,8 @@ import ksqlite.capi.handlers.CreateFunctionInverseHandler
 import ksqlite.capi.handlers.CreateFunctionStepHandler
 import ksqlite.capi.handlers.CreateFunctionValueHandler
 import ksqlite.capi.handlers.ExecHandler
+import ksqlite.capi.handlers.PreupdateHookHandler
+import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.handle
 import ksqlite.capi.handlers.uniqueFunctionHandlerName
 import ksqlite.capi.memory.deallocateNullable
@@ -35,6 +36,7 @@ import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.keyedRefPointer
 import ksqlite.capi.memory.memory
+import ksqlite.capi.memory.refData
 import ksqlite.capi.memory.refDisposer
 import ksqlite.capi.memory.useMemoryManager
 import ksqlite.capi.memory.userDataDestructor
@@ -65,10 +67,13 @@ import ksqlite.capi.types.Sqlite3FileOpenFlag
 import ksqlite.capi.types.Sqlite3IntParam
 import ksqlite.capi.types.Sqlite3Limit
 import ksqlite.capi.types.Sqlite3LongParam
-import ksqlite.capi.types.Sqlite3PreUpdateHookCallback
 import ksqlite.capi.types.Sqlite3PrepareFlag
+import ksqlite.capi.types.Sqlite3PreupdateHookCallback
 import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.Sqlite3RollbackHookCallback
+import ksqlite.capi.types.Sqlite3SerializeFlag
+import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
 import ksqlite.capi.types.Sqlite3StatementParam
 import ksqlite.capi.types.Sqlite3StringUtf8Param
 import ksqlite.capi.types.Sqlite3TextEncoding
@@ -205,7 +210,33 @@ import ksqlite.sqlite3_preupdate_blobwrite
 import ksqlite.sqlite3_preupdate_count
 import ksqlite.sqlite3_preupdate_depth
 import ksqlite.sqlite3_preupdate_hook
+import ksqlite.sqlite3_preupdate_new
+import ksqlite.sqlite3_preupdate_old
 import ksqlite.sqlite3_progress_handler
+import ksqlite.sqlite3_randomness
+import ksqlite.sqlite3_realloc
+import ksqlite.sqlite3_release_memory
+import ksqlite.sqlite3_reset
+import ksqlite.sqlite3_reset_auto_extension
+import ksqlite.sqlite3_result_blob64
+import ksqlite.sqlite3_result_double
+import ksqlite.sqlite3_result_error
+import ksqlite.sqlite3_result_error_code
+import ksqlite.sqlite3_result_error_nomem
+import ksqlite.sqlite3_result_error_toobig
+import ksqlite.sqlite3_result_int
+import ksqlite.sqlite3_result_int64
+import ksqlite.sqlite3_result_null
+import ksqlite.sqlite3_result_subtype
+import ksqlite.sqlite3_result_text
+import ksqlite.sqlite3_result_value
+import ksqlite.sqlite3_result_zeroblob
+import ksqlite.sqlite3_result_zeroblob64
+import ksqlite.sqlite3_serialize
+import ksqlite.sqlite3_set_auxdata
+import ksqlite.sqlite3_set_errmsg
+import ksqlite.sqlite3_set_last_insert_rowid
+import ksqlite.sqlite3_shutdown
 
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
@@ -394,16 +425,18 @@ public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
     text: String?,
-    size: Int
-): Sqlite3Result = convertResult(
+    size: Int?
+): Sqlite3Result = convertResult(memScoped {
+    val cText = text?.cstr
+
     sqlite3_bind_text(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = text,
-        arg3 = size,
+        arg2 = cText?.ptr,
+        arg3 = size ?: cText?.size ?: 0,
         arg4 = SQLITE_TRANSIENT
     )
-)
+})
 
 public actual fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
@@ -769,7 +802,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result {
 }
 
 public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3? =
-    sqlite3_context_db_handle(context.pointer)?.let { sqlite3(it) }
+    sqlite3_context_db_handle(context.pointer)?.let(::sqlite3)
 
 public actual fun sqlite3_create_collation(
     db: sqlite3,
@@ -1139,7 +1172,9 @@ public actual fun sqlite3_get_auxdata(
 ): sqlite3_mutable_pointer? = sqlite3_get_auxdata(
     arg0 = context.pointer,
     N = index
-)?.asStableRef<sqlite3_mutable_pointer>()?.get()
+)?.let { refPointer ->
+    refData<sqlite3_mutable_pointer>(refPointer).first
+}
 
 public actual fun sqlite3_hard_heap_limit64(limit: Long): Long =
     sqlite3_hard_heap_limit64(limit)
@@ -1331,47 +1366,302 @@ public actual fun sqlite3_preupdate_depth(db: sqlite3): Int =
 public actual fun sqlite3_preupdate_hook(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3PreUpdateHookCallback
-): sqlite3_mutable_pointer? = sqlite3_preupdate_hook(
-    db = db.pointer,
-    xPreUpdate = TODO()
+    callback: Sqlite3PreupdateHookCallback?
+): sqlite3_mutable_pointer? = sqlite3_mutable_pointer.fromDisposeRef(
+    sqlite3_preupdate_hook(
+        db = db.pointer,
+        xPreUpdate = PreupdateHookHandler.handle(callback),
+        arg2 = db.memory.keyedRefPointer("preupdate_hook", callback, userData)
+    )
 )
 
 public actual fun sqlite3_preupdate_new(
     db: sqlite3,
     index: Int,
     outValue: Sqlite3ValueParam
-): Sqlite3Result
+): Sqlite3Result = convertResult(useParamMemScoped(outValue) { valuePointer ->
+    sqlite3_preupdate_new(
+        arg0 = db.pointer,
+        arg1 = index,
+        arg2 = valuePointer
+    )
+})
 
 public actual fun sqlite3_preupdate_old(
     db: sqlite3,
     index: Int,
     outValue: Sqlite3ValueParam
-): Sqlite3Result
+): Sqlite3Result = convertResult(useParamMemScoped(outValue) { valuePointer ->
+    sqlite3_preupdate_old(
+        arg0 = db.pointer,
+        arg1 = index,
+        arg2 = valuePointer
+    )
+})
 
 public actual fun sqlite3_progress_handler(
     db: sqlite3,
     nOps: Int,
     userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3ProgressHandlerCallback
-) = sqlite3_progress_handler(
+    callback: Sqlite3ProgressHandlerCallback?
+): Unit = sqlite3_progress_handler(
     arg0 = db.pointer,
     arg1 = nOps,
-    arg2 = TODO(),
+    arg2 = ProgressHandlerHandler.handle(callback),
     arg3 = db.memory.keyedRefPointer("progress_handler", callback, userData)
 )
 
 public actual fun sqlite3_randomness(
     size: Int,
-    data: sqlite3_pointer?
+    data: sqlite3_mutable_pointer?
+): Unit = sqlite3_randomness(
+    N = size,
+    P = data?.block?.pointer
 )
 
 public actual fun sqlite3_realloc(
     data: sqlite3_mutable_pointer?,
     size: Int
-): sqlite3_mutable_pointer?
+): sqlite3_mutable_pointer? = sqlite3_mutable_pointer.from(
+    pointer = sqlite3_realloc(
+        arg0 = data?.block?.pointer,
+        arg1 = size
+    ),
+    size = size.toLong()
+)
 
 public actual fun sqlite3_realloc64(
     data: sqlite3_mutable_pointer?,
     size: Long
+): sqlite3_mutable_pointer? = sqlite3_mutable_pointer.from(
+    pointer = sqlite3_realloc(
+        arg0 = data?.block?.pointer,
+        arg1 = size.convert()
+    ),
+    size = size
+)
+
+public actual fun sqlite3_release_memory(size: Int): Int =
+    sqlite3_release_memory(size)
+
+public actual fun sqlite3_reset(stmt: sqlite3_stmt): Sqlite3Result =
+    convertResult(sqlite3_reset(stmt.pointer))
+
+public actual fun sqlite3_reset_auto_extension() {
+    AutoExtensions.clear()
+    sqlite3_reset_auto_extension()
+}
+
+public actual fun sqlite3_result_blob(
+    context: sqlite3_context,
+    data: ByteArray?,
+    nData: Int,
+    destructor: Sqlite3DestructorCallback?
+): Unit = sqlite3_result_blob(
+    arg0 = context.pointer,
+    arg1 =
+)
+
+public actual fun sqlite3_result_blob64(
+    context: sqlite3_context,
+    data: sqlite3_mutable_pointer?,
+    size: Long,
+    destructor: Sqlite3DestructorCallback?
+): Unit = sqlite3_result_blob64(
+    arg0 = context.pointer,
+    arg1 = data?.block?.pointer,
+    arg2 = size.convert(),
+    arg3 = userDataDestructor(data, destructor)
+)
+
+public actual fun sqlite3_result_double(
+    context: sqlite3_context,
+    value: Double
+): Unit = sqlite3_result_double(
+    arg0 = context.pointer,
+    arg1 = value
+)
+
+public actual fun sqlite3_result_error(
+    context: sqlite3_context,
+    message: String,
+    size: Int?
+): Unit = memScoped {
+    val cMessage = message.cstr
+
+    sqlite3_result_error(
+        arg0 = context.pointer,
+        arg1 = cMessage.ptr,
+        arg2 = size ?: cMessage.size
+    )
+}
+
+public actual fun sqlite3_result_error_code(
+    context: sqlite3_context,
+    code: Int
+): Unit = sqlite3_result_error_code(
+    arg0 = context.pointer,
+    arg1 = code
+)
+
+public actual fun sqlite3_result_error_nomem(context: sqlite3_context): Unit =
+    sqlite3_result_error_nomem(context.pointer)
+
+public actual fun sqlite3_result_error_toobig(context: sqlite3_context): Unit =
+    sqlite3_result_error_toobig(context.pointer)
+
+public actual fun sqlite3_result_int(
+    context: sqlite3_context,
+    value: Int
+): Unit = sqlite3_result_int(
+    arg0 = context.pointer,
+    arg1 = value
+)
+
+public actual fun sqlite3_result_int64(
+    context: sqlite3_context,
+    value: Long
+): Unit = sqlite3_result_int64(
+    arg0 = context.pointer,
+    arg1 = value
+)
+
+public actual fun sqlite3_result_null(context: sqlite3_context): Unit =
+    sqlite3_result_null(context.pointer)
+
+public actual fun sqlite3_result_pointer(
+    context: sqlite3_context,
+    data: sqlite3_pointer?,
+    type: String?,
+    destructor: Sqlite3DestructorCallback?
+): Unit
+
+public actual fun sqlite3_result_subtype(
+    context: sqlite3_context,
+    subtype: UInt
+): Unit = sqlite3_result_subtype(
+    arg0 = context.pointer,
+    arg1 = subtype
+)
+
+public actual fun sqlite3_result_text(
+    context: sqlite3_context,
+    text: String?,
+    size: Int?
+): Unit = memScoped {
+    val cText = text?.cstr
+
+    sqlite3_result_text(
+        arg0 = context.pointer,
+        arg1 = cText?.ptr,
+        arg2 = size ?: cText?.size ?: 0,
+        arg3 = SQLITE_TRANSIENT
+    )
+}
+
+public actual fun sqlite3_result_text64(
+    context: sqlite3_context,
+    data: sqlite3_mutable_pointer?,
+    size: Long,
+    encoding: Sqlite3TextEncoding.Set1,
+    destructor: Sqlite3DestructorCallback?
+): Unit = sqlite3_result_text64(
+
+)
+
+public actual fun sqlite3_result_value(
+    context: sqlite3_context,
+    value: sqlite3_value?,
+): Unit = sqlite3_result_value(
+    arg0 = context.pointer,
+    arg1 = value?.pointer
+)
+
+public actual fun sqlite3_result_zeroblob(
+    context: sqlite3_context,
+    size: Int
+): Unit = sqlite3_result_zeroblob(
+    arg0 = context.pointer,
+    n = size
+)
+
+public actual fun sqlite3_result_zeroblob64(
+    context: sqlite3_context,
+    size: ULong
+): Int = sqlite3_result_zeroblob64(
+    arg0 = context.pointer,
+    n = size
+)
+
+public actual fun sqlite3_rollback_hook(
+    db: sqlite3,
+    userData: sqlite3_mutable_pointer?,
+    callback: Sqlite3RollbackHookCallback?
 ): sqlite3_mutable_pointer?
+
+public actual fun sqlite3_serialize(
+    db: sqlite3,
+    schema: String?,
+    flags: Sqlite3SerializeFlag?
+): sqlite3_mutable_pointer? {
+    val size = Sqlite3LongParam(0)
+
+    val pointer = memScoped {
+        useParam(size) { sizePointer ->
+            sqlite3_serialize(
+                db = db.pointer,
+                zSchema = schema?.cstr?.ptr,
+                piSize = sizePointer,
+                mFlags = flags?.value?.convert() ?: 0U
+            )
+        }
+    }
+
+    return sqlite3_mutable_pointer.from(pointer, size.value)
+}
+
+public actual fun sqlite3_set_authorizer(
+    db: sqlite3,
+    userData: sqlite3_mutable_pointer?,
+    callback: Sqlite3SetAuthorizerCallback?
+): Sqlite3Result
+
+public actual fun sqlite3_set_auxdata(
+    context: sqlite3_context,
+    index: Int,
+    data: sqlite3_mutable_pointer?,
+    destructor: Sqlite3DestructorCallback?
+): Unit = sqlite3_set_auxdata(
+    arg0 = context.pointer,
+    N = index,
+    arg2 = sqlite3_context_db_handle(context)?.memory?.keyedRefPointer(
+        key = "set_auxdata_$index",
+        data = data,
+        userData = data,
+        destructor = destructor
+    ),
+    arg3 = refDisposer(data, destructor)
+)
+
+public actual fun sqlite3_set_errmsg(
+    db: sqlite3,
+    errorCode: Sqlite3Result.Failure,
+    message: String?
+): Sqlite3Result = convertResult(
+    sqlite3_set_errmsg(
+        db = db.pointer,
+        errcode = errorCode.code,
+        zErrMsg = message
+    )
+)
+
+public actual fun sqlite3_set_last_insert_rowid(
+    db: sqlite3,
+    rowId: Long
+): Unit = sqlite3_set_last_insert_rowid(
+    arg0 = db.pointer,
+    arg1 = rowId
+)
+
+public actual fun sqlite3_shutdown(): Sqlite3Result =
+    convertResult(sqlite3_shutdown())

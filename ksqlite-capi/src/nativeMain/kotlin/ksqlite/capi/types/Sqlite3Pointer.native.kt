@@ -43,7 +43,7 @@ public actual class sqlite3_mutable_pointer internal constructor(block: MemoryBl
          * Returns a [sqlite3_mutable_pointer] from [pointer] or `null` if [pointer] is `null`.
          * The returned [sqlite3_mutable_pointer] is obtained from [disposeRef].
          */
-        fun fromDisposeRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? = pointer?.let { pointer ->
+        fun fromDisposeRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? = pointer?.let {
             disposeRef(pointer)
         }
     }
