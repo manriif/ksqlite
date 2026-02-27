@@ -27,6 +27,7 @@ internal val AutoExtensions = mutableListOf<Sqlite3AutoExtensionCallback>()
 internal val AutoExtensionHandler = staticCFunction(::autoExtensionHandler)
 
 /**
+ * Handler for [ksqlite.capi.sqlite3_auto_extension].
  * Dispatches sqlite3_auto_extension call to all registered extensions.
  */
 private fun autoExtensionHandler(

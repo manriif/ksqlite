@@ -30,7 +30,7 @@ private val UserDataDestructor = staticCFunction { pointer: COpaquePointer? ->
     checkNotNull(pointer)
 
     checkNotNull(UserDataMap.remove(pointer)).run {
-        destructor.invoke(userData)
+        destructor(userData)
     }
 }
 

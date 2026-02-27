@@ -1,7 +1,7 @@
 package modules
 
 import compilation.SqliteCompilationParameters
-import compilation.SqliteCompileTimeOptions
+import compilation.SqliteDefines
 import java.io.File
 
 /**
@@ -25,7 +25,7 @@ fun createSqliteCMakeListsContent(
     |
     |target_compile_definitions(${params.libraryName} PRIVATE
     |    SQLITE_THREADSAFE=1
-    |    ${SqliteCompileTimeOptions.joinToString("\n\t")}
+    |    ${SqliteDefines.joinToString("\n\t")}
     |)
 """.trimMargin()
 

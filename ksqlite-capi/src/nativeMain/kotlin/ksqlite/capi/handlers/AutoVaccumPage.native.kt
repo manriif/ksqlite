@@ -13,7 +13,7 @@ import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
 internal val AutoVacuumPagesHandler = staticCFunction(::autoVacuumPagesHandler)
 
 /**
- * Handler for [ksqlite.sqlite3_autovacuum_pages].
+ * Handler for [ksqlite.capi.sqlite3_autovacuum_pages].
  */
 private fun autoVacuumPagesHandler(
     refPointer: COpaquePointer?,

@@ -1,6 +1,6 @@
 package ksqlite.capi
 
-import ksqlite.capi.types.Sqlite3SqlLogCallback
+import ksqlite.capi.types.Sqlite3ConfigSqlLogCallback
 import ksqlite.capi.types.Sqlite3SqlLogEvent
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_mutable_pointer
@@ -9,7 +9,7 @@ import ksqlite.capi.types.sqlite3_mutable_pointer
  * Dispatches [Sqlite3SqlLogEvent] to [callback].
  */
 internal fun dispatchSqlLogEvent(
-    callback: Sqlite3SqlLogCallback,
+    callback: Sqlite3ConfigSqlLogCallback,
     userData: sqlite3_mutable_pointer?,
     type: Int,
     db: sqlite3,

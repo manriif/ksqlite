@@ -1,6 +1,6 @@
 package compilation.worker
 
-import compilation.SqliteCompileTimeOptions
+import compilation.SqliteDefines
 import compilation.compiler
 import compilation.sharedCompilerFlags
 
@@ -28,7 +28,7 @@ abstract class SqliteCompileSharedWorker : SqliteCompileWorker() {
                 "-o",
                 libraryFile.absolutePath,
                 *sourceFiles,
-                *SqliteCompileTimeOptions.map { "-D$it" }.toTypedArray(),
+                *SqliteDefines.map { "-D$it" }.toTypedArray(),
                 "-O3"
             )
         }

@@ -19,7 +19,11 @@ internal actual class MemoryManager : MemoryManagerBase() {
     private lateinit var disposables: MutableList<SelfDisposable>
     private lateinit var arena: Arena
 
-    private val placement: AutofreeScope
+    /**
+     * Allows to access the managed [AutofreeScope].
+     * Note that memory allocated within [placement] will stay alive until [clear] is called.
+     */
+    val placement: AutofreeScope
         get() {
             if (!::arena.isInitialized) {
                 arena = Arena()

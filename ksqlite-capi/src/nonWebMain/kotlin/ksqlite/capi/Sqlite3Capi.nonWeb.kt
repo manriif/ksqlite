@@ -263,14 +263,7 @@ public expect fun sqlite3_memory_used(): Long
  *
  * [sqlite3_memory_highwater()](https://sqlite.org/c3ref/memory_highwater.html)
  */
-public expect fun sqlite3_memory_highwater(): Long
-
-/**
- * Return the normalized SQL associated with a prepared statement.
- *
- * [sqlite3_normalized_sql()](https://sqlite.org/c3ref/expanded_sql.html)
- */
-public expect fun sqlite3_normalized_sql(stmt: sqlite3_stmt): String
+public expect fun sqlite3_memory_highwater(resetFlag: Int): Long
 
 /**
  * Attempt to release up to [size] bytes of non-essential memory currently held by SQLite. An

@@ -136,7 +136,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * function must be threadsafe.
      */
     public class LOG(
-        internal val callback: Sqlite3LogCallback?,
+        internal val callback: Sqlite3ConfigLogCallback?,
         internal val userData: sqlite3_mutable_pointer?
     ) : Sqlite3ConfigOption(16)
 
@@ -179,7 +179,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * "test_sqllog.c" source file in the canonical SQLite source tree.
      */
     public class SQLLOG(
-        internal val callback: Sqlite3SqlLogCallback?,
+        internal val callback: Sqlite3ConfigSqlLogCallback?,
         internal val userData: sqlite3_mutable_pointer?
     ) : Sqlite3ConfigOption(21)
 

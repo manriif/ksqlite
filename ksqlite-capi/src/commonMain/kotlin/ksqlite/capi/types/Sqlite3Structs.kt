@@ -49,6 +49,8 @@ public expect class sqlite3_index_info
  * virtual table. This structure consists mostly of methods for the module.
  *
  * [sqlite3_module](https://sqlite.org/c3ref/module.html)
+ *
+ * TODO implement the structure
  */
 public expect class sqlite3_module
 

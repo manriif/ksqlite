@@ -6,8 +6,8 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.convertTextEncoding
-import ksqlite.capi.types.Sqlite3CollationCompareCallback
 import ksqlite.capi.types.Sqlite3CollationNeededCallback
+import ksqlite.capi.types.Sqlite3CreateCollationCallback
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.utils.toKStringFromUtf8
@@ -22,7 +22,7 @@ import ksqlite.capi.utils.toKStringFromUtf8
 internal val CollationNeededHandler = staticCFunction(::collationNeededHandler)
 
 /**
- * Handler for [ksqlite.sqlite3_collation_needed].
+ * Handler for [ksqlite.capi.sqlite3_collation_needed].
  */
 private fun collationNeededHandler(
     refPointer: COpaquePointer?,
@@ -48,7 +48,8 @@ private fun collationNeededHandler(
 internal val CreateCollationHandler = staticCFunction(::createCollationHandler)
 
 /**
- * Handler for [ksqlite.sqlite3_create_collation] and [ksqlite.capi.sqlite3_create_collation_v2].
+ * Handler for [ksqlite.capi.sqlite3_create_collation] and
+ * [ksqlite.capi.sqlite3_create_collation_v2].
  */
 private fun createCollationHandler(
     refPointer: COpaquePointer?,
@@ -56,7 +57,7 @@ private fun createCollationHandler(
     text1: COpaquePointer?,
     size2: Int,
     text2: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3CollationCompareCallback, userData ->
+) = handler(refPointer) { callback: Sqlite3CreateCollationCallback, userData ->
     callback(
         userData,
         text1!!.toKStringFromUtf8(size1),

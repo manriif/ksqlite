@@ -12,13 +12,25 @@ import java.io.ByteArrayOutputStream
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Compile-time options for SQLite compilation.
+ * Defines for SQLite compilation.
  */
-val SqliteCompileTimeOptions = arrayOf(
+val SqliteDefines = arrayOf(
     "CODEC_TYPE=CODEC_TYPE_CHACHA20",
     "SQLITE_ENABLE_FTS5=1",
     "SQLITE_ENABLE_JSON1=1",
-    "SQLITE_ENABLE_RTREE=1"
+    "SQLITE_ENABLE_COLUMN_METADATA=1",
+    "SQLITE_ENABLE_MATH_FUNCTIONS=1",
+    "SQLITE_ENABLE_OFFSET_SQL_FUNC=1",
+    "SQLITE_ENABLE_PERCENTILE=1",
+    "SQLITE_ENABLE_PREUPDATE_HOOK=1",
+    "SQLITE_ENABLE_RTREE=1",
+    "SQLITE_ENABLE_SESSION=1",
+    "SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION=1",
+    "SQLITE_OMIT_DEPRECATED=1",
+    "SQLITE_OMIT_LOAD_EXTENSION=1",
+    "SQLITE_OMIT_UTF16=1",
+    "SQLITE_TEMP_STORE=2",
+    "SQLITE_USE_URI=1",
 )
 
 ///////////////////////////////////////////////////////////////////////////

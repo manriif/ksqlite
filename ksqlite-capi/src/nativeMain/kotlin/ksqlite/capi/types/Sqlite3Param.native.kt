@@ -14,6 +14,7 @@ import kotlinx.cinterop.pointed
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.value
+import ksqlite.capi.utils.toKStringFromUtf8
 
 ///////////////////////////////////////////////////////////////////////////
 // Param
@@ -111,8 +112,13 @@ public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
 public actual class Sqlite3StringUtf8Param actual constructor() :
     Sqlite3PointerParamBase<String?, ByteVar>() {
 
+    /**
+     * Custom size if not zero terminated.
+     */
+    internal var size: Int? = null
+
     override fun create(pointer: CPointer<ByteVar>): String {
-        return pointer.toKStringFromUtf8()
+        return size?.let { pointer.toKStringFromUtf8(it) } ?: pointer.toKStringFromUtf8()
     }
 }
 
@@ -186,13 +192,97 @@ internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.use(
 }
 
 /**
- * Allocates [Var] into a [kotlinx.cinterop.MemScope], invokes [block] with a pointer to it and
+ * Allocates [Var] into `this` [NativePlacement], invokes [block] with a pointer to [Var] and
  * returns [block]'s result.
  *
  * The pointer passed to [block] must not escape.
  */
-internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.useMemScoped(
-    block: (CPointer<Var>) -> R
-): R = memScoped {
-    use(this, block)
+internal inline fun <Var : CPointed, R> NativePlacement.useParam(
+    param: Sqlite3ParamBase<*, Var>?,
+    block: (CPointer<Var>?) -> R
+): R {
+    if (param == null) {
+        return block(null)
+    }
+
+    return param.use(this, block)
+}
+
+/**
+ * Allocates [Var] into a [kotlinx.cinterop.MemScope], invokes [block] with a pointer to [Var] and
+ * returns [block]'s result.
+ *
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <Var : CPointed, R> useParamMemScoped(
+    param: Sqlite3ParamBase<*, Var>?,
+    block: (CPointer<Var>?) -> R
+): R {
+    if (param == null) {
+        return block(null)
+    }
+
+    return memScoped {
+        param.use(this, block)
+    }
+}
+
+/**
+ * Allocates [Var1] and [Var2] into `this` [NativePlacement], invokes [block] with pointers to
+ * [Var1] and [Var2] and returns [block]'s result.
+ *
+ * The pointers passed to [block] must not escape.
+ */
+internal inline fun <Var1 : CPointed, Var2 : CPointed, R> NativePlacement.useParams(
+    param1: Sqlite3ParamBase<*, Var1>?,
+    param2: Sqlite3ParamBase<*, Var2>?,
+    block: (
+        pointer1: CPointer<Var1>?,
+        pointer2: CPointer<Var2>?
+    ) -> R
+): R {
+    if (param1 == null && param2 == null) {
+        return block(null, null)
+    }
+
+    val pointer1 = param1?.attach(this)
+    val pointer2 = param2?.attach(this)
+
+    return try {
+        block(pointer1, pointer2)
+    } finally {
+        pointer1?.let(param1::detach)
+        pointer2?.let(param2::detach)
+    }
+}
+
+/**
+ * Allocates [Var1] and [Var2] into a [kotlinx.cinterop.MemScope], invokes [block] with pointers to
+ * [Var1] and [Var2] and returns [block]'s result.
+ *
+ * The pointers passed to [block] must not escape.
+ */
+internal inline fun <Var1 : CPointed, Var2 : CPointed, R> useParamsMemScoped(
+    param1: Sqlite3ParamBase<*, Var1>?,
+    param2: Sqlite3ParamBase<*, Var2>?,
+    block: (
+        pointer1: CPointer<Var1>?,
+        pointer2: CPointer<Var2>?
+    ) -> R
+): R {
+    if (param1 == null && param2 == null) {
+        return block(null, null)
+    }
+
+    return memScoped {
+        val pointer1 = param1?.attach(this)
+        val pointer2 = param2?.attach(this)
+
+        try {
+            block(pointer1, pointer2)
+        } finally {
+            pointer1?.let(param1::detach)
+            pointer2?.let(param2::detach)
+        }
+    }
 }

@@ -35,9 +35,27 @@ public typealias Sqlite3CollationNeededCallback = (
 ) -> Unit
 
 /**
+ * Callback for [Sqlite3ConfigOption.LOG].
+ */
+public typealias Sqlite3ConfigLogCallback = (
+    userData: sqlite3_mutable_pointer?,
+    errorCode: Int,
+    errorMsg: String?
+) -> Unit
+
+/**
+ * Callback for [Sqlite3ConfigOption.SQLLOG].
+ */
+public typealias Sqlite3ConfigSqlLogCallback = (
+    userData: sqlite3_mutable_pointer?,
+    db: sqlite3,
+    event: Sqlite3SqlLogEvent
+) -> Unit
+
+/**
  * Callback for [ksqlite.capi.sqlite3_create_collation] and [ksqlite.capi.sqlite3_create_collation_v2].
  */
-public typealias Sqlite3CollationCompareCallback = (
+public typealias Sqlite3CreateCollationCallback = (
     userData: sqlite3_mutable_pointer?,
     left: String,
     right: String
@@ -46,39 +64,43 @@ public typealias Sqlite3CollationCompareCallback = (
 /**
  * Callback for [ksqlite.capi.sqlite3_commit_hook].
  */
-public typealias Sqlite3CommitCallback = (userData: sqlite3_mutable_pointer?) -> Int
-
-/**
- * Callback with two parameters of [ksqlite.capi.sqlite3_create_function],
- * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
- */
-public typealias Sqlite3CreateFunction2Callback = (
-    context: sqlite3_context,
-    values: Array<sqlite3_value>
-) -> Unit
+public typealias Sqlite3CommitHookCallback = (userData: sqlite3_mutable_pointer?) -> Int
 
 /**
  * Callback with one parameter of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunction1Callback = (context: sqlite3_context) -> Unit
+public typealias Sqlite3CreateFunction1Callback = (
+    userData: sqlite3_mutable_pointer?,
+    context: sqlite3_context
+) -> Unit
+
+/**
+ * Callback with two parameters of [ksqlite.capi.sqlite3_create_function],
+ * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
+ */
+public typealias Sqlite3CreateFunction3Callback = (
+    userData: sqlite3_mutable_pointer?,
+    context: sqlite3_context,
+    values: Array<sqlite3_value>
+) -> Unit
 
 /**
  * Callback for the `func` parameter of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunctionFuncCallback = Sqlite3CreateFunction2Callback
+public typealias Sqlite3CreateFunctionFuncCallback = Sqlite3CreateFunction3Callback
 
 /**
  * Callback for the `step` parameter of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunctionStepCallback = Sqlite3CreateFunction2Callback
+public typealias Sqlite3CreateFunctionStepCallback = Sqlite3CreateFunction3Callback
 
 /**
  * Callback for the `inverse` parameter of [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunctionInverseCallback = Sqlite3CreateFunction2Callback
+public typealias Sqlite3CreateFunctionInverseCallback = Sqlite3CreateFunction3Callback
 
 /**
  * Callback for the `final` parameter of [ksqlite.capi.sqlite3_create_function],
@@ -96,33 +118,15 @@ public typealias Sqlite3CreateFunctionValueCallback = Sqlite3CreateFunction1Call
  */
 public typealias Sqlite3ExecCallback = (
     userData: sqlite3_mutable_pointer?,
-    columnCount: Int,
-    columnValues: Array<String?>,
-    columnNames: Array<String>
+    count: Int,
+    values: Array<String?>,
+    names: Array<String>
 ) -> Int
-
-/**
- * Callback for [Sqlite3ConfigOption.LOG].
- */
-public typealias Sqlite3LogCallback = (
-    userData: sqlite3_mutable_pointer?,
-    errorCode: Int,
-    errorMsg: String?
-) -> Unit
-
-/**
- * Callback for [Sqlite3ConfigOption.SQLLOG].
- */
-public typealias Sqlite3SqlLogCallback = (
-    userData: sqlite3_mutable_pointer?,
-    db: sqlite3,
-    event: Sqlite3SqlLogEvent
-) -> Unit
 
 /**
  * Callback for [ksqlite.capi.sqlite3_preupdate_hook].
  */
-public typealias Sqlite3PreUpdateCallback = (
+public typealias Sqlite3PreUpdateHookCallback = (
     userData: sqlite3_mutable_pointer?,
     db: sqlite3,
     action: Sqlite3ActionCode.Dml,
@@ -135,12 +139,12 @@ public typealias Sqlite3PreUpdateCallback = (
 /**
  * Callback for [ksqlite.capi.sqlite3_progress_handler].
  */
-public typealias Sqlite3ProgressCallback = (userData: sqlite3_mutable_pointer?) -> Int
+public typealias Sqlite3ProgressHandlerCallback = (userData: sqlite3_mutable_pointer?) -> Int
 
 /**
  * Callback for [ksqlite.capi.sqlite3_rollback_hook].
  */
-public typealias Sqlite3RollbackCallback = (userData: sqlite3_mutable_pointer?) -> Unit
+public typealias Sqlite3RollbackHookCallback = (userData: sqlite3_mutable_pointer?) -> Unit
 
 /**
  * Callback for [ksqlite.capi.sqlite3_set_authorizer].
