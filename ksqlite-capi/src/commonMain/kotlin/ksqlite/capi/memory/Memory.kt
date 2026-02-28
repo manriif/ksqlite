@@ -55,6 +55,12 @@ internal val GenericPointer.memory: MemoryManager
     get() = ScopedMemoryManagers.getOrPut(this, ::MemoryManager)
 
 /**
+ * Returns the [MemoryManager] for `this` [GenericPointer] or `null`.
+ */
+internal val GenericPointer.memoryOrNull: MemoryManager?
+    get() = ScopedMemoryManagers[this]
+
+/**
  * Releases the [MemoryManager] associated with `this` [GenericPointer].
  */
 internal fun GenericPointer.destroyMemory() {

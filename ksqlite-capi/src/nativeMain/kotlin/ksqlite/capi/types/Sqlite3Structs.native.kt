@@ -1,10 +1,8 @@
 @file:Suppress("ClassName")
-@file:OptIn(ExperimentalForeignApi::class)
 
 package ksqlite.capi.types
 
 import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.ExperimentalForeignApi
 import ksqlite.capi.memory.GenericPointer
 
 ///////////////////////////////////////////////////////////////////////////

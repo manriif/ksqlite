@@ -14,7 +14,7 @@ import ksqlite.capi.types.s3
 import ksqlite.capi.types.s3_api
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
-import ksqlite.sqlite3_malloc
+import ksqlite.sqlite3_malloc as native_sqlite3_malloc
 
 /**
  * All registered [Sqlite3AutoExtensionCallback].
@@ -51,7 +51,7 @@ private fun autoExtensionHandler(
         val cString = errorMessage.cstr
 
         // Well, if malloc fails, there is nothing else to do, no exception throwing on capi
-        sqlite3_malloc(cString.size)?.reinterpret<ByteVar>()?.let { pointer ->
+        native_sqlite3_malloc(cString.size)?.reinterpret<ByteVar>()?.let { pointer ->
             cString.place(pointer)
             pzErrMsg.pointed.value = pointer
         }
