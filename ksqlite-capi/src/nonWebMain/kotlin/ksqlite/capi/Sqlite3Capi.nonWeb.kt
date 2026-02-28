@@ -4,14 +4,14 @@ package ksqlite.capi
 
 import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
-import ksqlite.capi.types.Sqlite3BlobParam
+import ksqlite.capi.types.Sqlite3BlobOutParam
 import ksqlite.capi.types.Sqlite3CheckpointMode
 import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.Sqlite3IntParam
+import ksqlite.capi.types.Sqlite3IntOutParam
 import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3SnapshotParam
+import ksqlite.capi.types.Sqlite3SnapshotOutParam
 import ksqlite.capi.types.Sqlite3TextEncoding
-import ksqlite.capi.types.Sqlite3WalCallback
+import ksqlite.capi.types.Sqlite3WalHookCallback
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
@@ -169,7 +169,7 @@ public expect fun sqlite3_blob_open(
     columnName: String,
     rowIndex: Long,
     flags: Sqlite3BlobOpenFlag,
-    outBlob: Sqlite3BlobParam
+    outBlob: Sqlite3BlobOutParam
 ): Sqlite3Result
 
 /**
@@ -314,7 +314,7 @@ public expect fun sqlite3_snapshot_cmp(
  *
  * [sqlite3_snapshot_free()](https://sqlite.org/c3ref/snapshot_free.html)
  */
-public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Int
+public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot)
 
 /**
  * Obtain a snapshot handle for the snapshot of database zDb currently being read by handle db.
@@ -324,7 +324,7 @@ public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Int
 public expect fun sqlite3_snapshot_get(
     db: sqlite3,
     name: String?,
-    outSnapshot: Sqlite3SnapshotParam
+    outSnapshot: Sqlite3SnapshotOutParam
 ): Sqlite3Result
 
 /**
@@ -414,8 +414,8 @@ public expect fun sqlite3_wal_checkpoint_v2(
     db: sqlite3,
     name: String?,
     mode: Sqlite3CheckpointMode,
-    outNLog: Sqlite3IntParam?,
-    outNCkpt: Sqlite3IntParam?
+    outNLog: Sqlite3IntOutParam?,
+    outNCkpt: Sqlite3IntOutParam?
 ): Sqlite3Result
 
 /**
@@ -425,7 +425,7 @@ public expect fun sqlite3_wal_checkpoint_v2(
  * [sqlite3_wal_hook()](https://sqlite.org/c3ref/wal_hook.html)
  */
 public expect fun sqlite3_wal_hook(
-    sqlite3: sqlite3,
+    db: sqlite3,
     userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3WalCallback?
+    callback: Sqlite3WalHookCallback?
 ): sqlite3_mutable_pointer?

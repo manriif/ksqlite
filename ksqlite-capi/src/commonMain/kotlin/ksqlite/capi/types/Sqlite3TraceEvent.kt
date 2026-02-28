@@ -8,41 +8,28 @@ package ksqlite.capi.types
 public sealed interface Sqlite3TraceEvent {
 
     /**
-     * The trace constant.
-     */
-    public val constant: Sqlite3TraceFlag.Constant
-
-    /**
-     * [Sqlite3TraceFlag.STMT] related event.
+     * [Sqlite3TraceCode.STMT] related event.
      */
     public class Stmt(
-        override val constant: Sqlite3TraceFlag.Constant,
         public val stmt: sqlite3_stmt,
         public val sql: String
     ) : Sqlite3TraceEvent
 
     /**
-     * [Sqlite3TraceFlag.PROFILE] related event.
+     * [Sqlite3TraceCode.PROFILE] related event.
      */
     public class Profile(
-        override val constant: Sqlite3TraceFlag.Constant,
         public val stmt: sqlite3_stmt,
         public val nanos: Long
     ) : Sqlite3TraceEvent
 
     /**
-     * [Sqlite3TraceFlag.ROW] related event.
+     * [Sqlite3TraceCode.ROW] related event.
      */
-    public class Row(
-        override val constant: Sqlite3TraceFlag.Constant,
-        public val stmt: sqlite3_stmt,
-    ) : Sqlite3TraceEvent
+    public class Row(public val stmt: sqlite3_stmt) : Sqlite3TraceEvent
 
     /**
-     * [Sqlite3TraceFlag.CLOSE] related event.
+     * [Sqlite3TraceCode.CLOSE] related event.
      */
-    public class Close(
-        override val constant: Sqlite3TraceFlag.Constant,
-        public val db: sqlite3,
-    ) : Sqlite3TraceEvent
+    public class Close(public val db: sqlite3) : Sqlite3TraceEvent
 }

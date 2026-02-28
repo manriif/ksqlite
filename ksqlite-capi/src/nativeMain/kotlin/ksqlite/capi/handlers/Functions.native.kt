@@ -3,7 +3,7 @@ package ksqlite.capi.handlers
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.CreateFunctionCallbacks
+import ksqlite.capi.CreateFunction
 import ksqlite.capi.types.Sqlite3CreateFunction1Callback
 import ksqlite.capi.types.Sqlite3CreateFunction3Callback
 import ksqlite.capi.types.Sqlite3TextEncoding
@@ -33,7 +33,7 @@ internal fun uniqueFunctionHandlerName(
 private inline fun functionHandler(
     context: CPointer<s3_context>?,
     block: (
-        callbacks: CreateFunctionCallbacks,
+        callbacks: CreateFunction,
         userData: sqlite3_mutable_pointer?,
         context: sqlite3_context
     ) -> Unit
@@ -41,7 +41,7 @@ private inline fun functionHandler(
     val refPointer = sqlite3_user_data(context)
     val context = sqlite3_context(context!!)
 
-    handler(refPointer) { callbacks: CreateFunctionCallbacks, userData ->
+    handler(refPointer) { callbacks: CreateFunction, userData ->
         block(callbacks, userData, context)
     }
 }
@@ -65,7 +65,7 @@ internal val CreateFunctionValueHandler = staticCFunction(::createFunctionValueH
  */
 private fun functionHandler1Arg(
     context: CPointer<s3_context>?,
-    selector: KProperty1<CreateFunctionCallbacks, Sqlite3CreateFunction1Callback?>
+    selector: KProperty1<CreateFunction, Sqlite3CreateFunction1Callback?>
 ) = functionHandler(context) { callbacks, userData, context ->
     selector(callbacks)!!.invoke(userData, context)
 }
@@ -75,13 +75,13 @@ private fun functionHandler1Arg(
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
 private fun createFunctionFinalHandler(context: CPointer<s3_context>?) =
-    functionHandler1Arg(context, CreateFunctionCallbacks::final)
+    functionHandler1Arg(context, CreateFunction::final)
 
 /**
  * Handler for the `value` argument of  [ksqlite.capi.sqlite3_create_window_function].
  */
 private fun createFunctionValueHandler(context: CPointer<s3_context>?) =
-    functionHandler1Arg(context, CreateFunctionCallbacks::value)
+    functionHandler1Arg(context, CreateFunction::value)
 
 ///////////////////////////////////////////////////////////////////////////
 // 3 args
@@ -109,7 +109,7 @@ private fun functionHandler3Args(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?,
-    selector: KProperty1<CreateFunctionCallbacks, Sqlite3CreateFunction3Callback?>
+    selector: KProperty1<CreateFunction, Sqlite3CreateFunction3Callback?>
 ) = functionHandler(context) { callbacks, userData, context ->
     val values = argv?.toArray(argc) { sqlite3_value(it!!) } ?: emptyArray()
     selector(callbacks)!!.invoke(userData, context, values)
@@ -123,7 +123,7 @@ private fun createFunctionFuncHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler3Args(context, argc, argv, CreateFunctionCallbacks::func)
+) = functionHandler3Args(context, argc, argv, CreateFunction::func)
 
 /**
  * Handler for the `step` argument of [ksqlite.capi.sqlite3_create_function],
@@ -133,7 +133,7 @@ private fun createFunctionStepHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler3Args(context, argc, argv, CreateFunctionCallbacks::step)
+) = functionHandler3Args(context, argc, argv, CreateFunction::step)
 
 /**
  * Handler for the `inverse` argument of [ksqlite.capi.sqlite3_create_window_function].
@@ -142,4 +142,4 @@ private fun createFunctionInverseHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler3Args(context, argc, argv, CreateFunctionCallbacks::inverse)
+) = functionHandler3Args(context, argc, argv, CreateFunction::inverse)

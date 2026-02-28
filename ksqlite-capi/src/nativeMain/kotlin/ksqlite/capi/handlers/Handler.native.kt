@@ -3,7 +3,7 @@ package ksqlite.capi.handlers
 import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
-import ksqlite.capi.memory.refData
+import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.types.sqlite3_mutable_pointer
 
 /**
@@ -25,6 +25,6 @@ internal inline fun <Data : Any, Result> handler(
     refPointer: COpaquePointer?,
     block: (data: Data, userData: sqlite3_mutable_pointer?) -> Result
 ): Result {
-    val (data, userData) = refData<Data>(refPointer)
+    val (data, userData) = stableRefData<Data>(refPointer)
     return block(data, userData)
 }

@@ -138,7 +138,7 @@ private val SqliteFunctions = mapOf(
     "value_bytes16" to false,
     "value_double" to true,
     "value_dup" to true,
-    "value_encoding" to false,
+    "value_encoding" to true,
     "value_free" to true,
     "value_frombind" to true,
     "value_int" to true,

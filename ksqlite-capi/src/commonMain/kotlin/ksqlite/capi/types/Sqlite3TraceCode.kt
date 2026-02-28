@@ -10,12 +10,12 @@ package ksqlite.capi.types
  *
  * [SQL Trace Event Codes](https://sqlite.org/c3ref/c_trace.html).
  */
-public sealed class Sqlite3TraceFlag(internal open val value: Int) {
+public sealed class Sqlite3TraceCode(internal open val value: Int) {
 
     /**
      * Flag that is a constant.
      */
-    public sealed class Constant(value: Int) : Sqlite3TraceFlag(value)
+    public sealed class Constant(value: Int) : Sqlite3TraceCode(value)
 
     /**
      * An SQLITE_TRACE_STMT callback is invoked when a prepared statement first begins running and
@@ -55,12 +55,26 @@ public sealed class Sqlite3TraceFlag(internal open val value: Int) {
      */
     @ConsistentCopyVisibility
     public data class Masked internal constructor(override val value: Int) :
-        Sqlite3TraceFlag(value)
+        Sqlite3TraceCode(value)
 
     /**
-     * Returns an [Sqlite3TraceFlag] which is ORed with [flag].
+     * Returns an [Sqlite3TraceCode] which is ORed with [flag].
      */
-    public infix fun or(flag: Sqlite3TraceFlag): Sqlite3TraceFlag {
+    public infix fun or(flag: Sqlite3TraceCode): Sqlite3TraceCode {
         return Masked(value or flag.value)
     }
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Values
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns all constants [Sqlite3TraceCode.Constant]s.
+ */
+internal fun sqlite3TraceConstants(): Set<Sqlite3TraceCode.Constant> = setOf(
+    Sqlite3TraceCode.STMT,
+    Sqlite3TraceCode.PROFILE,
+    Sqlite3TraceCode.ROW,
+    Sqlite3TraceCode.CLOSE
+)

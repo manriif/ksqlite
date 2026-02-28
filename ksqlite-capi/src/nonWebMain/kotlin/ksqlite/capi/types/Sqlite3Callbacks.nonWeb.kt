@@ -14,7 +14,7 @@ public typealias Sqlite3AutoVacuumPagesCallback = (
 /**
  * Callback for [ksqlite.capi.sqlite3_wal_hook].
  */
-public typealias Sqlite3WalCallback = (
+public typealias Sqlite3WalHookCallback = (
     userData: sqlite3_mutable_pointer?,
     db: sqlite3,
     dbName: String,

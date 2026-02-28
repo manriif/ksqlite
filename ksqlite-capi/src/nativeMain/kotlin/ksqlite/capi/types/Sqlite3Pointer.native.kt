@@ -7,7 +7,7 @@ import kotlinx.cinterop.reinterpret
 import ksqlite.capi.memory.MemoryBlock
 import ksqlite.capi.memory.ReadableMemoryBlock
 import ksqlite.capi.memory.WritableMemoryBlock
-import ksqlite.capi.memory.disposeRef
+import ksqlite.capi.memory.disposeStableRef
 
 public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :
     ReadableMemoryBlock by block {
@@ -41,10 +41,10 @@ public actual class sqlite3_mutable_pointer internal constructor(block: MemoryBl
 
         /**
          * Returns a [sqlite3_mutable_pointer] from [pointer] or `null` if [pointer] is `null`.
-         * The returned [sqlite3_mutable_pointer] is obtained from [disposeRef].
+         * The returned [sqlite3_mutable_pointer] is obtained from [disposeStableRef].
          */
-        fun fromDisposeRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? = pointer?.let {
-            disposeRef(pointer)
+        fun fromStableRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? = pointer?.let {
+            disposeStableRef(pointer)
         }
     }
 }

@@ -1,50 +1,28 @@
 package ksqlite.capi.memory
 
-import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.COpaquePointer
-import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.staticCFunction
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 
 /**
- * Reference to an object preventing GC from collecting or moving it.
- */
-internal interface Reference : Disposable {
-
-    /**
-     * The ser data if any.
-     */
-    val userData: sqlite3_mutable_pointer?
-
-    /**
-     * Returns the object instance.
-     */
-    fun <Data : Any> get(): Data
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * C-static function disposing a [Reference].
+ * C-static function disposing a [Reference] from a [kotlinx.cinterop.StableRef].
  *
  * Throws [IllegalStateException] if the [COpaquePointer] passed to the function is `null`.
  */
-private val ReferenceDisposer = staticCFunction { pointer: COpaquePointer? ->
-    val _ = disposeRef(pointer)
+private val StableRefDisposer = staticCFunction { pointer: COpaquePointer? ->
+    val _ = disposeStableRef(pointer)
 }
 
 /**
- * Returns [ReferenceDisposer] only if [data] != `null` or [destructor] != `null`.
+ * Returns [StableRefDisposer] only if [data] != `null` or [destructor] != `null`.
  */
-internal fun refDisposer(
+internal fun stableRefDisposer(
     data: Any?,
     destructor: Sqlite3DestructorCallback? = null
-): CPointer<CFunction<(COpaquePointer?) -> Unit>>? {
-    return ReferenceDisposer.takeIf { data != null || destructor != null }
+): Disposer? {
+    return StableRefDisposer.takeIf { data != null || destructor != null }
 }
 
 /**
@@ -52,11 +30,21 @@ internal fun refDisposer(
  *
  * Throws [IllegalStateException] if `this` [COpaquePointer] is `null`.
  */
-internal fun <Data : Any> refData(pointer: COpaquePointer?): Pair<Data, sqlite3_mutable_pointer?> {
+internal inline fun <reified Data : Any> stableRefData(
+    pointer: COpaquePointer?
+): Pair<Data, sqlite3_mutable_pointer?> {
     checkNotNull(pointer)
 
-    return pointer.asStableRef<Reference>().get().run {
-        get<Data>() to userData
+    return pointer.asStableRef<Reference>().get().let { ref ->
+        val data = ref.data
+
+        checkNotNull(data) { "No data exists for reference" }
+
+        check(data is Data) {
+            "Data is not of expected type (${data::class} vs ${Data::class})"
+        }
+
+        data to ref.userData
     }
 }
 
@@ -66,7 +54,7 @@ internal fun <Data : Any> refData(pointer: COpaquePointer?): Pair<Data, sqlite3_
  * Throws [IllegalStateException] if `this` [COpaquePointer] is `null`.
  */
 @IgnorableReturnValue
-internal fun disposeRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? {
+internal fun disposeStableRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? {
     checkNotNull(pointer)
 
     return pointer.asStableRef<Reference>().get().run {

@@ -51,7 +51,8 @@ public actual fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
     data: ByteArray?,
-    size: Int
+    size: Int,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
     nativeSqlite3.sqlite3_bind_blob(
         stmt.pointer,

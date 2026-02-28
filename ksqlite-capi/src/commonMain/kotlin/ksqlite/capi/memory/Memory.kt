@@ -8,6 +8,10 @@ import ksqlite.capi.types.Sqlite3Result
  */
 internal expect class GenericPointer
 
+///////////////////////////////////////////////////////////////////////////
+// Disposables
+///////////////////////////////////////////////////////////////////////////
+
 /**
  * Clears all the resources owned by ksqlite.
  * It is recommended that all sqlite databases connection are closed calling that function.

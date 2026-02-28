@@ -3,7 +3,7 @@ package ksqlite.capi.memory
 import ksqlite.capi.handlers.DestructorHandler
 import ksqlite.capi.handlers.Handler
 import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.Sqlite3ParamBase
+import ksqlite.capi.types.Sqlite3OutParamBase
 import java.lang.foreign.Arena
 import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
@@ -11,7 +11,7 @@ import java.lang.invoke.MethodHandles
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
-    private lateinit var disposables: MutableMap<ULong, Disposable>
+    private lateinit var disposables: MutableMap<ULong, ksqlite.capi.memory.Reference>
     private var nextReferenceId: ULong = ULong.MIN_VALUE
     private var arena: Arena? = null
     private var _destructorFunctionPointer: MemorySegment? = null
@@ -50,7 +50,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Creates a reference to [disposable] and returns the reference identifier.
      */
     @IgnorableReturnValue
-    private fun createReference(disposable: Disposable): ULong {
+    private fun createReference(disposable: ksqlite.capi.memory.Reference): ULong {
         val referenceId = ++nextReferenceId
         check(referenceId !in disposables) { "Too many managed references" }
 
@@ -140,7 +140,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if [param] is `null`.
      */
-    fun paramPointer(param: Sqlite3ParamBase<*>?): MemorySegment = notClosed {
+    fun paramPointer(param: Sqlite3OutParamBase<*>?): MemorySegment = notClosed {
         segment(param) { param ->
             withArena {
                 param.attach(this).also {
@@ -209,7 +209,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Hold [handler].
      * Does nothing but required to keep [handler] away from GC.
      */
-    private class HandlerHolder(handler: Handler) : Disposable {
+    private class HandlerHolder(handler: Handler) : ksqlite.capi.memory.Reference {
 
         private var handler: Handler? = handler
 
@@ -221,7 +221,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Detaches [param] in disposing.
      */
-    private class ParamDetacher(private val param: Sqlite3ParamBase<*>) : Disposable {
+    private class ParamDetacher(private val param: Sqlite3OutParamBase<*>) :
+        ksqlite.capi.memory.Reference {
 
         override fun dispose() {
             param.detach()
@@ -234,7 +235,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     private class Reference(
         val value: Any?,
         private val destructor: Sqlite3DestructorCallback?
-    ) : Disposable {
+    ) : ksqlite.capi.memory.Reference {
 
         override fun dispose() {
             destructor?.invoke()

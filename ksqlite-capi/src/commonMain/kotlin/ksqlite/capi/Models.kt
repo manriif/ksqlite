@@ -6,11 +6,15 @@ import ksqlite.capi.types.Sqlite3CreateFunctionInverseCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionStepCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionValueCallback
 
+///////////////////////////////////////////////////////////////////////////
+// Functions
+///////////////////////////////////////////////////////////////////////////
+
 /**
  * Holder for [sqlite3_create_function] and [sqlite3_create_function_v2] and
  * [sqlite3_create_window_function] callbacks.
  */
-internal class CreateFunctionCallbacks private constructor(
+internal class CreateFunction private constructor(
     val func: Sqlite3CreateFunctionFuncCallback?,
     val step: Sqlite3CreateFunctionStepCallback?,
     val final: Sqlite3CreateFunctionFinalCallback?,

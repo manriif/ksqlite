@@ -7,7 +7,7 @@ package ksqlite.capi.types
 /**
  * Base for output parameter.
  */
-public interface Sqlite3Param<Value> {
+public interface Sqlite3OutParam<Value> {
 
     /**
      * Value written on native side.
@@ -17,7 +17,7 @@ public interface Sqlite3Param<Value> {
      * For pointers to sqlite3* structs, [Value] is a wrapper enclosing the pointer to the allocated
      * struct which can be `null` in the following cases:
      *
-     * - This [Sqlite3Param] instance was not passed to any SQLite interface intended to allocate
+     * - This [Sqlite3OutParam] instance was not passed to any SQLite interface intended to allocate
      * the struct
      * - The SQLite interface failed to make the allocation
      *
@@ -36,7 +36,7 @@ public interface Sqlite3Param<Value> {
  *
  * An [initialValue] can optionally be supplied.
  */
-public expect class Sqlite3IntParam(initialValue: Int) : Sqlite3Param<Int> {
+public expect class Sqlite3IntOutParam(initialValue: Int) : Sqlite3OutParam<Int> {
     override val value: Int
 }
 
@@ -45,7 +45,7 @@ public expect class Sqlite3IntParam(initialValue: Int) : Sqlite3Param<Int> {
  *
  * An [initialValue] can optionally be supplied.
  */
-public expect class Sqlite3LongParam(initialValue: Long) : Sqlite3Param<Long> {
+public expect class Sqlite3LongOutParam(initialValue: Long) : Sqlite3OutParam<Long> {
     override val value: Long
 }
 
@@ -56,7 +56,7 @@ public expect class Sqlite3LongParam(initialValue: Long) : Sqlite3Param<Long> {
 /**
  * Wrapper around UTF-8 encoded [String] intended to be passed as parameter and written by SQLite.
  */
-public expect class Sqlite3StringUtf8Param() : Sqlite3Param<String?> {
+public expect class Sqlite3StringUtf8OutParam() : Sqlite3OutParam<String?> {
 
     /**
      * UTF-8 encoded [String] or `null` if no string has been allocated or allocation failed.
@@ -71,27 +71,27 @@ public expect class Sqlite3StringUtf8Param() : Sqlite3Param<String?> {
 /**
  * Wrapper around [sqlite3] intended to be passed as parameter and allocated by SQLite.
  */
-public expect class Sqlite3DatabaseConnectionParam() : Sqlite3Param<sqlite3?> {
+public expect class Sqlite3DatabaseConnectionOutParam() : Sqlite3OutParam<sqlite3?> {
     override val value: sqlite3?
 }
 
 /**
  * Wrapper around [sqlite3_context] intended to be passed as parameter and allocated by SQLite.
  */
-public expect class Sqlite3ContextParam() : Sqlite3Param<sqlite3_context?> {
+public expect class Sqlite3ContextOutParam() : Sqlite3OutParam<sqlite3_context?> {
     override val value: sqlite3_context?
 }
 
 /**
  * Wrapper around [sqlite3_stmt] intended to be passed as parameter and allocated by SQLite.
  */
-public expect class Sqlite3StatementParam() : Sqlite3Param<sqlite3_stmt?> {
+public expect class Sqlite3StatementOutParam() : Sqlite3OutParam<sqlite3_stmt?> {
     override val value: sqlite3_stmt?
 }
 
 /**
  * Wrapper around [sqlite3_value] intended to be passed as parameter and allocated by SQLite.
  */
-public expect class Sqlite3ValueParam() : Sqlite3Param<sqlite3_value?> {
+public expect class Sqlite3ValueOutParam() : Sqlite3OutParam<sqlite3_value?> {
     override val value: sqlite3_value?
 }

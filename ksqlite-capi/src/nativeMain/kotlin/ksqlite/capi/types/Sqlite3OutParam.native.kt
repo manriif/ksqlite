@@ -23,8 +23,8 @@ import ksqlite.capi.utils.toKStringFromUtf8
 /**
  * Base for output parameter.
  */
-public abstract class Sqlite3ParamBase<Value, Var : CPointed>
-internal constructor(initialValue: Value) : Sqlite3Param<Value> {
+public abstract class Sqlite3OutParamBase<Value, Var : CPointed>
+internal constructor(initialValue: Value) : Sqlite3OutParam<Value> {
 
     private var actualValue: Value = initialValue
 
@@ -59,8 +59,8 @@ internal constructor(initialValue: Value) : Sqlite3Param<Value> {
 /**
  * Base for pointer output parameter.
  */
-public abstract class Sqlite3PointerParamBase<Value, Var : CPointed> :
-    Sqlite3ParamBase<Value?, CPointerVar<Var>>(null) {
+public abstract class Sqlite3PointerOutParamBase<Value, Var : CPointed> :
+    Sqlite3OutParamBase<Value?, CPointerVar<Var>>(null) {
 
     final override fun NativePlacement.allocate(initialValue: Value?): CPointerVar<Var> {
         return allocPointerTo()
@@ -81,8 +81,8 @@ public abstract class Sqlite3PointerParamBase<Value, Var : CPointed> :
 ///////////////////////////////////////////////////////////////////////////
 
 
-public actual class Sqlite3IntParam actual constructor(initialValue: Int) :
-    Sqlite3ParamBase<Int, IntVar>(initialValue) {
+public actual class Sqlite3IntOutParam actual constructor(initialValue: Int) :
+    Sqlite3OutParamBase<Int, IntVar>(initialValue) {
 
     override fun NativePlacement.allocate(initialValue: Int): IntVar {
         return alloc(value)
@@ -93,8 +93,8 @@ public actual class Sqlite3IntParam actual constructor(initialValue: Int) :
     }
 }
 
-public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
-    Sqlite3ParamBase<Long, LongVar>(initialValue) {
+public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
+    Sqlite3OutParamBase<Long, LongVar>(initialValue) {
 
     override fun NativePlacement.allocate(initialValue: Long): LongVar {
         return alloc(value)
@@ -109,8 +109,8 @@ public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
 // String
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3StringUtf8Param actual constructor() :
-    Sqlite3PointerParamBase<String?, ByteVar>() {
+public actual class Sqlite3StringUtf8OutParam actual constructor() :
+    Sqlite3PointerOutParamBase<String?, ByteVar>() {
 
     /**
      * Custom size if not zero terminated.
@@ -126,40 +126,48 @@ public actual class Sqlite3StringUtf8Param actual constructor() :
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3DatabaseConnectionParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3, s3>() {
+public actual class Sqlite3DatabaseConnectionOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3, s3>() {
 
     override fun create(pointer: CPointer<s3>): sqlite3 {
         return sqlite3(pointer)
     }
 }
 
-public actual class Sqlite3BlobParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3_blob, s3_blob>() {
+public actual class Sqlite3BlobOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_blob, s3_blob>() {
 
     override fun create(pointer: CPointer<s3_blob>): sqlite3_blob {
         return sqlite3_blob(pointer)
     }
 }
 
-public actual class Sqlite3ContextParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3_context, s3_context>() {
+public actual class Sqlite3ContextOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_context, s3_context>() {
 
     override fun create(pointer: CPointer<s3_context>): sqlite3_context {
         return sqlite3_context(pointer)
     }
 }
 
-public actual class Sqlite3StatementParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3_stmt, s3_stmt>() {
+public actual class Sqlite3SnapshotOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_snapshot, s3_snapshot>() {
+
+    override fun create(pointer: CPointer<s3_snapshot>): sqlite3_snapshot {
+        return sqlite3_snapshot(pointer)
+    }
+}
+
+public actual class Sqlite3StatementOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_stmt, s3_stmt>() {
 
     override fun create(pointer: CPointer<s3_stmt>): sqlite3_stmt {
         return sqlite3_stmt(pointer)
     }
 }
 
-public actual class Sqlite3ValueParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3_value, s3_value>() {
+public actual class Sqlite3ValueOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_value, s3_value>() {
 
     override fun create(pointer: CPointer<s3_value>): sqlite3_value {
         return sqlite3_value(pointer)
@@ -176,7 +184,7 @@ public actual class Sqlite3ValueParam actual constructor() :
  * 
  * The pointer passed to [block] must not escape.
  */
-internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.use(
+internal inline fun <Var : CPointed, R> Sqlite3OutParamBase<*, Var>.use(
     placement: NativePlacement,
     block: (CPointer<Var>) -> R
 ): R {
@@ -198,7 +206,7 @@ internal inline fun <Var : CPointed, R> Sqlite3ParamBase<*, Var>.use(
  * The pointer passed to [block] must not escape.
  */
 internal inline fun <Var : CPointed, R> NativePlacement.useParam(
-    param: Sqlite3ParamBase<*, Var>?,
+    param: Sqlite3OutParamBase<*, Var>?,
     block: (CPointer<Var>?) -> R
 ): R {
     if (param == null) {
@@ -215,7 +223,7 @@ internal inline fun <Var : CPointed, R> NativePlacement.useParam(
  * The pointer passed to [block] must not escape.
  */
 internal inline fun <Var : CPointed, R> useParamMemScoped(
-    param: Sqlite3ParamBase<*, Var>?,
+    param: Sqlite3OutParamBase<*, Var>?,
     block: (CPointer<Var>?) -> R
 ): R {
     if (param == null) {
@@ -234,8 +242,8 @@ internal inline fun <Var : CPointed, R> useParamMemScoped(
  * The pointers passed to [block] must not escape.
  */
 internal inline fun <Var1 : CPointed, Var2 : CPointed, R> NativePlacement.useParams(
-    param1: Sqlite3ParamBase<*, Var1>?,
-    param2: Sqlite3ParamBase<*, Var2>?,
+    param1: Sqlite3OutParamBase<*, Var1>?,
+    param2: Sqlite3OutParamBase<*, Var2>?,
     block: (
         pointer1: CPointer<Var1>?,
         pointer2: CPointer<Var2>?
@@ -263,8 +271,8 @@ internal inline fun <Var1 : CPointed, Var2 : CPointed, R> NativePlacement.usePar
  * The pointers passed to [block] must not escape.
  */
 internal inline fun <Var1 : CPointed, Var2 : CPointed, R> useParamsMemScoped(
-    param1: Sqlite3ParamBase<*, Var1>?,
-    param2: Sqlite3ParamBase<*, Var2>?,
+    param1: Sqlite3OutParamBase<*, Var1>?,
+    param2: Sqlite3OutParamBase<*, Var2>?,
     block: (
         pointer1: CPointer<Var1>?,
         pointer2: CPointer<Var2>?

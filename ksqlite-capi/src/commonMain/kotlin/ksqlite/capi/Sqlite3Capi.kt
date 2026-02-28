@@ -4,18 +4,18 @@ package ksqlite.capi
 
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3BusyHandlerCallback
-import ksqlite.capi.types.Sqlite3CreateCollationCallback
 import ksqlite.capi.types.Sqlite3CollationNeededCallback
 import ksqlite.capi.types.Sqlite3CommitHookCallback
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3ConfigOption
+import ksqlite.capi.types.Sqlite3CreateCollationCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionFinalCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionFuncCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionInverseCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionStepCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionValueCallback
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DatabaseConnectionParam
+import ksqlite.capi.types.Sqlite3DatabaseConnectionOutParam
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
@@ -24,26 +24,26 @@ import ksqlite.capi.types.Sqlite3ExecCallback
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
 import ksqlite.capi.types.Sqlite3FileOpenFlag
-import ksqlite.capi.types.Sqlite3IntParam
+import ksqlite.capi.types.Sqlite3IntOutParam
 import ksqlite.capi.types.Sqlite3Limit
-import ksqlite.capi.types.Sqlite3LongParam
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
+import ksqlite.capi.types.Sqlite3LongOutParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
+import ksqlite.capi.types.Sqlite3PreupdateHookCallback
 import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3RollbackHookCallback
 import ksqlite.capi.types.Sqlite3SerializeFlag
 import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
-import ksqlite.capi.types.Sqlite3StatementParam
+import ksqlite.capi.types.Sqlite3StatementOutParam
 import ksqlite.capi.types.Sqlite3StatementStatusCounter
 import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3StringUtf8Param
+import ksqlite.capi.types.Sqlite3StringUtf8OutParam
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCallback
-import ksqlite.capi.types.Sqlite3TraceFlag
+import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3UpdateHookCallback
-import ksqlite.capi.types.Sqlite3ValueParam
+import ksqlite.capi.types.Sqlite3ValueOutParam
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
@@ -84,7 +84,8 @@ public expect fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
     data: ByteArray?,
-    size: Int
+    size: Int,
+    destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
 /**
@@ -645,8 +646,8 @@ public expect fun sqlite3_db_readonly(
 public expect fun sqlite3_db_status(
     db: sqlite3,
     option: Sqlite3DbStatusOption,
-    current: Sqlite3IntParam?,
-    highwtr: Sqlite3IntParam?,
+    outCurrent: Sqlite3IntOutParam?,
+    outHighwater: Sqlite3IntOutParam?,
     resetFlag: Int
 ): Sqlite3Result
 
@@ -658,8 +659,8 @@ public expect fun sqlite3_db_status(
 public expect fun sqlite3_db_status64(
     db: sqlite3,
     option: Sqlite3DbStatusOption,
-    current: Sqlite3LongParam?,
-    highwtr: Sqlite3LongParam?,
+    outCurrent: Sqlite3LongOutParam?,
+    outHighwater: Sqlite3LongOutParam?,
     resetFlag: Int
 ): Sqlite3Result
 
@@ -729,7 +730,7 @@ public expect fun sqlite3_error_offset(db: sqlite3): Int
 
 /**
  * Execute SQL code. Return one of the SQLITE_ success/failure codes. Also write an error message
- * into memory obtained from malloc() and make [errorMessage] point to that message.
+ * into memory obtained from malloc() and make [outErrorMessage] point to that message.
  *
  * If the SQL is a query, then for each row in the query result the [callback] function is called.
  * If [callback]=`null` then no callback is invoked, even for queries.
@@ -739,7 +740,7 @@ public expect fun sqlite3_error_offset(db: sqlite3): Int
 public expect fun sqlite3_exec(
     db: sqlite3,
     sql: String,
-    errorMessage: Sqlite3StringUtf8Param?,
+    outErrorMessage: Sqlite3StringUtf8OutParam?,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3ExecCallback?
 ): Sqlite3Result
@@ -882,16 +883,16 @@ public expect fun sqlite3_is_interrupted(db: sqlite3): Int
 public expect fun sqlite3_keyword_count(): Int
 
 /**
- * The sqlite3_keyword_name() interface finds the 0-based [index]-th keyword and makes [name] point
- * to that keyword expressed as UTF8. The
- * string that [name] points to is not zero-terminated. The sqlite3_keyword_name routine returns
+ * The sqlite3_keyword_name() interface finds the 0-based [index]-th keyword and makes [outName]
+ * point to that keyword expressed as UTF8. The
+ * string that [outName] points to is not zero-terminated. The sqlite3_keyword_name routine returns
  * SQLITE_OK if [index] is within bounds and SQLITE_ERROR if not.
  *
  * [sqlite3_keyword_name()](https://sqlite.org/c3ref/keyword_check.html)
  */
 public expect fun sqlite3_keyword_name(
     index: Int,
-    name: Sqlite3StringUtf8Param,
+    outName: Sqlite3StringUtf8OutParam,
 ): Sqlite3Result
 
 /**
@@ -990,7 +991,7 @@ public expect fun sqlite3_next_stmt(
  */
 public expect fun sqlite3_open(
     fileName: String,
-    outDb: Sqlite3DatabaseConnectionParam
+    outDb: Sqlite3DatabaseConnectionOutParam
 ): Sqlite3Result
 
 /**
@@ -1000,7 +1001,7 @@ public expect fun sqlite3_open(
  */
 public expect fun sqlite3_open_v2(
     fileName: String,
-    outDb: Sqlite3DatabaseConnectionParam,
+    outDb: Sqlite3DatabaseConnectionOutParam,
     flags: Sqlite3FileOpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result
@@ -1034,8 +1035,8 @@ public expect fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
     size: Int?,
-    outStmt: Sqlite3StatementParam,
-    outTail: Sqlite3StringUtf8Param?
+    outStmt: Sqlite3StatementOutParam,
+    outTail: Sqlite3StringUtf8OutParam?
 ): Sqlite3Result
 
 /**
@@ -1050,8 +1051,8 @@ public expect fun sqlite3_prepare_v3(
     sql: String,
     size: Int?,
     flags: Sqlite3PrepareFlag?,
-    outStmt: Sqlite3StatementParam,
-    outTail: Sqlite3StringUtf8Param?
+    outStmt: Sqlite3StatementOutParam,
+    outTail: Sqlite3StringUtf8OutParam?
 ): Sqlite3Result
 
 /**
@@ -1103,7 +1104,7 @@ public expect fun sqlite3_preupdate_hook(
 public expect fun sqlite3_preupdate_new(
     db: sqlite3,
     index: Int,
-    outValue: Sqlite3ValueParam
+    outValue: Sqlite3ValueOutParam
 ): Sqlite3Result
 
 /**
@@ -1115,7 +1116,7 @@ public expect fun sqlite3_preupdate_new(
 public expect fun sqlite3_preupdate_old(
     db: sqlite3,
     index: Int,
-    outValue: Sqlite3ValueParam
+    outValue: Sqlite3ValueOutParam
 ): Sqlite3Result
 
 /**
@@ -1189,7 +1190,7 @@ public expect fun sqlite3_reset_auto_extension()
 public expect fun sqlite3_result_blob(
     context: sqlite3_context,
     data: ByteArray?,
-    nData: Int,
+    size: Int,
     destructor: Sqlite3DestructorCallback?
 )
 
@@ -1210,7 +1211,7 @@ public expect fun sqlite3_result_double(
  */
 public expect fun sqlite3_result_error(
     context: sqlite3_context,
-    message: String,
+    message: String?,
     size: Int?
 )
 
@@ -1272,7 +1273,7 @@ public expect fun sqlite3_result_null(context: sqlite3_context)
  */
 public expect fun sqlite3_result_pointer(
     context: sqlite3_context,
-    data: sqlite3_pointer?,
+    data: sqlite3_mutable_pointer?,
     type: String?,
     destructor: Sqlite3DestructorCallback?
 )
@@ -1436,10 +1437,10 @@ public expect fun sqlite3_sql(stmt: sqlite3_stmt): String
  */
 public expect fun sqlite3_status(
     option: Sqlite3StatusOption,
-    current: Sqlite3IntParam,
-    highwtr: Sqlite3IntParam,
+    outCurrent: Sqlite3IntOutParam,
+    outHighwater: Sqlite3IntOutParam,
     resetFlag: Int
-)
+): Sqlite3Result
 
 /**
  * Query status information.
@@ -1448,10 +1449,10 @@ public expect fun sqlite3_status(
  */
 public expect fun sqlite3_status64(
     option: Sqlite3StatusOption,
-    current: Sqlite3LongParam,
-    highwtr: Sqlite3LongParam,
+    outCurrent: Sqlite3LongOutParam,
+    outHighwater: Sqlite3LongOutParam,
     resetFlag: Int
-)
+): Sqlite3Result
 
 /**
  * Execute the statement [stmt], either until a row of data is ready, the statement is completely
@@ -1490,7 +1491,7 @@ public expect fun sqlite3_stmt_isexplain(stmt: sqlite3_stmt): Sqlite3ExplainMode
  *
  * [sqlite3_stmt_readonly()](https://sqlite.org/c3ref/stmt_readonly.html)
  */
-public expect fun sqlite3_stmt_readonly(stmt: sqlite3_stmt): Sqlite3ExplainMode
+public expect fun sqlite3_stmt_readonly(stmt: sqlite3_stmt): Int
 
 /**
  * Return the value of a status counter for a prepared statement.
@@ -1533,7 +1534,7 @@ public expect fun sqlite3_stricmp(
 public expect fun sqlite3_strlike(
     pattern: String,
     string: String,
-    escape: UInt
+    escape: Char
 ): Int
 
 /**
@@ -1546,7 +1547,7 @@ public expect fun sqlite3_strlike(
 public expect fun sqlite3_strnicmp(
     left: String,
     right: String,
-    n: Int
+    size: Int
 ): Int
 
 /**
@@ -1559,11 +1560,11 @@ public expect fun sqlite3_table_column_metadata(
     dbName: String?,
     tableName: String,
     columnName: String,
-    dataType: Sqlite3StringUtf8Param?,
-    collationName: Sqlite3StringUtf8Param?,
-    notNull: Sqlite3IntParam?,
-    primaryKey: Sqlite3IntParam?,
-    autoIncrement: Sqlite3IntParam?
+    outDataType: Sqlite3StringUtf8OutParam?,
+    outCollationName: Sqlite3StringUtf8OutParam?,
+    outNotNull: Sqlite3IntOutParam?,
+    outPrimaryKey: Sqlite3IntOutParam?,
+    outAutoIncrement: Sqlite3IntOutParam?
 ): Sqlite3Result
 
 /**
@@ -1587,10 +1588,10 @@ public expect fun sqlite3_total_changes64(db: sqlite3): Long
  */
 public expect fun sqlite3_trace_v2(
     sqlite3: sqlite3,
-    mask: Sqlite3TraceFlag?,
+    mask: Sqlite3TraceCode?,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3TraceCallback?
-)
+): Sqlite3Result
 
 /**
  * Return the transaction state for a single database, or the maximum transaction state over all
@@ -1613,7 +1614,7 @@ public expect fun sqlite3_update_hook(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3UpdateHookCallback?
-): Sqlite3UpdateHookCallback?
+): sqlite3_mutable_pointer?
 
 /**
  * Return a boolean value for a query parameter.
@@ -1841,7 +1842,7 @@ public expect fun sqlite3_vtab_in(
  */
 public expect fun sqlite3_vtab_in_first(
     value: sqlite3_value,
-    outValue: Sqlite3ValueParam?
+    outValue: Sqlite3ValueOutParam?
 ): Sqlite3Result
 
 /**
@@ -1852,7 +1853,7 @@ public expect fun sqlite3_vtab_in_first(
  */
 public expect fun sqlite3_vtab_in_next(
     value: sqlite3_value,
-    outValue: Sqlite3ValueParam?
+    outValue: Sqlite3ValueOutParam?
 ): Sqlite3Result
 
 /**
@@ -1892,5 +1893,5 @@ public expect fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result
 public expect fun sqlite3_vtab_rhs_value(
     info: sqlite3_index_info,
     index: Int,
-    outValue: Sqlite3ValueParam?
-)
+    outValue: Sqlite3ValueOutParam?
+): Sqlite3Result

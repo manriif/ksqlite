@@ -21,10 +21,12 @@ private val NoStringConversions = listOf(
     "prepare_v2",
     "prepare_v3",
     "result_error",
+    "result_pointer",
     "result_text",
     "result_text64",
     "serialize",
-    "table_column_metadata"
+    "table_column_metadata",
+    "wal_checkpoint_v2"
 )
 
 /**

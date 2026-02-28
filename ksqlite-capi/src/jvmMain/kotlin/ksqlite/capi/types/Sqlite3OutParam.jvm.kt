@@ -12,8 +12,8 @@ import java.lang.foreign.ValueLayout
 /**
  * Base for output parameter.
  */
-public abstract class Sqlite3ParamBase<Value> internal constructor(initialValue: Value) :
-    Sqlite3Param<Value> {
+public abstract class Sqlite3OutParamBase<Value> internal constructor(initialValue: Value) :
+    Sqlite3OutParam<Value> {
 
     private var actualValue: Value = initialValue
 
@@ -48,7 +48,7 @@ public abstract class Sqlite3ParamBase<Value> internal constructor(initialValue:
 /**
  * Base for pointer output parameter.
  */
-public abstract class Sqlite3PointerParamBase<Value> : Sqlite3ParamBase<Value?>(null) {
+public abstract class Sqlite3PointerOutParamBase<Value> : Sqlite3OutParamBase<Value?>(null) {
 
     final override fun SegmentAllocator.allocate(initialValue: Value?): MemorySegment {
         return allocate(ValueLayout.ADDRESS)
@@ -72,8 +72,8 @@ public abstract class Sqlite3PointerParamBase<Value> : Sqlite3ParamBase<Value?>(
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
-public actual open class Sqlite3IntParam actual constructor(initialValue: Int) :
-    Sqlite3ParamBase<Int>(initialValue) {
+public actual open class Sqlite3IntOutParam actual constructor(initialValue: Int) :
+    Sqlite3OutParamBase<Int>(initialValue) {
 
     override fun SegmentAllocator.allocate(initialValue: Int): MemorySegment {
         return allocateFrom(ValueLayout.JAVA_INT, initialValue)
@@ -84,8 +84,8 @@ public actual open class Sqlite3IntParam actual constructor(initialValue: Int) :
     }
 }
 
-public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
-    Sqlite3ParamBase<Long>(initialValue) {
+public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
+    Sqlite3OutParamBase<Long>(initialValue) {
 
     override fun SegmentAllocator.allocate(initialValue: Long): MemorySegment {
         return allocateFrom(ValueLayout.JAVA_LONG, initialValue)
@@ -100,8 +100,8 @@ public actual class Sqlite3LongParam actual constructor(initialValue: Long) :
 // String
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3StringUtf8Param actual constructor() :
-    Sqlite3PointerParamBase<String>() {
+public actual class Sqlite3StringUtf8OutParam actual constructor() :
+    Sqlite3PointerOutParamBase<String>() {
 
     override fun create(pointer: MemorySegment): String {
         return pointer.getString(0, Charsets.UTF_8)
@@ -112,32 +112,32 @@ public actual class Sqlite3StringUtf8Param actual constructor() :
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3DatabaseConnectionParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3>() {
+public actual class Sqlite3DatabaseConnectionOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3>() {
 
     override fun create(pointer: MemorySegment): sqlite3 {
         return sqlite3(pointer)
     }
 }
 
-public actual class Sqlite3ContextParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3_context>() {
+public actual class Sqlite3ContextOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_context>() {
 
     override fun create(pointer: MemorySegment): sqlite3_context {
         return sqlite3_context(pointer)
     }
 }
 
-public actual class Sqlite3StatementParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3_stmt>() {
+public actual class Sqlite3StatementOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_stmt>() {
 
     override fun create(pointer: MemorySegment): sqlite3_stmt {
         return sqlite3_stmt(pointer)
     }
 }
 
-public actual class Sqlite3ValueParam actual constructor() :
-    Sqlite3PointerParamBase<sqlite3_value>() {
+public actual class Sqlite3ValueOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_value>() {
 
     override fun create(pointer: MemorySegment): sqlite3_value {
         return sqlite3_value(pointer)
@@ -153,7 +153,7 @@ public actual class Sqlite3ValueParam actual constructor() :
  * result.
  * The pointer passed to [block] must not escape.
  */
-internal inline fun <R> Sqlite3ParamBase<*>.use(
+internal inline fun <R> Sqlite3OutParamBase<*>.use(
     allocator: SegmentAllocator,
     block: (MemorySegment) -> R
 ): R {
