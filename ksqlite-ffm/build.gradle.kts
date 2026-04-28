@@ -1,6 +1,9 @@
 @file:Suppress("HasPlatformType")
 
-import compilation.SqliteTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+
+/*import compilation.SqliteTarget
 import compilation.sharedLibraryFileName
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
@@ -9,12 +12,14 @@ import platform.OperatingSystem
 import platform.Platform
 import tasks.registerJextractGenerateBindingsTask
 import tasks.registerSqliteCompileSharedTask
-import tasks.registerSqliteFfmRuntimeMetadataTask
+import tasks.registerSqliteFfmRuntimeMetadataTask*/
 
 plugins {
     alias(libs.plugins.conventions.kmp)
+    alias(kompleLibs.plugins.komple)
 }
 
+/*
 val resourceNativeDirName = "native"
 val ksqlitePackage = "ksqlite"
 val generatedSourceDirectory = layout.buildDirectory.map { it.dir("generated/ksqlite/src/jvmMain") }
@@ -62,11 +67,19 @@ val generateSqliteFfmRuntimeMetadataTaskProvider = registerSqliteFfmRuntimeMetad
         directory.file("$projectNamespace/KsqliteFfmGenerated.kt")
     },
     platforms = provider { sqliteTargets.map { it.platform.get() } }
-)
+)*/
+
+val javaBindings by komple.projects.ksqlite.jextract.bindingGenerators.registering {
+    println("Generator created = $name")
+
+    options {
+        headerClassName = cProject.libraryName
+    }
+}
 
 val generateSources by tasks.registering {
-    dependsOn(generateBindingsTaskProvider)
-    dependsOn(generateSqliteFfmRuntimeMetadataTaskProvider)
+    //dependsOn(javaBindings.map { it.generateTaskProvider })
+    //dependsOn(generateSqliteFfmRuntimeMetadataTaskProvider)
 }
 
 registerTaskForIde(generateSources)
@@ -76,10 +89,10 @@ kotlin {
         target.configureJvmTarget()
     }
 
-    sourceSets.jvmMain {
+    /*sourceSets.jvmMain {
         kotlin.srcDir(generatedJavaSourceDirectory)
         kotlin.srcDir(generatedKotlinSourceDirectory)
-    }
+    }*/
 }
 
 fun KotlinJvmTarget.configureJvmTarget() {
@@ -90,10 +103,10 @@ fun KotlinJvmTarget.configureJvmTarget() {
 
         checkNotNull(compileJavaTaskProvider).configure {
             dependsOn(generateSources)
-            source(generatedJavaSourceDirectory)
+            //source(generatedJavaSourceDirectory)
         }
 
-        tasks.named<ProcessResources>(processResourcesTaskName).apply {
+        /*tasks.named<ProcessResources>(processResourcesTaskName).apply {
             configure {
                 dependsOn(sqliteCompileSharedTaskProvider)
                 inputs.dir(libsDir)
@@ -102,6 +115,6 @@ fun KotlinJvmTarget.configureJvmTarget() {
                     into(resourceNativeDirName)
                 }
             }
-        }
+        }*/
     }
 }

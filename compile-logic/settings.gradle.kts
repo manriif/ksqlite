@@ -5,11 +5,18 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
+        mavenLocal()
     }
 
     versionCatalogs {
         create("libs") {
             from(files("../gradle/libs.versions.toml"))
         }
+
+        create("kompleLibs") {
+            val kompleVersion = file("../komple.version.txt").readText()
+            from("io.github.manriif.komple:komple-catalog:$kompleVersion")
+        }
     }
 }
+

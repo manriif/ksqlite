@@ -12,10 +12,10 @@ class KsqlitePlugin : Plugin<Project> {
         val extension =
             target.extensions.create<KsqliteExtension>(KSQLITE_EXTENSION_NAME)
 
-        target.registerRootTasks(extension)
+        //target.registerRootTasks(extension)
 
-        target.afterEvaluate {
+        /*target.afterEvaluate {
             configureKsqliteSources(extension)
-        }
+        }*/
     }
 }

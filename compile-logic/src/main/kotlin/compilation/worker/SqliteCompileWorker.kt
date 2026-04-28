@@ -3,8 +3,6 @@ package compilation.worker
 import compilation.SqliteCompilationParameters
 import compilation.SqliteTarget
 import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.RegularFile
-import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.process.ExecOperations
 import org.gradle.workers.WorkAction

@@ -1,9 +1,11 @@
-import compilation.SqliteCompilationParameters
+import komple.project.c.CProject
+
+/*import compilation.SqliteCompilationParameters
 import tools.Toolchains
 import tools.Tool
 import tools.Tools
 import utils.absolutePath
-import java.util.Properties
+import java.util.Properties*/
 
 plugins {
     alias(libs.plugins.android.multiplatformLibrary) apply false
@@ -13,6 +15,15 @@ plugins {
     alias(libs.plugins.vanniktech.mavenPublish) apply false
     alias(libs.plugins.gradle.pluginPublish) apply false
     alias(libs.plugins.ksqlite)
+
+    alias(kompleLibs.plugins.komple)
+    alias(kompleLibs.plugins.tool.androidNdk)
+    alias(kompleLibs.plugins.tool.appleXcode)
+    alias(kompleLibs.plugins.tool.emscripten)
+    alias(kompleLibs.plugins.tool.cmake)
+    alias(kompleLibs.plugins.tool.gnuSed)
+    alias(kompleLibs.plugins.tool.jextract)
+    alias(kompleLibs.plugins.tool.wabt)
 }
 
 allprojects {
@@ -20,12 +31,45 @@ allprojects {
     version = rootProject.libs.versions.ksqlite.get()
 }
 
-ksqlite {
+komple {
+    //registerTool<SqliteMCConfigurator>("Sqlite Multiple Ciphers")
+    //registerTool("Sqlite", KompleToolConfigurator::class)
+
+    projects {
+        register<CProject>("ksqlite", CProject::configureKsqliteProject)
+    }
+
+    tools {
+        wabt dependsOn cmake
+    }
+
+    androidNdk {
+        compilationParams {
+            minSdk = libs.versions.android.sdk.min
+        }
+    }
+
+    appleXcode {
+        compilationParams {
+            versionMinMacos = libs.versions.apple.macos.min
+            versionMinIos = libs.versions.apple.ios.min
+            versionMinTvos = libs.versions.apple.tvos.min
+            versionMinWatchos = libs.versions.apple.watchos.min
+        }
+    }
+}
+
+private fun CProject.configureKsqliteProject() {
+    libraryName = "ksqlite"
+
+}
+
+/*ksqlite {
     val ksqliteBuildDir = layout.buildDirectory.dir("ksqlite")
     ksqliteDirectory = layout.projectDirectory.dir("ksqlite")
 
     checksums = Properties()
-        .apply { file("checksums.properties").inputStream().use { load(it) } }
+        .apply { file("komple.version.txt").inputStream().use { load(it) } }
         .run {
             KsqliteChecksums(
                 androidNdkLinux = getProperty("android.ndk.linux"),
@@ -63,29 +107,9 @@ ksqlite {
         },
     )
 
-    tools = ksqliteBuildDir.map { it.dir("tools") }.run {
-        Tools(
-            emsdk = Tool(
-                version = libs.versions.emsdk.get(),
-                path = absolutePath("emscripten")
-            ),
-            gnuSed = Tool(
-                version = libs.versions.gnuSed.get(),
-                path = absolutePath("gnu-sed")
-            ),
-            jextract = Tool(
-                version = libs.versions.jextract.get(),
-                path = absolutePath("jextract")
-            ),
-            wabt = Tool(
-                version = libs.versions.wabt.get(),
-                path = absolutePath("wabt")
-            ),
-        )
-    }
 
     downloadDirectory = layout.buildDirectory.dir("tmp/ksqlite")
     sqliteReleaseYear = libs.versions.sqliteReleaseYear.get()
     sqliteSourcesDirectory = ksqliteBuildDir.map { it.dir("sqlite") }
     jdkVersion = libs.versions.jvm.toolchain.get()
-}
+}*/

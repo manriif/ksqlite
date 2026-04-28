@@ -92,7 +92,7 @@ sealed interface OperatingSystem : Serializable {
     // Linux
     ///////////////////////////////////////////////////////////////////////////
 
-    sealed class LinuxLike: OperatingSystem {
+    sealed class LinuxLike : OperatingSystem {
 
         final override val library: Library
             get() = Library.Linux

@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     `kotlin-dsl`
 }
@@ -5,6 +7,10 @@ plugins {
 kotlin {
     jvmToolchain {
         languageVersion = JavaLanguageVersion.of(libs.versions.jvm.toolchain.get())
+    }
+
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
     }
 }
 
@@ -19,4 +25,5 @@ gradlePlugin {
 
 dependencies {
     implementation(libs.undercouch.dowload)
+    implementation(kompleLibs.komple)
 }
