@@ -1,63 +1,25 @@
 @file:Suppress("HasPlatformType")
 
+import komple.platform.Platform
+import komple.project.c.CLibraryType
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
-
-/*import compilation.SqliteTarget
-import compilation.sharedLibraryFileName
-import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
-import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
-import platform.Architecture
-import platform.OperatingSystem
-import platform.Platform
-import tasks.registerJextractGenerateBindingsTask
-import tasks.registerSqliteCompileSharedTask
-import tasks.registerSqliteFfmRuntimeMetadataTask*/
 
 plugins {
     alias(libs.plugins.conventions.kmp)
     alias(kompleLibs.plugins.komple)
 }
 
-/*
 val resourceNativeDirName = "native"
 val ksqlitePackage = "ksqlite"
 val generatedSourceDirectory = layout.buildDirectory.map { it.dir("generated/ksqlite/src/jvmMain") }
 val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java") }
 val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
-val libsDir = layout.buildDirectory.map { it.dir("sqlite/$resourceNativeDirName") }
 
-fun createSqliteTarget(
-    operatingSystem: OperatingSystem,
-    architecture: Architecture,
-): SqliteTarget = objects.newInstance<SqliteTarget>().apply {
-    val platform = Platform(operatingSystem, architecture)
-    this.platform = platform
-
-    this.libraryFile = libsDir.zip(ksqliteExtension.compilationParams) { dir, params ->
-        dir.file(platform.operatingSystem.library.sharedLibraryFileName(params.libraryName))
+val libraries = Platform.run {
+    listOf(macosArm64/*, macosX64, linuxX64, linuxArm64, mingwX64*/).map { platform ->
+        komple.projects.kotlinSqlite.createLibrary(CLibraryType.Shared, platform)
     }
-}
-
-val sqliteTargets = listOf(
-    //createSqliteTarget(OperatingSystem.Linux, Architecture.Arm64),
-    //createSqliteTarget(OperatingSystem.Linux, Architecture.X64),
-    //createSqliteTarget(OperatingSystem.MacOS, Architecture.Arm64),
-    createSqliteTarget(OperatingSystem.MacOS, Architecture.X64),
-    //createSqliteTarget(OperatingSystem.Windows, Architecture.Arm64),
-    //createSqliteTarget(OperatingSystem.Windows, Architecture.X64),
-)
-
-val generateBindingsTaskProvider = registerJextractGenerateBindingsTask(
-    packageName = ksqlitePackage,
-    outputDirectory = generatedJavaSourceDirectory
-)
-
-val sqliteCompileSharedTaskProvider = registerSqliteCompileSharedTask("Jvm") {
-    dependsOn(jextractInstallTaskProvider)
-    // TODO zig dependency
-    outputs.dir(libsDir)
-    targets = sqliteTargets
 }
 
 val generateSqliteFfmRuntimeMetadataTaskProvider = registerSqliteFfmRuntimeMetadataTask(
@@ -67,19 +29,19 @@ val generateSqliteFfmRuntimeMetadataTaskProvider = registerSqliteFfmRuntimeMetad
         directory.file("$projectNamespace/KsqliteFfmGenerated.kt")
     },
     platforms = provider { sqliteTargets.map { it.platform.get() } }
-)*/
+)
 
-val javaBindings by komple.projects.ksqlite.jextract.bindingGenerators.registering {
-    println("Generator created = $name")
-
+val javaBindings by komple.projects.kotlinSqlite.jextract.bindingGenerators.registering {
     options {
         headerClassName = cProject.libraryName
+        includeFunctions = sqliteFunctions(true)
     }
 }
 
-val generateSources by tasks.registering {
-    //dependsOn(javaBindings.map { it.generateTaskProvider })
-    //dependsOn(generateSqliteFfmRuntimeMetadataTaskProvider)
+val generateSources by tasks.registering(Copy::class) {
+    dependsOn(generateSqliteFfmRuntimeMetadataTaskProvider)
+    from(javaBindings.map { it.generateDirectory })
+    into(generatedJavaSourceDirectory)
 }
 
 registerTaskForIde(generateSources)
@@ -89,10 +51,10 @@ kotlin {
         target.configureJvmTarget()
     }
 
-    /*sourceSets.jvmMain {
+    sourceSets.jvmMain {
         kotlin.srcDir(generatedJavaSourceDirectory)
         kotlin.srcDir(generatedKotlinSourceDirectory)
-    }*/
+    }
 }
 
 fun KotlinJvmTarget.configureJvmTarget() {
@@ -103,18 +65,17 @@ fun KotlinJvmTarget.configureJvmTarget() {
 
         checkNotNull(compileJavaTaskProvider).configure {
             dependsOn(generateSources)
-            //source(generatedJavaSourceDirectory)
+            source(generatedJavaSourceDirectory)
         }
 
-        /*tasks.named<ProcessResources>(processResourcesTaskName).apply {
+        tasks.named<ProcessResources>(processResourcesTaskName).apply {
             configure {
-                dependsOn(sqliteCompileSharedTaskProvider)
-                inputs.dir(libsDir)
-
-                from(libsDir) {
-                    into(resourceNativeDirName)
+                libraries.forEach { library ->
+                    from(library.libraryFile) {
+                        into(resourceNativeDirName)
+                    }
                 }
             }
-        }*/
+        }
     }
 }

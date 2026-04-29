@@ -1,6 +1,16 @@
 package modules
 
+import SQLITE3_MC_AMALGAMATION
+import komple.exec.Command
+import komple.exec.CommandExecutor
+import org.gradle.api.file.FileSystemOperations
+import utils.cSourceFile
+import utils.copyToTempDirectory
 import java.io.File
+
+///////////////////////////////////////////////////////////////////////////
+// Sources
+///////////////////////////////////////////////////////////////////////////
 
 private const val EXT_WASM_PATH = "ext/wasm"
 private const val GNU_MAKEFILE = "GNUmakefile"
@@ -82,5 +92,46 @@ fun patchGeneratedSqliteForWasm(
 
             lineIterator.forEachRemaining(writer::appendLine)
         }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Compilation
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Compiles SQLite for Wasm.
+ */
+fun compileSqliteWasm(
+    fileOperations: FileSystemOperations,
+    commandExecutor: CommandExecutor,
+    sqliteDirectory: File,
+    outputDirectory: File,
+) {
+    // A temporary directory is used to not write the original directory which will break Gradle
+    // caching
+    val sqliteDirectory = fileOperations.copyToTempDirectory(sqliteDirectory)
+
+    commandExecutor.execute(
+        command = Command("./configure"),
+        workingDirectory = sqliteDirectory
+    )
+
+    val sqliteAmalgamationSourceFile = sqliteDirectory
+        .resolve(cSourceFile(SQLITE3_MC_AMALGAMATION))
+        .absolutePath
+
+    val wasmDirectory = sqliteDirectory.resolve(EXT_WASM_PATH)
+
+    commandExecutor.execute(
+        command = Command("make", "-j4", "64bit", "sqlite3.c=${sqliteAmalgamationSourceFile}"),
+        workingDirectory = wasmDirectory
+    )
+
+    val generatedOutputDirectory = wasmDirectory.resolve("jswasm")
+
+    fileOperations.copy {
+        from(generatedOutputDirectory)
+        into(outputDirectory)
     }
 }

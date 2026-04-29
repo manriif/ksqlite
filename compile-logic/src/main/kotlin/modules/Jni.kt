@@ -1,33 +1,43 @@
 package modules
 
-import compilation.SqliteCompilationParameters
-import compilation.SqliteDefines
+import komple.project.c.CProject
 import java.io.File
 
 /**
  * Returns the content of the SQLite CMakeLists.txt.
  */
 fun createSqliteCMakeListsContent(
+    cProject: CProject,
     cmakeVersion: String,
-    includeDirectories: Collection<File>,
-    sourceFiles: Collection<File>,
-    params: SqliteCompilationParameters,
-): String = """
-    |cmake_minimum_required(VERSION $cmakeVersion)
-    |
-    |add_library(${params.libraryName} STATIC 
-    |    ${sourceFiles.joinToString("\n\t", transform = File::getAbsolutePath)}
-    |)
-    |
-    |target_include_directories(${params.libraryName} PUBLIC 
-    |    ${includeDirectories.joinToString("\n\t", transform = File::getAbsolutePath)}
-    |)
-    |
-    |target_compile_definitions(${params.libraryName} PRIVATE
-    |    SQLITE_THREADSAFE=1
-    |    ${SqliteDefines.joinToString("\n\t")}
-    |)
-""".trimMargin()
+): String {
+    val libraryName = cProject.libraryName.get()
+
+    val sourceFiles = cProject.sourceFiles
+        .joinToString("\n\t", transform = File::getAbsolutePath)
+
+    val includeDirectories = cProject.includeDirectories
+        .joinToString("\n\t", transform = File::getAbsolutePath)
+
+    val compileDefinitions = cProject.definitions().get()
+        .joinToString("\n\t")
+
+    return """
+        |cmake_minimum_required(VERSION $cmakeVersion)
+        |
+        |add_library($libraryName STATIC 
+        |    $sourceFiles
+        |)
+        |
+        |target_include_directories($libraryName PUBLIC 
+        |    $includeDirectories
+        |)
+        |
+        |target_compile_definitions($libraryName PRIVATE
+        |    SQLITE_THREADSAFE=1
+        |    $compileDefinitions
+        |)
+    """.trimMargin()
+}
 
 /**
  * Returns the content of the JNI runtime metadata.

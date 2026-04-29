@@ -4,12 +4,11 @@
 
 [versions]
 
-# Project version, matching the targeted sqlite version
-ksqlite = "3.51.2"
+# Project version
+ksqlite = "0.0.1"
 
 # Toolchains
 toolchain-android = "r29.14206865"
-toolchain.zig = "0.15.2"
 
 # Android
 android-ndk = "29.0.14206865"
@@ -32,17 +31,15 @@ jvm-toolchain = "25"
 android-gradlePlugin = "9.0.1"
 cmake = "3.22.1"
 dokka = "2.1.0"
-emsdk = "5.0.0"
-gnuSed = "4.9"
 gradle-pluginPublish = "2.0.0"
 #jextract = "6-47"
 jextract = "2-4"
 kotlin = "2.4.0-Beta2"
 kotlinTransitiveResources = "0.6.0"
 kotlinx-coroutines = "1.10.2"
-sqliteMultipleCiphers = "2.2.7"
+sqlite = "3.53.0"
+sqliteMultipleCiphers = "2.3.3"
 sqliteReleaseYear = "2026"
-undercouch-download = "5.7.0"
 vanniktech-mavenPublish = "0.36.0"
 wabt = "1.0.39"
 copyWebpackPlugin = "13.0.1"
@@ -71,5 +68,4 @@ kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", ve
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
-undercouch-dowload = { module = "de.undercouch.download:de.undercouch.download.gradle.plugin", version.ref = "undercouch-download" }
 vanniktech-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech-mavenPublish" }

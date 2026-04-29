@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-
 plugins {
     `kotlin-dsl`
 }
@@ -24,6 +22,5 @@ gradlePlugin {
 }
 
 dependencies {
-    implementation(libs.undercouch.dowload)
     implementation(kompleLibs.komple)
 }

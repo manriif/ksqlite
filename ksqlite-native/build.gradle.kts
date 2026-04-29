@@ -1,14 +1,9 @@
 @file:Suppress("HasPlatformType")
 
-import compilation.SqliteTarget
-import compilation.staticLibraryFileName
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.KonanTarget
-import platform.Architecture
-import platform.OperatingSystem
-import platform.Platform
 import tasks.registerSqliteCompileStaticTask
 import tasks.registerSqliteGenerateCInteropDefTask
 
@@ -52,13 +47,13 @@ fun KotlinNativeTarget.configureNativeTarget() {
     val sqliteTarget = objects.newInstance<SqliteTarget>().apply {
         this.platform = platform
 
-        this.libraryFile = platformDirectory.zip(extension.compilationParams) { dir, params ->
+        this.libraryFile = platformDirectory.zip(extension.sqliteComponents) { dir, params ->
             dir.file(platform.operatingSystem.library.staticLibraryFileName(params.libraryName))
         }
     }
 
     val defFile = platformDirectory.map { directory ->
-        directory.file("${extension.compilationParams.get().sqliteName}.def")
+        directory.file("${extension.sqliteComponents.get().sqliteName}.def")
     }
 
     val generateCInteropDefTaskProvider = registerSqliteGenerateCInteropDefTask(
@@ -92,40 +87,8 @@ fun KotlinNativeTarget.configureNativeTarget() {
 
             includeDirs(
                 extension.ksqliteDirectory,
-                extension.sqliteSourcesDirectory
+                extension.sqliteDirectory
             )
         }
     }
-}
-
-/**
- * Transforms `this` [KonanTarget] into [Platform].
- */
-fun KonanTarget.toPlatform(): Platform = when (this) {
-    KonanTarget.ANDROID_ARM32 -> Platform(OperatingSystem.Android, Architecture.Arm32)
-    KonanTarget.ANDROID_ARM64 -> Platform(OperatingSystem.Android, Architecture.Arm64)
-    KonanTarget.ANDROID_X64 -> Platform(OperatingSystem.Android, Architecture.X64)
-    KonanTarget.ANDROID_X86 -> Platform(OperatingSystem.Android, Architecture.X86)
-    KonanTarget.IOS_ARM64 -> Platform(OperatingSystem.IOS.Device, Architecture.Arm64)
-    KonanTarget.IOS_SIMULATOR_ARM64 -> Platform(OperatingSystem.IOS.Simulator, Architecture.Arm64)
-    KonanTarget.IOS_X64 -> Platform(OperatingSystem.IOS.Simulator, Architecture.X64)
-    KonanTarget.LINUX_ARM64 -> Platform(OperatingSystem.Linux, Architecture.Arm64)
-    KonanTarget.LINUX_X64 -> Platform(OperatingSystem.Linux, Architecture.X64)
-    KonanTarget.MACOS_ARM64 -> Platform(OperatingSystem.MacOS, Architecture.Arm64)
-    KonanTarget.MACOS_X64 -> Platform(OperatingSystem.MacOS, Architecture.X64)
-    KonanTarget.MINGW_X64 -> Platform(OperatingSystem.Windows, Architecture.X64)
-    KonanTarget.TVOS_ARM64 -> Platform(OperatingSystem.TvOS.Device, Architecture.Arm64)
-    KonanTarget.TVOS_SIMULATOR_ARM64 -> Platform(OperatingSystem.TvOS.Simulator, Architecture.Arm64)
-    KonanTarget.TVOS_X64 -> Platform(OperatingSystem.TvOS.Simulator, Architecture.X64)
-    KonanTarget.WATCHOS_ARM32 -> Platform(OperatingSystem.WatchOS.Device, Architecture.Arm32)
-    KonanTarget.WATCHOS_ARM64 -> Platform(OperatingSystem.WatchOS.Device, Architecture.Arm64)
-
-    KonanTarget.WATCHOS_DEVICE_ARM64 ->
-        Platform(OperatingSystem.WatchOS.DeviceGen2, Architecture.Arm64)
-
-    KonanTarget.WATCHOS_SIMULATOR_ARM64 ->
-        Platform(OperatingSystem.WatchOS.Simulator, Architecture.Arm64)
-
-    KonanTarget.WATCHOS_X64 -> Platform(OperatingSystem.WatchOS.Simulator, Architecture.X64)
-    KonanTarget.LINUX_ARM32_HFP -> error("Unsupported compilation target: $this")
 }

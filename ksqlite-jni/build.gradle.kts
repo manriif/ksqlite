@@ -74,7 +74,7 @@ android {
         externalNativeBuild {
             cmake {
                 arguments(
-                    "-DKSQLITE_LIB_NAME=${ksqliteExtension.compilationParams.get().libraryName}",
+                    "-DKSQLITE_LIB_NAME=${ksqliteExtension.sqliteComponents.get().libraryName}",
                     "-DKSQLITE_CMAKE_DIR=${ksqliteCmakeDirectory.get().asFile.absolutePath}"
                 )
             }

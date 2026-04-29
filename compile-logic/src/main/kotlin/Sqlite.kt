@@ -1,11 +1,63 @@
-package compilation
+///////////////////////////////////////////////////////////////////////////
+// Constants
+///////////////////////////////////////////////////////////////////////////
 
 /**
- * SQLite functions with their enabled state.
- * An enabled function is available in the public ksqlite API.
- * SQLite prefix need to be added before each function name.
+ * Name of the SQLite product.
+ * It is the name of the SQLite C header file, C source file and code source function prefix.
  */
-private val SqliteFunctions = mapOf(
+const val SQLITE3 = "sqlite3"
+
+/**
+ * Name of the SQLite Multiple Ciphers.
+ * It is the name of the code source function prefix.
+ */
+const val SQLITE3_MC = "${SQLITE3}mc"
+
+/**
+ * Name of the SQLite Multiple Ciphers amalgamation files.
+ * It is the name of the C header file, C source file.
+ */
+const val SQLITE3_MC_AMALGAMATION = "${SQLITE3_MC}_amalgamation"
+
+///////////////////////////////////////////////////////////////////////////
+// Compilation
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Definitions for SQLite compilation.
+ */
+private val SqliteDefinitions = listOf(
+    "CODEC_TYPE=CODEC_TYPE_CHACHA20",
+    "SQLITE_ENABLE_FTS5=1",
+    "SQLITE_ENABLE_JSON1=1",
+    "SQLITE_ENABLE_COLUMN_METADATA=1",
+    "SQLITE_ENABLE_MATH_FUNCTIONS=1",
+    "SQLITE_ENABLE_OFFSET_SQL_FUNC=1",
+    "SQLITE_ENABLE_PERCENTILE=1",
+    "SQLITE_ENABLE_PREUPDATE_HOOK=1",
+    "SQLITE_ENABLE_RTREE=1",
+    "SQLITE_ENABLE_SESSION=1",
+    "SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION=1",
+    "SQLITE_OMIT_DEPRECATED=1",
+    "SQLITE_OMIT_LOAD_EXTENSION=1",
+    "SQLITE_OMIT_UTF16=1",
+    "SQLITE_TEMP_STORE=2",
+    "SQLITE_USE_URI=1",
+)
+
+/*fun sqliteDefinitions(): Map {
+
+}*/
+
+///////////////////////////////////////////////////////////////////////////
+// Functions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * SQLite 3 functions with their enabled state.
+ */
+private val Sqlite3Functions = mapOf(
     // Database Connection Functions
     "open" to true,
     "open16" to false,  // Use UTF-8 version instead
@@ -381,25 +433,17 @@ private val SqliteFunctions = mapOf(
 )
 
 /**
- * List of Ksqlite functions extending SQLite ones.
- * Ksqlite library prefix need to be added before each function name.
- */
-private val KsqliteFunctions = listOf(
-    "auto_extension"
-)
-
-/**
  * Returns a list of SQLite functions. If [enabled] is `true` then only the functions which are
  * enabled (available in the public Ksqlite C-API) are returned, otherwise those who are excluded
  * are returned.
  */
-fun SqliteCompilationParameters.sqliteFunctions(enabled: Boolean): List<String> {
-    val functions = SqliteFunctions
+fun sqliteFunctions(enabled: Boolean): List<String> {
+    val functions = Sqlite3Functions
         .filter { it.value == enabled }
-        .map { "${sqliteName}_${it.key}" }
+        .map { "${SQLITE3}_${it.key}" }
 
     return if (enabled) {
-        functions + KsqliteFunctions.map { "${libraryName}_${it}" }
+        functions + KsqliteFunctions
     } else {
         functions
     }
