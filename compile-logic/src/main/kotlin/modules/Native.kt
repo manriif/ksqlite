@@ -5,7 +5,7 @@ import SQLITE3
 /**
  * Definition file noStringConversions.
  */
-val NoStringConversions = listOf(
+val KsqliteNoStringConversions = listOf(
     "bind_pointer",
     "bind_text",
     "bind_text64",
