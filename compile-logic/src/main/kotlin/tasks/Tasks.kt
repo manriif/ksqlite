@@ -328,32 +328,6 @@ fun Project.registerSqliteJniRuntimeMetadataTask(
 }
 
 /**
- * Registers and returns the task responsible for generating FFM runtime metadata for SQLite.
- */
-fun Project.registerSqliteFfmRuntimeMetadataTask(
-    packageName: String,
-    nativeDirectoryName: String,
-    metadataFile: Provider<RegularFile>,
-    platforms: Provider<List<Platform>>
-): TaskProvider<Task> = project.tasks.register(TASK_SQLITE_GENERATE_FFM_RUNTIME_METADATA) {
-    group = ksqliteTaskGroup
-    outputs.file(metadataFile)
-
-    val extension = ksqliteExtension
-
-    doLast {
-        metadataFile.get().asFile.apply { parentFile.mkdirs() }.writeText(
-            createSqliteFfmRuntimeMetadataContent(
-                packageName = packageName,
-                nativeDirectoryName = nativeDirectoryName,
-                libraryName = extension.sqliteComponents.get().libraryName,
-                platforms = platforms.get()
-            )
-        )
-    }
-}
-
-/**
  * Registers and returns the task responsible for copying the necessary resources for WASM SQLite.
  */
 fun Project.registerSqliteCopyWasmResourcesTask(

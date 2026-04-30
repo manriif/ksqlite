@@ -1,10 +1,10 @@
-import org.gradle.api.Project
 import org.gradle.api.Task
-import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.RegularFile
-import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.TaskProvider
+import org.gradle.api.tasks.TaskContainer
+import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithAction
+import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithTypeAndAction
+import org.gradle.kotlin.dsl.registering
 import utils.cHeaderFile
+import kotlin.reflect.KClass
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
@@ -59,31 +59,58 @@ fun configureKsqlite(extension: KsqliteExtension) {
     }
 }
 
-/**
- * Returns the sqlite header file (.h).
- */
-fun KsqliteExtension.ksqliteHeaderFile(): Provider<RegularFile> {
-    return ksqliteDirectory.map { it.file("$KSQLITE.h") }
-}
-/*
-/**
- * Returns the sqlite source files (.c).
- */
-fun Project.ksqliteSourceFiles(extension: KsqliteExtension): ConfigurableFileCollection {
-    return objects.fileCollection().from(
-        extension.ksqliteDirectory.map { it.file("ksqlite.c") },
-        extension.sqliteDirectory.zip(extension.sqliteComponents) { directory, params ->
-            directory.file("${params.sqliteMcAmalgamationName}.c")
-        }
-    )
-}*/
-
 ///////////////////////////////////////////////////////////////////////////
 // Tasks
 ///////////////////////////////////////////////////////////////////////////
 
-fun Task.createKsqliteTask() {
+private const val KSQLITE_TASK_GROUP = "ksqlite"
 
+private fun Task.configureKsqliteTask(cacheable: Boolean) {
+    group = KSQLITE_TASK_GROUP
+
+    if (cacheable) {
+        outputs.upToDateWhen { true }
+    }
+}
+
+/**
+ * Property delegate for registering new elements in the container.
+ */
+fun TaskContainer.registeringKsqlite(
+    cacheable: Boolean = true,
+    action: Task.() -> Unit
+): RegisteringDomainObjectDelegateProviderWithAction<out TaskContainer, Task> {
+    return registering {
+        configureKsqliteTask(cacheable)
+        action()
+    }
+}
+
+/**
+ * Property delegate for registering new elements in the container.
+ */
+fun <T : Task> TaskContainer.registeringKsqlite(
+    type: KClass<T>,
+    cacheable: Boolean = true
+): RegisteringDomainObjectDelegateProviderWithTypeAndAction<out TaskContainer, T> {
+    return registering(type) {
+        configureKsqliteTask(cacheable)
+    }
+}
+
+
+/**
+ * Property delegate for registering new elements in the container.
+ */
+fun <T : Task> TaskContainer.registeringKsqlite(
+    type: KClass<T>,
+    cacheable: Boolean = true,
+    action: T.() -> Unit
+): RegisteringDomainObjectDelegateProviderWithTypeAndAction<out TaskContainer, T> {
+    return registering(type) {
+        configureKsqliteTask(cacheable)
+        action()
+    }
 }
 
 /*

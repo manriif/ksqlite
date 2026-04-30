@@ -26,5 +26,3 @@ val NoStringConversions = listOf(
 ).map { function ->
     "${SQLITE3}_$function"
 }
-
-// TODO linkerOpts = -lpthread -ldl

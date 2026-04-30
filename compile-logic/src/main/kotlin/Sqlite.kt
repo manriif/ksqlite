@@ -27,28 +27,29 @@ const val SQLITE3_MC_AMALGAMATION = "${SQLITE3_MC}_amalgamation"
 /**
  * Definitions for SQLite compilation.
  */
-private val SqliteDefinitions = listOf(
-    "CODEC_TYPE=CODEC_TYPE_CHACHA20",
-    "SQLITE_ENABLE_FTS5=1",
-    "SQLITE_ENABLE_JSON1=1",
-    "SQLITE_ENABLE_COLUMN_METADATA=1",
-    "SQLITE_ENABLE_MATH_FUNCTIONS=1",
-    "SQLITE_ENABLE_OFFSET_SQL_FUNC=1",
-    "SQLITE_ENABLE_PERCENTILE=1",
-    "SQLITE_ENABLE_PREUPDATE_HOOK=1",
-    "SQLITE_ENABLE_RTREE=1",
-    "SQLITE_ENABLE_SESSION=1",
-    "SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION=1",
-    "SQLITE_OMIT_DEPRECATED=1",
-    "SQLITE_OMIT_LOAD_EXTENSION=1",
-    "SQLITE_OMIT_UTF16=1",
-    "SQLITE_TEMP_STORE=2",
-    "SQLITE_USE_URI=1",
+val SqliteDefinitions = mapOf(
+    "CODEC_TYPE" to "CODEC_TYPE_CHACHA20",
+    "SQLITE_ENABLE_FTS5" to "1",
+    "SQLITE_ENABLE_JSON1" to "1",
+    "SQLITE_ENABLE_COLUMN_METADATA" to "1",
+    "SQLITE_ENABLE_MATH_FUNCTIONS" to "1",
+    "SQLITE_ENABLE_OFFSET_SQL_FUNC" to "1",
+    "SQLITE_ENABLE_PERCENTILE" to "1",
+    "SQLITE_ENABLE_PREUPDATE_HOOK" to "1",
+    "SQLITE_ENABLE_RTREE" to "1",
+    "SQLITE_ENABLE_SESSION" to "1",
+    "SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION" to "1",
+    "SQLITE_OMIT_DEPRECATED" to "1",
+    "SQLITE_OMIT_LOAD_EXTENSION" to "1",
+    "SQLITE_OMIT_UTF16" to "1",
+    "SQLITE_TEMP_STORE" to "2",
+    "SQLITE_USE_URI" to "1",
 )
 
-/*fun sqliteDefinitions(): Map {
-
-}*/
+val SqliteUnixLinkerOptions = listOf(
+    "-lpthread",
+    "-ldl"
+)
 
 ///////////////////////////////////////////////////////////////////////////
 // Functions

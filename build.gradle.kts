@@ -1,3 +1,9 @@
+import komple.platform.Platform
+import komple.project.c.COptimization
+import komple.project.c.CProject
+import utils.cHeaderFile
+import utils.cSourceFile
+
 plugins {
     alias(libs.plugins.android.multiplatformLibrary) apply false
     alias(libs.plugins.android.library) apply false
@@ -30,27 +36,6 @@ ksqlite {
 }
 
 komple {
-    projects {
-        register<komple.project.c.CProject>("Kotlin SQLite") {
-            libraryName = ksqlite.libraryName
-        }
-    }
-
-    tools {
-        wabt dependsOn cmake
-    }
-
-    commandExecutors {
-        register("wasmExecutor") {
-            execEnvironments.addAll(
-                tools.run {
-                    listOf(emscripten, gnuSed, wabt)
-                        .map { it.execEnvironment }
-                }
-            )
-        }
-    }
-
     androidNdk {
         compilationParams {
             minSdk = libs.versions.android.sdk.min
@@ -78,5 +63,50 @@ komple {
         version = libs.versions.sqliteMultipleCiphers
         sqliteVersion = libs.versions.sqlite
         checksum = property("checksum.sqlitemc").toString()
+    }
+
+    tools {
+        wabt dependsOn cmake
+    }
+
+    execEnvironments {
+        register("wasm") {
+            tools.run {
+                addEnvironments(emscripten, gnuSed, wabt)
+            }
+        }
+    }
+
+    projects {
+        register<CProject>("Kotlin SQLite") {
+            packageName = "ksqlite"
+            libraryName = ksqlite.libraryName
+            headerFile = ksqlite.ksqliteDirectory.file(cHeaderFile(KSQLITE))
+            definitions = SqliteDefinitions
+            optimization = COptimization.Level2
+
+            headerFilters.from(
+                headerFile,
+                ksqlite.sqliteDirectory.file(cHeaderFile(SQLITE3_MC_AMALGAMATION))
+            )
+
+            sourceFiles.from(
+                ksqlite.ksqliteDirectory.file(cSourceFile(KSQLITE)),
+                ksqlite.sqliteDirectory.file(cSourceFile(SQLITE3_MC_AMALGAMATION))
+            )
+
+            includeDirectories.from(
+                ksqlite.ksqliteDirectory,
+                ksqlite.sqliteDirectory
+            )
+
+            Platform.run {
+                listOf(linuxX64, linuxArm64, macosX64, macosArm64).forEach { platform ->
+                    linkerOptions(platform) {
+                        addAll(SqliteUnixLinkerOptions)
+                    }
+                }
+            }
+        }
     }
 }

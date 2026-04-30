@@ -1,6 +1,5 @@
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.kotlin.dsl.configure
 
 private const val PREPARE_KOTLIN_IDEA_IMPORT = "prepareKotlinIdeaImport"
 private const val PREPARE_KOTLIN_BUILD_SCRIPT_MODEL = "prepareKotlinBuildScriptModel"
@@ -15,17 +14,15 @@ fun Project.registerTaskForIde(
     provider: TaskProvider<*>,
     onFailed: (() -> Unit)? = null
 ) {
-    tasks.all {
-        if (name == PREPARE_KOTLIN_IDEA_IMPORT) {
-            dependsOn(provider)
-        }
+    tasks.named(PREPARE_KOTLIN_IDEA_IMPORT).configure {
+        dependsOn(provider)
     }
 
     onFailed?.let { callback ->
         afterEvaluate {
-            if (tasks.none { it.name == PREPARE_KOTLIN_IDEA_IMPORT }) {
+            if (tasks.findByName(PREPARE_KOTLIN_IDEA_IMPORT) == null) {
                 rootProject.tasks.findByName(PREPARE_KOTLIN_BUILD_SCRIPT_MODEL)
-                    ?.run { dependsOn(provider) }
+                    ?.dependsOn(provider)
                     ?: callback()
             }
         }
