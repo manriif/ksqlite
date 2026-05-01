@@ -1,44 +1,80 @@
-@file:Suppress("HasPlatformType")
-
-import tasks.registerSqliteCopyJniJavaSourceTask
-import tasks.registerSqliteJniGenerateCMakeListsTask
-import tasks.registerSqliteJniRuntimeMetadataTask
+import modules.copyJniJavaSources
+import modules.createSqliteCMakeListsContent
+import modules.createSqliteJniRuntimeMetadataContent
+import org.gradle.kotlin.dsl.support.serviceOf
 
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.conventions.common)
+    alias(kompleLibs.plugins.komple)
 }
 
-val generatedSourceDirectory = layout.buildDirectory.map { it.dir("generated/ksqlite/src/main") }
+val generatedSourceDirectory = layout.buildDirectory.dir("generated/ksqlite/src/main")
 val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java") }
 val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
-val ksqliteCmakeDirectory = layout.buildDirectory.map { it.dir("ksqlite") }
+val ksqliteCmakeDirectory = layout.buildDirectory.dir("ksqlite")
 
-val generateSqliteJniCMakeListsTaskProvider = registerSqliteJniGenerateCMakeListsTask(
-    cmakeListsFile = ksqliteCmakeDirectory.map { it.file("CMakeLists.txt") },
-    cmakeVersion = libs.versions.cmake.get()
-)
+val generateCmakeLists by tasks.registeringKsqlite {
+    val cProject = komple.projects.kotlinSqlite.kProject
+    val sqliteDirectory = ksqlite.sqliteDirectory
+    val cmakeListsFile = ksqliteCmakeDirectory.map { it.file("CMakeLists.txt") }
+    val cmakeVersion = libs.versions.cmake
 
-val generateSqliteJniRuntimeMetadataTaskProvider = registerSqliteJniRuntimeMetadataTask(
-    packageName = projectNamespace,
-    metadataFile = generatedKotlinSourceDirectory.map { directory ->
-        directory.file("$projectNamespace/KsqliteJniGenerated.kt")
+    inputs.dir(sqliteDirectory)
+    outputs.file(cmakeListsFile)
+
+    doLast {
+        cmakeListsFile.writeContent(
+            createSqliteCMakeListsContent(
+                cProject = cProject,
+                cmakeVersion = cmakeVersion.get(),
+                sqliteDirectory = sqliteDirectory.get().asFile
+            )
+        )
     }
-)
-
-val copySqliteJniJavaSourcesTaskProvider = registerSqliteCopyJniJavaSourceTask(
-    sourcesDirectory = generatedJavaSourceDirectory
-)
-
-val generateSources by tasks.registering {
-    dependsOn(generateSqliteJniCMakeListsTaskProvider)
-    dependsOn(generateSqliteJniRuntimeMetadataTaskProvider)
-    dependsOn(copySqliteJniJavaSourcesTaskProvider)
 }
 
-registerTaskForIde(generateSources) {
+val generateJniMetadata by tasks.registeringKsqlite {
+    val cProject = komple.projects.kotlinSqlite.kProject
+
+    val metadataFile = generatedKotlinSourceDirectory.zip(cProject.packageName) { directory, name ->
+        directory.file("$name/KsqliteJniGenerated.kt")
+    }
+
+    outputs.file(metadataFile)
+
+    doLast {
+        metadataFile.writeContent(createSqliteJniRuntimeMetadataContent(cProject))
+    }
+}
+
+val copyJniJavaSources by tasks.registeringKsqlite {
+    val fileOperations = serviceOf<FileSystemOperations>()
+    val sqliteDirectory = ksqlite.sqliteDirectory
+    val outputDirectory = generatedJavaSourceDirectory
+
+    inputs.dir(sqliteDirectory)
+    outputs.dir(outputDirectory)
+
+    doLast {
+        copyJniJavaSources(
+            fileOperations = fileOperations,
+            sqliteDirectory = sqliteDirectory.get().asFile,
+            outputDirectory = fileOperations.clearAndGetFile(outputDirectory)
+        )
+    }
+}
+
+val generateJniSources by tasks.registeringKsqlite {
+    dependsOn(generateJniMetadata)
+    dependsOn(copyJniJavaSources)
+}
+
+registerTaskForIde(generateJniSources)
+
+registerTaskForIde(generateCmakeLists) {
     // CMakeLists.txt file need to be generated or sync will fail so force task action(s) execution
-    generateSqliteJniCMakeListsTaskProvider.get().let { generateTask ->
+    generateCmakeLists.get().let { generateTask ->
         generateTask.actions.forEach { it(generateTask) }
     }
 }
@@ -48,7 +84,7 @@ kotlin {
 
     target.compilations.configureEach {
         compileTaskProvider.configure {
-            dependsOn(generateSources)
+            dependsOn(generateJniSources)
         }
     }
 }
@@ -74,7 +110,7 @@ android {
         externalNativeBuild {
             cmake {
                 arguments(
-                    "-DKSQLITE_LIB_NAME=${ksqliteExtension.sqliteComponents.get().libraryName}",
+                    "-DKSQLITE_LIB_NAME=${ksqlite.libraryName.get()}",
                     "-DKSQLITE_CMAKE_DIR=${ksqliteCmakeDirectory.get().asFile.absolutePath}"
                 )
             }
@@ -84,17 +120,14 @@ android {
     externalNativeBuild {
         ndkVersion = libs.versions.android.ndk.get()
 
-        ndkPath = ksqliteExtension.androidToolchain().get().path.takeIf { path ->
-            file(path).exists()
-        }
-
         cmake {
+            version = libs.versions.cmake.get()
             path = file("src/main/cpp/CMakeLists.txt")
         }
     }
 
-    sourceSets.named(SourceSet.MAIN_SOURCE_SET_NAME) {
+    /*sourceSets.named(SourceSet.MAIN_SOURCE_SET_NAME) {
         java.directories += generatedJavaSourceDirectory.get().asFile.absolutePath
         kotlin.directories += generatedKotlinSourceDirectory.get().asFile.absolutePath
-    }
+    }*/
 }

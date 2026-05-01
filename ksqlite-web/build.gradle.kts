@@ -5,7 +5,6 @@ import modules.copySqliteWasmGeneratedResources
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
-import utils.clearAndGetFile
 
 plugins {
     alias(libs.plugins.conventions.kmp)
@@ -16,7 +15,7 @@ plugins {
 val generatedResourcesDirectory =
     layout.buildDirectory.dir("generated/ksqlite/src/webMain/resources")
 
-val compileSqliteWasm by tasks.registeringKsqlite { context ->
+val compileWasm by tasks.registeringKsqlite { context ->
     val execEnvironment = komple.execEnvironments.wasm
     val fileOperations = serviceOf<FileSystemOperations>()
     val execOperations = serviceOf<ExecOperations>()
@@ -36,9 +35,9 @@ val compileSqliteWasm by tasks.registeringKsqlite { context ->
     }
 }
 
-val copySqliteWasmResources by tasks.registeringKsqlite {
+val copyWasmResources by tasks.registeringKsqlite {
     val fileOperations = serviceOf<FileSystemOperations>()
-    val wasmDirectory = compileSqliteWasm.map { it.outputs.files.singleFile }
+    val wasmDirectory = compileWasm.map { it.outputs.files.singleFile }
     val outputDirectory = generatedResourcesDirectory
 
     inputs.dir(wasmDirectory)
@@ -71,12 +70,12 @@ kotlin {
 
 fun KotlinJsTargetDsl.configureJsTarget() {
     tasks.named<Zip>("${name}ResourceArchive") {
-        from(copySqliteWasmResources.map { it.outputs.files })
+        from(copyWasmResources.map { it.outputs.files })
     }
 
     compilations.named(KotlinCompilation.MAIN_COMPILATION_NAME) {
         compileTaskProvider.configure {
-            dependsOn(compileSqliteWasm)
+            dependsOn(compileWasm)
         }
     }
 }

@@ -14,9 +14,8 @@ fun Project.registerTaskForIde(
     provider: TaskProvider<*>,
     onFailed: (() -> Unit)? = null
 ) {
-    tasks.named(PREPARE_KOTLIN_IDEA_IMPORT).configure {
-        dependsOn(provider)
-    }
+    tasks.findByName(PREPARE_KOTLIN_IDEA_IMPORT)
+        ?.dependsOn(provider)
 
     onFailed?.let { callback ->
         afterEvaluate {

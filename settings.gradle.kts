@@ -51,9 +51,9 @@ dependencyResolutionManagement {
     }
 }
 
-//include(":ksqlite-capi")
-//include(":ksqlite-ffm")
-/*include(":ksqlite-jni")
-include(":ksqlite-kapi")*/
-//include(":ksqlite-native")
+include(":ksqlite-capi")
+include(":ksqlite-ffm")
+//include(":ksqlite-jni")
+//include(":ksqlite-kapi")
+include(":ksqlite-native")
 include(":ksqlite-web")

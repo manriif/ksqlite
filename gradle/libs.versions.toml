@@ -7,13 +7,11 @@
 # Project version
 ksqlite = "0.0.1"
 
-# Toolchains
-toolchain-android = "r29.14206865"
-
 # Android
 android-ndk = "29.0.14206865"
 android-sdk-compile = "36"
 android-sdk-min = "21"
+android-gradlePlugin = "9.2.0"
 
 # Apple
 apple-macos-min = "10.13"
@@ -28,20 +26,18 @@ jvm-target-android = "17"
 jvm-target-jvm = "25"
 jvm-toolchain = "25"
 
-android-gradlePlugin = "9.0.1"
 cmake = "3.22.1"
-dokka = "2.1.0"
-gradle-pluginPublish = "2.0.0"
+dokka = "2.2.0"
+gradle-pluginPublish = "2.1.1"
 #jextract = "6-47"
 jextract = "2-4"
 kotlin = "2.4.0-Beta2"
-kotlinTransitiveResources = "0.6.0"
+kotlinTransitiveResources = "0.6.2"
 kotlinx-coroutines = "1.10.2"
 sqlite = "3.53.0"
 sqliteMultipleCiphers = "2.3.3"
 sqliteReleaseYear = "2026"
 vanniktech-mavenPublish = "0.36.0"
-wabt = "1.0.39"
 copyWebpackPlugin = "13.0.1"
 
 [plugins]

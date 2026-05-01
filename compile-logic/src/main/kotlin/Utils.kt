@@ -1,7 +1,6 @@
-package utils
-
 import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import java.io.File
 import kotlin.io.path.createTempDirectory
@@ -55,4 +54,11 @@ fun FileSystemOperations.clearAndGetFile(directory: Provider<Directory>): File {
         delete { delete(directory) }
         directory.mkdirs()
     }
+}
+
+/**
+ * Writes [content] to the provided file.
+ */
+fun Provider<RegularFile>.writeContent(content: String) {
+    get().asFile.apply { parentFile.mkdirs() }.writeText(content)
 }

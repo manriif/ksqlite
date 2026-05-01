@@ -1,8 +1,6 @@
 import komple.platform.Platform
 import komple.project.c.COptimization
 import komple.project.c.CProject
-import utils.cHeaderFile
-import utils.cSourceFile
 
 plugins {
     alias(libs.plugins.android.multiplatformLibrary) apply false
@@ -79,7 +77,7 @@ komple {
 
     projects {
         register<CProject>("Kotlin SQLite") {
-            packageName = "ksqlite"
+            packageName = property("project.namespace").toString()
             libraryName = ksqlite.libraryName
             headerFile = ksqlite.ksqliteDirectory.file(cHeaderFile(KSQLITE))
             definitions = SqliteDefinitions

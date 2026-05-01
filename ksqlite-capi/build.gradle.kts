@@ -8,7 +8,6 @@ plugins {
 kotlin {
     //androidJvmTargets()
     jvmTargets()
-    macosX64()
     macosArm64()
     //nativeTargets()
     webTargets()

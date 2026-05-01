@@ -5,7 +5,6 @@ import org.gradle.api.tasks.TaskContainer
 import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithAction
 import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithTypeAndAction
 import org.gradle.kotlin.dsl.registering
-import utils.cHeaderFile
 import kotlin.reflect.KClass
 
 ///////////////////////////////////////////////////////////////////////////
@@ -18,11 +17,6 @@ import kotlin.reflect.KClass
  */
 const val KSQLITE = "ksqlite"
 
-/**
- * Name of the generated header file.
- */
-const val GENERATED_HEADER_FILE_NAME = "ksqlite-generated"
-
 ///////////////////////////////////////////////////////////////////////////
 // Functions
 ///////////////////////////////////////////////////////////////////////////
@@ -34,31 +28,6 @@ val KsqliteFunctions = listOf(
     "auto_extension"
 ).map { name ->
     "${KSQLITE}_$$name"
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Configuration
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Configures the ksqlite directory.
- */
-fun configureKsqlite(extension: KsqliteExtension) {
-    val generatedHeaderFileName = cHeaderFile(GENERATED_HEADER_FILE_NAME)
-    val generatedHeaderFile = extension.ksqliteDirectory.file(generatedHeaderFileName).get().asFile
-
-    if (!generatedHeaderFile.exists()) {
-        val amalgamationHeaderFile = extension.sqliteDirectory
-            .map { it.file(cHeaderFile(SQLITE3_MC_AMALGAMATION)) }
-            .get()
-            .asFile
-
-        generatedHeaderFile.writeText(
-            """
-                |#include "${amalgamationHeaderFile.absolutePath}"
-            """.trimMargin()
-        )
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////

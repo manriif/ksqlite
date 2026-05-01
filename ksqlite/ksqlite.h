@@ -1,4 +1,4 @@
-#include "ksqlite-generated.h"
+#include <sqlite3mc_amalgamation.h>
 
 /**
  * Callback expected by sqlite3_auto_extension() and sqlite3_cancel_auto_extension() with the

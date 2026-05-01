@@ -15,15 +15,10 @@ class KsqlitePlugin : KompleToolPlugin() {
         komple.registerTool<SqliteMCConfigurator>("Sqlite Multiple Ciphers")
         komple.registerTool<SqliteConfigurator>("Sqlite")
 
-        val extension =
-            project.extensions.create<KsqliteExtension>(KSQLITE_EXTENSION_NAME)
+        val extension = project.extensions.create<KsqliteExtension>(KSQLITE_EXTENSION_NAME)
 
         project.subprojects {
             extensions.add(KSQLITE_EXTENSION_NAME, extension)
-        }
-
-        project.afterEvaluate {
-            configureKsqlite(extension)
         }
     }
 }

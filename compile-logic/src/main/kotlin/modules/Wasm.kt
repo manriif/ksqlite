@@ -6,8 +6,8 @@ import komple.exec.Command
 import komple.exec.CommandExecutor
 import org.gradle.api.file.FileSystemOperations
 import sqlitePrefixed
-import utils.cSourceFile
-import utils.copyToTempDirectory
+import cSourceFile
+import copyToTempDirectory
 import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////

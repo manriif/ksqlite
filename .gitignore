@@ -6,7 +6,5 @@
 .cxx/
 .run/
 
-/ksqlite/ksqlite-generated.h
-
 build
 local.properties
