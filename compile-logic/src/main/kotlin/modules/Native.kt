@@ -1,6 +1,6 @@
 package modules
 
-import SQLITE3
+import sqlitePrefixed
 
 /**
  * Definition file noStringConversions.
@@ -23,6 +23,4 @@ val KsqliteNoStringConversions = listOf(
     "serialize",
     "table_column_metadata",
     "wal_checkpoint_v2"
-).map { function ->
-    "${SQLITE3}_$function"
-}
+).sqlitePrefixed()

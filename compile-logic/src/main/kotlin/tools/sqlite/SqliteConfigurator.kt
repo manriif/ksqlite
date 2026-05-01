@@ -1,6 +1,7 @@
 package tools.sqlite
 
 import komple.platform.Host
+import komple.task.doLastWhenOutputChanged
 import komple.tool.configurator.DefaultKompleToolConfigurator
 import komple.tool.extension.ExtensionConfigurationScope
 import komple.tool.extension.createExtension
@@ -10,7 +11,6 @@ import komple.tool.task.ExtractTaskRegistrationScope
 import komple.tool.task.InstallTaskRegistrationScope
 import komple.tool.task.IntegrityTaskRegistrationScope
 import komple.tool.task.checksum
-import komple.tool.task.doLastWhenOutputChanged
 import komple.tool.task.register
 import komple.tool.task.unzip
 import komple.tool.task.url

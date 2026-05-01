@@ -1,3 +1,5 @@
+import komple.gradle.task.configureWithContext
+import komple.task.TaskContext
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskContainer
 import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithAction
@@ -78,11 +80,11 @@ private fun Task.configureKsqliteTask(cacheable: Boolean) {
  */
 fun TaskContainer.registeringKsqlite(
     cacheable: Boolean = true,
-    action: Task.() -> Unit
+    action: Task.(context: TaskContext) -> Unit
 ): RegisteringDomainObjectDelegateProviderWithAction<out TaskContainer, Task> {
     return registering {
         configureKsqliteTask(cacheable)
-        action()
+        configureWithContext(action)
     }
 }
 
@@ -98,48 +100,16 @@ fun <T : Task> TaskContainer.registeringKsqlite(
     }
 }
 
-
 /**
  * Property delegate for registering new elements in the container.
  */
 fun <T : Task> TaskContainer.registeringKsqlite(
     type: KClass<T>,
     cacheable: Boolean = true,
-    action: T.() -> Unit
+    action: T.(context: TaskContext) -> Unit
 ): RegisteringDomainObjectDelegateProviderWithTypeAndAction<out TaskContainer, T> {
     return registering(type) {
         configureKsqliteTask(cacheable)
-        action()
+        configureWithContext(action)
     }
 }
-
-/*
-/**
- * Returns the provider of the task responsible for installing the Android NDK toolchain.
- */
-val Project.androidToolchainInstallTaskProvider: TaskProvider<Task>
-    get() = rootProject.tasks.named(TASK_TOOLCHAIN_ANDROID_INSTALL)
-
-/**
- * Returns the provider of the task responsible for installing emscripten.
- */
-val Project.emscriptenInstallTaskProvider: TaskProvider<Task>
-    get() = rootProject.tasks.named(TASK_EMSCRIPTEN_INSTALL)
-
-/**
- * Returns the provider of the task responsible for installing wabt.
- */
-val Project.wabtInstallTaskProvider: TaskProvider<Task>
-    get() = rootProject.tasks.named(TASK_WABT_INSTALL)
-
-/**
- * Returns the provider of the task responsible for installing sqlite.
- */
-val Project.sqliteInstallTaskProvider: TaskProvider<Task>
-    get() = rootProject.tasks.named(TASK_SQLITE_INSTALL)
-
-/**
- * Returns the provider of the task responsible for installing GNU sed.
- */
-val Project.gnuSedInstallTaskProvider: TaskProvider<Task>
-    get() = rootProject.tasks.named(TASK_GNU_SED_INSTALL)*/

@@ -1,6 +1,8 @@
 package utils
 
+import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.provider.Provider
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
@@ -23,7 +25,7 @@ fun cSourceFile(fileName: String): String {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Copying
+// Files
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -43,4 +45,14 @@ fun FileSystemOperations.copyToTempDirectory(
     }
 
     return tempDirectory
+}
+
+/**
+ * Deletes [directory] and its content and returns the [File] to the [directory].
+ */
+fun FileSystemOperations.clearAndGetFile(directory: Provider<Directory>): File {
+    return directory.get().asFile.also { directory ->
+        delete { delete(directory) }
+        directory.mkdirs()
+    }
 }

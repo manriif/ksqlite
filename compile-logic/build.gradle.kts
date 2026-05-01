@@ -22,5 +22,5 @@ gradlePlugin {
 }
 
 dependencies {
-    implementation(kompleLibs.komple)
+    implementation(kompleLibs.kompleGradlePlugin)
 }

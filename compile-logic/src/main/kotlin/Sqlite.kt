@@ -21,6 +21,24 @@ const val SQLITE3_MC = "${SQLITE3}mc"
 const val SQLITE3_MC_AMALGAMATION = "${SQLITE3_MC}_amalgamation"
 
 ///////////////////////////////////////////////////////////////////////////
+// Naming
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a new list with all items prefixed with [SQLITE3] and [joint].
+ */
+fun Iterable<String>.sqlitePrefixed(joint: Char = '_'): List<String> {
+    return map { "${SQLITE3}${joint}${it}" }
+}
+
+/**
+ * Returns a new map with all keys prefixed with [SQLITE3] and [joint].
+ */
+fun <T> Map<String, T>.sqlitePrefixed(joint: Char = '_'): Map<String, T> {
+    return mapKeys { "${SQLITE3}${joint}${it}" }
+}
+
+///////////////////////////////////////////////////////////////////////////
 // Compilation
 ///////////////////////////////////////////////////////////////////////////
 
@@ -431,7 +449,7 @@ private val Sqlite3Functions = mapOf(
     "rekey" to true,
     "rekey_v2" to true,
     "activate_see" to false,  // Commercial SEE only
-)
+).sqlitePrefixed()
 
 /**
  * Returns a list of SQLite functions. If [enabled] is `true` then only the functions which are
@@ -441,11 +459,11 @@ private val Sqlite3Functions = mapOf(
 fun sqliteFunctions(enabled: Boolean): List<String> {
     val functions = Sqlite3Functions
         .filter { it.value == enabled }
-        .map { "${SQLITE3}_${it.key}" }
+        .keys
 
     return if (enabled) {
-        functions + KsqliteFunctions
+        KsqliteFunctions + functions
     } else {
-        functions
+        functions.toList()
     }
 }

@@ -101,7 +101,7 @@ komple {
             )
 
             Platform.run {
-                listOf(linuxX64, linuxArm64, macosX64, macosArm64).forEach { platform ->
+                listOf(linuxArm64, linuxX64, macosArm64, macosX64).forEach { platform ->
                     linkerOptions(platform) {
                         addAll(SqliteUnixLinkerOptions)
                     }
