@@ -27,8 +27,9 @@ internal class AutovacuumPagesHandler(manager: MemoryManager) : Handler(manager)
         nFreePage: Int,
         nBytePerPage: Int
     ): Int = manager
-        .get<Sqlite3AutoVacuumPagesCallback>(userPtr)
+        .getStrongRefData<Sqlite3AutoVacuumPagesCallback>(userPtr)
         .invoke(
+            userPtr,
             zSchema.getString(0),
             nDbPage.toUInt(),
             nFreePage.toUInt(),

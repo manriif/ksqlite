@@ -35,7 +35,7 @@ fun Iterable<String>.sqlitePrefixed(joint: Char = '_'): List<String> {
  * Returns a new map with all keys prefixed with [SQLITE3] and [joint].
  */
 fun <T> Map<String, T>.sqlitePrefixed(joint: Char = '_'): Map<String, T> {
-    return mapKeys { "${SQLITE3}${joint}${it}" }
+    return mapKeys { "${SQLITE3}${joint}${it.key}" }
 }
 
 ///////////////////////////////////////////////////////////////////////////

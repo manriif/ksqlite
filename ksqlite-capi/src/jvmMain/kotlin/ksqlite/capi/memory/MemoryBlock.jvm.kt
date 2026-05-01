@@ -3,6 +3,9 @@ package ksqlite.capi.memory
 import ksqlite.capi.utils.checkBufferRange
 import java.lang.foreign.MemorySegment
 
+/**
+ * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for JVM.
+ */
 internal class MemoryBlock(
     val pointer: MemorySegment,
     val blockSize: Long

@@ -22,7 +22,7 @@ val libraries = Platform.run {
 
 val javaBindings by komple.projects.kotlinSqlite.jextract.bindingGenerators.registering {
     options {
-        headerClassName = cProject.libraryName
+        headerClassName = SQLITE3
         includeFunctions = sqliteFunctions(true)
     }
 }

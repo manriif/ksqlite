@@ -20,8 +20,8 @@ public fun sqliteLoadLibrary() {
 
     val libPath = when {
         osName.contains("mac") || osName.contains("darwin") -> when {
-            osArch.isX64() -> KSQLITE_NATIVE_LIB_MACOS_X86_64_PATH
-            //osArch.isArm64() -> KSQLITE_NATIVE_LIB_MACOS_AARCH64_PATH
+            //osArch.isX64() -> KSQLITE_NATIVE_LIB_MACOS_X86_64_PATH
+            osArch.isArm64() -> KSQLITE_NATIVE_LIB_MACOS_AARCH64_PATH
             else -> null
         }
 
@@ -55,7 +55,7 @@ public fun sqliteLoadLibrary() {
         .toFile()
         .apply { deleteOnExit() }
 
-    libraryStream.use { input ->
+    val _ = libraryStream.use { input ->
         tempFile.outputStream().use { output ->
             input.copyTo(output)
         }

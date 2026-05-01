@@ -1066,7 +1066,6 @@ public actual fun sqlite3_create_window_function(
 public actual fun sqlite3_data_count(stmt: sqlite3_stmt): Int =
     native_sqlite3_data_count(stmt.pointer)
 
-
 public actual fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result =
     convertResult(native_sqlite3_db_cacheflush(db.pointer))
 
@@ -1677,8 +1676,8 @@ public actual fun sqlite3_result_text64(
     destructor: Sqlite3DestructorCallback?
 ): Unit = native_sqlite3_result_text64(
     arg0 = context.pointer,
-    arg1 = data?.block?.pointer,
-    arg2 = size.convert(),
+    z = data?.block?.pointer,
+    n = size.convert(),
     arg3 = userDataDisposer(data, destructor),
     encoding = encoding.utf8OrThrow().value.convert()
 )

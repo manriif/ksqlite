@@ -17,11 +17,6 @@ import ksqlite.capi.types.sqlite3_api_routines
 import ksqlite.sqlite3_malloc as native_sqlite3_malloc
 
 /**
- * All registered [Sqlite3AutoExtensionCallback].
- */
-internal val AutoExtensions = mutableListOf<Sqlite3AutoExtensionCallback>()
-
-/**
  * Static C function for [autoExtensionHandler].
  */
 internal val AutoExtensionHandler = staticCFunction(::autoExtensionHandler)

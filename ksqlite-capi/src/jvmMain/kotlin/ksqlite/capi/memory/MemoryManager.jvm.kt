@@ -1,9 +1,11 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.handlers.DestructorHandler
+import ksqlite.capi.handlers.DisposerHandler
 import ksqlite.capi.handlers.Handler
+import ksqlite.capi.memory.MemoryManager.ArenaDisposable
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.Sqlite3OutParamBase
+import ksqlite.capi.types.sqlite3_mutable_pointer
 import java.lang.foreign.Arena
 import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
@@ -11,19 +13,13 @@ import java.lang.invoke.MethodHandles
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
-    private lateinit var disposables: MutableMap<ULong, ksqlite.capi.memory.Reference>
-    private var nextReferenceId: ULong = ULong.MIN_VALUE
-    private var arena: Arena? = null
-    private var _destructorFunctionPointer: MemorySegment? = null
-
-    val destructorFunctionPointer: MemorySegment
-        get() {
-            if (_destructorFunctionPointer == null) {
-                _destructorFunctionPointer = functionPointer(::DestructorHandler)
-            }
-
-            return checkNotNull(_destructorFunctionPointer)
-        }
+    /**
+     * Pointer to the function that disposes the reference that the pointer passed to it points to.
+     * Only reference created by this [MemoryManager] can be disposed.
+     */
+    val disposer: MemorySegment by lazy {
+        functionPointer(this, ::DisposerHandler)
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Arena
@@ -47,96 +43,77 @@ internal actual class MemoryManager : MemoryManagerBase() {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Creates a reference to [disposable] and returns the reference identifier.
+     * Returns the object, previously referenced using [strongRefPointer] and identified by
+     * [pointer]'s address.
+     *
+     * @throws NullPointerException if there is no object associated with [pointer].
      */
-    @IgnorableReturnValue
-    private fun createReference(disposable: ksqlite.capi.memory.Reference): ULong {
-        val referenceId = ++nextReferenceId
-        check(referenceId !in disposables) { "Too many managed references" }
-
-        if (::disposables.isInitialized) {
-            disposables[referenceId] = disposable
-        } else {
-            disposables = mutableMapOf(referenceId to disposable)
-        }
-
-        return referenceId
+    fun getStrongReference(pointer: MemorySegment): Reference {
+        val refId = pointer.address().toULong()
+        val reference = getDisposable<StrongRefReference>(refId)
+        return reference
     }
 
-    /**
-     * Returns the object referenced by [segment]'s address.
-     * Throws [IllegalStateException] if there is no object associated with [segment].
-     */
-    internal operator fun <Data> get(segment: MemorySegment): Data = notClosed {
-        val referenceId = segment.address().toULong()
-
-        val reference = checkNotNull(disposables[referenceId]) {
-            "No object was referenced with id $referenceId"
-        }
-
-        @Suppress("UNCHECKED_CAST")
-        checkNotNull(reference as? Reference).value as Data
-    }
-
-    /**
-     * Disposes the  object designed by [segment]'s address making it available to GC.
-     */
-    internal fun dispose(segment: MemorySegment): Unit = notClosed {
-        val referenceId = segment.address().toULong()
-        disposables.remove(referenceId)?.dispose()
-    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Pointers
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Creates a strong reference to [value] preventing it from GC collection and returns a
-     * [MemorySegment] that can be used to retrieve [value] using [get].
+     * Returns a [MemorySegment] referring [data] or `null` if both [data] and [destructor] are
+     * `null`.
      *
-     * Returns [MemorySegment.NULL] if both [value] and [destructor] are `null`.
+     * The resulting reference data can be accessed using [getStrongReference] and it can be
+     * disposed using [disposer].
      */
-    fun refPointer(
-        value: Any?,
-        destructor: Sqlite3DestructorCallback? = null
+    fun strongRefPointer(
+        data: Any?,
+        userData: sqlite3_mutable_pointer? = null,
+        destructor: Sqlite3DestructorCallback? = null,
+        key: String? = null
     ): MemorySegment = notClosed {
-        if (value == null && destructor == null) {
+        if (data == null && destructor == null) {
             return MemorySegment.NULL
         }
 
-        MemorySegment.ofAddress(createReference(Reference(value, destructor)).toLong())
+        val reference = registerDisposable(key) { id ->
+            StrongRefReference(id, destructor, data, userData)
+        }
+
+        return reference.address
     }
 
     /**
      * Returns a pointer to a static function that will invoke the `handle` function of the
      * [Handler] returned by [factory].
      *
-     * Returns [MemorySegment.NULL] if [factory] is `null`.
+     * Returns [MemorySegment.NULL] if [callback] is `null`.
      */
     fun functionPointer(
-        factory: ((MemoryManager) -> Handler)?
+        callback: Any?,
+        factory: (MemoryManager) -> Handler
     ): MemorySegment = notClosed {
-        segment(factory) { factory ->
-            val handler = factory(this)
-            val functionDescriptor = handler.createFunctionDescriptor()
-
-            val methodHandle = MethodHandles
-                .lookup()
-                .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
-                .bindTo(handler)
-
-            createReference(HandlerHolder(handler))
-
-            withArena {
-                Linker
-                    .nativeLinker()
-                    .upcallStub(methodHandle, functionDescriptor, this)
-            }
+        if (callback == null) {
+            return MemorySegment.NULL
         }
+
+        val handler = factory(this)
+        val functionDescriptor = handler.createFunctionDescriptor()
+
+        val methodHandle = MethodHandles
+            .lookup()
+            .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
+            .bindTo(handler)
+
+        val reference = registerDisposable(block = ::ArenaDisposable)
+
+        return Linker
+            .nativeLinker()
+            .upcallStub(methodHandle, functionDescriptor, reference.arena)
     }
 
     /**
-     * Attaches the [param] and returns a [MemorySegment] the parameter value.
+     * Attaches the [param] and returns a [MemorySegment] to the parameter value.
      *
      * Returns [MemorySegment.NULL] if [param] is `null`.
      */
@@ -158,7 +135,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if [value] is `null`.
      */
-    fun bufferPointer(value: ByteArray?): MemorySegment = notClosed {
+    fun byteArrayPointer(value: ByteArray?): MemorySegment = notClosed {
         segment(value) { value ->
             withArena {
                 allocate(value.size.toLong()).apply {
@@ -205,11 +182,43 @@ internal actual class MemoryManager : MemoryManagerBase() {
     // Disposable
     ///////////////////////////////////////////////////////////////////////////
 
+
+    /**
+     * Reference to [data].
+     */
+    private inner class StrongRefReference(
+        id: ULong,
+        destructor: Sqlite3DestructorCallback?,
+        override val data: Any?,
+        override val userData: sqlite3_mutable_pointer?
+    ) : AutoDisposable(id, destructor),
+        Reference {
+
+        val address: MemorySegment = MemorySegment.ofAddress(id.toLong())
+
+        override fun release() = Unit
+    }
+
+    /**
+     * Reference to an [arena].
+     */
+    private inner class ArenaDisposable(id: ULong) : AutoDisposable(id, null) {
+
+        val arena: Arena = Arena.ofShared()
+
+        override val userData: sqlite3_mutable_pointer?
+            get() = null
+
+        override fun release() {
+            arena.close()
+        }
+    }
+
     /**
      * Hold [handler].
      * Does nothing but required to keep [handler] away from GC.
      */
-    private class HandlerHolder(handler: Handler) : ksqlite.capi.memory.Reference {
+    private class HandlerHolder(handler: Handler) : Reference {
 
         private var handler: Handler? = handler
 
@@ -222,7 +231,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Detaches [param] in disposing.
      */
     private class ParamDetacher(private val param: Sqlite3OutParamBase<*>) :
-        ksqlite.capi.memory.Reference {
+        Reference {
 
         override fun dispose() {
             param.detach()
@@ -232,28 +241,13 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Hold [value] and invoke [destructor] on disposing.
      */
-    private class Reference(
+    private class Referencee(
         val value: Any?,
         private val destructor: Sqlite3DestructorCallback?
-    ) : ksqlite.capi.memory.Reference {
+    ) : Reference {
 
         override fun dispose() {
             destructor?.invoke()
         }
     }
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns a pointer to a static function that will invoke the `handle` function of the  [Handler]
- * returned by [factory].
- * 
- * Returns [MemorySegment.NULL] if [callback] is `null`.
- */
-internal fun MemoryManager.functionPointer(
-    callback: Any?,
-    factory: (MemoryManager) -> Handler
-): MemorySegment = functionPointer(factory.takeIf { callback != null })

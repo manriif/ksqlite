@@ -8,12 +8,11 @@ import ksqlite.capi.memory.WritableMemoryBlock
 import ksqlite.capi.memory.isNull
 import java.lang.foreign.MemorySegment
 
-public actual open class sqlite3_pointer internal constructor(
-    private val region: MemoryBlock
-) : ReadableMemoryBlock by region {
+public actual open class sqlite3_pointer internal constructor(private val block: MemoryBlock) :
+    ReadableMemoryBlock by block {
 
     public actual val size: Long
-        get() = region.blockSize
+        get() = block.blockSize
 
     internal companion object {
 

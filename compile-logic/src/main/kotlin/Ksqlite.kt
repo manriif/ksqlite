@@ -25,9 +25,10 @@ const val KSQLITE = "ksqlite"
  * List of Ksqlite functions extending SQLite ones
  */
 val KsqliteFunctions = listOf(
-    "auto_extension"
+    "auto_extension",
+    "cancel_auto_extension"
 ).map { name ->
-    "${KSQLITE}_$$name"
+    "${KSQLITE}_$name"
 }
 
 ///////////////////////////////////////////////////////////////////////////
