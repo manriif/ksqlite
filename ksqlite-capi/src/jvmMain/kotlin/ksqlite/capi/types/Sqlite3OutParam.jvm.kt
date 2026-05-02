@@ -1,6 +1,6 @@
 package ksqlite.capi.types
 
-import ksqlite.capi.memory.isNull
+import ksqlite.capi.utils.isNull
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout

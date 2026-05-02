@@ -1,15 +1,16 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.utils.getStringUtf8
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
 
 /**
- * Handler for [ksqlite.capi.sqlite3_autovacuum_pages] callback.
+ * Handler for [ksqlite.capi.sqlite3_autovacuum_pages].
  */
-internal class AutovacuumPagesHandler(manager: MemoryManager) : Handler(manager) {
+internal class AutoVacuumPagesHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -21,19 +22,18 @@ internal class AutovacuumPagesHandler(manager: MemoryManager) : Handler(manager)
     )
 
     fun handle(
-        userPtr: MemorySegment,
+        refPointer: MemorySegment,
         zSchema: MemorySegment,
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = manager
-        .getStrongRefData<Sqlite3AutoVacuumPagesCallback>(userPtr)
-        .invoke(
-            userPtr,
-            zSchema.getString(0),
+    ): Int = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback, userData ->
+        callback(
+            userData,
+            zSchema.getStringUtf8(),
             nDbPage.toUInt(),
             nFreePage.toUInt(),
             nBytePerPage.toUInt()
-        )
-        .toInt()
+        ).toInt()
+    }
 }

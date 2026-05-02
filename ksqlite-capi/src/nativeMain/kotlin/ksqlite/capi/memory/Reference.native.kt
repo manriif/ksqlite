@@ -32,20 +32,8 @@ internal fun stableRefDisposer(
  */
 internal inline fun <reified Data : Any> stableRefData(
     pointer: COpaquePointer?
-): Pair<Data, sqlite3_mutable_pointer?> {
-    checkNotNull(pointer)
-
-    return pointer.asStableRef<Reference>().get().let { ref ->
-        val data = ref.data
-
-        checkNotNull(data) { "No data exists for reference" }
-
-        check(data is Data) {
-            "Data is not of expected type (${data::class} vs ${Data::class})"
-        }
-
-        data to ref.userData
-    }
+): ReferencedData<Data> {
+    return checkNotNull(pointer).asStableRef<Reference>().get().getReferencedData()
 }
 
 /**

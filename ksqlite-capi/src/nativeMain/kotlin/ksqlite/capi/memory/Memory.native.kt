@@ -1,8 +1,6 @@
 package ksqlite.capi.memory
 
-import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.COpaquePointer
-import kotlinx.cinterop.CPointer
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 
@@ -18,7 +16,7 @@ public actual open class GenericPointer internal constructor(
  * Returns a stable [COpaquePointer] to [data] available globally.
  * Returns `null` if [data] is `null`.
  *
- * [data] can later be accessed within a callback using [userData] and disposed using
+ * [data] can later be accessed within a callback using [stableRefData] and disposed using
  * [stableRefDisposer].
  *
  * If a pointer was previously obtained using [key], it is disposed.

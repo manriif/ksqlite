@@ -1,59 +1,67 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.handlers.DisposerHandler
 import ksqlite.capi.handlers.Handler
-import ksqlite.capi.memory.MemoryManager.ArenaDisposable
 import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.Sqlite3OutParamBase
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import java.lang.foreign.Arena
+import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
+import java.lang.foreign.ValueLayout
 import java.lang.invoke.MethodHandles
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.Any
+import kotlin.ByteArray
+import kotlin.NullPointerException
+import kotlin.String
+import kotlin.ULong
+import kotlin.Unit
+import kotlin.apply
+import kotlin.getValue
+import kotlin.lazy
+import kotlin.reflect.KClass
+import kotlin.text.String
+import kotlin.toULong
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
-    /**
-     * Pointer to the function that disposes the reference that the pointer passed to it points to.
-     * Only reference created by this [MemoryManager] can be disposed.
-     */
-    val disposer: MemorySegment by lazy {
-        functionPointer(this, ::DisposerHandler)
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Arena
-    ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Invokes [block] with the arena.
-     */
-    private fun <R> withArena(block: Arena.() -> R): R {
-        val arena = this.arena ?: run {
-            Arena.ofShared().also { instance ->
-                this.arena = instance
-            }
-        }
-
-        return arena.block()
-    }
+    private val functionPointers by lazy { ConcurrentHashMap<KClass<*>, MemorySegment>() }
+    private val stableRefDisposer: MemorySegment by lazy { functionPointer(::StableRefDisposerHandler) }
 
     ///////////////////////////////////////////////////////////////////////////
     // References
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Returns the object, previously referenced using [strongRefPointer] and identified by
+     * Returns the object, previously referenced using [stableRefPointer] and identified by
      * [pointer]'s address.
      *
      * @throws NullPointerException if there is no object associated with [pointer].
      */
-    fun getStrongReference(pointer: MemorySegment): Reference {
+    fun getStableRef(pointer: MemorySegment): Reference = notClosed {
         val refId = pointer.address().toULong()
-        val reference = getDisposable<StrongRefReference>(refId)
+        val reference = getDisposable<StableRefReference>(refId)
         return reference
     }
 
+    /**
+     * Returns a pointer to a function that disposes the reference previously obtained from
+     * [stableRefPointer].
+     *
+     * Returns [MemorySegment.NULL] if both [data] and [destructor] are `null`
+     */
+    fun stableRefDisposer(
+        data: Any?,
+        destructor: Sqlite3DestructorCallback? = null
+    ): MemorySegment {
+        return stableRefDisposer.takeIf { data != null || destructor != null }
+            ?: MemorySegment.NULL
+    }
+
+    override fun clear() {
+        super.clear()
+        functionPointers.clear()
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Pointers
@@ -63,10 +71,10 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a [MemorySegment] referring [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The resulting reference data can be accessed using [getStrongReference] and it can be
-     * disposed using [disposer].
+     * The resulting reference data can be accessed using [getStableRef] and it can be
+     * disposed using [stableRefDisposer].
      */
-    fun strongRefPointer(
+    fun stableRefPointer(
         data: Any?,
         userData: sqlite3_mutable_pointer? = null,
         destructor: Sqlite3DestructorCallback? = null,
@@ -77,10 +85,37 @@ internal actual class MemoryManager : MemoryManagerBase() {
         }
 
         val reference = registerDisposable(key) { id ->
-            StrongRefReference(id, destructor, data, userData)
+            StableRefReference(id, destructor, data, userData)
         }
 
-        return reference.address
+        return reference.pointer
+    }
+
+    /**
+     * Returns a pointer to a static function that will invoke the `handle` function of the
+     * [Handler] returned by [factory].
+     */
+    private fun getOrCreateFunctionPointer(
+        handlerKlass: KClass<out Handler>,
+        factory: (MemoryManager) -> Handler
+    ): MemorySegment = notClosed {
+        functionPointers.computeIfAbsent(handlerKlass) {
+            val handler = factory(this)
+            val functionDescriptor = handler.createFunctionDescriptor()
+
+            val methodHandle = MethodHandles
+                .lookup()
+                .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
+                .bindTo(handler)
+
+            val reference = registerDisposable { id ->
+                ArenaDisposable(id, handler)
+            }
+
+            Linker
+                .nativeLinker()
+                .upcallStub(methodHandle, functionDescriptor, reference.arena)
+        }
     }
 
     /**
@@ -89,42 +124,25 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if [callback] is `null`.
      */
-    fun functionPointer(
+    inline fun <reified H: Handler> functionPointer(
         callback: Any?,
-        factory: (MemoryManager) -> Handler
+        noinline factory: (MemoryManager) -> H
     ): MemorySegment = notClosed {
         if (callback == null) {
             return MemorySegment.NULL
         }
 
-        val handler = factory(this)
-        val functionDescriptor = handler.createFunctionDescriptor()
-
-        val methodHandle = MethodHandles
-            .lookup()
-            .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
-            .bindTo(handler)
-
-        val reference = registerDisposable(block = ::ArenaDisposable)
-
-        return Linker
-            .nativeLinker()
-            .upcallStub(methodHandle, functionDescriptor, reference.arena)
+        return getOrCreateFunctionPointer(H::class, factory)
     }
 
     /**
-     * Attaches the [param] and returns a [MemorySegment] to the parameter value.
-     *
-     * Returns [MemorySegment.NULL] if [param] is `null`.
+     * Returns a pointer to a static function that will invoke the `handle` function of the
+     * [Handler] returned by [factory].
      */
-    fun paramPointer(param: Sqlite3OutParamBase<*>?): MemorySegment = notClosed {
-        segment(param) { param ->
-            withArena {
-                param.attach(this).also {
-                    createReference(ParamDetacher(param))
-                }
-            }
-        }
+    inline fun <reified H: Handler> functionPointer(
+        noinline factory: (MemoryManager) -> H
+    ): MemorySegment {
+        return functionPointer(this, factory)
     }
 
     /**
@@ -135,14 +153,20 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if [value] is `null`.
      */
-    fun byteArrayPointer(value: ByteArray?): MemorySegment = notClosed {
-        segment(value) { value ->
-            withArena {
-                allocate(value.size.toLong()).apply {
-                    copyFrom(MemorySegment.ofArray(value))
-                }
-            }
+    fun byteArrayPointer(
+        value: ByteArray?,
+        destructor: Sqlite3DestructorCallback? = null
+    ): MemorySegment = notClosed {
+        if (value == null) {
+            return MemorySegment.NULL
         }
+
+        val disposable = registerDisposable { id ->
+            ByteArrayDisposable(id, value, destructor)
+        }
+
+        registerGlobalDisposable(disposable.pointer, disposable)
+        return disposable.pointer
     }
 
     /**
@@ -150,43 +174,44 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if [value] is `null`.
      */
-    fun stringPointer(value: String?): MemorySegment = notClosed {
-        segment(value) { value ->
-            withArena {
-                allocateFrom(value)
-            }
+    fun stringPointer(
+        value: String?,
+        destructor: Sqlite3DestructorCallback? = null
+    ): MemorySegment = notClosed {
+        if (value == null) {
+            return MemorySegment.NULL
         }
+
+        val disposable = registerDisposable { id ->
+            StringDisposable(id, value, destructor)
+        }
+
+        registerGlobalDisposable(disposable.pointer, disposable)
+        return disposable.pointer
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // Cleanup
+    // Disposables
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Clears all the allocated memory and releases all the referenced objects.
+     * Handler that dispose reference to object to make it available for GC.
      */
-    actual override fun clear() {
-        if (::disposables.isInitialized) {
-            disposables.onEach { it.value.dispose() }.clear()
+    private class StableRefDisposerHandler(manager: MemoryManager) : Handler(manager) {
+
+        override fun createFunctionDescriptor(): FunctionDescriptor {
+            return FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
         }
 
-        arena?.let { instance ->
-            arena = null
-            instance.close()
+        fun handle(userPtr: MemorySegment) {
+            manager.getStableRef(userPtr).dispose()
         }
-
-        nextReferenceId = ULong.MIN_VALUE
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Disposable
-    ///////////////////////////////////////////////////////////////////////////
-
 
     /**
      * Reference to [data].
      */
-    private inner class StrongRefReference(
+    private inner class StableRefReference(
         id: ULong,
         destructor: Sqlite3DestructorCallback?,
         override val data: Any?,
@@ -194,7 +219,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     ) : AutoDisposable(id, destructor),
         Reference {
 
-        val address: MemorySegment = MemorySegment.ofAddress(id.toLong())
+        val pointer: MemorySegment = MemorySegment.ofAddress(id.toLong())
 
         override fun release() = Unit
     }
@@ -202,7 +227,11 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Reference to an [arena].
      */
-    private inner class ArenaDisposable(id: ULong) : AutoDisposable(id, null) {
+    private open inner class ArenaDisposable(
+        id: ULong,
+        open val refValue: Any?,
+        destructor: Sqlite3DestructorCallback? = null
+    ) : AutoDisposable(id, destructor) {
 
         val arena: Arena = Arena.ofShared()
 
@@ -215,39 +244,46 @@ internal actual class MemoryManager : MemoryManagerBase() {
     }
 
     /**
-     * Hold [handler].
-     * Does nothing but required to keep [handler] away from GC.
+     * Reference to [ByteArray].
      */
-    private class HandlerHolder(handler: Handler) : Reference {
+    private inner class ByteArrayDisposable(
+        id: ULong,
+        refValue: ByteArray,
+        destructor: Sqlite3DestructorCallback?,
+    ) : ArenaDisposable(id, refValue, destructor) {
 
-        private var handler: Handler? = handler
+        val pointer: MemorySegment = arena.allocate(refValue.size.toLong()).apply {
+            copyFrom(MemorySegment.ofArray(refValue))
+        }
 
-        override fun dispose() {
-            handler = null
+        override val userData: sqlite3_mutable_pointer? by lazy {
+            sqlite3_mutable_pointer.from(pointer, pointer.byteSize())
+        }
+
+        override fun release() {
+            super.release()
+            unregisterGlobalDisposable(pointer)
         }
     }
 
     /**
-     * Detaches [param] in disposing.
+     * Reference to [String].
      */
-    private class ParamDetacher(private val param: Sqlite3OutParamBase<*>) :
-        Reference {
+    private inner class StringDisposable(
+        id: ULong,
+        refValue: String,
+        destructor: Sqlite3DestructorCallback?,
+    ) : ArenaDisposable(id, destructor) {
 
-        override fun dispose() {
-            param.detach()
+        val pointer: MemorySegment = arena.allocateFrom(refValue)
+
+        override val userData: sqlite3_mutable_pointer? by lazy {
+            sqlite3_mutable_pointer.from(pointer, pointer.byteSize())
         }
-    }
 
-    /**
-     * Hold [value] and invoke [destructor] on disposing.
-     */
-    private class Referencee(
-        val value: Any?,
-        private val destructor: Sqlite3DestructorCallback?
-    ) : Reference {
-
-        override fun dispose() {
-            destructor?.invoke()
+        override fun release() {
+            super.release()
+            unregisterGlobalDisposable(pointer)
         }
     }
 }

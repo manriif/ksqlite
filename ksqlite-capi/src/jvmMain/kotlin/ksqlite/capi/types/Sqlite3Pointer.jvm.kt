@@ -5,10 +5,10 @@ package ksqlite.capi.types
 import ksqlite.capi.memory.MemoryBlock
 import ksqlite.capi.memory.ReadableMemoryBlock
 import ksqlite.capi.memory.WritableMemoryBlock
-import ksqlite.capi.memory.isNull
+import ksqlite.capi.utils.isNull
 import java.lang.foreign.MemorySegment
 
-public actual open class sqlite3_pointer internal constructor(private val block: MemoryBlock) :
+public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :
     ReadableMemoryBlock by block {
 
     public actual val size: Long

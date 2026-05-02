@@ -14,7 +14,7 @@ internal expect class GenericPointer
 
 /**
  * Clears all the resources owned by ksqlite.
- * It is recommended that all sqlite databases connection are closed calling that function.
+ * It is recommended that all sqlite databases connection are closed before calling that function.
  */
 public fun ksqliteCleanup() {
     ScopedMemoryManagers

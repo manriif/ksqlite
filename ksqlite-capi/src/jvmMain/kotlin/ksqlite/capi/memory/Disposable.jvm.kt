@@ -1,16 +1,11 @@
 package ksqlite.capi.memory
 
-import kotlinx.cinterop.CFunction
-import kotlinx.cinterop.COpaquePointer
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.staticCFunction
+import ksqlite.capi.handlers.Handler
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
-
-/**
- * Destructor signature.
- */
-internal typealias Disposer = CPointer<CFunction<(COpaquePointer?) -> Unit>>
+import java.lang.foreign.FunctionDescriptor
+import java.lang.foreign.MemorySegment
+import java.lang.foreign.ValueLayout
 
 ///////////////////////////////////////////////////////////////////////////
 // Global
@@ -20,26 +15,35 @@ internal typealias Disposer = CPointer<CFunction<(COpaquePointer?) -> Unit>>
  * Holds any [Disposable] that should be reachable by static C function given a pointer.
  * TODO must be thread-safe
  */
-private val GlobalDisposables: MutableMap<COpaquePointer, Disposable> by lazy(::hashMapOf)
+private val GlobalDisposables: MutableMap<Long, Disposable> by lazy(::hashMapOf)
 
 /**
- * C-static function disposing a [Disposable] registered with [registerGlobalDisposable].
- *
- * Throws [IllegalStateException] if the [COpaquePointer] passed to the function is `null`.
+ * Pointer to a static function disposing a [Disposable] registered with [registerGlobalDisposable].
  */
-private val GlobalDisposer = staticCFunction { pointer: COpaquePointer? ->
-    checkNotNull(pointer)
-    checkNotNull(GlobalDisposables[pointer]).dispose()
+private val GlobalDisposer: MemorySegment = StaticMemoryManager.functionPointer(::DisposerHandler)
 
-    // It is the owner responsibility to unregister the disposable after dispose have been called
-    check(GlobalDisposables[pointer] == null)
+/**
+ * Handler that dispose reference to object to make it available for GC.
+ */
+private class DisposerHandler(manager: MemoryManager) : Handler(manager) {
+
+    override fun createFunctionDescriptor(): FunctionDescriptor {
+        return FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
+    }
+
+    fun handle(dataPointer: MemorySegment) {
+        val address = dataPointer.address()
+        checkNotNull(GlobalDisposables[address]).dispose()
+        // It is the owner responsibility to unregister the disposable after dispose has been called
+        check(GlobalDisposables[address] == null)
+    }
 }
 
 /**
- * Returns [GlobalDisposer] only if [data] != `null`.
+ * Returns [GlobalDisposer] or [MemorySegment.NULL] if [data] is `null`.
  */
-internal fun globalDisposer(data: Any?): Disposer? {
-    return GlobalDisposer.takeIf { data != null }
+internal fun globalDisposer(data: Any?): MemorySegment {
+    return GlobalDisposer.takeIf { data != null } ?: MemorySegment.NULL
 }
 
 /**
@@ -50,8 +54,8 @@ internal fun globalDisposer(data: Any?): Disposer? {
  *
  * The registered [disposable] can later be disposed using [globalDisposer].
  */
-internal fun registerGlobalDisposable(pointer: COpaquePointer, disposable: Disposable) {
-    check(GlobalDisposables.put(pointer, disposable) == null) {
+internal fun registerGlobalDisposable(pointer: MemorySegment, disposable: Disposable) {
+    check(GlobalDisposables.put(pointer.address(), disposable) == null) {
         "A disposable is already registered for the pointed address"
     }
 }
@@ -59,8 +63,8 @@ internal fun registerGlobalDisposable(pointer: COpaquePointer, disposable: Dispo
 /**
  * Unregisters a previously registered [Disposable] associated with [pointer].
  */
-internal fun unregisterGlobalDisposable(pointer: COpaquePointer) {
-    check(GlobalDisposables.remove(pointer) != null) {
+internal fun unregisterGlobalDisposable(pointer: MemorySegment) {
+    check(GlobalDisposables.remove(pointer.address()) != null) {
         "No disposable was registered fo the pointed address"
     }
 }
@@ -90,9 +94,9 @@ private class UserDataDisposable(
 internal fun userDataDisposer(
     userData: sqlite3_mutable_pointer?,
     destructor: Sqlite3DestructorCallback?
-): Disposer? {
+): MemorySegment {
     if (userData == null || destructor == null) {
-        return null
+        return MemorySegment.NULL
     }
 
     registerGlobalDisposable(

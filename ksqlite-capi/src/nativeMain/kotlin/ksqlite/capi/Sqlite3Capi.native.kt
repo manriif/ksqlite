@@ -12,7 +12,6 @@ import kotlinx.cinterop.toCStringArray
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.SQLITE_OK
 import ksqlite.SQLITE_TRANSIENT
-import ksqlite.capi.handlers.AutoExtensionHandler
 import ksqlite.capi.handlers.AutoExtensions
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
@@ -31,9 +30,12 @@ import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.SetAuthorizerHandler
+import ksqlite.capi.handlers.SharedExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
+import ksqlite.capi.handlers.autoExtensionRegister
+import ksqlite.capi.handlers.autoExtensionUnregister
 import ksqlite.capi.handlers.handle
 import ksqlite.capi.handlers.uniqueFunctionHandlerName
 import ksqlite.capi.memory.deallocateNullable
@@ -336,19 +338,8 @@ public actual fun sqlite3_aggregate_context(
     size = nBytes.toLong()
 )
 
-public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result {
-    var result = SQLITE_OK
-
-    if (AutoExtensions.isEmpty()) {
-        result = ksqlite_auto_extension(AutoExtensionHandler)
-    }
-
-    if (result == SQLITE_OK) {
-        AutoExtensions.add(callback)
-    }
-
-    return convertResult(result)
-}
+public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
+    autoExtensionRegister(callback) { ksqlite_auto_extension(SharedExtensionHandler) }
 
 public actual fun sqlite3_autovacuum_pages(
     db: sqlite3,
@@ -359,7 +350,12 @@ public actual fun sqlite3_autovacuum_pages(
     native_sqlite3_autovacuum_pages(
         db = db.pointer,
         arg1 = AutoVacuumPagesHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("autovacuum_pages", callback, userData, destructor),
+        arg2 = db.memory.keyedStableRefPointer(
+            key = KEY_AUTOVACUUM_PAGES,
+            data = callback,
+            userData = userData,
+            destructor = destructor
+        ),
         arg3 = stableRefDisposer(callback, destructor)
     )
 )
@@ -503,9 +499,9 @@ public actual fun sqlite3_bind_pointer(
     native_sqlite3_bind_pointer(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = stmt.memory.stableRefPointer(this, data, this.destructor),
+        arg2 = stmt.memory.stableRefPointer(this, data, disposer),
         arg3 = typePointer,
-        arg4 = stableRefDisposer(0, this.destructor)
+        arg4 = stableRefDisposer(this, disposer)
     )
 })
 
@@ -668,19 +664,8 @@ public actual fun sqlite3_busy_timeout(
     )
 )
 
-public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int {
-    val removed = AutoExtensions.remove(callback)
-
-    if (!removed) {
-        return 0
-    }
-
-    if (AutoExtensions.isEmpty()) {
-        val _ = ksqlite_cancel_auto_extension(AutoExtensionHandler)
-    }
-
-    return 1
-}
+public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int =
+    autoExtensionUnregister(callback) { ksqlite_cancel_auto_extension(SharedExtensionHandler) }
 
 public actual fun sqlite3_changes(db: sqlite3): Int =
     native_sqlite3_changes(db.pointer)
@@ -1639,9 +1624,9 @@ public actual fun sqlite3_result_pointer(
     native_sqlite3_result_pointer(
         arg0 = context.pointer,
         arg1 = sqlite3_context_db_handle(context)?.memory
-            ?.stableRefPointer(this, data, this.destructor),
+            ?.stableRefPointer(this, data, disposer),
         arg2 = typePointer,
-        arg3 = stableRefDisposer(0, this.destructor)
+        arg3 = stableRefDisposer(this, disposer)
     )
 }
 

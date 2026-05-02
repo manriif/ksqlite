@@ -1,25 +1,24 @@
 package ksqlite.capi
 
-import kotlinx.cinterop.Arena
-import kotlinx.cinterop.ByteVar
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.cstr
 import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.utils.allocateUtf8
+import java.lang.foreign.Arena
+import java.lang.foreign.MemorySegment
 
 /**
  * Wrapper for [sqlite3_bind_pointer] and [sqlite3_result_pointer] userData.
  */
 internal class NamedPointer(
-    val typePointer: CPointer<ByteVar>?,
+    val typePointer: MemorySegment?,
     private val arena: Arena?,
-    private val userDestructor: Sqlite3DestructorCallback?
+    private val destructor: Sqlite3DestructorCallback?
 ) {
     /**
      * Destructor replacing original user provided destructor.
      */
     val disposer: Sqlite3DestructorCallback = { userData ->
-        userDestructor?.invoke(userData)
-        arena?.clear()
+        destructor?.invoke(userData)
+        arena?.close()
     }
 }
 
@@ -34,14 +33,14 @@ internal inline fun <R> allocateNamedPointer(
     noinline destructor: Sqlite3DestructorCallback?,
     block: NamedPointer.() -> R
 ): R {
-    val arena = type?.let { Arena() }
-    val typePointer = arena?.let(type.cstr::getPointer)
+    val arena = type?.let { Arena.ofShared() }
+    val typePointer = arena?.run { type.allocateUtf8() }
 
     return block(
         NamedPointer(
             typePointer = typePointer,
             arena = arena,
-            userDestructor = destructor
+            destructor = destructor
         )
     )
 }

@@ -1,33 +1,51 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.types.sqlite3_mutable_pointer
+import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
+import java.lang.foreign.SegmentAllocator
 
 public actual open class GenericPointer internal constructor(internal val pointer: MemorySegment)
 
-///////////////////////////////////////////////////////////////////////////
-// Segment
-///////////////////////////////////////////////////////////////////////////
-
 /**
- * Whether `this` [MemorySegment] points to a null pointer.
+ * Memory manager that is never cleared.
  */
-internal val MemorySegment.isNull: Boolean
-    get() = address() == MemorySegment.NULL.address()
+internal val StaticMemoryManager = MemoryManager()
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the [MemorySegment] obtained from [block] provided non-null [value] or returns
- * [MemorySegment.NULL] if [value] is `null`.
- */
-internal inline fun <T : Any> segment(value: T?, block: (T) -> MemorySegment): MemorySegment {
-    return if (value == null) MemorySegment.NULL else block(value)
-}
-
-/**
- * Returns a [MemorySegment] to `this` [ByteArray]'s content.
+ * Returns a stable [MemorySegment] to [data] available globally.
+ * Returns `null` if [data] is `null`.
  *
- * /!\ JVM GC moves memory so the content must be copied on native side and at call site. If these
- * constraints are not satisfied then invalid memory region will be accessed.
+ * The resulting reference data can be accessed using [MemoryManager.getStableRef] and it can be
+ * disposed using [MemoryManager.stableRefDisposer].
+ *
+ * If a pointer was previously obtained using [key], it is disposed.
  */
-internal fun ByteArray?.pointer(): MemorySegment {
-    return segment(this, MemorySegment::ofArray)
+internal fun MemoryManager.keyedStableRefPointer(
+    key: String,
+    data: Any?,
+    userData: sqlite3_mutable_pointer? = null,
+    destructor: Sqlite3DestructorCallback? = null,
+): MemorySegment = stableRefPointer(
+    data = data,
+    userData = userData,
+    destructor = destructor,
+    key = key
+)
+
+///////////////////////////////////////////////////////////////////////////
+// Arena
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Runs given [block] providing allocation of memory
+ * which will be automatically disposed at the end of this scope.
+ */
+internal inline fun <T> memScoped(block: SegmentAllocator.() -> T): T {
+    return Arena.ofConfined().use(block)
 }
