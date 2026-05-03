@@ -10,6 +10,6 @@ public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) {
         get() = TODO("Not yet implemented")
 }
 
-public actual class Sqlite3StringUtf8OutParam actual constructor(initialValue: String?) {
+public actual class Sqlite3Utf8OutParam actual constructor(initialValue: String?) {
     public actual fun readUtf8(): String? = TODO("Not yet implemented")
 }

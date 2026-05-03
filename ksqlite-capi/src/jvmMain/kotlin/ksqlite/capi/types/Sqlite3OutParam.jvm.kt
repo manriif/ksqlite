@@ -1,6 +1,9 @@
 package ksqlite.capi.types
 
-import ksqlite.capi.memory.isNull
+import ksqlite.capi.memory.memScoped
+import ksqlite.capi.utils.getStringUtf8
+import ksqlite.capi.utils.isNull
+import ksqlite.capi.utils.notNull
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
@@ -100,11 +103,20 @@ public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
 // String
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3StringUtf8OutParam actual constructor() :
+public actual class Sqlite3Utf8OutParam actual constructor() :
     Sqlite3PointerOutParamBase<String>() {
 
+    /**
+     * Custom size if not zero terminated.
+     */
+    internal var size: Int? = null
+
     override fun create(pointer: MemorySegment): String {
-        return pointer.getString(0, Charsets.UTF_8)
+        val size = size ?: return pointer.getStringUtf8()
+
+        return pointer
+            .asSlice(0, size.toLong())
+            .getStringUtf8()
     }
 }
 
@@ -120,11 +132,27 @@ public actual class Sqlite3DatabaseConnectionOutParam actual constructor() :
     }
 }
 
+public actual class Sqlite3BlobOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_blob>() {
+
+    override fun create(pointer: MemorySegment): sqlite3_blob {
+        return sqlite3_blob(pointer)
+    }
+}
+
 public actual class Sqlite3ContextOutParam actual constructor() :
     Sqlite3PointerOutParamBase<sqlite3_context>() {
 
     override fun create(pointer: MemorySegment): sqlite3_context {
         return sqlite3_context(pointer)
+    }
+}
+
+public actual class Sqlite3SnapshotOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_snapshot>() {
+
+    override fun create(pointer: MemorySegment): sqlite3_snapshot {
+        return sqlite3_snapshot(pointer)
     }
 }
 
@@ -166,4 +194,100 @@ internal inline fun <R> Sqlite3OutParamBase<*>.use(
     }
 
     return result
+}
+
+/**
+ * Allocates native memory for [param] into `this` [SegmentAllocator], invokes [block] with a
+ * pointer to it and returns [block]'s result.
+ *
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <R> SegmentAllocator.useParam(
+    param: Sqlite3OutParamBase<*>?,
+    block: (MemorySegment) -> R
+): R {
+    if (param == null) {
+        return block(MemorySegment.NULL)
+    }
+
+    return param.use(this, block)
+}
+
+/**
+ * Allocates native memory for [param]  into a [SegmentAllocator], invokes [block] with a pointer to
+ * it and returns [block]'s result.
+ *
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <R> useParamMemScoped(
+    param: Sqlite3OutParamBase<*>?,
+    block: (MemorySegment) -> R
+): R {
+    if (param == null) {
+        return block(MemorySegment.NULL)
+    }
+
+    return memScoped {
+        param.use(this, block)
+    }
+}
+
+/**
+ * Allocates native memory to [param1] and [param2] into `this` [SegmentAllocator], invokes [block]
+ * with pointers to them and returns [block]'s result.
+ *
+ * The pointers passed to [block] must not escape.
+ */
+internal inline fun <R> SegmentAllocator.useParams(
+    param1: Sqlite3OutParamBase<*>?,
+    param2: Sqlite3OutParamBase<*>?,
+    block: (
+        pointer1: MemorySegment,
+        pointer2: MemorySegment
+    ) -> R
+): R {
+    if (param1 == null && param2 == null) {
+        return block(MemorySegment.NULL, MemorySegment.NULL)
+    }
+
+    val pointer1 = param1?.attach(this).notNull
+    val pointer2 = param2?.attach(this).notNull
+
+    return try {
+        block(pointer1, pointer2)
+    } finally {
+        param1?.detach(pointer1)
+        param2?.detach(pointer2)
+    }
+}
+
+/**
+ * Allocates native memory to [param1] and [param2] into a [SegmentAllocator], invokes [block] with
+ * pointers to them and returns [block]'s result.
+ *
+ * The pointers passed to [block] must not escape.
+ */
+internal inline fun <R> useParamsMemScoped(
+    param1: Sqlite3OutParamBase<*>?,
+    param2: Sqlite3OutParamBase<*>?,
+    block: (
+        pointer1: MemorySegment,
+        pointer2: MemorySegment
+    ) -> R
+): R {
+    if (param1 == null && param2 == null) {
+        return block(MemorySegment.NULL, MemorySegment.NULL)
+    }
+
+    return memScoped {
+        val pointer1 = param1?.attach(this).notNull
+        val pointer2 = param2?.attach(this).notNull
+
+        try {
+            block(pointer1, pointer2)
+        } finally {
+            param1?.detach(pointer1)
+            param2?.detach(pointer2)
+        }
+    }
 }

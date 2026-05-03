@@ -2,6 +2,8 @@
 
 package ksqlite.capi.types
 
+import ksqlite.capi.memory.GenericPointer
+
 /**
  * The [sqlite3_backup] object records state information about an ongoing online backup operation.
  * The [sqlite3_backup] object is created by a call to [ksqlite.capi.sqlite3_backup_init] and is
@@ -9,7 +11,7 @@ package ksqlite.capi.types
  *
  * [sqlite3_backup](https://sqlite.org/c3ref/backup.html)
  */
-public expect class sqlite3_backup
+public expect class sqlite3_backup: GenericPointer
 
 /**
  * An instance of this object represents an open BLOB on which incremental BLOB I/O can be
@@ -22,7 +24,7 @@ public expect class sqlite3_backup
  *
  * [sqlite3_blob](https://sqlite.org/c3ref/blob.html)
  */
-public expect class sqlite3_blob
+public expect class sqlite3_blob: GenericPointer
 
 /**
  * An instance of the snapshot object records the state of a WAL mode database for some specific
@@ -30,4 +32,4 @@ public expect class sqlite3_blob
  *
  * [sqlite3_snapshot](https://sqlite.org/c3ref/snapshot.html)
  */
-public expect class sqlite3_snapshot
+public expect class sqlite3_snapshot: GenericPointer

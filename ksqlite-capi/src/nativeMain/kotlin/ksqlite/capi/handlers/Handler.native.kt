@@ -21,7 +21,7 @@ internal fun <Fun : CFunction<*>, Pointer : CPointer<Fun>> Pointer.handle(data: 
  * Returns [block]'s result, invoked with [Data] and optional userData obtained from a previously
  * referenced [refPointer].
  */
-internal inline fun <Data : Any, Result> handler(
+internal inline fun <reified Data : Any, Result> handler(
     refPointer: COpaquePointer?,
     block: (data: Data, userData: sqlite3_mutable_pointer?) -> Result
 ): Result {

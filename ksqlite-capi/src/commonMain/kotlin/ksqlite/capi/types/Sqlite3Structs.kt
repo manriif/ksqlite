@@ -2,13 +2,15 @@
 
 package ksqlite.capi.types
 
+import ksqlite.capi.memory.GenericPointer
+
 /**
  * Each open SQLite database is represented by a pointer to an instance of the opaque structure
  * named "sqlite3". It is useful to think of an sqlite3 pointer as an object.
  *
  * [sqlite3](https://sqlite.org/c3ref/sqlite3.html)
  */
-public expect class sqlite3
+public expect class sqlite3 : GenericPointer
 
 /**
  * A pointer to the opaque sqlite3_api_routines structure is passed as the third parameter to entry
@@ -16,7 +18,7 @@ public expect class sqlite3
  *
  * [sqlite3_api_routines](https://sqlite.org/c3ref/api_routines.html)
  */
-public expect class sqlite3_api_routines
+public expect class sqlite3_api_routines : GenericPointer
 
 /**
  * The context in which an SQL function executes is stored in an sqlite3_context object. A pointer
@@ -24,7 +26,7 @@ public expect class sqlite3_api_routines
  *
  * [sqlite3_context](https://sqlite.org/c3ref/context.html)
  */
-public expect class sqlite3_context
+public expect class sqlite3_context : GenericPointer
 
 /**
  * Type sqlite3_filename is used by SQLite to pass filenames to the xOpen method of a VFS. It may
@@ -42,7 +44,7 @@ public typealias sqlite3_filename = String
  *
  * [sqlite3_index_info](https://sqlite.org/c3ref/index_info.html)
  */
-public expect class sqlite3_index_info
+public expect class sqlite3_index_info : GenericPointer
 
 /**
  * This structure, sometimes called a "virtual table module", defines the implementation of a
@@ -52,7 +54,7 @@ public expect class sqlite3_index_info
  *
  * TODO implement the structure
  */
-public expect class sqlite3_module
+public expect class sqlite3_module : GenericPointer
 
 /**
  * An instance of this object represents a single SQL statement that has been compiled into binary
@@ -64,7 +66,7 @@ public expect class sqlite3_module
  *
  * [sqlite3_stmt](https://sqlite.org/c3ref/stmt.html)
  */
-public expect class sqlite3_stmt
+public expect class sqlite3_stmt : GenericPointer
 
 /**
  * SQLite uses the sqlite3_value object to represent all values that can be stored in a database
@@ -73,7 +75,7 @@ public expect class sqlite3_stmt
  *
  * [sqlite3_value](https://sqlite.org/c3ref/value.html)
  */
-public expect class sqlite3_value
+public expect class sqlite3_value : GenericPointer
 
 /**
  * An instance of the sqlite3_vfs object defines the interface between the SQLite core and the
@@ -82,4 +84,4 @@ public expect class sqlite3_value
  *
  * [sqlite3_vfs](https://sqlite.org/c3ref/vfs.html)
  */
-public expect class sqlite3_vfs
+public expect class sqlite3_vfs : GenericPointer

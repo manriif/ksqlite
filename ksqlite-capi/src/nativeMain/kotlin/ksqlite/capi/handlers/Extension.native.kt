@@ -8,8 +8,7 @@ import kotlinx.cinterop.pointed
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.value
-import ksqlite.SQLITE_OK
-import ksqlite.capi.types.Sqlite3AutoExtensionCallback
+import ksqlite.capi.autoExtensionHandle
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.s3_api
 import ksqlite.capi.types.sqlite3
@@ -17,14 +16,9 @@ import ksqlite.capi.types.sqlite3_api_routines
 import ksqlite.sqlite3_malloc as native_sqlite3_malloc
 
 /**
- * All registered [Sqlite3AutoExtensionCallback].
- */
-internal val AutoExtensions = mutableListOf<Sqlite3AutoExtensionCallback>()
-
-/**
  * Static C function for [autoExtensionHandler].
  */
-internal val AutoExtensionHandler = staticCFunction(::autoExtensionHandler)
+internal val SharedExtensionHandler = staticCFunction(::autoExtensionHandler)
 
 /**
  * Handler for [ksqlite.capi.sqlite3_auto_extension].
@@ -34,28 +28,15 @@ private fun autoExtensionHandler(
     db: CPointer<s3>?,
     pzErrMsg: CPointer<CPointerVar<ByteVar>>?,
     pApi: CPointer<s3_api>?
-): Int {
-    var result = SQLITE_OK
-    var errorMessage: String? = null
-    val db = sqlite3(db!!)
-    val api = sqlite3_api_routines(pApi!!)
-    val iterator = AutoExtensions.iterator()
+) = autoExtensionHandle(
+    db = sqlite3(db!!),
+    api = sqlite3_api_routines(pApi!!),
+    errorPointer = pzErrMsg
+) { errorPointer, message ->
+    val cString = message.cstr
 
-    while (iterator.hasNext() && result == SQLITE_OK) {
-        result = iterator.next().invoke(db, api) { message ->
-            errorMessage = message
-        }.code
+    native_sqlite3_malloc(cString.size)?.reinterpret<ByteVar>()?.let { pointer ->
+        cString.place(pointer)
+        errorPointer.pointed.value = pointer
     }
-
-    if (pzErrMsg != null && errorMessage != null) {
-        val cString = errorMessage.cstr
-
-        // Well, if malloc fails, there is nothing else to do, no exception throwing on capi
-        native_sqlite3_malloc(cString.size)?.reinterpret<ByteVar>()?.let { pointer ->
-            cString.place(pointer)
-            pzErrMsg.pointed.value = pointer
-        }
-    }
-
-    return result
 }

@@ -10,7 +10,7 @@ import ksqlite.capi.utils.checkBufferRange
 import platform.posix.memcpy
 
 /**
- * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for native.
+ * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for Native.
  */
 internal class MemoryBlock(
     val pointer: CPointer<ByteVar>,

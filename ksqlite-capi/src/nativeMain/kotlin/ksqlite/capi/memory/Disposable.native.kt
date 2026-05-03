@@ -30,6 +30,8 @@ private val GlobalDisposables: MutableMap<COpaquePointer, Disposable> by lazy(::
 private val GlobalDisposer = staticCFunction { pointer: COpaquePointer? ->
     checkNotNull(pointer)
     checkNotNull(GlobalDisposables[pointer]).dispose()
+
+    // It is the owner responsibility to unregister the disposable after dispose have been called
     check(GlobalDisposables[pointer] == null)
 }
 
@@ -50,7 +52,7 @@ internal fun globalDisposer(data: Any?): Disposer? {
  */
 internal fun registerGlobalDisposable(pointer: COpaquePointer, disposable: Disposable) {
     check(GlobalDisposables.put(pointer, disposable) == null) {
-        "A reference is already registered for the pointed address"
+        "A disposable is already registered for the pointed address"
     }
 }
 
@@ -59,7 +61,7 @@ internal fun registerGlobalDisposable(pointer: COpaquePointer, disposable: Dispo
  */
 internal fun unregisterGlobalDisposable(pointer: COpaquePointer) {
     check(GlobalDisposables.remove(pointer) != null) {
-        "No reference was registered fo the pointed address"
+        "No disposable was registered fo the pointed address"
     }
 }
 

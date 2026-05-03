@@ -1,21 +1,24 @@
-import org.gradle.api.Plugin
+import komple.KompleRootExtension
+import komple.registerTool
+import komple.tool.KompleToolPlugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.create
-import tasks.registerRootTasks
+import tools.sqlite.SqliteConfigurator
+import tools.sqlitemc.SqliteMCConfigurator
 
 /**
  * Plugin for Kotlin SQLite.
  */
-class KsqlitePlugin : Plugin<Project> {
+class KsqlitePlugin : KompleToolPlugin() {
 
-    override fun apply(target: Project) {
-        val extension =
-            target.extensions.create<KsqliteExtension>(KSQLITE_EXTENSION_NAME)
+    override fun configure(project: Project, komple: KompleRootExtension) {
+        komple.registerTool<SqliteMCConfigurator>("Sqlite Multiple Ciphers")
+        komple.registerTool<SqliteConfigurator>("Sqlite")
 
-        target.registerRootTasks(extension)
+        val extension = project.extensions.create<KsqliteExtension>(KSQLITE_EXTENSION_NAME)
 
-        target.afterEvaluate {
-            configureKsqliteSources(extension)
+        project.subprojects {
+            extensions.add(KSQLITE_EXTENSION_NAME, extension)
         }
     }
 }

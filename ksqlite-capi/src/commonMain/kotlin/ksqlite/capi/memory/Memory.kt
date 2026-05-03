@@ -6,7 +6,7 @@ import ksqlite.capi.types.Sqlite3Result
 /**
  * Pointer pointing to anything.
  */
-internal expect class GenericPointer
+public expect open class GenericPointer
 
 ///////////////////////////////////////////////////////////////////////////
 // Disposables
@@ -14,7 +14,7 @@ internal expect class GenericPointer
 
 /**
  * Clears all the resources owned by ksqlite.
- * It is recommended that all sqlite databases connection are closed calling that function.
+ * It is recommended that all sqlite databases connection are closed before calling that function.
  */
 public fun ksqliteCleanup() {
     ScopedMemoryManagers
@@ -59,6 +59,13 @@ internal val GenericPointer.memory: MemoryManager
  */
 internal val GenericPointer.memoryOrNull: MemoryManager?
     get() = ScopedMemoryManagers[this]
+
+/**
+ * Invokes [block] with the [MemoryManager] associated to this pointer as receiver.
+ */
+internal inline fun <R> GenericPointer.withMemoryManager(block: MemoryManager.() -> R): R {
+    return memory.block()
+}
 
 /**
  * Releases the [MemoryManager] associated with `this` [GenericPointer].

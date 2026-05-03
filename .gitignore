@@ -1,11 +1,10 @@
 .gradle/
 .idea/
+.komple/
 .kotlin/
 .ksqlite/
 .cxx/
 .run/
-
-/ksqlite/ksqlite-generated.h
 
 build
 local.properties

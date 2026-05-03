@@ -19,6 +19,10 @@ internal inline fun <P : CPointer<*>, reified T> CPointer<CPointerVarOf<P>>.toAr
     count: Int,
     transform: (P?) -> T
 ): Array<T> {
+    if (count == 0) {
+        return emptyArray()
+    }
+
     return Array(count) { transform(get(it)) }
 }
 

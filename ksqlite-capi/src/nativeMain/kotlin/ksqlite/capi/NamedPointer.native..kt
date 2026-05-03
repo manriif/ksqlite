@@ -17,7 +17,7 @@ internal class NamedPointer(
     /**
      * Destructor replacing original user provided destructor.
      */
-    val destructor: Sqlite3DestructorCallback = { userData ->
+    val disposer: Sqlite3DestructorCallback = { userData ->
         userDestructor?.invoke(userData)
         arena?.clear()
     }
@@ -26,7 +26,7 @@ internal class NamedPointer(
 /**
  * Returns a [NamedPointer] which allocates memory for [type] if not null.
  *
- * The returned [NamedPointer.destructor] must be used in place of [destructor] in order to clear
+ * The returned [NamedPointer.disposer] must be used in place of [destructor] in order to clear
  * the associated [Arena].
  */
 internal inline fun <R> allocateNamedPointer(

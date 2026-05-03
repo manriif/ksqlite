@@ -3,6 +3,7 @@
 package ksqlite.capi
 
 import kotlinx.cinterop.ByteVar
+import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
@@ -10,10 +11,7 @@ import kotlinx.cinterop.refTo
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toCStringArray
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.SQLITE_OK
 import ksqlite.SQLITE_TRANSIENT
-import ksqlite.capi.handlers.AutoExtensionHandler
-import ksqlite.capi.handlers.AutoExtensions
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationNeededHandler
@@ -31,17 +29,16 @@ import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.SetAuthorizerHandler
+import ksqlite.capi.handlers.SharedExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.handlers.handle
-import ksqlite.capi.handlers.uniqueFunctionHandlerName
+import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
-import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.keyedStableRefPointer
 import ksqlite.capi.memory.memory
-import ksqlite.capi.memory.memoryOrNull
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.useMemoryManager
@@ -86,12 +83,12 @@ import ksqlite.capi.types.Sqlite3SnapshotOutParam
 import ksqlite.capi.types.Sqlite3StatementOutParam
 import ksqlite.capi.types.Sqlite3StatementStatusCounter
 import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3StringUtf8OutParam
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3UpdateHookCallback
+import ksqlite.capi.types.Sqlite3Utf8OutParam
 import ksqlite.capi.types.Sqlite3ValueOutParam
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.Sqlite3WalHookCallback
@@ -235,6 +232,7 @@ import ksqlite.sqlite3_preupdate_old as native_sqlite3_preupdate_old
 import ksqlite.sqlite3_progress_handler as native_sqlite3_progress_handler
 import ksqlite.sqlite3_randomness as native_sqlite3_randomness
 import ksqlite.sqlite3_realloc as native_sqlite3_realloc
+import ksqlite.sqlite3_realloc64 as native_sqlite3_realloc64
 import ksqlite.sqlite3_release_memory as native_sqlite3_release_memory
 import ksqlite.sqlite3_reset as native_sqlite3_reset
 import ksqlite.sqlite3_reset_auto_extension as native_sqlite3_reset_auto_extension
@@ -325,6 +323,21 @@ import ksqlite.sqlite3_wal_checkpoint as native_sqlite3_wal_checkpoint
 import ksqlite.sqlite3_wal_checkpoint_v2 as native_sqlite3_wal_checkpoint_v2
 import ksqlite.sqlite3_wal_hook as native_sqlite3_wal_hook
 
+///////////////////////////////////////////////////////////////////////////
+// Helpers
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the raw values of `this` [VariadicValue] array.
+ */
+private fun Array<out VariadicValue<COpaquePointer>?>.toVariadicArguments(): Array<out Any?> {
+    return map { it?.value }.toTypedArray()
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Functions
+///////////////////////////////////////////////////////////////////////////
+
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
@@ -336,19 +349,8 @@ public actual fun sqlite3_aggregate_context(
     size = nBytes.toLong()
 )
 
-public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result {
-    var result = SQLITE_OK
-
-    if (AutoExtensions.isEmpty()) {
-        result = ksqlite_auto_extension(AutoExtensionHandler)
-    }
-
-    if (result == SQLITE_OK) {
-        AutoExtensions.add(callback)
-    }
-
-    return convertResult(result)
-}
+public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
+    autoExtensionRegister(callback) { ksqlite_auto_extension(SharedExtensionHandler) }
 
 public actual fun sqlite3_autovacuum_pages(
     db: sqlite3,
@@ -359,7 +361,12 @@ public actual fun sqlite3_autovacuum_pages(
     native_sqlite3_autovacuum_pages(
         db = db.pointer,
         arg1 = AutoVacuumPagesHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("autovacuum_pages", callback, userData, destructor),
+        arg2 = db.memory.keyedStableRefPointer(
+            key = KEY_AUTOVACUUM_PAGES,
+            data = callback,
+            userData = userData,
+            destructor = destructor
+        ),
         arg3 = stableRefDisposer(callback, destructor)
     )
 )
@@ -503,9 +510,9 @@ public actual fun sqlite3_bind_pointer(
     native_sqlite3_bind_pointer(
         arg0 = stmt.pointer,
         arg1 = index,
-        arg2 = stmt.memory.stableRefPointer(this, data, this.destructor),
+        arg2 = stmt.memory.stableRefPointer(this, data, disposer),
         arg3 = typePointer,
-        arg4 = stableRefDisposer(0, this.destructor)
+        arg4 = stableRefDisposer(this, disposer)
     )
 })
 
@@ -654,7 +661,7 @@ public actual fun sqlite3_busy_handler(
     native_sqlite3_busy_handler(
         arg0 = db.pointer,
         arg1 = BusyHandlerHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("busy_handler", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_BUSY_HANDLER, callback, userData)
     )
 )
 
@@ -668,19 +675,8 @@ public actual fun sqlite3_busy_timeout(
     )
 )
 
-public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int {
-    val removed = AutoExtensions.remove(callback)
-
-    if (!removed) {
-        return 0
-    }
-
-    if (AutoExtensions.isEmpty()) {
-        val _ = ksqlite_cancel_auto_extension(AutoExtensionHandler)
-    }
-
-    return 1
-}
+public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int =
+    autoExtensionUnregister(callback) { ksqlite_cancel_auto_extension(SharedExtensionHandler) }
 
 public actual fun sqlite3_changes(db: sqlite3): Int =
     native_sqlite3_changes(db.pointer)
@@ -688,17 +684,8 @@ public actual fun sqlite3_changes(db: sqlite3): Int =
 public actual fun sqlite3_changes64(db: sqlite3): Long =
     native_sqlite3_changes64(db.pointer)
 
-public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result {
-    val result = native_sqlite3_clear_bindings(stmt.pointer)
-
-    if (result == SQLITE_OK) {
-        // Release memory allocated for binded values, although destructors have normally already
-        // been called by previous call to native_sqlite3_clear_bindings
-        stmt.memoryOrNull?.clear()
-    }
-
-    return convertResult(result)
-}
+public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
+    commonSqlite3ClearBindings(stmt, native_sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3?): Sqlite3Result =
     db.deallocateNullable { native_sqlite3_close(it?.pointer) }
@@ -713,7 +700,7 @@ public actual fun sqlite3_collation_needed(
 ): Sqlite3Result = convertResult(
     native_sqlite3_collation_needed(
         arg0 = db.pointer,
-        arg1 = db.memory.keyedStableRefPointer("collation_needed", callback, userData),
+        arg1 = db.memory.keyedStableRefPointer(KEY_COLLATION_NEEDED, callback, userData),
         arg2 = CollationNeededHandler.handle(callback)
     )
 )
@@ -842,7 +829,7 @@ public actual fun sqlite3_commit_hook(
     native_sqlite3_commit_hook(
         arg0 = db.pointer,
         arg1 = CommitHookHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("commit_hook", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_COMMIT_HOOK, callback, userData)
     )
 )
 
@@ -855,49 +842,21 @@ public actual fun sqlite3_compileoption_used(optName: String): Int =
 public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
     convertCompleteResult(native_sqlite3_complete(sql))
 
-public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result {
-    val args: Array<Any?> = with(option) {
-        if (this is Sqlite3ConfigOption.ROWID_IN_VIEW) {
-            return convertResult(useParamMemScoped(param) { paramPtr ->
-                native_sqlite3_config(id, paramPtr)
-            })
+public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonSqlite3Config(
+    option = option,
+    logFunctionPointer = ConfigLogHandler::handle,
+    sqllogFunctionPointer = ConfigSqlLogHandler::handle,
+    memoryPointer = { it.block.pointer },
+    keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
+    rowidInView = {
+        useParamMemScoped(param) { paramPtr ->
+            native_sqlite3_config(id, paramPtr)
         }
-
-        when (this) {
-            Sqlite3ConfigOption.SERIALIZED,
-            Sqlite3ConfigOption.MULTITHREAD,
-            Sqlite3ConfigOption.SINGLETHREAD -> emptyArray()
-
-            is Sqlite3ConfigOption.COVERING_INDEX_SCAN -> arrayOf(enabled)
-            is Sqlite3ConfigOption.HEAP -> arrayOf(pMem?.block?.pointer, nBytes, min)
-
-            is Sqlite3ConfigOption.LOG -> arrayOf(
-                ConfigLogHandler.handle(callback),
-                globalMemory.keyedStableRefPointer("config_log", callback, userData)
-            )
-
-            is Sqlite3ConfigOption.LOOKASIDE -> arrayOf(sz, cnt)
-            is Sqlite3ConfigOption.MEMDB_MAXSIZE -> arrayOf(maxSize)
-            is Sqlite3ConfigOption.MEMSTATUS -> arrayOf(enabled)
-            is Sqlite3ConfigOption.MMAP_SIZE -> arrayOf(sz, mx)
-            is Sqlite3ConfigOption.PAGECACHE -> arrayOf(pMem?.block?.pointer, sz, n)
-            is Sqlite3ConfigOption.PMASZ -> arrayOf(szPma)
-            is Sqlite3ConfigOption.SMALL_MALLOC -> arrayOf(enabled)
-            is Sqlite3ConfigOption.SORTERREF_SIZE -> arrayOf(nByte)
-
-            is Sqlite3ConfigOption.SQLLOG -> arrayOf(
-                ConfigSqlLogHandler.handle(callback),
-                globalMemory.keyedStableRefPointer("config_sqllog", callback, userData)
-            )
-
-            is Sqlite3ConfigOption.STMTJRNL_SPILL -> arrayOf(nByte)
-            is Sqlite3ConfigOption.URI -> arrayOf(value)
-            is Sqlite3ConfigOption.WIN32_HEAPSIZE -> arrayOf(nByte)
-        }
+    },
+    nativeConfig = { id, values ->
+        native_sqlite3_config(id, *values.toVariadicArguments())
     }
-
-    return convertResult(native_sqlite3_config(option.id, *args))
-}
+)
 
 public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3? =
     native_sqlite3_context_db_handle(context.pointer)?.let(::sqlite3)
@@ -913,7 +872,7 @@ public actual fun sqlite3_create_collation(
         arg0 = db.pointer,
         zName = name,
         eTextRep = encoding.utf8OrThrow().value,
-        pArg = db.memory.keyedStableRefPointer("create_collation", callback, userData),
+        pArg = db.memory.keyedStableRefPointer(KEY_CREATE_COLLATION, callback, userData),
         xCompare = CreateCollationHandler.handle(callback)
     )
 )
@@ -930,7 +889,12 @@ public actual fun sqlite3_create_collation_v2(
         arg0 = db.pointer,
         zName = name,
         eTextRep = encoding.utf8OrThrow().value,
-        pArg = db.memory.keyedStableRefPointer("create_collation", callback, userData),
+        pArg = db.memory.keyedStableRefPointer(
+            key = KEY_CREATE_COLLATION,
+            data = callback,
+            userData = userData,
+            destructor = destructor
+        ),
         xCompare = CreateCollationHandler.handle(callback),
         xDestroy = stableRefDisposer(callback, destructor)
     )
@@ -952,7 +916,7 @@ public actual fun sqlite3_create_function(
         nArg = nArg,
         eTextRep = encoding.utf8OrThrow().value,
         pApp = db.memory.keyedStableRefPointer(
-            key = uniqueFunctionHandlerName(name, nArg, encoding),
+            key = uniqueFunctionKey(name, nArg, encoding),
             data = CreateFunction(
                 func = func,
                 step = step,
@@ -983,7 +947,7 @@ public actual fun sqlite3_create_function_v2(
         nArg = nArg,
         eTextRep = encoding.utf8OrThrow().value,
         pApp = db.memory.keyedStableRefPointer(
-            key = uniqueFunctionHandlerName(name, nArg, encoding),
+            key = uniqueFunctionKey(name, nArg, encoding),
             data = CreateFunction(
                 func = func,
                 step = step,
@@ -1046,7 +1010,7 @@ public actual fun sqlite3_create_window_function(
         nArg = nArg,
         eTextRep = encoding.utf8OrThrow().value,
         pApp = db.memory.keyedStableRefPointer(
-            key = uniqueFunctionHandlerName(name, nArg, encoding),
+            key = uniqueFunctionKey(name, nArg, encoding),
             data = CreateFunction(
                 step = step,
                 final = final,
@@ -1066,30 +1030,24 @@ public actual fun sqlite3_create_window_function(
 public actual fun sqlite3_data_count(stmt: sqlite3_stmt): Int =
     native_sqlite3_data_count(stmt.pointer)
 
-
 public actual fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result =
     convertResult(native_sqlite3_db_cacheflush(db.pointer))
 
 public actual fun sqlite3_db_config(
     db: sqlite3,
     option: Sqlite3DbConfigOption,
-): Sqlite3Result {
-    val args: Array<Any?> = with(option) {
-        if (this is Sqlite3DbConfigOption.IntOutput && state != null) {
-            return convertResult(useParamMemScoped(state) { statePtr ->
-                native_sqlite3_config(id, value, statePtr)
-            })
+): Sqlite3Result = commonSqlite3DbConfig(
+    option = option,
+    memoryPointer = { it.block.pointer },
+    outParamConfig = {
+        useParamMemScoped(state) { statePtr ->
+            native_sqlite3_db_config(db.pointer, id, value, statePtr)
         }
-
-        when (this) {
-            is Sqlite3DbConfigOption.IntOutput -> arrayOf(value, null)
-            is Sqlite3DbConfigOption.LOOKASIDE -> arrayOf(buf?.block?.pointer, sz, cnt)
-            is Sqlite3DbConfigOption.MAINDBNAME -> arrayOf(name)
-        }
+    },
+    nativeConfig = { id, values ->
+        native_sqlite3_db_config(db.pointer, id, *values.toVariadicArguments())
     }
-
-    return convertResult(native_sqlite3_db_config(db.pointer, option.id, *args))
-}
+)
 
 public actual fun sqlite3_db_filename(
     db: sqlite3,
@@ -1206,7 +1164,7 @@ public actual fun sqlite3_error_offset(db: sqlite3): Int =
 public actual fun sqlite3_exec(
     db: sqlite3,
     sql: String,
-    outErrorMessage: Sqlite3StringUtf8OutParam?,
+    outErrorMessage: Sqlite3Utf8OutParam?,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3ExecCallback?
 ): Sqlite3Result = convertResult(useMemoryManager {
@@ -1293,7 +1251,7 @@ public actual fun sqlite3_keyword_count(): Int =
 
 public actual fun sqlite3_keyword_name(
     index: Int,
-    outName: Sqlite3StringUtf8OutParam,
+    outName: Sqlite3Utf8OutParam,
 ): Sqlite3Result = convertResult(memScoped {
     useParam(outName) { namePtr ->
         val size = Sqlite3IntOutParam(0)
@@ -1314,11 +1272,11 @@ public actual fun sqlite3_keyword_check(
     word: String,
     size: Int?
 ): Int = memScoped {
-    val cword = word.cstr
+    val cWord = word.cstr
 
     native_sqlite3_keyword_check(
-        arg0 = cword,
-        arg1 = size ?: cword.size
+        arg0 = cWord,
+        arg1 = size ?: cWord.size
     )
 }
 
@@ -1417,15 +1375,15 @@ public actual fun sqlite3_prepare_v2(
     sql: String,
     size: Int?,
     outStmt: Sqlite3StatementOutParam,
-    outTail: Sqlite3StringUtf8OutParam?
+    outTail: Sqlite3Utf8OutParam?
 ): Sqlite3Result = convertResult(memScoped {
     useParams(outStmt, outTail) { stmtPtr, tailPtr ->
-        val csql = sql.cstr
+        val cSql = sql.cstr
 
         native_sqlite3_prepare_v2(
             db = db.pointer,
-            zSql = csql.ptr,
-            nByte = size ?: csql.size,
+            zSql = cSql.ptr,
+            nByte = size ?: cSql.size,
             ppStmt = stmtPtr,
             pzTail = tailPtr
         )
@@ -1438,7 +1396,7 @@ public actual fun sqlite3_prepare_v3(
     size: Int?,
     flags: Sqlite3PrepareFlag?,
     outStmt: Sqlite3StatementOutParam,
-    outTail: Sqlite3StringUtf8OutParam?
+    outTail: Sqlite3Utf8OutParam?
 ): Sqlite3Result = convertResult(memScoped {
     useParams(outStmt, outTail) { stmtPtr, tailPtr ->
         val csql = sql.cstr
@@ -1471,7 +1429,7 @@ public actual fun sqlite3_preupdate_hook(
     native_sqlite3_preupdate_hook(
         db = db.pointer,
         xPreUpdate = PreupdateHookHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("preupdate_hook", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_PREUPDATE_HOOK, callback, userData)
     )
 )
 
@@ -1508,7 +1466,7 @@ public actual fun sqlite3_progress_handler(
     arg0 = db.pointer,
     arg1 = nOps,
     arg2 = ProgressHandlerHandler.handle(callback),
-    arg3 = db.memory.keyedStableRefPointer("progress_handler", callback, userData)
+    arg3 = db.memory.keyedStableRefPointer(KEY_PROGRESS_HANDLER, callback, userData)
 )
 
 public actual fun sqlite3_randomness(
@@ -1534,7 +1492,7 @@ public actual fun sqlite3_realloc64(
     data: sqlite3_mutable_pointer?,
     size: Long
 ): sqlite3_mutable_pointer? = sqlite3_mutable_pointer.from(
-    pointer = native_sqlite3_realloc(
+    pointer = native_sqlite3_realloc64(
         arg0 = data?.block?.pointer,
         arg1 = size.convert()
     ),
@@ -1547,10 +1505,8 @@ public actual fun sqlite3_release_memory(size: Int): Int =
 public actual fun sqlite3_reset(stmt: sqlite3_stmt): Sqlite3Result =
     convertResult(native_sqlite3_reset(stmt.pointer))
 
-public actual fun sqlite3_reset_auto_extension() {
-    AutoExtensions.clear()
-    native_sqlite3_reset_auto_extension()
-}
+public actual fun sqlite3_reset_auto_extension(): Unit =
+    autoExtensionReset { native_sqlite3_reset_auto_extension() }
 
 public actual fun sqlite3_result_blob(
     context: sqlite3_context,
@@ -1559,7 +1515,7 @@ public actual fun sqlite3_result_blob(
     destructor: Sqlite3DestructorCallback?
 ): Unit = native_sqlite3_result_blob(
     arg0 = context.pointer,
-    arg1 = sqlite3_context_db_handle(context)?.memory?.byteArrayPointer(data, destructor),
+    arg1 = context.db.memory.byteArrayPointer(data, destructor),
     arg2 = size,
     arg3 = globalDisposer(data)
 )
@@ -1639,10 +1595,9 @@ public actual fun sqlite3_result_pointer(
 ): Unit = allocateNamedPointer(type, destructor) {
     native_sqlite3_result_pointer(
         arg0 = context.pointer,
-        arg1 = sqlite3_context_db_handle(context)?.memory
-            ?.stableRefPointer(this, data, this.destructor),
+        arg1 = context.db.memory.stableRefPointer(this, data, disposer),
         arg2 = typePointer,
-        arg3 = stableRefDisposer(0, this.destructor)
+        arg3 = stableRefDisposer(this, disposer)
     )
 }
 
@@ -1677,8 +1632,8 @@ public actual fun sqlite3_result_text64(
     destructor: Sqlite3DestructorCallback?
 ): Unit = native_sqlite3_result_text64(
     arg0 = context.pointer,
-    arg1 = data?.block?.pointer,
-    arg2 = size.convert(),
+    z = data?.block?.pointer,
+    n = size.convert(),
     arg3 = userDataDisposer(data, destructor),
     encoding = encoding.utf8OrThrow().value.convert()
 )
@@ -1715,7 +1670,7 @@ public actual fun sqlite3_rollback_hook(
     native_sqlite3_rollback_hook(
         arg0 = db.pointer,
         arg1 = RollbackHookHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("rollback_hook", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_ROLLBACK_HOOK, callback, userData)
     )
 )
 
@@ -1748,7 +1703,7 @@ public actual fun sqlite3_set_authorizer(
     native_sqlite3_set_authorizer(
         arg0 = db.pointer,
         xAuth = SetAuthorizerHandler.handle(callback),
-        pUserData = db.memory.keyedStableRefPointer("set_authorizer", callback, userData)
+        pUserData = db.memory.keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, userData)
     )
 )
 
@@ -1760,12 +1715,7 @@ public actual fun sqlite3_set_auxdata(
 ): Unit = native_sqlite3_set_auxdata(
     arg0 = context.pointer,
     N = index,
-    arg2 = sqlite3_context_db_handle(context)?.memory?.keyedStableRefPointer(
-        key = "set_auxdata_$index",
-        data = data,
-        userData = data,
-        destructor = destructor
-    ),
+    arg2 = context.db.memory.keyedStableRefPointer(auxDataKey(index), data, data, destructor),
     arg3 = stableRefDisposer(data, destructor)
 )
 
@@ -1950,8 +1900,8 @@ public actual fun sqlite3_table_column_metadata(
     dbName: String?,
     tableName: String,
     columnName: String,
-    outDataType: Sqlite3StringUtf8OutParam?,
-    outCollationName: Sqlite3StringUtf8OutParam?,
+    outDataType: Sqlite3Utf8OutParam?,
+    outCollationName: Sqlite3Utf8OutParam?,
     outNotNull: Sqlite3IntOutParam?,
     outPrimaryKey: Sqlite3IntOutParam?,
     outAutoIncrement: Sqlite3IntOutParam?
@@ -1990,16 +1940,16 @@ public actual fun sqlite3_total_changes64(db: sqlite3): Long =
     native_sqlite3_total_changes64(db.pointer)
 
 public actual fun sqlite3_trace_v2(
-    sqlite3: sqlite3,
+    db: sqlite3,
     mask: Sqlite3TraceCode?,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3TraceCallback?
 ): Sqlite3Result = convertResult(
     native_sqlite3_trace_v2(
-        arg0 = sqlite3.pointer,
+        arg0 = db.pointer,
         uMask = mask?.value?.convert() ?: 0,
         xCallback = TraceHandler.handle(callback),
-        pCtx = sqlite3.memory.keyedStableRefPointer("trace_v2", callback, userData)
+        pCtx = db.memory.keyedStableRefPointer(KEY_TRACE, callback, userData)
     )
 )
 
@@ -2021,7 +1971,7 @@ public actual fun sqlite3_update_hook(
     native_sqlite3_update_hook(
         arg0 = db.pointer,
         arg1 = UpdateHookHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("update_hook", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_UPDATE_HOOK, callback, userData)
     )
 )
 
@@ -2140,17 +2090,8 @@ public actual fun sqlite3_vtab_collation(
 public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
-): Sqlite3Result {
-    val args: Array<Any?> = with(option) {
-        when (this) {
-            is Sqlite3VirtualTableConfigOption.CONSTRAINT_SUPPORT -> arrayOf(enabled)
-            Sqlite3VirtualTableConfigOption.DIRECTONLY,
-            Sqlite3VirtualTableConfigOption.INNOCUOUS,
-            Sqlite3VirtualTableConfigOption.USES_ALL_SCHEMAS -> emptyArray()
-        }
-    }
-
-    return convertResult(native_sqlite3_vtab_config(db.pointer, option.id, *args))
+): Sqlite3Result = commonSqlite3VtabConfig(option){ id, values ->
+    native_sqlite3_vtab_config(db.pointer, id, *values.toVariadicArguments())
 }
 
 public actual fun sqlite3_vtab_distinct(info: sqlite3_index_info): Int =
@@ -2250,6 +2191,6 @@ public actual fun sqlite3_wal_hook(
     native_sqlite3_wal_hook(
         arg0 = db.pointer,
         arg1 = WalHookHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("wal_hook", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_WAL_HOOK, callback, userData)
     )
 )

@@ -49,7 +49,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     internal fun byteArrayPointer(
         value: ByteArray?,
-        destructor: Sqlite3DestructorCallback?// = null
+        destructor: Sqlite3DestructorCallback? = null
     ): CPointer<ByteVar>? = notClosed {
         val pinned = value?.pin() ?: return null
         val pointer = pinned.addressOf(0)
@@ -70,7 +70,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun stringPointer(
         value: String?,
-        destructor: Sqlite3DestructorCallback?// = null
+        destructor: Sqlite3DestructorCallback? = null
     ): CPointer<ByteVar>? = notClosed {
         val cString = value?.cstr ?: return null
         val arena = Arena()

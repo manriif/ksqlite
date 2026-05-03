@@ -1,7 +1,10 @@
-import compilation.SqliteCompilationParameters
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
-import tools.Tools
+
+/**
+ * Name of the ksqlite extension.
+ */
+const val KSQLITE_EXTENSION_NAME = "ksqlite"
 
 /**
  * Extension for [KsqlitePlugin].
@@ -14,37 +17,12 @@ interface KsqliteExtension {
     val ksqliteDirectory: DirectoryProperty
 
     /**
-     * Checksums of downloaded sources.
+     * Directory where the SQLite source tree is located.
      */
-    val checksums: Property<KsqliteChecksums>
+    val sqliteDirectory: DirectoryProperty
 
     /**
-     * Parameters for the SQLite compilation.
+     * Name of the generated library.
      */
-    val compilationParams: Property<SqliteCompilationParameters>
-
-    /**
-     * Tools used by tasks.
-     */
-    val tools: Property<Tools>
-
-    /**
-     * Directory where to put downloaded files.
-     */
-    val downloadDirectory: DirectoryProperty
-
-    /**
-     * Directory where the SQLite source tree is stored.
-     */
-    val sqliteSourcesDirectory: DirectoryProperty
-
-    /**
-     * Year SQLite was released.
-     */
-    val sqliteReleaseYear: Property<String>
-
-    /**
-     * Version of the JDK.
-     */
-    val jdkVersion: Property<String>
+    val libraryName: Property<String>
 }

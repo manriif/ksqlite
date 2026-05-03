@@ -64,6 +64,7 @@ fun <Extension> Extension.configureKotlin()
             add("-Xexpect-actual-classes")
             add("-Xexplicit-backing-fields")
             add("-Xreturn-value-checker=full")
+            add("-Xcontext-sensitive-resolution")
         }
     }
 

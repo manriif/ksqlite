@@ -23,3 +23,20 @@ internal interface Reference : Disposable {
      */
     override fun dispose()
 }
+
+internal typealias ReferencedData<Data> = Pair<Data, sqlite3_mutable_pointer?>
+
+/**
+ * Returns `this` [Reference]'s referenced data as [Data] paired with the user data.
+ */
+internal inline fun <reified Data : Any> Reference.getReferencedData(): ReferencedData<Data> {
+    val data = checkNotNull(data) {
+        "No data exists for reference"
+    }
+
+    check(data is Data) {
+        "Data is not of expected type (${data::class} vs ${Data::class})"
+    }
+
+    return data to userData
+}

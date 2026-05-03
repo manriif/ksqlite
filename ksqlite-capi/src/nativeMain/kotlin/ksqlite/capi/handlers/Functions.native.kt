@@ -17,17 +17,6 @@ import ksqlite.sqlite3_user_data
 import kotlin.reflect.KProperty1
 
 /**
- * Returns a unique name for a function handler given theses distinctive arguments.
- */
-internal fun uniqueFunctionHandlerName(
-    name: String,
-    nArg: Int,
-    encoding: Sqlite3TextEncoding
-): String {
-    return "$name$nArg${encoding.value}"
-}
-
-/**
  * Handler for create function callback.
  */
 private inline fun functionHandler(

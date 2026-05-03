@@ -10,6 +10,7 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         google()
+        mavenLocal()
     }
 }
 
@@ -25,6 +26,7 @@ dependencyResolutionManagement {
         mavenCentral()
         google()
         gradlePluginPortal()
+        mavenLocal()
 
         ivy {
             url = uri("https://nodejs.org/dist")
@@ -40,11 +42,18 @@ dependencyResolutionManagement {
             content { includeModule("com.yarnpkg", "yarn") }
         }
     }
+
+    versionCatalogs {
+        create("kompleLibs") {
+            val kompleVersion = file("komple.version.txt").readText()
+            from("io.github.manriif.komple:komple-catalog:$kompleVersion")
+        }
+    }
 }
 
 include(":ksqlite-capi")
 include(":ksqlite-ffm")
-include(":ksqlite-jni")
-include(":ksqlite-kapi")
+//include(":ksqlite-jni")
+//include(":ksqlite-kapi")
 include(":ksqlite-native")
 include(":ksqlite-web")
