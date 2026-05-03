@@ -31,6 +31,10 @@ abstract class SqliteConfigurator @Inject constructor(toolName: String) :
         Linux, MacOS, Windows -> true
     }
 
+    override fun ExtensionConfigurationScope<SqliteExtension>.configureExtension(): SqliteExtension {
+        return createExtension()
+    }
+
     override fun DownloadTaskRegistrationScope<SqliteExtension>.registerDownloadTask(): TaskProvider<*> {
         return url(extension.version.zip(extension.releaseYear) { version, releaseYear ->
             val components = version.split('.')
@@ -46,10 +50,6 @@ abstract class SqliteConfigurator @Inject constructor(toolName: String) :
 
             "https://www.sqlite.org/$releaseYear/sqlite-src-$normalizedVersion.zip"
         })
-    }
-
-    override fun ExtensionConfigurationScope<SqliteExtension>.configureExtension(): SqliteExtension {
-        return createExtension()
     }
 
     override fun IntegrityTaskRegistrationScope<SqliteExtension>.registerIntegrityTask(): TaskProvider<*> {

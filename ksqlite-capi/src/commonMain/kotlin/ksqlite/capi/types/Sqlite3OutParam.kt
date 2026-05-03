@@ -56,7 +56,7 @@ public expect class Sqlite3LongOutParam(initialValue: Long) : Sqlite3OutParam<Lo
 /**
  * Wrapper around UTF-8 encoded [String] intended to be passed as parameter and written by SQLite.
  */
-public expect class Sqlite3StringUtf8OutParam() : Sqlite3OutParam<String?> {
+public expect class Sqlite3Utf8OutParam() : Sqlite3OutParam<String?> {
 
     /**
      * UTF-8 encoded [String] or `null` if no string has been allocated or allocation failed.

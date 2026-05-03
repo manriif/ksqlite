@@ -142,6 +142,7 @@ private val Sqlite3Functions = mapOf(
     // Error Handling
     "errcode" to true,
     "extended_errcode" to true,
+    "extended_result_codes" to true,
     "errmsg" to true,
     "errmsg16" to false,
     "error_offset" to true,

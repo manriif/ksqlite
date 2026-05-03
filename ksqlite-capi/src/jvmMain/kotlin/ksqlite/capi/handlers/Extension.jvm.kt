@@ -1,8 +1,8 @@
 package ksqlite.capi.handlers
 
+import ksqlite.capi.autoExtensionHandle
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.StaticMemoryManager
-import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
 import ksqlite.capi.utils.isNull

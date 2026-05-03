@@ -24,15 +24,15 @@ abstract class SqliteMCConfigurator @Inject constructor(toolName: String) :
         Linux, MacOS, Windows -> true
     }
 
+    override fun ExtensionConfigurationScope<SqliteMCExtension>.configureExtension(): SqliteMCExtension {
+        return createExtension()
+    }
+
     override fun DownloadTaskRegistrationScope<SqliteMCExtension>.registerDownloadTask(): TaskProvider<*> {
         return url(extension.version.zip(extension.sqliteVersion) { sqliteMCVersion, sqliteVersion ->
             "https://github.com/utelle/SQLite3MultipleCiphers/releases/download/v$sqliteMCVersion" +
                     "/sqlite3mc-$sqliteMCVersion-sqlite-$sqliteVersion-amalgamation.zip"
         })
-    }
-
-    override fun ExtensionConfigurationScope<SqliteMCExtension>.configureExtension(): SqliteMCExtension {
-        return createExtension()
     }
 
     override fun IntegrityTaskRegistrationScope<SqliteMCExtension>.registerIntegrityTask(): TaskProvider<*> {

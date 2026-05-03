@@ -1,6 +1,5 @@
-package ksqlite.capi.handlers
+package ksqlite.capi
 
-import ksqlite.capi.convertResult
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.sqlite3
@@ -9,11 +8,11 @@ import ksqlite.capi.types.sqlite3_api_routines
 /**
  * All registered [Sqlite3AutoExtensionCallback].
  */
-internal val AutoExtensions = mutableListOf<Sqlite3AutoExtensionCallback>()
+private val AutoExtensions = mutableListOf<Sqlite3AutoExtensionCallback>()
 
 /**
  * Registers the auto extension [callback].
- * The [invoke] block must return the result of [ksqlite.capi.sqlite3_auto_extension].
+ * The [invoke] block must return the result of [sqlite3_auto_extension].
  */
 internal fun autoExtensionRegister(
     callback: Sqlite3AutoExtensionCallback,
@@ -34,7 +33,7 @@ internal fun autoExtensionRegister(
 
 /**
  * Unregisters the auto extension [callback].
- * The [invoke] block must return the result of [ksqlite.capi.sqlite3_cancel_auto_extension].
+ * The [invoke] block must return the result of [sqlite3_cancel_auto_extension].
  */
 internal fun autoExtensionUnregister(
     callback: Sqlite3AutoExtensionCallback,
@@ -52,7 +51,16 @@ internal fun autoExtensionUnregister(
 }
 
 /**
- * Handler for [ksqlite.capi.sqlite3_auto_extension].
+ * Resets the registered extensions.
+ * The [invoke] block must execute the result of [sqlite3_reset_auto_extension].
+ */
+internal inline fun autoExtensionReset(invoke: () -> Unit) {
+    AutoExtensions.clear()
+    invoke()
+}
+
+/**
+ * Handles the  for [sqlite3_auto_extension].
  * Dispatches sqlite3_auto_extension call to all registered extensions.
  */
 internal fun <Pointer> autoExtensionHandle(

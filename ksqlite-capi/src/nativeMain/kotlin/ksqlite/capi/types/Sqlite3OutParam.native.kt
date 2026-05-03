@@ -109,7 +109,7 @@ public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
 // String
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3StringUtf8OutParam actual constructor() :
+public actual class Sqlite3Utf8OutParam actual constructor() :
     Sqlite3PointerOutParamBase<String?, ByteVar>() {
 
     /**

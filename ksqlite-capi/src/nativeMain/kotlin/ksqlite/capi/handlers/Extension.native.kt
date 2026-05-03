@@ -8,6 +8,7 @@ import kotlinx.cinterop.pointed
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.value
+import ksqlite.capi.autoExtensionHandle
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.s3_api
 import ksqlite.capi.types.sqlite3

@@ -37,7 +37,7 @@ import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
 import ksqlite.capi.types.Sqlite3StatementOutParam
 import ksqlite.capi.types.Sqlite3StatementStatusCounter
 import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3StringUtf8OutParam
+import ksqlite.capi.types.Sqlite3Utf8OutParam
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.Sqlite3TraceCode
@@ -740,7 +740,7 @@ public expect fun sqlite3_error_offset(db: sqlite3): Int
 public expect fun sqlite3_exec(
     db: sqlite3,
     sql: String,
-    outErrorMessage: Sqlite3StringUtf8OutParam?,
+    outErrorMessage: Sqlite3Utf8OutParam?,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3ExecCallback?
 ): Sqlite3Result
@@ -892,7 +892,7 @@ public expect fun sqlite3_keyword_count(): Int
  */
 public expect fun sqlite3_keyword_name(
     index: Int,
-    outName: Sqlite3StringUtf8OutParam,
+    outName: Sqlite3Utf8OutParam,
 ): Sqlite3Result
 
 /**
@@ -1036,7 +1036,7 @@ public expect fun sqlite3_prepare_v2(
     sql: String,
     size: Int?,
     outStmt: Sqlite3StatementOutParam,
-    outTail: Sqlite3StringUtf8OutParam?
+    outTail: Sqlite3Utf8OutParam?
 ): Sqlite3Result
 
 /**
@@ -1052,7 +1052,7 @@ public expect fun sqlite3_prepare_v3(
     size: Int?,
     flags: Sqlite3PrepareFlag?,
     outStmt: Sqlite3StatementOutParam,
-    outTail: Sqlite3StringUtf8OutParam?
+    outTail: Sqlite3Utf8OutParam?
 ): Sqlite3Result
 
 /**
@@ -1560,8 +1560,8 @@ public expect fun sqlite3_table_column_metadata(
     dbName: String?,
     tableName: String,
     columnName: String,
-    outDataType: Sqlite3StringUtf8OutParam?,
-    outCollationName: Sqlite3StringUtf8OutParam?,
+    outDataType: Sqlite3Utf8OutParam?,
+    outCollationName: Sqlite3Utf8OutParam?,
     outNotNull: Sqlite3IntOutParam?,
     outPrimaryKey: Sqlite3IntOutParam?,
     outAutoIncrement: Sqlite3IntOutParam?
