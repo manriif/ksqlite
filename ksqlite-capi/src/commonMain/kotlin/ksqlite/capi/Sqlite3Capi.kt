@@ -1587,7 +1587,7 @@ public expect fun sqlite3_total_changes64(db: sqlite3): Long
  * [sqlite3_trace_v2()](https://sqlite.org/c3ref/trace_v2.html)
  */
 public expect fun sqlite3_trace_v2(
-    sqlite3: sqlite3,
+    db: sqlite3,
     mask: Sqlite3TraceCode?,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3TraceCallback?

@@ -6,6 +6,7 @@ import ksqlite.capi.memory.memoryOrNull
 import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
@@ -152,6 +153,23 @@ internal fun <Pointer : Any> commonSqlite3DbConfig(
             )
 
             is MAINDBNAME -> arrayOf(VariadicValue.OfString(name))
+        }
+    }
+
+    return convertResult(nativeConfig(option.id, args))
+}
+
+/**
+ * Handles the [ksqlite.capi.sqlite3_vtab_config].
+ */
+internal fun <Pointer : Any> commonSqlite3VtabConfig(
+    option: Sqlite3VirtualTableConfigOption,
+    nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
+): Sqlite3Result {
+    val args = with(option) {
+        when (this) {
+            is CONSTRAINT_SUPPORT -> arrayOf(VariadicValue.OfInt(enabled))
+            DIRECTONLY, INNOCUOUS, USES_ALL_SCHEMAS -> emptyArray()
         }
     }
 

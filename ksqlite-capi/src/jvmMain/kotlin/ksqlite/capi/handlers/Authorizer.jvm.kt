@@ -11,7 +11,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_set_authorizer].
  */
-internal class AuthorizerHandler(manager: MemoryManager) : Handler(manager) {
+internal class SetAuthorizerHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,

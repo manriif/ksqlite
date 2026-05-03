@@ -3,6 +3,7 @@
 package ksqlite.capi
 
 import kotlinx.cinterop.ByteVar
+import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
@@ -321,6 +322,21 @@ import ksqlite.sqlite3_wal_autocheckpoint as native_sqlite3_wal_autocheckpoint
 import ksqlite.sqlite3_wal_checkpoint as native_sqlite3_wal_checkpoint
 import ksqlite.sqlite3_wal_checkpoint_v2 as native_sqlite3_wal_checkpoint_v2
 import ksqlite.sqlite3_wal_hook as native_sqlite3_wal_hook
+
+///////////////////////////////////////////////////////////////////////////
+// Helpers
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the raw values of `this` [VariadicValue] array.
+ */
+private fun Array<out VariadicValue<COpaquePointer>?>.toVariadicArguments(): Array<out Any?> {
+    return map { it?.value }.toTypedArray()
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Functions
+///////////////////////////////////////////////////////////////////////////
 
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
@@ -838,7 +854,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
         }
     },
     nativeConfig = { id, values ->
-        native_sqlite3_config(id, *values.map { it?.value }.toTypedArray())
+        native_sqlite3_config(id, *values.toVariadicArguments())
     }
 )
 
@@ -1029,7 +1045,7 @@ public actual fun sqlite3_db_config(
         }
     },
     nativeConfig = { id, values ->
-        native_sqlite3_db_config(db.pointer, id, *values)
+        native_sqlite3_db_config(db.pointer, id, *values.toVariadicArguments())
     }
 )
 
@@ -1654,7 +1670,7 @@ public actual fun sqlite3_rollback_hook(
     native_sqlite3_rollback_hook(
         arg0 = db.pointer,
         arg1 = RollbackHookHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("rollback_hook", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_ROLLBACK_HOOK, callback, userData)
     )
 )
 
@@ -1687,7 +1703,7 @@ public actual fun sqlite3_set_authorizer(
     native_sqlite3_set_authorizer(
         arg0 = db.pointer,
         xAuth = SetAuthorizerHandler.handle(callback),
-        pUserData = db.memory.keyedStableRefPointer("set_authorizer", callback, userData)
+        pUserData = db.memory.keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, userData)
     )
 )
 
@@ -1699,12 +1715,7 @@ public actual fun sqlite3_set_auxdata(
 ): Unit = native_sqlite3_set_auxdata(
     arg0 = context.pointer,
     N = index,
-    arg2 = context.db.memory.keyedStableRefPointer(
-        key = "set_auxdata_$index",
-        data = data,
-        userData = data,
-        destructor = destructor
-    ),
+    arg2 = context.db.memory.keyedStableRefPointer(auxDataKey(index), data, data, destructor),
     arg3 = stableRefDisposer(data, destructor)
 )
 
@@ -1929,16 +1940,16 @@ public actual fun sqlite3_total_changes64(db: sqlite3): Long =
     native_sqlite3_total_changes64(db.pointer)
 
 public actual fun sqlite3_trace_v2(
-    sqlite3: sqlite3,
+    db: sqlite3,
     mask: Sqlite3TraceCode?,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3TraceCallback?
 ): Sqlite3Result = convertResult(
     native_sqlite3_trace_v2(
-        arg0 = sqlite3.pointer,
+        arg0 = db.pointer,
         uMask = mask?.value?.convert() ?: 0,
         xCallback = TraceHandler.handle(callback),
-        pCtx = sqlite3.memory.keyedStableRefPointer("trace_v2", callback, userData)
+        pCtx = db.memory.keyedStableRefPointer(KEY_TRACE, callback, userData)
     )
 )
 
@@ -1960,7 +1971,7 @@ public actual fun sqlite3_update_hook(
     native_sqlite3_update_hook(
         arg0 = db.pointer,
         arg1 = UpdateHookHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("update_hook", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_UPDATE_HOOK, callback, userData)
     )
 )
 
@@ -2079,17 +2090,8 @@ public actual fun sqlite3_vtab_collation(
 public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
-): Sqlite3Result {
-    val args: Array<Any?> = with(option) {
-        when (this) {
-            is Sqlite3VirtualTableConfigOption.CONSTRAINT_SUPPORT -> arrayOf(enabled)
-            Sqlite3VirtualTableConfigOption.DIRECTONLY,
-            Sqlite3VirtualTableConfigOption.INNOCUOUS,
-            Sqlite3VirtualTableConfigOption.USES_ALL_SCHEMAS -> emptyArray()
-        }
-    }
-
-    return convertResult(native_sqlite3_vtab_config(db.pointer, option.id, *args))
+): Sqlite3Result = commonSqlite3VtabConfig(option){ id, values ->
+    native_sqlite3_vtab_config(db.pointer, id, *values.toVariadicArguments())
 }
 
 public actual fun sqlite3_vtab_distinct(info: sqlite3_index_info): Int =
@@ -2189,6 +2191,6 @@ public actual fun sqlite3_wal_hook(
     native_sqlite3_wal_hook(
         arg0 = db.pointer,
         arg1 = WalHookHandler.handle(callback),
-        arg2 = db.memory.keyedStableRefPointer("wal_hook", callback, userData)
+        arg2 = db.memory.keyedStableRefPointer(KEY_WAL_HOOK, callback, userData)
     )
 )

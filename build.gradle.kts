@@ -69,7 +69,7 @@ komple {
 
     execEnvironments {
         register("wasm") {
-            tools.run {
+            tools {
                 addEnvironments(emscripten, gnuSed, wabt)
             }
         }
