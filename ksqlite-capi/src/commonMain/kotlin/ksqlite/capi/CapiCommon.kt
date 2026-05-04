@@ -22,9 +22,9 @@ import kotlin.jvm.JvmInline
  * Returns the [sqlite3] associated with `this` [sqlite3_context].
  */
 internal val sqlite3_context.db: sqlite3
-    get() = checkNotNull(sqlite3_context_db_handle(this)) {
+    get() = TODO()/*checkNotNull(sqlite3_context_db_handle(this)) {
         "Database pointer not retrieved from context"
-    }
+    }*/
 
 /**
  * Value of a variadic function call.

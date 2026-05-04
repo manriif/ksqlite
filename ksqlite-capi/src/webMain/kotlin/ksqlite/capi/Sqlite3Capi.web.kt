@@ -2,17 +2,22 @@
 
 package ksqlite.capi
 
-import ksqlite.Capi
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_pointer
+import ksqlite.capi.interop.wasm.Sqlite3WasmExports
+import ksqlite.capi.types.sqlite3
 
-private val capi: Capi
-    inline get() = sqlite3.capi
+private inline val exports: Sqlite3WasmExports
+    get() = ksqlite.capi.interop.sqlite3.wasm.exports
 
-public actual fun sqlite3_aggregate_context(
-    context: sqlite3_context,
-    nBytes: Int
-): sqlite3_pointer? = capi.sqlite3_aggregate_context(
-    context,
-    nBytes
-)
+///////////////////////////////////////////////////////////////////////////
+// Helpers
+///////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////
+// Functions
+///////////////////////////////////////////////////////////////////////////
+
+public actual fun sqlite3_libversion(): String =
+    exports.sqlite3_libversion().toString()
+
+public actual fun sqlite3_libversion_number(db: sqlite3): Int =
+    exports.sqlite3_libversion_number()

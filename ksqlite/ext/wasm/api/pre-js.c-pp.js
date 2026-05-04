@@ -54,7 +54,7 @@
     sIMS.debugModule = Module.customDebugModule;
   }
 
-  sIMS.debugModule('pre-js.js sqlite3InitModuleState =',sIMS, Module);
+  sIMS.debugModule('pre-js.js sqlite3InitModuleState =',sIMS);
 
   /**
      This custom locateFile() tries to figure out where to load `path`

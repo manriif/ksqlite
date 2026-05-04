@@ -1,5 +1,5 @@
 @file:JvmName("Ksqlite")
-@file:Suppress("FunctionName")
+@file:Suppress("FunctionName", "SpellCheckingInspection")
 
 package ksqlite.capi
 
@@ -109,7 +109,7 @@ import ksqlite.capi.utils.getStringUtf8
 import ksqlite.capi.utils.getStringUtf8OrNull
 import ksqlite.capi.utils.notNull
 import ksqlite.capi.utils.orNull
-import ksqlite.sqliteLoadLibrary
+import ksqlite.ksqliteLoadLibrary
 import java.lang.foreign.Arena
 import java.lang.foreign.MemoryLayout
 import java.lang.foreign.MemorySegment
@@ -125,7 +125,7 @@ import ksqlite.sqlite3 as native
  */
 @Suppress("unused")
 private val nativeInit = run {
-    sqliteLoadLibrary()
+    ksqliteLoadLibrary()
 }
 
 ///////////////////////////////////////////////////////////////////////////

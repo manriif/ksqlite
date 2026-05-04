@@ -26,7 +26,10 @@ import kotlin.toULong
 internal actual class MemoryManager : MemoryManagerBase() {
 
     private val functionPointers by lazy { ConcurrentHashMap<KClass<*>, MemorySegment>() }
-    private val stableRefDisposer: MemorySegment by lazy { functionPointer(::StableRefDisposerHandler) }
+
+    private val stableRefDisposer: MemorySegment by lazy {
+        functionPointer(::StableRefDisposerHandler)
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // References

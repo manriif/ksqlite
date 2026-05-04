@@ -6,6 +6,7 @@ import ksqlite.capi.types.sqlite3_mutable_pointer
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
+import java.util.concurrent.ConcurrentHashMap
 
 ///////////////////////////////////////////////////////////////////////////
 // Global
@@ -13,9 +14,8 @@ import java.lang.foreign.ValueLayout
 
 /**
  * Holds any [Disposable] that should be reachable by static C function given a pointer.
- * TODO must be thread-safe
  */
-private val GlobalDisposables: MutableMap<Long, Disposable> by lazy(::hashMapOf)
+private val GlobalDisposables: MutableMap<Long, Disposable> by lazy(::ConcurrentHashMap)
 
 /**
  * Pointer to a static function disposing a [Disposable] registered with [registerGlobalDisposable].

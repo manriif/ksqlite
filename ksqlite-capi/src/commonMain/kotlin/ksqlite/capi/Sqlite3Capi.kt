@@ -55,7 +55,7 @@ import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
-
+/*
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
  * first call. Subsequent calls return the same context that was returned on prior calls.
@@ -912,7 +912,7 @@ public expect fun sqlite3_keyword_check(
  * [sqlite3_last_insert_rowid()](https://sqlite.org/c3ref/last_insert_rowid.html)
  */
 public expect fun sqlite3_last_insert_rowid(db: sqlite3): Long
-
+*/
 /**
  * Return the SQLite version in the format "X.Y.Z" where X is the major version number (always 3 for
  * SQLite3) and Y is the minor version number and Z is the release number.
@@ -928,7 +928,7 @@ public expect fun sqlite3_libversion(): String
  * [sqlite3_libversion_number()](https://sqlite.org/c3ref/libversion.html)
  */
 public expect fun sqlite3_libversion_number(db: sqlite3): Int
-
+/*
 /**
  * Change the value of a limit. Report the old value. If an invalid limit index is supplied,
  * report -1.
@@ -1895,3 +1895,4 @@ public expect fun sqlite3_vtab_rhs_value(
     index: Int,
     outValue: Sqlite3ValueOutParam?
 ): Sqlite3Result
+*/

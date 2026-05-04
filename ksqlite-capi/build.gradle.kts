@@ -10,7 +10,7 @@ kotlin {
     jvmTargets()
     macosArm64()
     //nativeTargets()
-    //webTargets()
+    webTargets()
 
     sourceSets {
         commonTest.dependencies {
@@ -19,7 +19,7 @@ kotlin {
         }
 
         /*androidMain.dependencies {
-            implementation(projects.sqliteJni)
+            implementation(projects.ksqliteJni)
         }*/
 
         jvmMain.dependencies {
@@ -30,18 +30,18 @@ kotlin {
             implementation(projects.ksqliteNative)
         }
 
-        /*webMain.dependencies {
+        webMain.dependencies {
             implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
             implementation(projects.ksqliteWeb)
-        }*/
+        }
     }
 }
 
-/*kotlinJsResConsumer {
+kotlinJsResConsumer {
     directory = ""
 }
 
 dependencies {
     jsConsumedResources(projects.ksqliteWeb)
     wasmConsumedResources(projects.ksqliteWeb)
-}*/
+}

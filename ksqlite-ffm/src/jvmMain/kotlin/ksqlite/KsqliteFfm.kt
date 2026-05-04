@@ -11,10 +11,9 @@ private fun String.isArm64(): Boolean {
 }
 
 /**
- * Loads the SQLite library.
+ * Loads the Kotlin SQLite library.
  */
-@Suppress("UnsafeDynamicallyLoadedCode")
-public fun sqliteLoadLibrary() {
+public fun ksqliteLoadLibrary() {
     val osName = System.getProperty("os.name").lowercase()
     val osArch = System.getProperty("os.arch").lowercase()
 

@@ -43,8 +43,8 @@ internal fun MemoryManager.keyedStableRefPointer(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Runs given [block] providing allocation of memory
- * which will be automatically disposed at the end of this scope.
+ * Runs given [block] providing allocation of memory which will be automatically disposed at the end
+ * of this scope.
  */
 internal inline fun <T> memScoped(block: SegmentAllocator.() -> T): T {
     return Arena.ofConfined().use(block)
