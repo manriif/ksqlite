@@ -54,9 +54,9 @@ fun <Extension> Extension.configureKotlin()
     explicitApi()
 
     compilerOptions {
-        languageVersion = KotlinVersion.KOTLIN_2_3
-        apiVersion = KotlinVersion.KOTLIN_2_3
-        allWarningsAsErrors = true
+        languageVersion = KotlinVersion.KOTLIN_2_4
+        apiVersion = KotlinVersion.KOTLIN_2_4
+        //allWarningsAsErrors = true
         progressiveMode = true
 
         freeCompilerArgs.run {

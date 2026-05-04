@@ -12,6 +12,7 @@ import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
+import kotlin.jvm.JvmInline
 
 ///////////////////////////////////////////////////////////////////////////
 // Helpers
@@ -32,10 +33,19 @@ internal sealed interface VariadicValue<out Pointer : Any> {
 
     val value: Any
 
+    @JvmInline
     value class OfPointer<P : Any>(override val value: P) : VariadicValue<P>
+
+    @JvmInline
     value class OfInt(override val value: Int) : VariadicValue<Nothing>
+
+    @JvmInline
     value class OfUInt(override val value: UInt) : VariadicValue<Nothing>
+
+    @JvmInline
     value class OfLong(override val value: Long) : VariadicValue<Nothing>
+
+    @JvmInline
     value class OfString(override val value: String) : VariadicValue<Nothing>
 }
 
@@ -58,6 +68,7 @@ internal fun commonSqlite3ClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite
 
 /**
  * Handles the [ksqlite.capi.sqlite3_config].
+ * The array passed to [nativeConfig] contains at most 3 values.
  */
 internal fun <Pointer : Any> commonSqlite3Config(
     option: Sqlite3ConfigOption,
@@ -129,6 +140,7 @@ internal fun <Pointer : Any> commonSqlite3Config(
 
 /**
  * Handles the [ksqlite.capi.sqlite3_db_config].
+ * The array passed to [nativeConfig] contains at most 3 values.
  */
 internal fun <Pointer : Any> commonSqlite3DbConfig(
     option: Sqlite3DbConfigOption,
@@ -161,6 +173,7 @@ internal fun <Pointer : Any> commonSqlite3DbConfig(
 
 /**
  * Handles the [ksqlite.capi.sqlite3_vtab_config].
+ * The array passed to [nativeConfig] contains at most 1 value.
  */
 internal fun <Pointer : Any> commonSqlite3VtabConfig(
     option: Sqlite3VirtualTableConfigOption,
