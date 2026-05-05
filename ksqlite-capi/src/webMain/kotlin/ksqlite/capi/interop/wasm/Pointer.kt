@@ -1,6 +1,15 @@
 package ksqlite.capi.interop.wasm
 
+import ksqlite.capi.interop.sqlite3
+import kotlin.js.JsAny
+import kotlin.js.JsBigInt
 import kotlin.js.JsName
+
+/**
+ * Wasm pointer type.
+ */
+internal typealias WasmPointer = JsBigInt
+internal typealias WasmFunction = JsAny
 
 /**
  * The [wasm.ptr](https://sqlite.org/wasm/doc/trunk/api-wasm.md#wasm-ptr) API was added to assist in
@@ -17,3 +26,9 @@ internal external interface Ptr {
     @JsName("null")
     val `null`: WasmPointer
 }
+
+/**
+ * Wasm null pointer.
+ */
+internal val NullPtr: WasmPointer
+    get() = sqlite3.wasm.ptr.`null`
