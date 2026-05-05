@@ -188,6 +188,17 @@ public expect fun sqlite3_bind_text(
 ): Sqlite3Result
 
 /**
+ * Bind a blob value to an SQL statement variable.
+ *
+ * [sqlite3_bind_zeroblob()](https://sqlite.org/c3ref/bind_blob.html)
+ */
+public expect fun sqlite3_bind_zeroblob(
+    stmt: sqlite3_stmt,
+    index: Int,
+    size: Int
+): Sqlite3Result
+
+/**
  * This routine sets the busy callback for an SQLite database to the given callback function with
  * the given argument.
  *

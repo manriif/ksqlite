@@ -12,7 +12,6 @@ import kotlin.js.JsString
 import kotlin.js.definedExternally
 import kotlin.js.get
 import kotlin.js.unsafeCast
-import kotlin.reflect.KFunction
 
 /**
  * The [sqlite3.wasm](https://sqlite.org/wasm/doc/trunk/api-wasm.md) namespace, abbreviated as wasm

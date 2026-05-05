@@ -17,11 +17,7 @@ private external fun typeOf(arg: JsAny)
 
 internal actual suspend fun initializeSqliteForSynchronousTest() {
     initializeSqlite(/*debugModule = ::log*/)
-    val version = sqlite3.wasm.exports.sqlite3_libversion()
-    val utf8 = version.toKStringFromUtf8()
-    val bytes = utf8.encodeToByteArray()
 
-    println(sqlite3.wasm.ptr.`null`)
     //log(arrayOf(sqlite3.wasm.exports.sqlite3_libversion().toKStringFromUtf8()).toJsArray())
     awaitCancellation()
 }

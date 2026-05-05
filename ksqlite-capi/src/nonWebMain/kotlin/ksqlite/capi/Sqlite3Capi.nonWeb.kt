@@ -124,17 +124,6 @@ public expect fun sqlite3_bind_value(
 /**
  * Bind a blob value to an SQL statement variable.
  *
- * [sqlite3_bind_zeroblob()](https://sqlite.org/c3ref/bind_blob.html)
- */
-public expect fun sqlite3_bind_zeroblob(
-    stmt: sqlite3_stmt,
-    index: Int,
-    size: Int
-): Sqlite3Result
-
-/**
- * Bind a blob value to an SQL statement variable.
- *
  * [sqlite3_bind_zeroblob64()](https://sqlite.org/c3ref/bind_blob.html)
  */
 public expect fun sqlite3_bind_zeroblob64(
