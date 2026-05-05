@@ -1,3 +1,5 @@
+@file:Suppress("RemoveExplicitTypeArguments")
+
 package ksqlite.capi.interop.wasm
 
 import ksqlite.capi.utils.emptyJsArray
@@ -30,7 +32,7 @@ import kotlin.js.unsafeCast
  * }
  * ```
  */
-internal abstract external class PStack {
+internal external interface PStack {
 
     /**
      * This property resolves to the current pstack position pointer. This value is intended only to
@@ -78,14 +80,7 @@ internal abstract external class PStack {
      * so can lead to incorrect results when reading and writing 64-bit values from/to the WASM heap.
      * Similarly, the returned address is always 8-byte aligned.
      */
-    private fun alloc(n: String): WasmPointer
-
-    /**
-     * Attempts to allocate the given number of bytes from the pstack.
-     */
-    fun alloc(n: IR): WasmPointer {
-        return alloc(n.value)
-    }
+    fun alloc(n: String): WasmPointer
 
     /**
      * alloc()'s n chunks, each sz bytes, as a single memory block and returns the addresses as an
@@ -122,14 +117,6 @@ internal abstract external class PStack {
     fun allocChunks(n: Int, sz: String): JsArray<WasmPointer>
 
     /**
-     * alloc()'s n chunks, each sz bytes, as a single memory block and returns the addresses as an
-     * array of n element, each holding the address of one chunk.
-     */
-    fun allocChunks(n: Int, sz: IR): JsArray<WasmPointer> {
-        return allocChunks(n, sz.value)
-    }
-
-    /**
      * A convenience wrapper for allocChunks() which sizes each chunk as either 8 bytes
      * (safePtrSize is truthy) or wasm.ptrSizeof (if safePtrSize is falsy).
      *
@@ -144,23 +131,7 @@ internal abstract external class PStack {
      * However, when all pointers involved point to "small" data, it is safe to pass a falsy value
      * to save a tiny bit of memory.
      */
-    private fun allocPtr(n: Int, safePtrSize: Boolean): JsAny
-
-    /**
-     * Allocates a pointer and set is to 0.
-     */
-    fun allocPtr(): WasmPointer {
-        return allocPtr(1, true).unsafeCast()
-    }
-
-    /**
-     * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
-     */
-    fun allocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
-        0u -> emptyJsArray()
-        1u -> jsArrayOf(allocPtr())
-        else -> allocPtr(howMany.toInt(), true).unsafeCast()
-    }
+    fun allocPtr(n: Int, safePtrSize: Boolean): JsAny
 
     /**
      * Sets the current pstack position to the given pointer. Results are undefined if the passed-in
@@ -168,4 +139,39 @@ internal abstract external class PStack {
      * pointer are used after this call.
      */
     fun restore(pstackPtr: JsAny)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Type-safety
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Attempts to allocate the given number of bytes from the pstack.
+ */
+internal fun PStack.alloc(n: IR): WasmPointer {
+    return alloc(n.value)
+}
+
+/**
+ * alloc()'s n chunks, each sz bytes, as a single memory block and returns the addresses as an
+ * array of n element, each holding the address of one chunk.
+ */
+internal fun PStack.allocChunks(n: Int, sz: IR): JsArray<WasmPointer> {
+    return allocChunks(n, sz.value)
+}
+
+/**
+ * Allocates a pointer and set is to 0.
+ */
+internal fun PStack.allocPtr(): WasmPointer {
+    return allocPtr(1, true).unsafeCast<WasmPointer>()
+}
+
+/**
+ * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
+ */
+internal fun PStack.allocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
+    0u -> emptyJsArray()
+    1u -> jsArrayOf(allocPtr())
+    else -> allocPtr(howMany.toInt(), true).unsafeCast<JsArray<WasmPointer>>()
 }

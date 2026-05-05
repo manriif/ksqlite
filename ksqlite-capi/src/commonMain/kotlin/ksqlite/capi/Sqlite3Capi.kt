@@ -55,7 +55,7 @@ import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
-/*
+/* TODO key and rekey APIs
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
  * first call. Subsequent calls return the same context that was returned on prior calls.

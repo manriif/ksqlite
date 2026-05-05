@@ -1,7 +1,7 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.Sqlite3Wasm
-import ksqlite.capi.interop.sqlite3
 import ksqlite.capi.interop.wasm.WasmPointer
 
 public actual open class GenericPointer internal constructor(internal val pointer: WasmPointer)
@@ -10,8 +10,31 @@ public actual open class GenericPointer internal constructor(internal val pointe
 // Allocation
 ///////////////////////////////////////////////////////////////////////////
 
-internal interface MemoryAllocator: AutoCloseable {
+internal interface MemoryAllocator : AutoCloseable {
 
+}
+
+private inline fun MemoryAllocator.createPointer(
+    /*size: Int, */
+    init: Sqlite3Wasm.() -> WasmPointer
+): WasmPointer {
+    TODO()
+}
+
+internal fun MemoryAllocator.allocatePointer(initialValue: WasmPointer = NullPtr) = createPointer {
+    TODO()
+}
+
+internal fun MemoryAllocator.allocateUtf8(initialValue: String? = null): WasmPointer = createPointer {
+    TODO()
+}
+
+internal fun MemoryAllocator.allocateLong(initialValue: Long = 0L): WasmPointer = createPointer {
+    TODO()
+}
+
+internal fun MemoryAllocator.allocateInt(initialValue: Int = 0): WasmPointer = createPointer {
+    TODO()
 }
 
 /**
@@ -22,26 +45,6 @@ internal class HeapAllocator : MemoryAllocator {
     private val allocatedPointers = mutableListOf<WasmPointer>()
     private var closed = false
 
-    private inline fun createPointer(size: Int, init: Sqlite3Wasm.() -> WasmPointer): WasmPointer {
-       TODO()
-    }
-
-    fun allocatePointer(initialAddress: WasmPointer? = null) = createPointer {
-        TODO()
-    }
-
-    fun allocateUtf8(initialValue: String?): WasmPointer = createPointer {
-        TODO()
-    }
-
-    fun allocateLong(initialValue: Long): WasmPointer = createPointer {
-        TODO()
-    }
-
-    fun allocateInt(initialValue: Int): WasmPointer = createPointer {
-        TODO()
-    }
-
     override fun close() {
         check(!closed) { "Allocator is closed" }
         closed = true
@@ -50,6 +53,14 @@ internal class HeapAllocator : MemoryAllocator {
             .onEach { TODO() }
             .clear()
     }
+}
+
+/**
+ * Runs given [block] providing allocation of memory which will be automatically disposed at the end
+ * of this scope.
+ */
+internal inline fun <T> memScoped(block: HeapAllocator.() -> T): T {
+    return HeapAllocator().use(block)
 }
 
 /**

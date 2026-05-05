@@ -2,12 +2,13 @@
 
 package ksqlite.capi.interop.wasm
 
+import kotlin.js.JsAny
 import kotlin.js.nativeInvoke
 
 /**
  * Wasm alloc function.
  */
-internal external interface Alloc {
+internal external interface Alloc : JsAny {
 
     /**
      * Invokes the base function, which can throws.
@@ -24,7 +25,7 @@ internal external interface Alloc {
 /**
  * Wasm realloc function.
  */
-internal external interface Realloc {
+internal external interface Realloc : JsAny {
 
     /**
      * Invokes the base function, which can throws.

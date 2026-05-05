@@ -1,6 +1,6 @@
 package ksqlite.capi.utils
 
-import ksqlite.capi.interop.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmPointer
 

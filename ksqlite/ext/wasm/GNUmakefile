@@ -318,7 +318,7 @@ endif
 #
 sqlite3.canonical.c = $(dir.top)/sqlite3.c
 sqlite3.c ?= $(firstword $(wildcard $(dir.top)/sqlite3-see.c) $(sqlite3.canonical.c))
-sqlite3.h = $(dir $(sqlite3.c))sqlite3.h
+sqlite3.h ?= $(dir $(sqlite3.c))sqlite3.h
 
 #
 # bin.version-info = binary to output various sqlite3 version info for

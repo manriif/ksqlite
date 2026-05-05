@@ -1,4 +1,4 @@
-@file:Suppress("SpellCheckingInspection", "DEPRECATION")
+@file:Suppress("SpellCheckingInspection", "DEPRECATION", "RemoveExplicitTypeArguments")
 
 package ksqlite.capi.interop.wasm
 
@@ -34,7 +34,7 @@ import kotlin.js.unsafeCast
  *
  * TODO heap typed arrays
  */
-internal abstract external class Sqlite3Wasm {
+internal external interface Sqlite3Wasm : JsAny {
 
     /**
      * Wasm exports namespace.
@@ -108,24 +108,10 @@ internal abstract external class Sqlite3Wasm {
      * If passed a truthy 2nd argument then its return semantics change: it returns [ptr,n], where
      * ptr is the C-string's pointer and n is its cstrlen().
      */
-    private fun allocCString(
+    fun allocCString(
         jsString: JsString,
         returnWithLength: Boolean
     ): JsAny
-
-    /**
-     * Allocates a C-style string and returns the pointer to it.
-     */
-    fun allocCString(jsString: JsString): WasmPointer {
-        return allocCString(jsString, false).unsafeCast()
-    }
-
-    /**
-     * Allocates a C-style string and returns a [CString] object.
-     */
-    fun allocCStringWithLength(jsString: JsString): CString {
-        return allocCString(jsString, true).toCString()
-    }
 
     /**
      * Allocates one or more pointers as a single chunk of memory and zeroes them out.
@@ -153,26 +139,10 @@ internal abstract external class Sqlite3Wasm {
      * written properly and will corrupt or read neighboring memory. It is only safe to pass false
      * when the client code is certain that it will only get/fetch 4-byte values (or smaller).
      */
-    private fun allocPtr(
+    fun allocPtr(
         howMany: Int,
         safePtrSize: Boolean
     ): JsAny
-
-    /**
-     * Allocates a pointer and set is to 0.
-     */
-    fun allocPtr(): WasmPointer {
-        return allocPtr(1, true).unsafeCast()
-    }
-
-    /**
-     * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
-     */
-    fun allocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
-        0u -> emptyJsArray()
-        1u -> jsArrayOf(allocPtr())
-        else -> allocPtr(howMany.toInt(), true).unsafeCast()
-    }
 
     /**
      * Frees memory returned by alloc(). Results are undefined if it is passed any value other than
@@ -188,14 +158,7 @@ internal abstract external class Sqlite3Wasm {
      * Some allocation routines use this to enable callers to pass them an IR value instead of an
      * integer.
      */
-    private fun sizeOfIR(ir: String): Int
-
-    /**
-     * Return the size of [ir] value.
-     */
-    fun sizeOfIR(ir: IR): Int {
-        return sizeOfIR(ir.value)
-    }
+    fun sizeOfIR(ir: String): Int
 
     ///////////////////////////////////////////////////////////////////////////
     // "Scoped" Allocation Management
@@ -263,52 +226,18 @@ internal abstract external class Sqlite3Wasm {
      * If passed a truthy 2nd argument then its return semantics change: it returns [ptr,n], where
      * ptr is the C-string's pointer and n is its cstrlen().
      */
-    private fun scopedAllocCString(
+    fun scopedAllocCString(
         jsString: JsString,
         returnWithLength: Boolean
     ): JsAny
 
     /**
-     * Allocates a C-style string and returns the pointer to it.
-     * Must be called in a scoped allocation scope.
-     */
-    fun scopedAllocCString(jsString: JsString): WasmPointer {
-        return scopedAllocCString(jsString, false).unsafeCast()
-    }
-
-    /**
-     * Allocates a C-style string and returns a [CString] object.
-     * Must be called in a scoped allocation scope.
-     */
-    fun scopedAllocCStringWithLength(jsString: JsString): CString {
-        return scopedAllocCString(jsString, true).toCString()
-    }
-
-    /**
      * Works just like allocPtr() but stores the result of the allocation in the current scope.
      */
-    private fun scopedAllocPtr(
+    fun scopedAllocPtr(
         howMany: Int,
         safePtrSize: Boolean
     ): JsAny
-
-    /**
-     * Allocates a pointer and set is to 0.
-     * Must be called in a scoped allocation scope.
-     */
-    fun scopedAllocPtr(): WasmPointer {
-        return allocPtr(1, true).unsafeCast()
-    }
-
-    /**
-     * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
-     * Must be called in a scoped allocation scope.
-     */
-    fun scopedAllocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
-        0u -> emptyJsArray()
-        1u -> jsArrayOf(scopedAllocPtr())
-        else -> scopedAllocPtr(howMany.toInt(), true).unsafeCast()
-    }
 
     /**
      * Given a value returned from scopedAllocPush(), this "pops" that allocation scope and frees
@@ -349,7 +278,7 @@ internal abstract external class Sqlite3Wasm {
      * let i32 = wasm.peek(myPtr, 'i32');
      * ```
      */
-    private fun peek(
+    fun peek(
         address: WasmPointer,
         representation: String
     ): JsAny
@@ -362,45 +291,10 @@ internal abstract external class Sqlite3Wasm {
      * If the 2nd argument ends with "*" then the pointer-sized representation is always used
      * (currently always 32 bits).
      */
-    private fun peek(
+    fun peek(
         addresses: JsArray<WasmPointer>,
         representation: String
     ): Array<JsAny>
-
-    /**
-     * Fetches a single value from memory. The heap view used for reading the memory is specified
-     * by the second argument, defaulting to byte-oriented view.
-     *
-     * If the 2nd argument ends with "*" then the pointer-sized representation is always used
-     * (currently always 32 bits).
-     *
-     * Example:
-     *
-     * ```javascript
-     * let i32 = wasm.peek(myPtr, 'i32');
-     * ```
-     */
-    fun peek(
-        address: WasmPointer,
-        representation: IR
-    ): JsAny {
-        return peek(address, representation.value)
-    }
-
-    /**
-     * The second form fetches the value from each pointer in the given array and returns the array
-     * of values. The heap view used for reading the memory is specified by the second argument,
-     * defaulting to byte-oriented view.
-     *
-     * If the 2nd argument ends with "*" then the pointer-sized representation is always used
-     * (currently always 32 bits).
-     */
-    fun peek(
-        addresses: JsArray<WasmPointer>,
-        representation: IR
-    ): Array<JsAny> {
-        return peek(addresses, representation.value)
-    }
 
     /**
      * Equivalent to peek(X,'*'). Most frequently used for fetching output pointer values.
@@ -495,47 +389,10 @@ internal abstract external class Sqlite3Wasm {
      *
      * Throws if passed an invalid n.
      */
-    private fun heapForSize(
+    fun heapForSize(
         n: Int,
         unsigned: Boolean
     ): JsAny
-
-    /**
-     * Requires n to be one of:
-     *
-     * - integer 8, 16, or 32.
-     * - A integer-type TypedArray constructor: Int8Array, Int16Array, Int32Array, or their Uint
-     * counterparts.
-     *
-     * If BigInt support is enabled, it also accepts the value 64 or a BigInt64Array/BigUint64Array,
-     * else it throws if passed 64 or one of those constructors.
-     *
-     * Returns an integer-based TypedArray view of the WASM heap memory buffer associated with the
-     * given block size. If passed an integer as the first argument and unsigned is truthy then the
-     * "U" (unsigned) variant of that view is returned, else the signed variant is returned. If
-     * passed a TypedArray value, the 2nd argument is ignored. Note that Float32Array and
-     * Float64Array views are not supported by this function.
-     *
-     * Be aware that growth of the heap may invalidate any references to this heap, so do not hold
-     * a reference longer than needed and do not use a reference after any operation which may
-     * allocate. Instead, re-fetch the reference by calling this function again, which automatically
-     * refreshes the view if needed.
-     *
-     * Throws if passed an invalid n.
-     */
-    fun heapForSize(
-        n: IR.Integer,
-        unsigned: Boolean
-    ): JsAny {
-        val nInt = when (n) {
-            IR.I8 -> 8
-            IR.I16 -> 16
-            IR.I32 -> 32
-            IR.I64 -> 64
-        }
-
-        return heapForSize(nInt, unsigned)
-    }
 
     /**
      * Equivalent of heapForSize(8, false) -> Int8Array.
@@ -574,7 +431,7 @@ internal abstract external class Sqlite3Wasm {
      *
      * Returns this.
      */
-    private fun poke(
+    fun poke(
         address: WasmPointer,
         value: JsAny,
         representation: String
@@ -587,77 +444,11 @@ internal abstract external class Sqlite3Wasm {
      *
      * Returns this.
      */
-    private fun poke(
+    fun poke(
         addresses: JsArray<WasmPointer>,
         value: JsAny,
         representation: String
     ): Sqlite3Wasm
-
-    /**
-     * Fetches the heapForSize() for the given representation then writes the given numeric value
-     * to it. Only numbers may be written this way, and passing a non-number might trigger an
-     * exception. If passed an array of pointers, it writes the given value to all of them.
-     *
-     * Returns this.
-     */
-    fun poke(
-        address: WasmPointer,
-        value: JsNumber,
-        representation: IR.Number
-    ): Sqlite3Wasm = poke(
-        address = address,
-        value = value,
-        representation = representation.value
-    )
-
-    /**
-     * Fetches the heapForSize() for the given representation then writes the given numeric value
-     * to it. Only numbers may be written this way, and passing a non-number might trigger an
-     * exception. If passed an array of pointers, it writes the given value to all of them.
-     *
-     * Returns this.
-     */
-    fun poke(
-        addresses: JsArray<WasmPointer>,
-        value: JsNumber,
-        representation: IR.Number
-    ): Sqlite3Wasm = poke(
-        addresses = addresses,
-        value = value,
-        representation = representation.value
-    )
-
-    /**
-     * Fetches the heapForSize() for the given representation then writes the given numeric value
-     * to it. Only numbers may be written this way, and passing a non-number might trigger an
-     * exception. If passed an array of pointers, it writes the given value to all of them.
-     *
-     * Returns this.
-     */
-    fun poke(
-        address: WasmPointer,
-        value: JsBigInt
-    ): Sqlite3Wasm = poke(
-        address = address,
-        value = value,
-        representation = IR.I64.value
-    )
-
-    /**
-     * Fetches the heapForSize() for the given representation then writes the given numeric value
-     * to it. Only numbers may be written this way, and passing a non-number might trigger an
-     * exception. If passed an array of pointers, it writes the given value to all of them.
-     *
-     * Returns this.
-     */
-    fun poke(
-        addresses: JsArray<WasmPointer>,
-        value: JsBigInt
-    ): Sqlite3Wasm = poke(
-        addresses = addresses,
-        value = value,
-        representation = IR.I64.value
-    )
 
     /**
      * Equivalent to poke(X, Y,'*'). Most frequently used for fetching output pointer values.
@@ -774,17 +565,6 @@ internal abstract external class Sqlite3Wasm {
     ///////////////////////////////////////////////////////////////////////////
     // String Conversion and Utilities
     ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Returns a [CString] from an array returned by [allocCString] and
-     * [scopedAllocCStringWithLength].
-     */
-    private fun JsAny.toCString(): CString = unsafeCast<JsArray<JsAny>>().run {
-        CString(
-            pointer = get(0)!!.unsafeCast(),
-            size = get(1)!!.unsafeCast()
-        )
-    }
 
     /**
      * Expects its argument to be a pointer into the WASM heap memory which refers to a
@@ -1055,7 +835,7 @@ internal abstract external class Sqlite3Wasm {
      */
     fun installFunction(
         funcSignature: String,
-        function: JsAny
+        function: JsFunction
     ): WasmPointer
 
     /**
@@ -1073,7 +853,7 @@ internal abstract external class Sqlite3Wasm {
      * when building without Emscripten's -sALLOW_TABLE_GROWTH flag.
      */
     fun installFunction(
-        function: JsAny,
+        function: JsFunction,
         funcSignature: String
     ): WasmPointer
 
@@ -1100,7 +880,7 @@ internal abstract external class Sqlite3Wasm {
      * It throws if an invalid signature letter is used.
      */
     fun jsFuncToWasm(
-        function: JsAny,
+        function: JsFunction,
         signature: String,
     ): WasmFunction
 
@@ -1128,7 +908,7 @@ internal abstract external class Sqlite3Wasm {
      */
     fun jsFuncToWasm(
         signature: String,
-        function: JsAny,
+        function: JsFunction,
     ): WasmFunction
 
     /**
@@ -1138,7 +918,7 @@ internal abstract external class Sqlite3Wasm {
      */
     fun scopedInstallFunction(
         funcSignature: String,
-        function: JsAny
+        function: JsFunction
     ): WasmPointer
 
     /**
@@ -1147,7 +927,7 @@ internal abstract external class Sqlite3Wasm {
      * It will throw if no allocation scope is active.
      */
     fun scopedInstallFunction(
-        function: JsAny,
+        function: JsFunction,
         funcSignature: String
     ): WasmPointer
 
@@ -1160,3 +940,192 @@ internal abstract external class Sqlite3Wasm {
      */
     fun uninstallFunction(pointer: WasmPointer): WasmFunction
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Type-safety
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a [CString] from an array returned by [allocCString] and
+ * [scopedAllocCStringWithLength].
+ */
+private fun JsAny.toCString(): CString = unsafeCast<JsArray<JsAny>>().run {
+    CString(
+        pointer = get(0)!!.unsafeCast<WasmPointer>(),
+        size = get(1)!!.unsafeCast<JsBigInt>()
+    )
+}
+
+/**
+ * Allocates a C-style string and returns the pointer to it.
+ */
+internal fun Sqlite3Wasm.allocCString(jsString: JsString): WasmPointer {
+    return allocCString(jsString, false).unsafeCast<WasmPointer>()
+}
+
+/**
+ * Allocates a C-style string and returns a [CString] object.
+ */
+internal fun Sqlite3Wasm.allocCStringWithLength(jsString: JsString): CString {
+    return allocCString(jsString, true).toCString()
+}
+
+/**
+ * Allocates a pointer and set is to 0.
+ */
+internal fun Sqlite3Wasm.allocPtr(): WasmPointer {
+    return allocPtr(1, true).unsafeCast<WasmPointer>()
+}
+
+/**
+ * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
+ */
+internal fun Sqlite3Wasm.allocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
+    0u -> emptyJsArray()
+    1u -> jsArrayOf(allocPtr())
+    else -> allocPtr(howMany.toInt(), true).unsafeCast<JsArray<WasmPointer>>()
+}
+
+/**
+ * Return the size of [ir] value.
+ */
+internal fun Sqlite3Wasm.sizeOfIR(ir: IR): Int {
+    return sizeOfIR(ir.value)
+}
+
+/**
+ * Allocates a C-style string and returns the pointer to it.
+ * Must be called in a scoped allocation scope.
+ */
+internal fun Sqlite3Wasm.scopedAllocCString(jsString: JsString): WasmPointer {
+    return scopedAllocCString(jsString, false).unsafeCast<WasmPointer>()
+}
+
+/**
+ * Allocates a C-style string and returns a [CString] object.
+ * Must be called in a scoped allocation scope.
+ */
+internal fun Sqlite3Wasm.scopedAllocCStringWithLength(jsString: JsString): CString {
+    return scopedAllocCString(jsString, true).toCString()
+}
+
+/**
+ * Allocates a pointer and set is to 0.
+ * Must be called in a scoped allocation scope.
+ */
+internal fun Sqlite3Wasm.scopedAllocPtr(): WasmPointer {
+    return allocPtr(1, true).unsafeCast<WasmPointer>()
+}
+
+/**
+ * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
+ * Must be called in a scoped allocation scope.
+ */
+internal fun Sqlite3Wasm.scopedAllocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
+    0u -> emptyJsArray()
+    1u -> jsArrayOf(scopedAllocPtr())
+    else -> scopedAllocPtr(howMany.toInt(), true).unsafeCast<JsArray<WasmPointer>>()
+}
+
+/**
+ * Type-safe [Sqlite3Wasm.peek].
+ */
+internal fun Sqlite3Wasm.peek(
+    address: WasmPointer,
+    representation: IR
+): JsAny {
+    return peek(address, representation.value)
+}
+
+/**
+ * Type-safe [Sqlite3Wasm.peek].
+ */
+internal fun Sqlite3Wasm.peek(
+    addresses: JsArray<WasmPointer>,
+    representation: IR
+): Array<JsAny> {
+    return peek(addresses, representation.value)
+}
+
+/**
+ * Type-safe [Sqlite3Wasm.heapForSize].
+ */
+internal fun Sqlite3Wasm.heapForSize(
+    n: IR.Integer,
+    unsigned: Boolean
+): JsAny {
+    val nInt = when (n) {
+        IR.I8 -> 8
+        IR.I16 -> 16
+        IR.I32 -> 32
+        IR.I64 -> 64
+    }
+
+    return heapForSize(nInt, unsigned)
+}
+
+/**
+ * Fetches the heapForSize() for the given representation then writes the given numeric value
+ * to it. Only numbers may be written this way, and passing a non-number might trigger an
+ * exception. If passed an array of pointers, it writes the given value to all of them.
+ *
+ * Returns this.
+ */
+internal fun Sqlite3Wasm.poke(
+    address: WasmPointer,
+    value: JsNumber,
+    representation: IR.Number
+): Sqlite3Wasm = poke(
+    address = address,
+    value = value,
+    representation = representation.value
+)
+
+/**
+ * Fetches the heapForSize() for the given representation then writes the given numeric value
+ * to it. Only numbers may be written this way, and passing a non-number might trigger an
+ * exception. If passed an array of pointers, it writes the given value to all of them.
+ *
+ * Returns this.
+ */
+internal fun Sqlite3Wasm.poke(
+    addresses: JsArray<WasmPointer>,
+    value: JsNumber,
+    representation: IR.Number
+): Sqlite3Wasm = poke(
+    addresses = addresses,
+    value = value,
+    representation = representation.value
+)
+
+/**
+ * Fetches the heapForSize() for the given representation then writes the given numeric value
+ * to it. Only numbers may be written this way, and passing a non-number might trigger an
+ * exception. If passed an array of pointers, it writes the given value to all of them.
+ *
+ * Returns this.
+ */
+internal fun Sqlite3Wasm.poke(
+    address: WasmPointer,
+    value: JsBigInt
+): Sqlite3Wasm = poke(
+    address = address,
+    value = value,
+    representation = IR.I64.value
+)
+
+/**
+ * Fetches the heapForSize() for the given representation then writes the given numeric value
+ * to it. Only numbers may be written this way, and passing a non-number might trigger an
+ * exception. If passed an array of pointers, it writes the given value to all of them.
+ *
+ * Returns this.
+ */
+internal fun Sqlite3Wasm.poke(
+    addresses: JsArray<WasmPointer>,
+    value: JsBigInt
+): Sqlite3Wasm = poke(
+    addresses = addresses,
+    value = value,
+    representation = IR.I64.value
+)

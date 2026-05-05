@@ -2,6 +2,7 @@
 
 package ksqlite.capi.interop.wasm
 
+import kotlin.js.JsAny
 import kotlin.js.JsBigInt
 
 /**
@@ -16,368 +17,950 @@ import kotlin.js.JsBigInt
  * the sqlite3.capi namespace and have automatic type conversions applied to them (where applicable).
  * Some small handful of the functions get re-exported into the sqlite3.wasm namespace.
  */
-internal external interface Sqlite3WasmExports {
+internal external interface Sqlite3WasmExports : JsAny {
 
-    fun sqlite3_aggregate_context((param $var0 i64) (param $var1 i32) (result i64))
+    fun ksqlite_auto_Extension(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_auto_extension((param $var0 i64) (result i32))
+    fun ksqlite_cancel_auto_extension(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_bind_blob((param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i32) (param $var4 i64) (result i32))
+    fun sqlite3_aggregate_context(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_bind_double((param $var0 i64) (param $var1 i32) (param $var2 f64) (result i32))
+    fun sqlite3_auto_extension(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_bind_int((param $var0 i64) (param $var1 i32) (param $var2 i32) (result i32))
+    fun sqlite3_bind_blob(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+        p3: Int,
+        p4: JsBigInt,
+    ): Int
 
-    fun sqlite3_bind_int64((param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32))
+    fun sqlite3_bind_double(
+        p0: JsBigInt,
+        p1: Int,
+        p2: Double,
+    ): Int
 
-    fun sqlite3_bind_null((param $var0 i64) (param $var1 i32) (result i32))
+    fun sqlite3_bind_int(
+        p0: JsBigInt,
+        p1: Int,
+        p2: Int,
+    ): Int
 
-    fun sqlite3_bind_parameter_count((param $var0 i64) (result i32))
+    fun sqlite3_bind_int64(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+    ): Int
 
-    fun sqlite3_bind_parameter_index((param $var0 i64) (param $var1 i64) (result i32))
+    fun sqlite3_bind_null(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
 
-    fun sqlite3_bind_parameter_name((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_bind_parameter_count(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_bind_pointer((param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64) (param $var4 i64) (result i32))
+    fun sqlite3_bind_parameter_index(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
 
-    fun sqlite3_bind_text((param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i32) (param $var4 i64) (result i32))
+    fun sqlite3_bind_parameter_name(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_bind_zeroblob((param $var0 i64) (param $var1 i32) (param $var2 i32) (result i32))
+    fun sqlite3_bind_pointer(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+        p3: JsBigInt,
+        p4: JsBigInt,
+    ): Int
 
-    fun sqlite3_busy_handler((param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32))
+    fun sqlite3_bind_text(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+        p3: Int,
+        p4: JsBigInt,
+    ): Int
 
-    fun sqlite3_busy_timeout((param $var0 i64) (param $var1 i32) (result i32))
+    fun sqlite3_bind_zeroblob(
+        p0: JsBigInt,
+        p1: Int,
+        p2: Int,
+    ): Int
 
-    fun sqlite3_cancel_auto_extension((param $var0 i64) (result i32))
+    fun sqlite3_busy_handler(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): Int
 
-    fun sqlite3_changes((param $var0 i64) (result i32))
+    fun sqlite3_busy_timeout(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
 
-    fun sqlite3_changes64((param $var0 i64) (result i64))
+    fun sqlite3_cancel_auto_extension(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_clear_bindings((param $var0 i64) (result i32))
+    fun sqlite3_changes(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_close_v2((param $var0 i64) (result i32))
+    fun sqlite3_changes64(
+        p0: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_collation_needed((param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32))
+    fun sqlite3_clear_bindings(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_column_blob((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_close_v2(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_column_bytes((param $var0 i64) (param $var1 i32) (result i32))
+    fun sqlite3_collation_needed(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): Int
 
-    fun sqlite3_column_count((param $var0 i64) (result i32))
+    fun sqlite3_column_blob(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_column_database_name((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_column_bytes(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
 
-    fun sqlite3_column_decltype((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_column_count(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_column_double((param $var0 i64) (param $var1 i32) (result f64))
+    fun sqlite3_column_database_name(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_column_int((param $var0 i64) (param $var1 i32) (result i32))
+    fun sqlite3_column_decltype(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_column_int64((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_column_double(
+        p0: JsBigInt,
+        p1: Int,
+    ): Double
 
-    fun sqlite3_column_name((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_column_int(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
 
-    fun sqlite3_column_origin_name((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_column_int64(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_column_table_name((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_column_name(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_column_text((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_column_origin_name(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_column_type((param $var0 i64) (param $var1 i32) (result i32))
+    fun sqlite3_column_table_name(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_column_value((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_column_text(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_commit_hook((param $var0 i64) (param $var1 i64) (param $var2 i64) (result i64))
+    fun sqlite3_column_type(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
 
-    fun sqlite3_compileoption_get((param $var0 i32) (result i64))
+    fun sqlite3_column_value(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_compileoption_used((param $var0 i64) (result i32))
+    fun sqlite3_commit_hook(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_complete((param $var0 i64) (result i32))
+    fun sqlite3_compileoption_get(
+        p0: Int,
+    ): JsBigInt
+
+    fun sqlite3_compileoption_used(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_complete(
+        p0: JsBigInt,
+    ): Int
 
     /**
      * TODO
      */
     fun sqlite3_config()
 
-    fun sqlite3_context_db_handle((param $var0 i64) (result i64))
+    fun sqlite3_context_db_handle(
+        p0: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_create_collation((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i64) (param $var4 i64) (result i32))
+    fun sqlite3_create_collation(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+        p4: JsBigInt,
+    ): Int
 
-    fun sqlite3_create_collation_v2((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i64) (param $var4 i64) (param $var5 i64) (result i32))
+    fun sqlite3_create_collation_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+        p4: JsBigInt,
+        p5: JsBigInt,
+    ): Int
 
-    fun sqlite3_create_function((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i32) (param $var4 i64) (param $var5 i64) (param $var6 i64) (param $var7 i64) (result i32))
+    fun sqlite3_create_function(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: Int,
+        p4: JsBigInt,
+        p5: JsBigInt,
+        p6: JsBigInt,
+        p7: JsBigInt,
+    ): Int
 
-    fun sqlite3_create_function_v2(((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i32) (param $var4 i64) (param $var5 i64) (param $var6 i64) (param $var7 i64) (param $var8 i64) (result i32))
+    fun sqlite3_create_function_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: Int,
+        p4: JsBigInt,
+        p5: JsBigInt,
+        p6: JsBigInt,
+        p7: JsBigInt,
+        p8: JsBigInt,
+    ): Int
 
-    fun sqlite3_create_module((param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (result i32))
+    fun sqlite3_create_module(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: JsBigInt,
+    ): Int
 
-    fun sqlite3_create_module_v2((param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (result i32))
+    fun sqlite3_create_module_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: JsBigInt,
+        p4: JsBigInt,
+    ): Int
 
-    fun sqlite3_create_window_function((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i32) (param $var4 i64) (param $var5 i64) (param $var6 i64) (param $var7 i64) (param $var8 i64) (param $var9 i64) (result i32))
+    fun sqlite3_create_window_function(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: Int,
+        p4: JsBigInt,
+        p5: JsBigInt,
+        p6: JsBigInt,
+        p7: JsBigInt,
+        p8: JsBigInt,
+        p9: JsBigInt,
+    ): Int
 
-    fun sqlite3_data_count((param $var0 i64) (result i32))
+    fun sqlite3_data_count(
+        p0: JsBigInt,
+    ): Int
 
     /**
      * TODO
      */
     fun sqlite3_db_config()
 
-    fun sqlite3_db_filename((param $var0 i64) (param $var1 i64) (result i64))
+    fun sqlite3_db_filename(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_db_handle((param $var0 i64) (result i64))
+    fun sqlite3_db_handle(
+        p0: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_db_name((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_db_name(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_db_readonly((param $var0 i64) (param $var1 i64) (result i32))
+    fun sqlite3_db_readonly(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
 
-    fun sqlite3_db_status((param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64) (param $var4 i32) (result i32))
+    fun sqlite3_db_status(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+        p3: JsBigInt,
+        p4: Int,
+    ): Int
 
-    fun sqlite3_db_status64((param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64) (param $var4 i32) (result i32))
+    fun sqlite3_db_status64(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+        p3: JsBigInt,
+        p4: Int,
+    ): Int
 
-    fun sqlite3_declare_vtab((param $var0 i64) (param $var1 i64) (result i32))
+    fun sqlite3_declare_vtab(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
 
-    fun sqlite3_deserialize((param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i32) (result i32))
+    fun sqlite3_deserialize(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: JsBigInt,
+        p4: JsBigInt,
+        p5: Int,
+    ): Int
 
-    fun sqlite3_drop_modules((param $var0 i64) (param $var1 i64) (result i32))
+    fun sqlite3_drop_modules(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
 
-    fun sqlite3_errcode((param $var0 i64) (result i32))
+    fun sqlite3_errcode(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_errmsg((param $var0 i64) (result i64))
+    fun sqlite3_errmsg(
+        p0: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_error_offset((param $var0 i64) (result i32))
+    fun sqlite3_error_offset(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_errstr((param $var0 i32) (result i64))
+    fun sqlite3_errstr(
+        p0: Int,
+    ): JsBigInt
 
-    fun sqlite3_exec((param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (result i32))
+    fun sqlite3_exec(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: JsBigInt,
+        p4: JsBigInt,
+    ): Int
 
-    fun sqlite3_expanded_sql((param $var0 i64) (result i64))
+    fun sqlite3_expanded_sql(
+        p0: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_extended_errcode((param $var0 i64) (result i32))
+    fun sqlite3_extended_errcode(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_extended_result_codes((param $var0 i64) (param $var1 i32) (result i32))
+    fun sqlite3_extended_result_codes(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
 
-    fun sqlite3_file_control((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i64) (result i32))
+    fun sqlite3_file_control(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+    ): Int
 
-    fun sqlite3_finalize((param $var0 i64) (result i32))
+    fun sqlite3_finalize(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_free((param $var0 i64))
+    fun sqlite3_free(
+        p0: JsBigInt,
+    )
 
-    fun sqlite3_get_autocommit((param $var0 i64) (result i32))
+    fun sqlite3_get_autocommit(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_get_auxdata((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_get_auxdata(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
 
-    fun sqlite3_initialize((result i32))
+    fun sqlite3_initialize(
+    ): Int
 
-    fun sqlite3_interrupt((param $var0 i64))
+    fun sqlite3_interrupt(
+        p0: JsBigInt,
+    )
 
-    fun sqlite3_is_interrupted((param $var0 i64) (result i32))
+    fun sqlite3_is_interrupted(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_keyword_check((param $var0 i64) (param $var1 i32) (result i32))
+    fun sqlite3_key(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+    ): Int
 
-    fun sqlite3_keyword_count((result i32))
+    fun sqlite3_key_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: Int,
+    ): Int
 
-    fun sqlite3_keyword_name((param $var0 i32) (param $var1 i64) (param $var2 i64) (result i32))
+    fun sqlite3_keyword_check(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
 
-    fun sqlite3_last_insert_rowid((param $var0 i64) (result i64))
+    fun sqlite3_keyword_count(
+    ): Int
 
-    fun sqlite3_libversion((result i64))
+    fun sqlite3_keyword_name(
+        p0: Int,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): Int
 
-    fun sqlite3_libversion_number((result i32))
+    fun sqlite3_last_insert_rowid(
+        p0: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_limit((param $var0 i64) (param $var1 i32) (param $var2 i32) (result i32))
+    fun sqlite3_libversion(
+    ): JsBigInt
 
-    fun sqlite3_malloc((param $var0 i32) (result i64))
+    fun sqlite3_libversion_number(
+    ): Int
 
-    fun sqlite3_malloc64((param $var0 i64) (result i64))
+    fun sqlite3_limit(
+        p0: JsBigInt,
+        p1: Int,
+        p2: Int,
+    ): Int
 
-    fun sqlite3_msize((param $var0 i64) (result i64))
+    fun sqlite3_malloc(
+        p0: Int,
+    ): JsBigInt
 
-    fun sqlite3_next_stmt((param $var0 i64) (param $var1 i64) (result i64))
+    fun sqlite3_malloc64(
+        p0: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_open((param $var0 i64) (param $var1 i64) (result i32))
+    fun sqlite3_msize(
+        p0: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_open_v2((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i64) (result i32))
+    fun sqlite3_next_stmt(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_overload_function((param $var0 i64) (param $var1 i64) (param $var2 i32) (result i32))
+    fun sqlite3_open(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
 
-    fun sqlite3_prepare_v2((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i64) (param $var4 i64) (result i32))
+    fun sqlite3_open_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+    ): Int
 
-    fun sqlite3_prepare_v3((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i32) (param $var4 i64) (param $var5 i64) (result i32))
+    fun sqlite3_overload_function(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+    ): Int
 
-    fun sqlite3_preupdate_blobwrite((param $var0 i64) (result i32))
+    fun sqlite3_prepare_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+        p4: JsBigInt,
+    ): Int
 
-    fun sqlite3_preupdate_count((param $var0 i64) (result i32))
+    fun sqlite3_prepare_v3(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: Int,
+        p4: JsBigInt,
+        p5: JsBigInt,
+    ): Int
 
-    fun sqlite3_preupdate_depth((param $var0 i64) (result i32))
+    fun sqlite3_preupdate_blobwrite(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_preupdate_hook((param $var0 i64) (param $var1 i64) (param $var2 i64) (result i64))
+    fun sqlite3_preupdate_count(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_preupdate_new((param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32))
+    fun sqlite3_preupdate_depth(
+        p0: JsBigInt,
+    ): Int
 
-    fun sqlite3_preupdate_old((param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32))
+    fun sqlite3_preupdate_hook(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): JsBigInt
 
-    fun sqlite3_progress_handler((param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64))
+    fun sqlite3_preupdate_new(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+    ): Int
 
-    fun sqlite3_randomness((param $var0 i32) (param $var1 i64))
+    fun sqlite3_preupdate_old(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+    ): Int
 
-    fun sqlite3_realloc((param $var0 i64) (param $var1 i32) (result i64))
+    fun sqlite3_progress_handler(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+        p3: JsBigInt,
+    )
 
-    fun sqlite3_realloc64((param $var0 i64) (param $var1 i64) (result i64))
+    fun sqlite3_randomness(
+        p0: Int,
+        p1: JsBigInt,
+    )
 
-    fun sqlite3_reset((param $var0 i64) (result i32))
+    fun sqlite3_realloc(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
+
+    fun sqlite3_realloc64(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_rekey(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+    ): Int
+
+    fun sqlite3_rekey_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: Int,
+    ): Int
+
+    fun sqlite3_reset(
+        p0: JsBigInt,
+    ): Int
 
     fun sqlite3_reset_auto_extension()
 
-    fun sqlite3_result_blob((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i64))
-
-    fun sqlite3_result_double((param $var0 i64) (param $var1 f64))
-
-    fun sqlite3_result_error((param $var0 i64) (param $var1 i64) (param $var2 i32))
-
-    fun sqlite3_result_error_code((param $var0 i64) (param $var1 i32))
-
-    fun sqlite3_result_error_nomem((param $var0 i64))
-
-    fun sqlite3_result_error_toobig((param $var0 i64))
-
-    fun sqlite3_result_int((param $var0 i64) (param $var1 i32))
-
-    fun sqlite3_result_int64((param $var0 i64) (param $var1 i64))
-
-    fun sqlite3_result_null((param $var0 i64))
-
-    fun sqlite3_result_pointer((param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64))
-
-    fun sqlite3_result_subtype((param $var0 i64) (param $var1 i32))
-
-    fun sqlite3_result_text((param $var0 i64) (param $var1 i64) (param $var2 i32) (param $var3 i64))
-
-    fun sqlite3_result_zeroblob((param $var0 i64) (param $var1 i32))
-
-    fun sqlite3_result_zeroblob64((param $var0 i64) (param $var1 i64) (result i32))
-
-    fun sqlite3_rollback_hook((param $var0 i64) (param $var1 i64) (param $var2 i64) (result i64))
-
-    fun sqlite3_serialize((param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i32) (result i64))
-
-    fun sqlite3_set_authorizer((param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32))
-
-    fun sqlite3_set_auxdata((param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64))
-
-    fun sqlite3_set_errmsg((param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32))
-
-    fun sqlite3_set_last_insert_rowid((param $var0 i64) (param $var1 i64))
-
-    fun sqlite3_shutdown((result i32))
-
-    fun sqlite3_sourceid((result i64))
-
-    fun sqlite3_sql((param $var0 i64) (result i64))
-
-    fun sqlite3_status((param $var0 i32) (param $var1 i64) (param $var2 i64) (param $var3 i32) (result i32))
-
-    fun sqlite3_status64((param $var0 i32) (param $var1 i64) (param $var2 i64) (param $var3 i32) (result i32))
-
-    fun sqlite3_step((param $var0 i64) (result i32))
-
-    fun sqlite3_stmt_busy((param $var0 i64) (result i32))
-
-    fun sqlite3_stmt_explain((param $var0 i64) (param $var1 i32) (result i32))
-
-    fun sqlite3_stmt_isexplain((param $var0 i64) (result i32))
-
-    fun sqlite3_stmt_readonly((param $var0 i64) (result i32))
-
-    fun sqlite3_stmt_status((param $var0 i64) (param $var1 i32) (param $var2 i32) (result i32))
-
-    fun sqlite3_strglob((param $var0 i64) (param $var1 i64) (result i32))
-
-    fun sqlite3_stricmp((param $var0 i64) (param $var1 i64) (result i32))
-
-    fun sqlite3_strlike((param $var0 i64) (param $var1 i64) (param $var2 i32) (result i32))
-
-    fun sqlite3_strnicmp((param $var0 i64) (param $var1 i64) (param $var2 i32) (result i32))
-
-    fun sqlite3_table_column_metadata((param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i64) (param $var6 i64) (param $var7 i64) (param $var8 i64) (result i32))
-
-    fun sqlite3_total_changes((param $var0 i64) (result i32))
-
-    fun sqlite3_total_changes64((param $var0 i64) (result i64))
-
-    fun sqlite3_trace_v2((param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64) (result i32))
-
-    fun sqlite3_txn_state((param $var0 i64) (param $var1 i64) (result i32))
-
-    fun sqlite3_update_hook((param $var0 i64) (param $var1 i64) (param $var2 i64) (result i64))
-
-    fun sqlite3_uri_boolean((param $var0 i64) (param $var1 i64) (param $var2 i32) (result i32))
-
-    fun sqlite3_uri_int64((param $var0 i64) (param $var1 i64) (param $var2 i64) (result i64))
-
-    fun sqlite3_uri_key((param $var0 i64) (param $var1 i32) (result i64))
-
-    fun sqlite3_uri_parameter((param $var0 i64) (param $var1 i64) (result i64))
-
-    fun sqlite3_user_data((param $var0 i64) (result i64))
-
-    fun sqlite3_value_blob((param $var0 i64) (result i64))
-
-    fun sqlite3_value_bytes((param $var0 i64) (result i32))
-
-    fun sqlite3_value_double((param $var0 i64) (result f64))
-
-    fun sqlite3_value_dup((param $var0 i64) (result i64))
-
-    fun sqlite3_value_free((param $var0 i64))
-
-    fun sqlite3_value_frombind((param $var0 i64) (result i32))
-
-    fun sqlite3_value_int((param $var0 i64) (result i32))
-
-    fun sqlite3_value_int64((param $var0 i64) (result i64))
-
-    fun sqlite3_value_nochange((param $var0 i64) (result i32))
-
-    fun sqlite3_value_numeric_type((param $var0 i64) (result i32))
-
-    fun sqlite3_value_pointer((param $var0 i64) (param $var1 i64) (result i64))
-
-    fun sqlite3_value_subtype((param $var0 i64) (result i32))
-
-    fun sqlite3_value_text((param $var0 i64) (result i64))
-
-    fun sqlite3_value_type((param $var0 i64) (result i32))
-
-    fun sqlite3_vfs_find((param $var0 i64) (result i64))
-
-    fun sqlite3_vfs_register((param $var0 i64) (param $var1 i32) (result i32))
-
-    fun sqlite3_vfs_unregister((param $var0 i64) (result i32))
-
-    fun sqlite3_vtab_collation((param $var0 i64) (param $var1 i32) (result i64))
-
-    fun sqlite3_vtab_distinct((param $var0 i64) (result i32))
-
-    fun sqlite3_vtab_in((param $var0 i64) (param $var1 i32) (param $var2 i32) (result i32))
-
-    fun sqlite3_vtab_in_first((param $var0 i64) (param $var1 i64) (result i32))
-
-    fun sqlite3_vtab_in_next((param $var0 i64) (param $var1 i64) (result i32))
-
-    fun sqlite3_vtab_nochange((param $var0 i64) (result i32))
-
-    fun sqlite3_vtab_on_conflict((param $var0 i64) (result i32))
-
-    fun sqlite3_vtab_rhs_value((param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32))
-
-    /**
-     * (export "sqlite3_key") (param $var0 i64) (param $var1 i64) (param $var2 i32) (result i32)
-     * (export "sqlite3_key_v2") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i32) (result i32)
-     * (export "sqlite3_rekey") (param $var0 i64) (param $var1 i64) (param $var2 i32) (result i32)
-     * (export "sqlite3_rekey_v2") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i32) (result i32)
-     */
+    fun sqlite3_result_blob(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+    )
+
+    fun sqlite3_result_double(
+        p0: JsBigInt,
+        p1: Double,
+    )
+
+    fun sqlite3_result_error(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+    )
+
+    fun sqlite3_result_error_code(
+        p0: JsBigInt,
+        p1: Int,
+    )
+
+    fun sqlite3_result_error_nomem(
+        p0: JsBigInt,
+    )
+
+    fun sqlite3_result_error_toobig(
+        p0: JsBigInt,
+    )
+
+    fun sqlite3_result_int(
+        p0: JsBigInt,
+        p1: Int,
+    )
+
+    fun sqlite3_result_int64(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    )
+
+    fun sqlite3_result_null(
+        p0: JsBigInt,
+    )
+
+    fun sqlite3_result_pointer(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: JsBigInt,
+    )
+
+    fun sqlite3_result_subtype(
+        p0: JsBigInt,
+        p1: Int,
+    )
+
+    fun sqlite3_result_text(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+    )
+
+    fun sqlite3_result_zeroblob(
+        p0: JsBigInt,
+        p1: Int,
+    )
+
+    fun sqlite3_result_zeroblob64(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    fun sqlite3_rollback_hook(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_serialize(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: Int,
+    ): JsBigInt
+
+    fun sqlite3_set_authorizer(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): Int
+
+    fun sqlite3_set_auxdata(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+        p3: JsBigInt,
+    )
+
+    fun sqlite3_set_errmsg(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+    ): Int
+
+    fun sqlite3_set_last_insert_rowid(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    )
+
+    fun sqlite3_shutdown(
+    ): Int
+
+    fun sqlite3_sourceid(
+    ): JsBigInt
+
+    fun sqlite3_sql(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_status(
+        p0: Int,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: Int,
+    ): Int
+
+    fun sqlite3_status64(
+        p0: Int,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: Int,
+    ): Int
+
+    fun sqlite3_step(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_stmt_busy(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_stmt_explain(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
+
+    fun sqlite3_stmt_isexplain(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_stmt_readonly(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_stmt_status(
+        p0: JsBigInt,
+        p1: Int,
+        p2: Int,
+    ): Int
+
+    fun sqlite3_strglob(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    fun sqlite3_stricmp(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    fun sqlite3_strlike(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+    ): Int
+
+    fun sqlite3_strnicmp(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+    ): Int
+
+    fun sqlite3_table_column_metadata(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: JsBigInt,
+        p4: JsBigInt,
+        p5: JsBigInt,
+        p6: JsBigInt,
+        p7: JsBigInt,
+        p8: JsBigInt,
+    ): Int
+
+    fun sqlite3_total_changes(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_total_changes64(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_trace_v2(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+        p3: JsBigInt,
+    ): Int
+
+    fun sqlite3_txn_state(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    fun sqlite3_update_hook(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_uri_boolean(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+    ): Int
+
+    fun sqlite3_uri_int64(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_uri_key(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
+
+    fun sqlite3_uri_parameter(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_user_data(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_value_blob(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_value_bytes(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_value_double(
+        p0: JsBigInt,
+    ): Double
+
+    fun sqlite3_value_dup(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_value_free(
+        p0: JsBigInt,
+    )
+
+    fun sqlite3_value_frombind(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_value_int(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_value_int64(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_value_nochange(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_value_numeric_type(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_value_pointer(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_value_subtype(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_value_text(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_value_type(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_vfs_find(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    fun sqlite3_vfs_register(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
+
+    fun sqlite3_vfs_unregister(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_vtab_collation(
+        p0: JsBigInt,
+        p1: Int,
+    ): JsBigInt
+
+    fun sqlite3_vtab_distinct(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_vtab_in(
+        p0: JsBigInt,
+        p1: Int,
+        p2: Int,
+    ): Int
+
+    fun sqlite3_vtab_in_first(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    fun sqlite3_vtab_in_next(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    fun sqlite3_vtab_nochange(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_vtab_on_conflict(
+        p0: JsBigInt,
+    ): Int
+
+    fun sqlite3_vtab_rhs_value(
+        p0: JsBigInt,
+        p1: Int,
+        p2: JsBigInt,
+    ): Int
 
     ///////////////////////////////////////////////////////////////////////////
     // Extras

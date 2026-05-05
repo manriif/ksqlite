@@ -3,6 +3,9 @@ package ksqlite.capi.types
 import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.memory.HeapAllocator
 import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.capi.memory.MemoryAllocator
+import ksqlite.capi.memory.allocateInt
+import ksqlite.capi.memory.allocateLong
 import ksqlite.capi.memory.heapScoped
 import ksqlite.capi.utils.isNull
 
@@ -24,7 +27,7 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
     /**
      * Allocates memory and initializes with [initialValue].
      */
-    internal abstract fun HeapAllocator.allocate(initialValue: Value): WasmPointer
+    internal abstract fun MemoryAllocator.allocate(initialValue: Value): WasmPointer
 
     /**
      * Reads the current [Value] from [pointer].
@@ -34,7 +37,7 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
     /**
      * Allocates memory into [allocator] and returns the [WasmPointer] to the allocated [Value].
      */
-    internal fun attach(allocator: HeapAllocator): WasmPointer {
+    internal fun attach(allocator: MemoryAllocator): WasmPointer {
         return allocator.allocate(actualValue)
     }
 
@@ -51,7 +54,7 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
  */
 public abstract class Sqlite3PointerOutParamBase<Value> : Sqlite3OutParamBase<Value?>(null) {
 
-    final override fun HeapAllocator.allocate(initialValue: Value?): WasmPointer {
+    final override fun MemoryAllocator.allocate(initialValue: Value?): WasmPointer {
         return TODO()//allocatePointer(initialValue)
     }
 
@@ -76,7 +79,7 @@ public abstract class Sqlite3PointerOutParamBase<Value> : Sqlite3OutParamBase<Va
 public actual open class Sqlite3IntOutParam actual constructor(initialValue: Int) :
     Sqlite3OutParamBase<Int>(initialValue) {
 
-    override fun HeapAllocator.allocate(initialValue: Int): WasmPointer {
+    override fun MemoryAllocator.allocate(initialValue: Int): WasmPointer {
         return allocateInt(initialValue)
     }
 
@@ -88,7 +91,7 @@ public actual open class Sqlite3IntOutParam actual constructor(initialValue: Int
 public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
     Sqlite3OutParamBase<Long>(initialValue) {
 
-    override fun HeapAllocator.allocate(initialValue: Long): WasmPointer {
+    override fun MemoryAllocator.allocate(initialValue: Long): WasmPointer {
         return allocateLong(initialValue)
     }
 

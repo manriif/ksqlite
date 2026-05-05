@@ -19,8 +19,9 @@ val compileWasm by tasks.registeringKsqlite { context ->
     val execEnvironment = komple.execEnvironments.wasm
     val fileOperations = serviceOf<FileSystemOperations>()
     val execOperations = serviceOf<ExecOperations>()
+    val ksqliteDirectory = ksqlite.ksqliteDirectory
     val sqliteDirectory = ksqlite.sqliteDirectory
-    val outputDirectory = layout.buildDirectory.dir("sqlite/wasm")
+    val outputDirectory = layout.buildDirectory.dir("ksqlite/wasm")
 
     inputs.dir(sqliteDirectory)
     outputs.dir(outputDirectory)
@@ -29,6 +30,7 @@ val compileWasm by tasks.registeringKsqlite { context ->
         compileSqliteWasm(
             fileOperations = fileOperations,
             commandExecutor = execEnvironment.createCommandExecutor(execOperations),
+            ksqliteDirectory = ksqliteDirectory.get().asFile,
             sqliteDirectory = sqliteDirectory.get().asFile,
             outputDirectory = fileOperations.clearAndGetFile(outputDirectory)
         )
@@ -37,16 +39,16 @@ val compileWasm by tasks.registeringKsqlite { context ->
 
 val copyWasmResources by tasks.registeringKsqlite {
     val fileOperations = serviceOf<FileSystemOperations>()
-    val wasmDirectory = compileWasm.map { it.outputs.files.singleFile }
+    val inputDirectory = compileWasm.map { it.outputs.files.singleFile }
     val outputDirectory = generatedResourcesDirectory
 
-    inputs.dir(wasmDirectory)
+    inputs.dir(inputDirectory)
     outputs.dir(outputDirectory)
 
     doLast {
         copySqliteWasmGeneratedResources(
             fileOperations = fileOperations,
-            wasmDirectory = wasmDirectory.get(),
+            inputDirectory = inputDirectory.get(),
             outputDirectory = fileOperations.clearAndGetFile(outputDirectory)
         )
     }

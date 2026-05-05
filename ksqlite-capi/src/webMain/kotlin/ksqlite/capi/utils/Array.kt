@@ -5,13 +5,14 @@ import kotlin.js.JsArray
 import kotlin.js.toJsArray
 import kotlin.js.unsafeCast
 
-private val EmptyJsArray = toJsArray(emptyArray())
+private val EmptyJsArray = toJsArray(emptyArray<JsAny?>())
 
 /**
  * Returns the empty js array instance.
  */
+@Suppress("UNCHECKED_CAST")
 internal fun <T : JsAny?> emptyJsArray(): JsArray<T> {
-    return EmptyJsArray.unsafeCast()
+    return EmptyJsArray as JsArray<T>
 }
 
 /**

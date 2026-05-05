@@ -1,22 +1,31 @@
 package modules
 
+import KSQLITE
+import KsqliteFunctions
 import SQLITE3
 import SQLITE3_MC_AMALGAMATION
+import cHeaderFile
+import cSourceFile
+import copyToTempDirectory
 import komple.exec.Command
 import komple.exec.CommandExecutor
 import org.gradle.api.file.FileSystemOperations
 import sqlitePrefixed
-import cSourceFile
-import copyToTempDirectory
 import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////
 // Sources
 ///////////////////////////////////////////////////////////////////////////
 
+private const val KSQLITE_AMALGAMATION = "${KSQLITE}_amalgamation"
+private const val SQLITE_ARTIFACTS = "artifacts"
+
 private const val EXT_WASM_PATH = "ext/wasm"
-private const val GNU_MAKEFILE = "GNUmakefile"
-private const val PRE_JS_CPP_JS = "api/pre-js.c-pp.js"
+private const val GNU_MAKEFILE = "${EXT_WASM_PATH}/GNUmakefile"
+private const val EXT_WASM_API_PATH = "$EXT_WASM_PATH/api"
+private const val PRE_JS_CPP_JS = "$EXT_WASM_API_PATH/pre-js.c-pp.js"
+private const val EXPORTED_FUNCTIONS = "$EXT_WASM_API_PATH/EXPORTED_FUNCTIONS.c-pp"
+
 private const val ASSIGN_WASM_EXPORT_GLUE = "function assignWasmExports(wasmExports) {"
 
 /**
@@ -38,12 +47,23 @@ fun configureSqliteWasmTrunk(
     listOf(
         GNU_MAKEFILE,
         PRE_JS_CPP_JS
-    ).forEach { fileName ->
-        ksqliteDirectory.resolve("$EXT_WASM_PATH/$fileName").inputStream().use { input ->
-            sqliteDirectory.resolve("$EXT_WASM_PATH/$fileName").outputStream().use { output ->
+    ).forEach { filePath ->
+        sqliteDirectory.resolve(filePath).outputStream().use { output ->
+            ksqliteDirectory.resolve(filePath).inputStream().use { input ->
                 input.copyTo(output)
             }
         }
+    }
+
+    val exportedFunctionFile = sqliteDirectory.resolve(EXPORTED_FUNCTIONS)
+    val defaultExportedFunctions = exportedFunctionFile.readText()
+
+    sqliteDirectory.resolve(EXPORTED_FUNCTIONS).outputStream().bufferedWriter().use { output ->
+        KsqliteFunctions.forEach { name ->
+            output.appendLine("_$name")
+        }
+
+        output.write(defaultExportedFunctions)
     }
 }
 
@@ -97,6 +117,47 @@ private fun patchGeneratedSqliteForWasm(
     }
 }
 
+private fun File.mergeFiles(vararg files: File) {
+    val separator = System.lineSeparator().encodeToByteArray()
+
+    outputStream().use { output ->
+        files.forEach { file ->
+            file.inputStream().use { input ->
+                input.copyTo(output)
+            }
+
+            output.write(separator)
+        }
+    }
+}
+
+private fun generateKsqliteAmalgamation(
+    ksqliteDirectory: File,
+    sqliteDirectory: File,
+    ksqliteAmalgamationHeaderFile: File,
+    ksqliteAmalgamationSourceFile: File,
+) {
+    val sqliteMcAmalgamationHeaderFile =
+        sqliteDirectory.resolve(cHeaderFile(SQLITE3_MC_AMALGAMATION))
+
+    val sqliteMcAmalgamationSourceFile =
+        sqliteDirectory.resolve(cSourceFile(SQLITE3_MC_AMALGAMATION))
+
+    val ksqliteHeaderFile = ksqliteDirectory.resolve(cHeaderFile(KSQLITE))
+    val ksqliteSourceFile = ksqliteDirectory.resolve(cSourceFile(KSQLITE))
+
+    ksqliteAmalgamationHeaderFile.mergeFiles(
+        sqliteMcAmalgamationHeaderFile,
+        ksqliteHeaderFile
+    )
+
+    ksqliteAmalgamationSourceFile.mergeFiles(
+        sqliteMcAmalgamationSourceFile,
+        ksqliteHeaderFile,
+        ksqliteSourceFile
+    )
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Compilation
 ///////////////////////////////////////////////////////////////////////////
@@ -107,6 +168,7 @@ private fun patchGeneratedSqliteForWasm(
 fun compileSqliteWasm(
     fileOperations: FileSystemOperations,
     commandExecutor: CommandExecutor,
+    ksqliteDirectory: File,
     sqliteDirectory: File,
     outputDirectory: File,
 ) {
@@ -119,22 +181,38 @@ fun compileSqliteWasm(
         workingDirectory = sqliteDirectory
     )
 
-    val sqliteAmalgamationSourceFile = sqliteDirectory
-        .resolve(cSourceFile(SQLITE3_MC_AMALGAMATION))
-        .absolutePath
-
+    val ksqliteAmalgamationHeaderFile = sqliteDirectory.resolve(cHeaderFile(KSQLITE_AMALGAMATION))
+    val ksqliteAmalgamationSourceFile = sqliteDirectory.resolve(cSourceFile(KSQLITE_AMALGAMATION))
     val wasmDirectory = sqliteDirectory.resolve(EXT_WASM_PATH)
 
+    generateKsqliteAmalgamation(
+        ksqliteDirectory = ksqliteDirectory,
+        sqliteDirectory = sqliteDirectory,
+        ksqliteAmalgamationHeaderFile = ksqliteAmalgamationHeaderFile,
+        ksqliteAmalgamationSourceFile = ksqliteAmalgamationSourceFile
+    )
+
     commandExecutor.execute(
-        command = Command("make", "-j4", "64bit", "sqlite3.c=${sqliteAmalgamationSourceFile}"),
+        command = Command(
+            "make",
+            "-j4",
+            "64bit",
+            "sqlite3.h=${ksqliteAmalgamationHeaderFile.absolutePath}",
+            "sqlite3.c=${ksqliteAmalgamationSourceFile.absolutePath}"
+        ),
         workingDirectory = wasmDirectory
     )
 
-    val generatedOutputDirectory = wasmDirectory.resolve("jswasm")
+    val generatedWasmArtifactsDirectory = wasmDirectory.resolve("jswasm")
 
     fileOperations.copy {
-        from(generatedOutputDirectory)
-        into(outputDirectory)
+        from(generatedWasmArtifactsDirectory)
+        into(outputDirectory.resolve(SQLITE_ARTIFACTS))
+    }
+
+    fileOperations.copy {
+        from(ksqliteAmalgamationHeaderFile, ksqliteAmalgamationSourceFile)
+        into(outputDirectory.resolve("sources"))
     }
 }
 
@@ -143,10 +221,11 @@ fun compileSqliteWasm(
  */
 fun copySqliteWasmGeneratedResources(
     fileOperations: FileSystemOperations,
-    wasmDirectory: File,
+    inputDirectory: File,
     outputDirectory: File,
 ) {
-    val esm64Directory = wasmDirectory.resolve("esm64")
+    val artifactsDirectory = inputDirectory.resolve(SQLITE_ARTIFACTS)
+    val esm64Directory = artifactsDirectory.resolve("esm64")
     val sqliteFile = esm64Directory.resolve("$SQLITE3-64bit.mjs")
 
     patchGeneratedSqliteForWasm(
@@ -159,7 +238,7 @@ fun copySqliteWasmGeneratedResources(
             include { it.name != sqliteFile.name }
         }
 
-        from(wasmDirectory) {
+        from(artifactsDirectory) {
             include { !it.isDirectory && it.name in WasmExtraResourceFileNames }
         }
 

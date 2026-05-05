@@ -1,4 +1,13 @@
-#include <sqlite3mc_amalgamation.h>
+#ifndef KSQLITE_H
+#define KSQLITE_H
+
+#ifndef __WASM__
+#include "sqlite3mc_amalgamation.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Callback expected by sqlite3_auto_extension() and sqlite3_cancel_auto_extension() with the
@@ -29,3 +38,9 @@ int ksqlite_auto_extension(xEntryPoint);
  * @return sqlite3_cancel_auto_extension() result
  */
 int ksqlite_cancel_auto_extension(xEntryPoint);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // KSQLITE_H
