@@ -1,6 +1,6 @@
 @file:Suppress("FunctionName", "SpellCheckingInspection")
 
-package ksqlite.capi.interop.wasm
+package ksqlite.capi.interop
 
 import kotlin.js.JsAny
 import kotlin.js.JsBigInt

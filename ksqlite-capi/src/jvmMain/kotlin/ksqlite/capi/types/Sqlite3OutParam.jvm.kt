@@ -1,9 +1,9 @@
 package ksqlite.capi.types
 
 import ksqlite.capi.memory.memScoped
-import ksqlite.capi.utils.getStringUtf8
-import ksqlite.capi.utils.isNull
-import ksqlite.capi.utils.notNull
+import ksqlite.capi.memory.getStringUtf8
+import ksqlite.capi.memory.isNull
+import ksqlite.capi.memory.notNull
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
@@ -54,11 +54,12 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
 public abstract class Sqlite3PointerOutParamBase<Value> : Sqlite3OutParamBase<Value?>(null) {
 
     final override fun SegmentAllocator.allocate(initialValue: Value?): MemorySegment {
+        check(initialValue == null)
         return allocate(ValueLayout.ADDRESS)
     }
 
     /**
-     * Creates a new [Value] from non-null pointing [pointer]
+     * Creates a new [Value] from non-null pointing [pointer].
      */
     protected abstract fun create(pointer: MemorySegment): Value
 

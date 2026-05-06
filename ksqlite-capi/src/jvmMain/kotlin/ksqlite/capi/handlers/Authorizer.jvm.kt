@@ -3,7 +3,7 @@ package ksqlite.capi.handlers
 import ksqlite.capi.convertActionCode
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
-import ksqlite.capi.utils.getStringUtf8OrNull
+import ksqlite.capi.memory.getStringUtf8OrNull
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout

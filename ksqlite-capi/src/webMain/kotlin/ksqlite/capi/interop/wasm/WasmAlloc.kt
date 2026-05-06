@@ -8,7 +8,7 @@ import kotlin.js.nativeInvoke
 /**
  * Wasm alloc function.
  */
-internal external interface Alloc : JsAny {
+internal external interface WasmAlloc : JsAny {
 
     /**
      * Invokes the base function, which can throws.
@@ -25,7 +25,7 @@ internal external interface Alloc : JsAny {
 /**
  * Wasm realloc function.
  */
-internal external interface Realloc : JsAny {
+internal external interface WasmRealloc : JsAny {
 
     /**
      * Invokes the base function, which can throws.

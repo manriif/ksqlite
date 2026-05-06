@@ -7,8 +7,8 @@ import ksqlite.capi.types.Sqlite3CreateFunction3Callback
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.utils.orNull
-import ksqlite.capi.utils.toArray
+import ksqlite.capi.memory.orNull
+import ksqlite.capi.memory.toArray
 import ksqlite.sqlite3.sqlite3_user_data
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment

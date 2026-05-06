@@ -1,6 +1,5 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.utils.isNull
 import java.lang.foreign.MemorySegment
 
 

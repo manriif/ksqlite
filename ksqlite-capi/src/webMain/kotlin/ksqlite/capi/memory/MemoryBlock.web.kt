@@ -1,5 +1,6 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.utils.checkBufferRange
 
@@ -7,6 +8,7 @@ import ksqlite.capi.utils.checkBufferRange
  * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for JVM.
  */
 internal class MemoryBlock(
+    val memory: WasmMemory,
     val pointer: WasmPointer,
     val blockSize: Long
 ) : ReadableMemoryBlock,

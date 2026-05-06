@@ -1,9 +1,16 @@
-@file:Suppress("SpellCheckingInspection", "DEPRECATION", "RemoveExplicitTypeArguments")
+@file:Suppress("RemoveExplicitTypeArguments", "SpellCheckingInspection")
 
 package ksqlite.capi.interop.wasm
 
-import ksqlite.capi.utils.emptyJsArray
-import ksqlite.capi.utils.jsArrayOf
+import ksqlite.capi.interop.js.Int16Array
+import ksqlite.capi.interop.js.Int32Array
+import ksqlite.capi.interop.js.Int8Array
+import ksqlite.capi.interop.js.TypedArray
+import ksqlite.capi.interop.js.Uint16Array
+import ksqlite.capi.interop.js.Uint32Array
+import ksqlite.capi.interop.js.Uint8Array
+import ksqlite.capi.interop.js.emptyJsArray
+import ksqlite.capi.interop.js.jsArrayOf
 import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.JsBigInt
@@ -11,45 +18,22 @@ import kotlin.js.JsNumber
 import kotlin.js.JsString
 import kotlin.js.definedExternally
 import kotlin.js.get
+import kotlin.js.toJsString
 import kotlin.js.unsafeCast
 
 /**
- * The [sqlite3.wasm](https://sqlite.org/wasm/doc/trunk/api-wasm.md) namespace, abbreviated as wasm
- * for the remainder of this page, holds a number of routines for working with WASM-side constructs.
- * They include APIs for such tasks as...
+ * Just like in C, WASM offers a memory "heap," and transfering values between JS and WASM often
+ * requires manipulation of that memory, including low-level allocation and deallocation of it. The
+ * following subsections describe the various memory management APIs.
  *
- * - Memory management.
- *     - Allocating and freeing memory.
- *     - Helpers for working with WASM heap memory, e.g. getting and setting primitive values
- *     from/to the WASM heap.
- * - Configurable result value and argument type conversion for WASM-exported functions.
- * - JS/C String conversions.
- * - Binding JS functions into the WASM runtime, so that they may be called from WASM code (i.e.
- * from C).
- *
- * In short, if a WASM-specific feature has been needed during the development of the sqlite3 JS API,
- * it's been added to this namespace. For the most part, high-level client code will rarely need to
- * make use of more than a few of these, whereas clients using the C-style APIs may make heavy use
- * of them.
- *
- * TODO heap typed arrays
+ * [MemoryManagement](https://sqlite.org/wasm/doc/trunk/api-wasm.md#memory-management)
  */
-internal external interface Sqlite3Wasm : JsAny {
+internal external interface WasmMemory {
 
     /**
-     * Wasm exports namespace.
+     * [WasmPStack] instance.
      */
-    val exports: Sqlite3WasmExports
-
-    /**
-     * [Ptr] instance.
-     */
-    val ptr: Ptr
-
-    /**
-     * [PStack] instance.
-     */
-    val pStack: PStack
+    val pstack: WasmPStack
 
     ///////////////////////////////////////////////////////////////////////////
     // Low-level Management
@@ -71,7 +55,7 @@ internal external interface Sqlite3Wasm : JsAny {
      * proven to be a problem (in JS, at least) because memory is only explicitly allocated when it
      * has a specific use and will be populated by the code which allocates it.
      */
-    val alloc: Alloc
+    val alloc: WasmAlloc
 
     /**
      * Semantically equivalent to realloc(3) or sqlite3_realloc(), this routine reallocates memory
@@ -97,7 +81,7 @@ internal external interface Sqlite3Wasm : JsAny {
      * else { ... error ... }
      * ```
      */
-    val realloc: Realloc
+    val realloc: WasmRealloc
 
     /**
      * Uses alloc() to allocate enough memory for the byte-length of the given JS string, plus 1
@@ -158,7 +142,7 @@ internal external interface Sqlite3Wasm : JsAny {
      * Some allocation routines use this to enable callers to pass them an IR value instead of an
      * integer.
      */
-    fun sizeOfIR(ir: String): Int
+    fun sizeOfIR(ir: JsString): Int
 
     ///////////////////////////////////////////////////////////////////////////
     // "Scoped" Allocation Management
@@ -215,7 +199,7 @@ internal external interface Sqlite3Wasm : JsAny {
      * finally{ wasm.scopedAllocPop(scope) }
      * ```
      */
-    fun <R> scopedAllocCall(callback: () -> R): R
+    fun <R: JsAny> scopedAllocCall(callback: () -> R): R
 
     /**
      * Uses alloc() to allocate enough memory for the byte-length of the given JS string, plus 1
@@ -280,7 +264,7 @@ internal external interface Sqlite3Wasm : JsAny {
      */
     fun peek(
         address: WasmPointer,
-        representation: String
+        representation: JsString
     ): JsAny
 
     /**
@@ -293,8 +277,8 @@ internal external interface Sqlite3Wasm : JsAny {
      */
     fun peek(
         addresses: JsArray<WasmPointer>,
-        representation: String
-    ): Array<JsAny>
+        representation: JsString
+    ): JsArray<JsAny>
 
     /**
      * Equivalent to peek(X,'*'). Most frequently used for fetching output pointer values.
@@ -392,37 +376,37 @@ internal external interface Sqlite3Wasm : JsAny {
     fun heapForSize(
         n: Int,
         unsigned: Boolean
-    ): JsAny
+    ): TypedArray<*, *>
 
     /**
      * Equivalent of heapForSize(8, false) -> Int8Array.
      */
-    fun heap8(): JsAny
+    fun heap8(): Int8Array
 
     /**
      * Equivalent of heapForSize(8, true) -> Uint8Array.
      */
-    fun heap8u(): JsAny
+    fun heap8u(): Uint8Array
 
     /**
      * Equivalent of heapForSize(16, false) -> Int16Array.
      */
-    fun heap16(): JsAny
+    fun heap16(): Int16Array
 
     /**
      * Equivalent of heapForSize(16, true) -> Uint16Array.
      */
-    fun heap16u(): JsAny
+    fun heap16u(): Uint16Array
 
     /**
      * Equivalent of heapForSize(32, false) -> Int32Array.
      */
-    fun heap32(): JsAny
+    fun heap32(): Int32Array
 
     /**
      * Equivalent of heapForSize(32, true) -> Uint32Array.
      */
-    fun heap32u(): JsAny
+    fun heap32u(): Uint32Array
 
     /**
      * Fetches the heapForSize() for the given representation then writes the given numeric value
@@ -431,11 +415,12 @@ internal external interface Sqlite3Wasm : JsAny {
      *
      * Returns this.
      */
+    @IgnorableReturnValue
     fun poke(
         address: WasmPointer,
         value: JsAny,
-        representation: String
-    ): Sqlite3Wasm
+        representation: JsString
+    ): WasmMemory
 
     /**
      * Fetches the heapForSize() for the given representation then writes the given numeric value
@@ -444,123 +429,138 @@ internal external interface Sqlite3Wasm : JsAny {
      *
      * Returns this.
      */
+    @IgnorableReturnValue
     fun poke(
         addresses: JsArray<WasmPointer>,
         value: JsAny,
-        representation: String
-    ): Sqlite3Wasm
+        representation: JsString
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'*'). Most frequently used for fetching output pointer values.
      */
+    @IgnorableReturnValue
     fun pokePtr(
         address: WasmPointer,
         value: WasmPointer = definedExternally
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'*'). Most frequently used for fetching output pointer values.
      */
+    @IgnorableReturnValue
     fun pokePtr(
         addresses: JsArray<WasmPointer>,
         value: WasmPointer = definedExternally
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'i8').
      */
+    @IgnorableReturnValue
     fun poke8(
         address: WasmPointer,
         value: Byte
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'i8').
      */
+    @IgnorableReturnValue
     fun poke8(
         addresses: JsArray<WasmPointer>,
         value: Byte,
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'i16').
      */
+    @IgnorableReturnValue
     fun poke16(
         address: WasmPointer,
         value: Short
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'i16').
      */
+    @IgnorableReturnValue
     fun poke16(
         addresses: JsArray<WasmPointer>,
         value: Short
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'i32').
      */
+    @IgnorableReturnValue
     fun poke32(
         address: WasmPointer,
         value: Int
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'i32').
      */
+    @IgnorableReturnValue
     fun poke32(
         addresses: JsArray<WasmPointer>,
         value: Int
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'i64').
      */
+    @IgnorableReturnValue
     fun poke64(
         address: WasmPointer,
         value: JsBigInt
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'i64').
      */
+    @IgnorableReturnValue
     fun poke64(
         addresses: JsArray<WasmPointer>,
         value: JsBigInt
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'f32').
      */
+    @IgnorableReturnValue
     fun poke32f(
         address: WasmPointer,
         value: Float
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'f32').
      */
+    @IgnorableReturnValue
     fun poke32f(
         addresses: JsArray<WasmPointer>,
         value: Float
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'f64').
      */
+    @IgnorableReturnValue
     fun poke64f(
         address: WasmPointer,
         value: Double
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     /**
      * Equivalent to poke(X, Y,'f64').
      */
+    @IgnorableReturnValue
     fun poke64f(
         addresses: JsArray<WasmPointer>,
         value: Double
-    ): Sqlite3Wasm
+    ): WasmMemory
 
     ///////////////////////////////////////////////////////////////////////////
     // String Conversion and Utilities
@@ -573,7 +573,7 @@ internal external interface Sqlite3Wasm : JsAny {
      * This function counts its byte length using cstrlen() then returns a JS-format string
      * representing its contents. As a special case, if the argument is falsy, `null` is returned.
      */
-    fun cstrToJs(ptr: WasmPointer): String
+    fun cstrToJs(ptr: WasmPointer): JsString
 
     /**
      * Expects its argument to be a pointer into the WASM heap memory which refers to a
@@ -600,7 +600,7 @@ internal external interface Sqlite3Wasm : JsAny {
      * - Either is not a pointer into the WASM heap or
      * - srcPtr is not NUL-terminated AND n is less than srcPtr's logical length.
      *
-     * ACHTUNG: when passing in a non-negative n value, it is possible to copy partial multi-byte
+     * ACHTUNG: when passing in a non-negative n value, it is possible to copy partial multibyte
      * characters this way, and converting such strings back to JS strings will have undefined
      * results.
      */
@@ -633,12 +633,10 @@ internal external interface Sqlite3Wasm : JsAny {
      * - maxBytes is less than the byte length of a multi-byte jsString[0].
      *
      * Throws if tgt is not an Int8Array or Uint8Array.
-     *
-     * TODO TypedArray
      */
     fun jstrcpy(
-        jsString: String,
-        tgt: JsAny,
+        jsString: JsString,
+        tgt: Uint8Array,
         offset: Int = definedExternally,
         maxBytes: Int = definedExternally,
         addNul: Boolean = definedExternally
@@ -649,16 +647,16 @@ internal external interface Sqlite3Wasm : JsAny {
      * argument is not a string. This is a relatively expensive calculation and should be avoided
      * when not necessary.
      */
-    fun jstrlen(jsString: String): Int
+    fun jstrlen(jsString: JsString): Int
 
     /**
      * For the given JS string, returns a Uint8Array of its contents encoded as UTF-8. If addNul is
      * true, the returned array will have a trailing 0 entry, else it will not.
      */
     fun jstrToUintArray(
-        jsString: String,
+        jsString: JsString,
         addNul: Boolean = definedExternally
-    )
+    ): Uint8Array
 
     ///////////////////////////////////////////////////////////////////////////
     // Misc. Allocation Routines
@@ -676,269 +674,32 @@ internal external interface Sqlite3Wasm : JsAny {
      * srcTypedArray.byteLength is 0, it allocates a single byte and sets it to the value 0. Even in
      * such cases, calls must behave as if the allocated memory has exactly srcTypedArray.byteLength
      * usable bytes.
-     *
-     * TODO TypedArray
      */
-    fun allocFromByteArray(srcTypedArray: JsAny): WasmPointer
+    fun allocFromByteArray(srcTypedArray: Int8Array): WasmPointer
 
     ///////////////////////////////////////////////////////////////////////////
-    // WASM Function Table
-    ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Given a function pointer, returns the WASM function table entry if found, else returns a
-     * falsy value.
-     */
-    fun functionEntry(ptr: WasmPointer): JsAny?
-
-    /**
-     * Returns the WASM module's indirect function table.
-     */
-    fun functionTable(): JsAny
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Calling and Wrapping Functions
+    // Unofficial
+    //
+    // Visible and useful functions not officially documented so not part of public API
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Calls a WASM-exported function by name, passing on all supplied arguments (which may
-     * optionally be supplied as an array). If throws if the function is not exported or if the
-     * argument count does not match. This routine does no type conversion and is essentially
-     * equivalent to:
-     *
-     * ```javascript
-     * const rc = wasm.exports.some_func(...args)
-     * ```
-     *
-     * with the exception that xCall() throws if the argument count does not match that of the
-     * WASM-exported function.
+     * Uses TextDecoder to decode the given half-open range of the given TypedArray to a string.
      */
-    fun xCall(
-        functionName: String,
-        vararg args: JsAny
-    ): JsAny
+    fun typedArrayToString(
+        typedArray: Uint8Array,
+        begin: Int,
+        end: Int
+    ): JsString
 
     /**
-     * Calls a WASM-exported function by name, passing on all supplied arguments (which may
-     * optionally be supplied as an array). If throws if the function is not exported or if the
-     * argument count does not match. This routine does no type conversion and is essentially
-     * equivalent to:
-     *
-     * ```javascript
-     * const rc = wasm.exports.some_func(...args)
-     * ```
-     *
-     * with the exception that xCall() throws if the argument count does not match that of the
-     * WASM-exported function.
+     * Uses TextDecoder to decode the given half-open range of the given TypedArray to a string.
      */
-    fun xCall(
-        functionName: String,
-        args: JsArray<JsAny>
-    ): JsAny
-
-    /**
-     * Functions like xCall() but performs argument and result type conversions as for xWrap().
-     *
-     * The first argument is the name of the exported function to call. The 2nd its the name of its
-     * result type, as documented for xWrap(). The 3rd is an array of argument type names, as
-     * documented for xWrap(). The 4th+ arguments are arguments for the call, with the special case
-     * that if the 4th argument is an array, it is used as the arguments for the call.
-     *
-     * Returns the converted result of the call.
-     *
-     * This is just a thin wrapper around xWrap(). If the given function is to be called more than
-     * once, it's more efficient to use xWrap() to create a wrapper, then to call that wrapper as
-     * many times as needed. For one-shot calls, however, this variant is arguably more efficient
-     * because it will hypothetically free the wrapper function quickly.
-     */
-    fun xCallWrapped(
-        functionName: String,
-        resultType: String,
-        argsTypes: JsArray<JsString>,
-        vararg args: JsAny
-    ): JsAny
-
-    /**
-     * Functions like xCall() but performs argument and result type conversions as for xWrap().
-     *
-     * The first argument is the name of the exported function to call. The 2nd its the name of its
-     * result type, as documented for xWrap(). The 3rd is an array of argument type names, as
-     * documented for xWrap(). The 4th+ arguments are arguments for the call, with the special case
-     * that if the 4th argument is an array, it is used as the arguments for the call.
-     *
-     * Returns the converted result of the call.
-     *
-     * This is just a thin wrapper around xWrap(). If the given function is to be called more than
-     * once, it's more efficient to use xWrap() to create a wrapper, then to call that wrapper as
-     * many times as needed. For one-shot calls, however, this variant is arguably more efficient
-     * because it will hypothetically free the wrapper function quickly.
-     */
-    fun xCallWrapped(
-        functionName: String,
-        resultType: String,
-        argsTypes: JsArray<JsString>,
-        args: JsArray<JsAny>
-    ): JsAny
-
-    /**
-     * Returns a WASM-exported function by name, or throws if the function is not found.
-     */
-    fun xGet(functionName: String): WasmFunction
-
-    /**
-     * xWrap() creates a JS function which calls a WASM-exported function, as described for xCall().
-     *
-     * Creates a wrapper for the WASM-exported function fname. It uses xGet() to fetch the exported
-     * function (which throws on error) and returns either that function or a wrapper for that
-     * function which converts the JS-side argument types into WASM-side types and converts the
-     * result type. If the function takes no arguments and resultType is null then the function is
-     * returned as-is, else a wrapper is created for it to adapt its arguments and result value.
-     */
-    fun xWrap(
-        functionName: String,
-        resultType: String,
-        vararg argsTypes: String
-    )
-
-    /**
-     * xWrap() creates a JS function which calls a WASM-exported function, as described for xCall().
-     *
-     * Creates a wrapper for the WASM-exported function fname. It uses xGet() to fetch the exported
-     * function (which throws on error) and returns either that function or a wrapper for that
-     * function which converts the JS-side argument types into WASM-side types and converts the
-     * result type. If the function takes no arguments and resultType is null then the function is
-     * returned as-is, else a wrapper is created for it to adapt its arguments and result value.
-     */
-    fun xWrap(
-        functionName: String,
-        resultType: String,
-        argsTypes: JsArray<JsString>
-    )
-
-    ///////////////////////////////////////////////////////////////////////////
-    // (Un)Installing WASM Functions
-    ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Expects a JS function and signature, exactly as for wasm.jsFuncToWasm(). It uses that
-     * function to create a WASM-exported function, installs that function to the next available
-     * slot of wasm.functionTable(), and returns the function's index in that table (which acts as
-     * a pointer to that function). The returned pointer can be passed to wasm.uninstallFunction()
-     * to uninstall it and free up the table slot for reuse.
-     *
-     * As a special case, if the passed-in function is a WASM-exported function then the signature
-     * argument is ignored and func is installed as-is, without requiring re-compilation/re-wrapping.
-     *
-     * This function will propagate an exception if WebAssembly.Table.grow() throws or
-     * wasm.jsFuncToWasm() throws. The former case can happen in an Emscripten-compiled environment
-     * when building without Emscripten's -sALLOW_TABLE_GROWTH flag.
-     */
-    fun installFunction(
-        funcSignature: String,
-        function: JsFunction
-    ): WasmPointer
-
-    /**
-     * Expects a JS function and signature, exactly as for wasm.jsFuncToWasm(). It uses that
-     * function to create a WASM-exported function, installs that function to the next available
-     * slot of wasm.functionTable(), and returns the function's index in that table (which acts as
-     * a pointer to that function). The returned pointer can be passed to wasm.uninstallFunction()
-     * to uninstall it and free up the table slot for reuse.
-     *
-     * As a special case, if the passed-in function is a WASM-exported function then the signature
-     * argument is ignored and func is installed as-is, without requiring re-compilation/re-wrapping.
-     *
-     * This function will propagate an exception if WebAssembly.Table.grow() throws or
-     * wasm.jsFuncToWasm() throws. The former case can happen in an Emscripten-compiled environment
-     * when building without Emscripten's -sALLOW_TABLE_GROWTH flag.
-     */
-    fun installFunction(
-        function: JsFunction,
-        funcSignature: String
-    ): WasmPointer
-
-    /**
-     * Creates a WASM function which wraps the given JS function and returns the JS binding of that
-     * WASM function. The function signature string must be in the form used by jaccwabyt or
-     * Emscripten's addFunction(). In short: in may have one of the following formats:
-     *
-     * - Emscripten: "x...", where the first x is a letter representing the result type and subsequent
-     * letters represent the argument types. See below. Functions with no arguments have only a
-     * single letter.
-     * - Jaccwabyt: "x(...)" where x is the letter representing the result type and letters in the
-     * parens (if any) represent the argument types. Functions with no arguments use x(). See below.
-     *
-     * Supported letters:
-     *
-     * - i = int32
-     * - p = int32 ("pointer")
-     * - j = int64
-     * - f = float32
-     * - d = float64
-     * - v = void, only legal for use as the result type
-     *
-     * It throws if an invalid signature letter is used.
-     */
-    fun jsFuncToWasm(
-        function: JsFunction,
-        signature: String,
-    ): WasmFunction
-
-    /**
-     * Creates a WASM function which wraps the given JS function and returns the JS binding of that
-     * WASM function. The function signature string must be in the form used by jaccwabyt or
-     * Emscripten's addFunction(). In short: in may have one of the following formats:
-     *
-     * - Emscripten: "x...", where the first x is a letter representing the result type and subsequent
-     * letters represent the argument types. See below. Functions with no arguments have only a
-     * single letter.
-     * - Jaccwabyt: "x(...)" where x is the letter representing the result type and letters in the
-     * parens (if any) represent the argument types. Functions with no arguments use x(). See below.
-     *
-     * Supported letters:
-     *
-     * - i = int32
-     * - p = int32 ("pointer")
-     * - j = int64
-     * - f = float32
-     * - d = float64
-     * - v = void, only legal for use as the result type
-     *
-     * It throws if an invalid signature letter is used.
-     */
-    fun jsFuncToWasm(
-        signature: String,
-        function: JsFunction,
-    ): WasmFunction
-
-    /**
-     * This works exactly like installFunction() except that the installation is scoped to the
-     * current allocation scope and is uninstalled when the current allocation scope is popped.
-     * It will throw if no allocation scope is active.
-     */
-    fun scopedInstallFunction(
-        funcSignature: String,
-        function: JsFunction
-    ): WasmPointer
-
-    /**
-     * This works exactly like installFunction() except that the installation is scoped to the
-     * current allocation scope and is uninstalled when the current allocation scope is popped.
-     * It will throw if no allocation scope is active.
-     */
-    fun scopedInstallFunction(
-        function: JsFunction,
-        funcSignature: String
-    ): WasmPointer
-
-    /**
-     * Requires a pointer value previously returned from wasm.installFunction(). Removes that
-     * function from the WASM function table, marks its table slot as free for re-use, and returns
-     * that function. It is illegal to call this before installFunction() has been called and
-     * results are undefined if the argument was not returned by that function. The returned
-     * function may be passed back to installFunction() to reinstall it.
-     */
-    fun uninstallFunction(pointer: WasmPointer): WasmFunction
+    fun typedArrayToString(
+        typedArray: Uint8Array,
+        begin: JsBigInt,
+        end: JsBigInt
+    ): JsString
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -947,7 +708,7 @@ internal external interface Sqlite3Wasm : JsAny {
 
 /**
  * Returns a [CString] from an array returned by [allocCString] and
- * [scopedAllocCStringWithLength].
+ * [scopedAllocCStringStruct].
  */
 private fun JsAny.toCString(): CString = unsafeCast<JsArray<JsAny>>().run {
     CString(
@@ -959,28 +720,28 @@ private fun JsAny.toCString(): CString = unsafeCast<JsArray<JsAny>>().run {
 /**
  * Allocates a C-style string and returns the pointer to it.
  */
-internal fun Sqlite3Wasm.allocCString(jsString: JsString): WasmPointer {
-    return allocCString(jsString, false).unsafeCast<WasmPointer>()
+internal fun WasmMemory.allocCString(string: String): WasmPointer {
+    return allocCString(string.toJsString(), false).unsafeCast<WasmPointer>()
 }
 
 /**
  * Allocates a C-style string and returns a [CString] object.
  */
-internal fun Sqlite3Wasm.allocCStringWithLength(jsString: JsString): CString {
-    return allocCString(jsString, true).toCString()
+internal fun WasmMemory.allocCStringSstruct(string: String): CString {
+    return allocCString(string.toJsString(), true).toCString()
 }
 
 /**
  * Allocates a pointer and set is to 0.
  */
-internal fun Sqlite3Wasm.allocPtr(): WasmPointer {
+internal fun WasmMemory.allocPtr(): WasmPointer {
     return allocPtr(1, true).unsafeCast<WasmPointer>()
 }
 
 /**
  * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
  */
-internal fun Sqlite3Wasm.allocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
+internal fun WasmMemory.allocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
     0u -> emptyJsArray()
     1u -> jsArrayOf(allocPtr())
     else -> allocPtr(howMany.toInt(), true).unsafeCast<JsArray<WasmPointer>>()
@@ -989,31 +750,31 @@ internal fun Sqlite3Wasm.allocPtr(howMany: UInt): JsArray<WasmPointer> = when (h
 /**
  * Return the size of [ir] value.
  */
-internal fun Sqlite3Wasm.sizeOfIR(ir: IR): Int {
-    return sizeOfIR(ir.value)
+internal fun WasmMemory.sizeOfIR(ir: IR): Int {
+    return sizeOfIR(ir.value.toJsString())
 }
 
 /**
  * Allocates a C-style string and returns the pointer to it.
  * Must be called in a scoped allocation scope.
  */
-internal fun Sqlite3Wasm.scopedAllocCString(jsString: JsString): WasmPointer {
-    return scopedAllocCString(jsString, false).unsafeCast<WasmPointer>()
+internal fun WasmMemory.scopedAllocCString(string: String): WasmPointer {
+    return scopedAllocCString(string.toJsString(), false).unsafeCast<WasmPointer>()
 }
 
 /**
  * Allocates a C-style string and returns a [CString] object.
  * Must be called in a scoped allocation scope.
  */
-internal fun Sqlite3Wasm.scopedAllocCStringWithLength(jsString: JsString): CString {
-    return scopedAllocCString(jsString, true).toCString()
+internal fun WasmMemory.scopedAllocCStringStruct(string: String): CString {
+    return scopedAllocCString(string.toJsString(), true).toCString()
 }
 
 /**
  * Allocates a pointer and set is to 0.
  * Must be called in a scoped allocation scope.
  */
-internal fun Sqlite3Wasm.scopedAllocPtr(): WasmPointer {
+internal fun WasmMemory.scopedAllocPtr(): WasmPointer {
     return allocPtr(1, true).unsafeCast<WasmPointer>()
 }
 
@@ -1021,39 +782,39 @@ internal fun Sqlite3Wasm.scopedAllocPtr(): WasmPointer {
  * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
  * Must be called in a scoped allocation scope.
  */
-internal fun Sqlite3Wasm.scopedAllocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
+internal fun WasmMemory.scopedAllocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
     0u -> emptyJsArray()
     1u -> jsArrayOf(scopedAllocPtr())
     else -> scopedAllocPtr(howMany.toInt(), true).unsafeCast<JsArray<WasmPointer>>()
 }
 
 /**
- * Type-safe [Sqlite3Wasm.peek].
+ * Type-safe [WasmMemory.peek].
  */
-internal fun Sqlite3Wasm.peek(
+internal fun WasmMemory.peek(
     address: WasmPointer,
     representation: IR
 ): JsAny {
-    return peek(address, representation.value)
+    return peek(address, representation.value.toJsString())
 }
 
 /**
- * Type-safe [Sqlite3Wasm.peek].
+ * Type-safe [WasmMemory.peek].
  */
-internal fun Sqlite3Wasm.peek(
+internal fun WasmMemory.peek(
     addresses: JsArray<WasmPointer>,
     representation: IR
-): Array<JsAny> {
-    return peek(addresses, representation.value)
+): JsArray<JsAny> {
+    return peek(addresses, representation.value.toJsString())
 }
 
 /**
- * Type-safe [Sqlite3Wasm.heapForSize].
+ * Type-safe [WasmMemory.heapForSize].
  */
-internal fun Sqlite3Wasm.heapForSize(
+internal fun WasmMemory.heapForSize(
     n: IR.Integer,
     unsigned: Boolean
-): JsAny {
+): TypedArray<*, *> {
     val nInt = when (n) {
         IR.I8 -> 8
         IR.I16 -> 16
@@ -1065,20 +826,38 @@ internal fun Sqlite3Wasm.heapForSize(
 }
 
 /**
+ * Type-safe [WasmMemory.heapForSize].
+ */
+internal fun WasmMemory.heapForSize(
+    n: IR.Number,
+    unsigned: Boolean
+): TypedArray<JsNumber, *> {
+    val nInt = when (n) {
+        IR.I8 -> 8
+        IR.I16 -> 16
+        IR.I32 -> 32
+        IR.I64 -> 64
+    }
+
+    return heapForSize(nInt, unsigned).unsafeCast<TypedArray<JsNumber, *>>()
+}
+
+/**
  * Fetches the heapForSize() for the given representation then writes the given numeric value
  * to it. Only numbers may be written this way, and passing a non-number might trigger an
  * exception. If passed an array of pointers, it writes the given value to all of them.
  *
  * Returns this.
  */
-internal fun Sqlite3Wasm.poke(
+@IgnorableReturnValue
+internal fun WasmMemory.poke(
     address: WasmPointer,
     value: JsNumber,
     representation: IR.Number
-): Sqlite3Wasm = poke(
+): WasmMemory = poke(
     address = address,
     value = value,
-    representation = representation.value
+    representation = representation.value.toJsString()
 )
 
 /**
@@ -1088,14 +867,15 @@ internal fun Sqlite3Wasm.poke(
  *
  * Returns this.
  */
-internal fun Sqlite3Wasm.poke(
+@IgnorableReturnValue
+internal fun WasmMemory.poke(
     addresses: JsArray<WasmPointer>,
     value: JsNumber,
     representation: IR.Number
-): Sqlite3Wasm = poke(
+): WasmMemory = poke(
     addresses = addresses,
     value = value,
-    representation = representation.value
+    representation = representation.value.toJsString()
 )
 
 /**
@@ -1105,13 +885,14 @@ internal fun Sqlite3Wasm.poke(
  *
  * Returns this.
  */
-internal fun Sqlite3Wasm.poke(
+@IgnorableReturnValue
+internal fun WasmMemory.poke(
     address: WasmPointer,
     value: JsBigInt
-): Sqlite3Wasm = poke(
+): WasmMemory = poke(
     address = address,
     value = value,
-    representation = IR.I64.value
+    representation = IR.I64.value.toJsString()
 )
 
 /**
@@ -1121,11 +902,12 @@ internal fun Sqlite3Wasm.poke(
  *
  * Returns this.
  */
-internal fun Sqlite3Wasm.poke(
+@IgnorableReturnValue
+internal fun WasmMemory.poke(
     addresses: JsArray<WasmPointer>,
     value: JsBigInt
-): Sqlite3Wasm = poke(
+): WasmMemory = poke(
     addresses = addresses,
     value = value,
-    representation = IR.I64.value
+    representation = IR.I64.value.toJsString()
 )

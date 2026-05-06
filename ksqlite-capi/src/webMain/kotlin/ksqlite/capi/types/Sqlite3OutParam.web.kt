@@ -1,13 +1,17 @@
 package ksqlite.capi.types
 
+import ksqlite.capi.interop.wasm.IR
 import ksqlite.capi.interop.wasm.NullPtr
-import ksqlite.capi.memory.HeapAllocator
+import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.memory.MemoryAllocator
-import ksqlite.capi.memory.allocateInt
-import ksqlite.capi.memory.allocateLong
-import ksqlite.capi.memory.heapScoped
-import ksqlite.capi.utils.isNull
+import ksqlite.capi.memory.StackAllocatorScope
+import ksqlite.capi.memory.stackScoped
+import ksqlite.capi.memory.isNull
+import ksqlite.capi.memory.toKStringFromUtf8
+import kotlin.js.toInt
+import kotlin.js.toJsBigInt
+import kotlin.js.toLong
 
 ///////////////////////////////////////////////////////////////////////////
 // Param
@@ -20,6 +24,7 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
     Sqlite3OutParam<Value> {
 
     private var actualValue: Value = initialValue
+    private var attachedMemory: WasmMemory? = null
 
     final override val value: Value
         get() = actualValue
@@ -32,12 +37,14 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
     /**
      * Reads the current [Value] from [pointer].
      */
-    protected abstract fun readValue(pointer: WasmPointer): Value
+    internal abstract fun WasmMemory.readValue(pointer: WasmPointer): Value
 
     /**
      * Allocates memory into [allocator] and returns the [WasmPointer] to the allocated [Value].
      */
     internal fun attach(allocator: MemoryAllocator): WasmPointer {
+        check(attachedMemory == null) { "A memory is already attached to the parameter" }
+        attachedMemory = allocator.memory
         return allocator.allocate(actualValue)
     }
 
@@ -45,7 +52,8 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
      * Extracts the value of the previously allocated [Value] from [pointer].
      */
     internal fun detach(pointer: WasmPointer) {
-        actualValue = readValue(pointer)
+        val memory = checkNotNull(attachedMemory) { "No memory is attached to the parameter" }
+        actualValue = memory.readValue(pointer)
     }
 }
 
@@ -55,15 +63,16 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
 public abstract class Sqlite3PointerOutParamBase<Value> : Sqlite3OutParamBase<Value?>(null) {
 
     final override fun MemoryAllocator.allocate(initialValue: Value?): WasmPointer {
-        return TODO()//allocatePointer(initialValue)
+        check(initialValue == null)
+        return allocatePointer()
     }
 
     /**
-     * Creates a new [Value] from non-null pointing [pointer]
+     * Creates a new [Value] from non-null pointing [pointer].
      */
-    protected abstract fun create(pointer: WasmPointer): Value
+    internal abstract fun WasmMemory.create(pointer: WasmPointer): Value
 
-    final override fun readValue(pointer: WasmPointer): Value? {
+    final override fun WasmMemory.readValue(pointer: WasmPointer): Value? {
         if (pointer.isNull) {
             return null
         }
@@ -80,11 +89,13 @@ public actual open class Sqlite3IntOutParam actual constructor(initialValue: Int
     Sqlite3OutParamBase<Int>(initialValue) {
 
     override fun MemoryAllocator.allocate(initialValue: Int): WasmPointer {
-        return allocateInt(initialValue)
+        val address = allocate(IR.I32)
+        memory.poke32(address, initialValue)
+        return address
     }
 
-    override fun readValue(pointer: WasmPointer): Int {
-        return TODO()
+    override fun WasmMemory.readValue(pointer: WasmPointer): Int {
+        return peek32(pointer).toInt()
     }
 }
 
@@ -92,11 +103,13 @@ public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
     Sqlite3OutParamBase<Long>(initialValue) {
 
     override fun MemoryAllocator.allocate(initialValue: Long): WasmPointer {
-        return allocateLong(initialValue)
+        val address = allocate(IR.I64)
+        memory.poke64(address, initialValue.toJsBigInt())
+        return address
     }
 
-    override fun readValue(pointer: WasmPointer): Long {
-        return TODO()
+    override fun WasmMemory.readValue(pointer: WasmPointer): Long {
+        return peek64(pointer).toLong()
     }
 }
 
@@ -112,13 +125,8 @@ public actual class Sqlite3Utf8OutParam actual constructor() :
      */
     internal var size: Int? = null
 
-    override fun create(pointer: WasmPointer): String {
-        TODO()
-        /*val size = size ?: return pointer.getStringUtf8()
-
-        return pointer
-            .asSlice(0, size.toLong())
-            .getStringUtf8()*/
+    override fun WasmMemory.create(pointer: WasmPointer): String {
+        return size?.let { pointer.toKStringFromUtf8(it) } ?: pointer.toKStringFromUtf8()
     }
 }
 
@@ -129,7 +137,7 @@ public actual class Sqlite3Utf8OutParam actual constructor() :
 public actual class Sqlite3DatabaseConnectionOutParam actual constructor() :
     Sqlite3PointerOutParamBase<sqlite3>() {
 
-    override fun create(pointer: WasmPointer): sqlite3 {
+    override fun WasmMemory.create(pointer: WasmPointer): sqlite3 {
         return sqlite3(pointer)
     }
 }
@@ -137,7 +145,7 @@ public actual class Sqlite3DatabaseConnectionOutParam actual constructor() :
 public actual class Sqlite3ContextOutParam actual constructor() :
     Sqlite3PointerOutParamBase<sqlite3_context>() {
 
-    override fun create(pointer: WasmPointer): sqlite3_context {
+    override fun WasmMemory.create(pointer: WasmPointer): sqlite3_context {
         return sqlite3_context(pointer)
     }
 }
@@ -145,7 +153,7 @@ public actual class Sqlite3ContextOutParam actual constructor() :
 public actual class Sqlite3StatementOutParam actual constructor() :
     Sqlite3PointerOutParamBase<sqlite3_stmt>() {
 
-    override fun create(pointer: WasmPointer): sqlite3_stmt {
+    override fun WasmMemory.create(pointer: WasmPointer): sqlite3_stmt {
         return sqlite3_stmt(pointer)
     }
 }
@@ -153,7 +161,7 @@ public actual class Sqlite3StatementOutParam actual constructor() :
 public actual class Sqlite3ValueOutParam actual constructor() :
     Sqlite3PointerOutParamBase<sqlite3_value>() {
 
-    override fun create(pointer: WasmPointer): sqlite3_value {
+    override fun WasmMemory.create(pointer: WasmPointer): sqlite3_value {
         return sqlite3_value(pointer)
     }
 }
@@ -168,7 +176,7 @@ public actual class Sqlite3ValueOutParam actual constructor() :
  * The pointer passed to [block] must not escape.
  */
 internal inline fun <R> Sqlite3OutParamBase<*>.use(
-    allocator: HeapAllocator,
+    allocator: MemoryAllocator,
     block: (WasmPointer) -> R
 ): R {
     val pointer = attach(allocator)
@@ -183,12 +191,12 @@ internal inline fun <R> Sqlite3OutParamBase<*>.use(
 }
 
 /**
- * Allocates native memory for [param] into `this` [HeapAllocator], invokes [block] with a
+ * Allocates native memory for [param] into `this` [MemoryAllocator], invokes [block] with a
  * pointer to it and returns [block]'s result.
  *
  * The pointer passed to [block] must not escape.
  */
-internal inline fun <R> HeapAllocator.useParam(
+internal inline fun <R> MemoryAllocator.useParam(
     param: Sqlite3OutParamBase<*>?,
     block: (WasmPointer) -> R
 ): R {
@@ -200,12 +208,12 @@ internal inline fun <R> HeapAllocator.useParam(
 }
 
 /**
- * Allocates native memory for [param]  into a [HeapAllocator], invokes [block] with a pointer to
- * it and returns [block]'s result.
+ * Allocates native memory for [param]  into a [StackAllocatorScope], invokes [block] with a pointer
+ * to it and returns [block]'s result.
  *
  * The pointer passed to [block] must not escape.
  */
-internal inline fun <R> useParamMemScoped(
+internal inline fun <R> useParamStackScoped(
     param: Sqlite3OutParamBase<*>?,
     block: (WasmPointer) -> R
 ): R {
@@ -213,18 +221,18 @@ internal inline fun <R> useParamMemScoped(
         return block(NullPtr)
     }
 
-    return heapScoped {
+    return stackScoped {
         param.use(this, block)
     }
 }
 
 /**
- * Allocates native memory to [param1] and [param2] into `this` [HeapAllocator], invokes [block]
+ * Allocates native memory to [param1] and [param2] into `this` [MemoryAllocator], invokes [block]
  * with pointers to them and returns [block]'s result.
  *
  * The pointers passed to [block] must not escape.
  */
-internal inline fun <R> HeapAllocator.useParams(
+internal inline fun <R> MemoryAllocator.useParams(
     param1: Sqlite3OutParamBase<*>?,
     param2: Sqlite3OutParamBase<*>?,
     block: (
@@ -248,12 +256,12 @@ internal inline fun <R> HeapAllocator.useParams(
 }
 
 /**
- * Allocates native memory to [param1] and [param2] into a [HeapAllocator], invokes [block] with
- * pointers to them and returns [block]'s result.
+ * Allocates native memory to [param1] and [param2] into a [StackAllocatorScope], invokes [block]
+ * with pointers to them and returns [block]'s result.
  *
  * The pointers passed to [block] must not escape.
  */
-internal inline fun <R> useParamsMemScoped(
+internal inline fun <R> useParamsStackScoped(
     param1: Sqlite3OutParamBase<*>?,
     param2: Sqlite3OutParamBase<*>?,
     block: (
@@ -265,7 +273,7 @@ internal inline fun <R> useParamsMemScoped(
         return block(NullPtr, NullPtr)
     }
 
-    return heapScoped {
+    return stackScoped {
         val pointer1 = param1?.attach(this) ?: NullPtr
         val pointer2 = param2?.attach(this) ?: NullPtr
 

@@ -6,13 +6,12 @@ import kotlinx.cinterop.staticCFunction
 import ksqlite.capi.CreateFunction
 import ksqlite.capi.types.Sqlite3CreateFunction1Callback
 import ksqlite.capi.types.Sqlite3CreateFunction3Callback
-import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.s3_context
 import ksqlite.capi.types.s3_value
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.utils.toArray
+import ksqlite.capi.memory.toArray
 import ksqlite.sqlite3_user_data
 import kotlin.reflect.KProperty1
 

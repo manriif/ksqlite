@@ -5,7 +5,7 @@ import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.StaticMemoryManager
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
-import ksqlite.capi.utils.isNull
+import ksqlite.capi.memory.isNull
 import ksqlite.sqlite3.sqlite3_malloc
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment

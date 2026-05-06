@@ -3,12 +3,14 @@
 package ksqlite.capi
 
 import kotlinx.coroutines.awaitCancellation
-import ksqlite.capi.interop.wasm.JsFunction
-import ksqlite.capi.utils.jsArrayOf
-import ksqlite.capi.utils.toKStringFromUtf8
+import ksqlite.capi.interop.wasm.IR
+import ksqlite.capi.memory.stackScoped
+import ksqlite.capi.memory.toKStringFromUtf8
 import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.JsAny
+import kotlin.js.toInt
 import kotlin.js.toJsString
+import kotlin.time.measureTimedValue
 
 @JsFun("""(args) => console.log(...args)""")
 private external fun log(vararg args: JsAny)
@@ -18,14 +20,35 @@ private external fun typeOf(arg: JsAny)
 
 internal actual suspend fun initializeSqliteForSynchronousTest() {
     initializeSqlite(/*debugModule = ::log*/)
-    log(sqlite3.wasm)
+    //log(wasm)
 
-    val jsFunction = { p0: JsAny, p1: JsAny ->
-        sqlite3.wasm.exports.sqlite3_libversion().toKStringFromUtf8().toJsString()
+    val (result, duration) = measureTimedValue {
+        stackScoped {
+            val pointer1 = allocate(IR.I32)
+            val pointer2 = allocate(IR.I32)
+            val pointer3 = allocate(IR.I32)
+
+            memory.run {
+                var value1 = peek32(pointer1)
+                var value2 = peek32(pointer2)
+                val value3 = peek32(pointer3)
+
+                log("initValues = $value1, $value2, $value3".toJsString())
+
+                poke32(pointer1, 5)
+                poke32(pointer2, 10)
+
+                value1 = peek32(pointer1)
+                value2 = peek32(pointer2)
+
+                log("nextValues = $value1, $value2".toJsString())
+
+                poke32(pointer3, value1.toInt() + value2.toInt())
+                peek32(pointer3)
+            }
+        }
     }
 
-    val function = sqlite3.wasm.installFunction("ii", jsFunction as JsFunction)
-
-    log(sqlite3.wasm.functionTable())
+    log("result (${duration.inWholeMicroseconds}) = $result".toJsString())
     awaitCancellation()
 }

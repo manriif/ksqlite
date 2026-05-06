@@ -1,7 +1,6 @@
 package ksqlite.capi.interop
 
-import ksqlite.capi.interop.api.Sqlite3Capi
-import ksqlite.capi.interop.wasm.Sqlite3Wasm
+import ksqlite.capi.interop.Sqlite3Capi
 import kotlin.js.JsAny
 
 /**

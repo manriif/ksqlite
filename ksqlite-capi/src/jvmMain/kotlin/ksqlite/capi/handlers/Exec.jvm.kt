@@ -2,9 +2,9 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.types.Sqlite3ExecCallback
-import ksqlite.capi.utils.getStringUtf8
-import ksqlite.capi.utils.getStringUtf8OrNull
-import ksqlite.capi.utils.toArray
+import ksqlite.capi.memory.getStringUtf8
+import ksqlite.capi.memory.getStringUtf8OrNull
+import ksqlite.capi.memory.toArray
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout

@@ -2,8 +2,8 @@
 
 package ksqlite.capi.interop.wasm
 
-import ksqlite.capi.utils.emptyJsArray
-import ksqlite.capi.utils.jsArrayOf
+import ksqlite.capi.interop.js.emptyJsArray
+import ksqlite.capi.interop.js.jsArrayOf
 import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.unsafeCast
@@ -32,7 +32,7 @@ import kotlin.js.unsafeCast
  * }
  * ```
  */
-internal external interface PStack {
+internal external interface WasmPStack {
 
     /**
      * This property resolves to the current pstack position pointer. This value is intended only to
@@ -148,7 +148,7 @@ internal external interface PStack {
 /**
  * Attempts to allocate the given number of bytes from the pstack.
  */
-internal fun PStack.alloc(n: IR): WasmPointer {
+internal fun WasmPStack.alloc(n: IR): WasmPointer {
     return alloc(n.value)
 }
 
@@ -156,21 +156,21 @@ internal fun PStack.alloc(n: IR): WasmPointer {
  * alloc()'s n chunks, each sz bytes, as a single memory block and returns the addresses as an
  * array of n element, each holding the address of one chunk.
  */
-internal fun PStack.allocChunks(n: Int, sz: IR): JsArray<WasmPointer> {
+internal fun WasmPStack.allocChunks(n: Int, sz: IR): JsArray<WasmPointer> {
     return allocChunks(n, sz.value)
 }
 
 /**
  * Allocates a pointer and set is to 0.
  */
-internal fun PStack.allocPtr(): WasmPointer {
+internal fun WasmPStack.allocPtr(): WasmPointer {
     return allocPtr(1, true).unsafeCast<WasmPointer>()
 }
 
 /**
  * Allocates [howMany] pointers as a single chunk of memory and zeroes them out.
  */
-internal fun PStack.allocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
+internal fun WasmPStack.allocPtr(howMany: UInt): JsArray<WasmPointer> = when (howMany) {
     0u -> emptyJsArray()
     1u -> jsArrayOf(allocPtr())
     else -> allocPtr(howMany.toInt(), true).unsafeCast<JsArray<WasmPointer>>()

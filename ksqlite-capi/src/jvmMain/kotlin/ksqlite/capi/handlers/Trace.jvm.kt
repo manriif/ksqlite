@@ -5,7 +5,7 @@ import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.utils.getStringUtf8
+import ksqlite.capi.memory.getStringUtf8
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout

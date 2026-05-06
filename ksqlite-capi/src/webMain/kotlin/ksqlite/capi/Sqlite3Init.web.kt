@@ -1,6 +1,7 @@
 package ksqlite.capi
 
 import ksqlite.capi.interop.Sqlite3
+import ksqlite.capi.interop.Sqlite3Wasm
 import ksqlite.sqliteInitializer
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -23,6 +24,12 @@ internal val sqlite3: Sqlite3
         "SQLite was not initialized, function initializeSqlite() must be called before any other " +
                 "API call"
     }
+
+/**
+ * Returns the [Sqlite3Wasm] instance.
+ */
+internal inline val wasm: Sqlite3Wasm
+    get() = sqlite3.wasm
 
 /**
  * Loads and initializes SQLite.

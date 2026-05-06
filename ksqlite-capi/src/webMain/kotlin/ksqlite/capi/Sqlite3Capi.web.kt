@@ -2,7 +2,7 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.interop.wasm.Sqlite3WasmExports
+import ksqlite.capi.interop.Sqlite3WasmExports
 import ksqlite.capi.types.sqlite3
 
 private inline val exports: Sqlite3WasmExports

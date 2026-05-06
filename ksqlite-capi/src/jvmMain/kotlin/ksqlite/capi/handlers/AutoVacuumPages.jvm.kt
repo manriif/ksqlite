@@ -2,7 +2,7 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
-import ksqlite.capi.utils.getStringUtf8
+import ksqlite.capi.memory.getStringUtf8
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout

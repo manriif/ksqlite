@@ -7,7 +7,7 @@ import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.types.Sqlite3ExecCallback
-import ksqlite.capi.utils.toArray
+import ksqlite.capi.memory.toArray
 
 /**
  * Static C function for [execHandler].

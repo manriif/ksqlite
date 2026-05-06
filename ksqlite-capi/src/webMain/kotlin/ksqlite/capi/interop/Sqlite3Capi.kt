@@ -1,7 +1,6 @@
-package ksqlite.capi.interop.api
+package ksqlite.capi.interop
 
 import kotlin.js.JsAny
-import kotlin.js.JsBigInt
 
 /**
  * SQLite C-API exposed functions.

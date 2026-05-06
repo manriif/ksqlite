@@ -9,13 +9,12 @@ import kotlin.js.JsName
  * Wasm pointer type.
  */
 internal typealias WasmPointer = JsBigInt
-internal typealias WasmFunction = JsAny
 
 /**
  * The [wasm.ptr](https://sqlite.org/wasm/doc/trunk/api-wasm.md#wasm-ptr) API was added to assist in
  * smoothing over the differences between 32- and 64-bit JS/WASM environments.
  */
-internal external interface Ptr {
+internal external interface WasmPtr {
 
     /**
      * A "null" pointer of type Number or BigInt. Equivalent to one of Number(0) or BigInt(0).

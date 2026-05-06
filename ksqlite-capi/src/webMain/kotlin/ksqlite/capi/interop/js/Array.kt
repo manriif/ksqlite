@@ -1,9 +1,8 @@
-package ksqlite.capi.utils
+package ksqlite.capi.interop.js
 
 import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.toJsArray
-import kotlin.js.unsafeCast
 
 private val EmptyJsArray = toJsArray(emptyArray<JsAny?>())
 

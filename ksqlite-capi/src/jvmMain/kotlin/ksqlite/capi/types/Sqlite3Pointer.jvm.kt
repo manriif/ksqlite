@@ -6,7 +6,7 @@ import ksqlite.capi.memory.MemoryBlock
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.ReadableMemoryBlock
 import ksqlite.capi.memory.WritableMemoryBlock
-import ksqlite.capi.utils.isNull
+import ksqlite.capi.memory.isNull
 import java.lang.foreign.MemorySegment
 
 public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :

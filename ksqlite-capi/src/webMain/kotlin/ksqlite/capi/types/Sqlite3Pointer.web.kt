@@ -2,12 +2,14 @@
 
 package ksqlite.capi.types
 
+import ksqlite.capi.interop.wasm.WasmMemory
+import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.memory.MemoryBlock
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.ReadableMemoryBlock
-import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.memory.WritableMemoryBlock
-import ksqlite.capi.utils.isNull
+import ksqlite.capi.memory.isNull
+import ksqlite.capi.wasm
 
 public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :
     ReadableMemoryBlock by block {
@@ -20,12 +22,16 @@ public actual open class sqlite3_pointer internal constructor(internal val block
         /**
          * Returns a [sqlite3_pointer] from [pointer] or `null` if [pointer] is `null`.
          */
-        fun from(pointer: WasmPointer, size: Long): sqlite3_pointer? {
+        fun from(
+            pointer: WasmPointer,
+            size: Long,
+            memory: WasmMemory = wasm
+        ): sqlite3_pointer? {
             if (pointer.isNull) {
                 return null
             }
 
-            return sqlite3_pointer(MemoryBlock(pointer, size))
+            return sqlite3_pointer(MemoryBlock(memory, pointer, size))
         }
     }
 }
@@ -39,12 +45,16 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryB
         /**
          * Returns a [sqlite3_pointer] from [pointer] or `null` if [pointer] is `null`.
          */
-        fun from(pointer: WasmPointer, size: Long): sqlite3_mutable_pointer? {
+        fun from(
+            pointer: WasmPointer,
+            size: Long,
+            memory: WasmMemory = wasm
+        ): sqlite3_mutable_pointer? {
             if (pointer.isNull) {
                 return null
             }
 
-            return sqlite3_mutable_pointer(MemoryBlock(pointer, size))
+            return sqlite3_mutable_pointer(MemoryBlock(memory, pointer, size))
         }
 
         /**

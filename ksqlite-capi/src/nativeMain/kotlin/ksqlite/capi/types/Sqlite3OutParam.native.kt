@@ -14,7 +14,7 @@ import kotlinx.cinterop.pointed
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.value
-import ksqlite.capi.utils.toKStringFromUtf8
+import ksqlite.capi.memory.toKStringFromUtf8
 
 ///////////////////////////////////////////////////////////////////////////
 // Param
@@ -63,6 +63,7 @@ public abstract class Sqlite3PointerOutParamBase<Value, Var : CPointed> :
     Sqlite3OutParamBase<Value?, CPointerVar<Var>>(null) {
 
     final override fun NativePlacement.allocate(initialValue: Value?): CPointerVar<Var> {
+        check(initialValue == null)
         return allocPointerTo()
     }
 

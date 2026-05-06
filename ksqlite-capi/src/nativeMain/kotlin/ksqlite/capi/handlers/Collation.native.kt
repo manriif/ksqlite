@@ -10,7 +10,7 @@ import ksqlite.capi.types.Sqlite3CollationNeededCallback
 import ksqlite.capi.types.Sqlite3CreateCollationCallback
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.utils.toKStringFromUtf8
+import ksqlite.capi.memory.toKStringFromUtf8
 
 ///////////////////////////////////////////////////////////////////////////
 // Needed
