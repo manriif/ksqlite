@@ -26,7 +26,7 @@ internal class WalHookHandler(manager: MemoryManager) : Handler(manager) {
         db: MemorySegment,
         dbName: MemorySegment,
         nPage: Int,
-    ): Int = handler(refPointer) { callback: Sqlite3WalHookCallback, userData ->
+    ): Int = handle(refPointer) { callback: Sqlite3WalHookCallback, userData ->
         callback(
             userData,
             sqlite3(db),

@@ -19,7 +19,7 @@ internal class CommitHookHandler(manager: MemoryManager) : Handler(manager) {
 
     fun handle(
         refPointer: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3CommitHookCallback, userData ->
+    ): Int = handle(refPointer) { callback: Sqlite3CommitHookCallback, userData ->
         callback(userData)
     }
 }
@@ -35,7 +35,7 @@ internal class RollbackHookHandler(manager: MemoryManager) : Handler(manager) {
 
     fun handle(
         refPointer: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3RollbackHookCallback, userData ->
+    ): Unit = handle(refPointer) { callback: Sqlite3RollbackHookCallback, userData ->
         callback(userData)
     }
 }

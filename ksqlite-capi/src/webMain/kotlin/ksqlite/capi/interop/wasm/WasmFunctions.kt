@@ -2,10 +2,12 @@
 
 package ksqlite.capi.interop.wasm
 
+import ksqlite.capi.interop.js.joinToString
 import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.JsString
 import kotlin.js.nativeInvoke
+import kotlin.js.toJsString
 
 internal typealias WasmFunction = JsAny
 
@@ -186,52 +188,6 @@ internal external interface WasmFunctions {
     ): WasmPointer
 
     /**
-     * Expects a JS function and signature, exactly as for wasm.jsFuncToWasm(). It uses that
-     * function to create a WASM-exported function, installs that function to the next available
-     * slot of wasm.functionTable(), and returns the function's index in that table (which acts as
-     * a pointer to that function). The returned pointer can be passed to wasm.uninstallFunction()
-     * to uninstall it and free up the table slot for reuse.
-     *
-     * As a special case, if the passed-in function is a WASM-exported function then the signature
-     * argument is ignored and func is installed as-is, without requiring re-compilation/re-wrapping.
-     *
-     * This function will propagate an exception if WebAssembly.Table.grow() throws or
-     * wasm.jsFuncToWasm() throws. The former case can happen in an Emscripten-compiled environment
-     * when building without Emscripten's -sALLOW_TABLE_GROWTH flag.
-     */
-    fun installFunction(
-        function: JsFunction,
-        funcSignature: JsString
-    ): WasmPointer
-
-    /**
-     * Creates a WASM function which wraps the given JS function and returns the JS binding of that
-     * WASM function. The function signature string must be in the form used by jaccwabyt or
-     * Emscripten's addFunction(). In short: in may have one of the following formats:
-     *
-     * - Emscripten: "x...", where the first x is a letter representing the result type and subsequent
-     * letters represent the argument types. See below. Functions with no arguments have only a
-     * single letter.
-     * - Jaccwabyt: "x(...)" where x is the letter representing the result type and letters in the
-     * parens (if any) represent the argument types. Functions with no arguments use x(). See below.
-     *
-     * Supported letters:
-     *
-     * - i = int32
-     * - p = int32 ("pointer")
-     * - j = int64
-     * - f = float32
-     * - d = float64
-     * - v = void, only legal for use as the result type
-     *
-     * It throws if an invalid signature letter is used.
-     */
-    fun jsFuncToWasm(
-        function: JsFunction,
-        signature: JsString,
-    ): WasmFunction
-
-    /**
      * Creates a WASM function which wraps the given JS function and returns the JS binding of that
      * WASM function. The function signature string must be in the form used by jaccwabyt or
      * Emscripten's addFunction(). In short: in may have one of the following formats:
@@ -269,16 +225,6 @@ internal external interface WasmFunctions {
     ): WasmPointer
 
     /**
-     * This works exactly like installFunction() except that the installation is scoped to the
-     * current allocation scope and is uninstalled when the current allocation scope is popped.
-     * It will throw if no allocation scope is active.
-     */
-    fun scopedInstallFunction(
-        function: JsFunction,
-        funcSignature: JsString
-    ): WasmPointer
-
-    /**
      * Requires a pointer value previously returned from wasm.installFunction(). Removes that
      * function from the WASM function table, marks its table slot as free for re-use, and returns
      * that function. It is illegal to call this before installFunction() has been called and
@@ -288,31 +234,79 @@ internal external interface WasmFunctions {
     fun uninstallFunction(pointer: WasmPointer): WasmFunction
 }
 
+///////////////////////////////////////////////////////////////////////////
+// Type-safety
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Type-safe function signature types in Emscripten format.
+ */
+internal value class FunctionSignature(val signature: String) {
+
+    sealed interface Parameter {
+
+        val value: Char
+    }
+
+    sealed interface Result {
+
+        val value: Char
+
+        operator fun invoke(vararg parameterTypes: Parameter): FunctionSignature {
+            val parameters = joinToString(parameterTypes, "", Parameter::value)
+            return FunctionSignature("$value$parameters")
+        }
+    }
+
+    data object Pointer : Result, Parameter {
+        override val value: Char
+            get() = 'p'
+    }
+
+    data object Int32 : Result, Parameter {
+        override val value: Char
+            get() = 'i'
+    }
+
+    data object Int64 : Result, Parameter {
+        override val value: Char
+            get() = 'j'
+    }
+
+    data object Float32 : Result, Parameter {
+        override val value: Char
+            get() = 'f'
+    }
+
+    data object Float64 : Result, Parameter {
+        override val value: Char
+            get() = 'd'
+    }
+
+    data object Void : Result {
+        override val value: Char
+            get() = 'v'
+    }
+}
+
 /**
  * JS invokable function.
  */
-internal external interface JsFunction: JsAny {
+internal external interface JsFunction : JsAny {
 
     @nativeInvoke
     operator fun invoke(vararg args: JsAny): JsAny
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Utils
-///////////////////////////////////////////////////////////////////////////
-
-internal fun WasmFunctions.installFunction() {
-
+/**
+ * Installs a JS function.
+ */
+internal fun WasmFunctions.installFunction(
+    signature: FunctionSignature,
+    function: Function<*>
+): WasmPointer {
+    return installFunction(
+        funcSignature = signature.signature.toJsString(),
+        function = function as JsFunction
+    )
 }
-
-
-
-
-
-
-
-
-
-
-
-

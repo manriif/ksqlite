@@ -1,8 +1,13 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.interop.js.arraySize
+import ksqlite.capi.interop.js.copyFrom
+import ksqlite.capi.interop.js.copyTo
+import ksqlite.capi.interop.js.plus
 import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.utils.checkBufferRange
+import kotlin.js.toLong
 
 /**
  * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for JVM.
@@ -24,11 +29,16 @@ internal class MemoryBlock(
             sourceOffset = sourceOffset,
             sourceSize = blockSize,
             destinationOffset = destinationOffset.toLong(),
-            destinationSize = destination.size.toLong(),
+            destinationSize = arraySize(destination).toLong(),
             size = size
         )
 
-        TODO()
+        val begin = (pointer + sourceOffset).toLong().toInt()
+        val end = begin + size
+
+        memory.heap8()
+            .subarray(begin, end)
+            .copyTo(destination, destinationOffset)
 
         return destination
     }
@@ -41,12 +51,17 @@ internal class MemoryBlock(
     ) {
         checkBufferRange(
             sourceOffset = sourceOffset.toLong(),
-            sourceSize = source.size.toLong(),
+            sourceSize = arraySize(source).toLong(),
             destinationOffset = destinationOffset,
             destinationSize = blockSize,
             size = size
         )
 
-        TODO()
+        val begin = (pointer + destinationOffset).toLong().toInt()
+        val end = begin + size
+
+        memory.heap8()
+            .subarray(begin, end)
+            .copyFrom(source, sourceOffset)
     }
 }

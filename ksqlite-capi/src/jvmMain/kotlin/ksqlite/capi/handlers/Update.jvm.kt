@@ -33,7 +33,7 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
         tableName: MemorySegment,
         oldRowId: Long,
         newRowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback, userData ->
+    ): Unit = handle(refPointer) { callback: Sqlite3PreupdateHookCallback, userData ->
         callback(
             userData,
             sqlite3(db),
@@ -65,7 +65,7 @@ internal class UpdateHookHandler(manager: MemoryManager) : Handler(manager) {
         dbName: MemorySegment,
         tableName: MemorySegment,
         rowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback, userData ->
+    ): Unit = handle(refPointer) { callback: Sqlite3UpdateHookCallback, userData ->
         callback(
             userData,
             convertActionCode(action),

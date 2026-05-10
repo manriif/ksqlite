@@ -27,7 +27,7 @@ internal class CollationNeededHandler(manager: MemoryManager) : Handler(manager)
         db: MemorySegment,
         eTextRep: Int,
         name: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3CollationNeededCallback, userData ->
+    ): Unit = handle(refPointer) { callback: Sqlite3CollationNeededCallback, userData ->
         callback(
             userData,
             sqlite3(db),
@@ -58,7 +58,7 @@ internal class CreateCollationHandler(manager: MemoryManager) : Handler(manager)
         text1: MemorySegment,
         size2: Int,
         text2: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback, userData ->
+    ): Int = handle(refPointer) { callback: Sqlite3CreateCollationCallback, userData ->
         callback(
             userData,
             text1.asSlice(0, size1.toLong()).getStringUtf8(),

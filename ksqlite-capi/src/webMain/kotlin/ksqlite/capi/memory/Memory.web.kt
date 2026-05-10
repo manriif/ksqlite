@@ -13,11 +13,16 @@ import ksqlite.capi.interop.wasm.alloc
 import ksqlite.capi.interop.wasm.allocPtr
 import ksqlite.capi.interop.wasm.scopedAllocCStringStruct
 import ksqlite.capi.interop.wasm.scopedAllocPtr
-import ksqlite.capi.interop.wasm.sizeOfIR
+import ksqlite.capi.interop.wasm.sizeofIR
 import ksqlite.capi.wasm
 import kotlin.js.JsAny
 
 public actual open class GenericPointer internal constructor(internal val pointer: WasmPointer)
+
+/**
+ * Memory manager that is never cleared.
+ */
+internal val StaticMemoryManager = MemoryManager()
 
 ///////////////////////////////////////////////////////////////////////////
 // Allocators
@@ -85,7 +90,7 @@ internal class HeapAllocatorScope(
     }
 
     override fun allocate(byteCount: IR): WasmPointer = notClosed {
-        memory.scopedAlloc(memory.sizeOfIR(byteCount))
+        memory.scopedAlloc(memory.sizeofIR(byteCount))
     }
 
     override fun allocatePointer(): WasmPointer = notClosed {
@@ -200,7 +205,7 @@ internal inline fun <reified T> WasmPointer.toArray(
         return emptyArray()
     }
 
-    val ptrSize = memory.sizeOfIR(IR.Ptr)
+    val ptrSize = memory.sizeofIR(IR.Ptr)
 
     return Array(count) { index ->
         transform(memory, plus(ptrSize * index))

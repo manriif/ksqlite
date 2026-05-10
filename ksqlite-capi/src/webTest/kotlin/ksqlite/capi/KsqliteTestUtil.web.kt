@@ -4,6 +4,7 @@ package ksqlite.capi
 
 import kotlinx.coroutines.awaitCancellation
 import ksqlite.capi.interop.wasm.IR
+import ksqlite.capi.memory.heapScoped
 import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import kotlin.js.ExperimentalWasmJsInterop
@@ -20,10 +21,10 @@ private external fun typeOf(arg: JsAny)
 
 internal actual suspend fun initializeSqliteForSynchronousTest() {
     initializeSqlite(/*debugModule = ::log*/)
-    //log(wasm)
+    log(wasm)
 
     val (result, duration) = measureTimedValue {
-        stackScoped {
+        heapScoped {
             val pointer1 = allocate(IR.I32)
             val pointer2 = allocate(IR.I32)
             val pointer3 = allocate(IR.I32)
@@ -49,6 +50,6 @@ internal actual suspend fun initializeSqliteForSynchronousTest() {
         }
     }
 
-    log("result (${duration.inWholeMicroseconds}) = $result".toJsString())
+    log("result (${duration.inWholeNanoseconds}) = $result".toJsString())
     awaitCancellation()
 }

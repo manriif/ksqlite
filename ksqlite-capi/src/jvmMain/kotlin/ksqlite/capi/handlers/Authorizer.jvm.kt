@@ -30,7 +30,7 @@ internal class SetAuthorizerHandler(manager: MemoryManager) : Handler(manager) {
         param4: MemorySegment,
         param5: MemorySegment,
         param6: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3SetAuthorizerCallback, userData ->
+    ): Int = handle(refPointer) { callback: Sqlite3SetAuthorizerCallback, userData ->
         callback(
             userData,
             convertActionCode(action),

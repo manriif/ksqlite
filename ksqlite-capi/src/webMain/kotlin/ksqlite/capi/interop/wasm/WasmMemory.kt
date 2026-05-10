@@ -142,7 +142,7 @@ internal external interface WasmMemory {
      * Some allocation routines use this to enable callers to pass them an IR value instead of an
      * integer.
      */
-    fun sizeOfIR(ir: JsString): Int
+    fun sizeofIR(ir: JsString): Int
 
     ///////////////////////////////////////////////////////////////////////////
     // "Scoped" Allocation Management
@@ -675,7 +675,7 @@ internal external interface WasmMemory {
      * such cases, calls must behave as if the allocated memory has exactly srcTypedArray.byteLength
      * usable bytes.
      */
-    fun allocFromByteArray(srcTypedArray: Int8Array): WasmPointer
+    fun allocFromTypedArray(srcTypedArray: Int8Array): WasmPointer
 
     ///////////////////////////////////////////////////////////////////////////
     // Unofficial
@@ -684,10 +684,30 @@ internal external interface WasmMemory {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
+     * Returns either aTypedArray.slice(begin,end) (if aTypedArray.buffer is a SharedArrayBuffer) or
+     * aTypedArray.subarray(begin,end) (if it's not).
+     */
+    fun <Array: TypedArray<*, *>> typedArrayPart(
+        aTypedArray: Array,
+        begin: Int,
+        end: Int
+    ): Array
+
+    /**
+     * Returns either aTypedArray.slice(begin,end) (if aTypedArray.buffer is a SharedArrayBuffer) or
+     * aTypedArray.subarray(begin,end) (if it's not).
+     */
+    fun <Array: TypedArray<*, *>> typedArrayPart(
+        aTypedArray: Array,
+        begin: JsBigInt,
+        end: JsBigInt
+    ): Array
+
+    /**
      * Uses TextDecoder to decode the given half-open range of the given TypedArray to a string.
      */
     fun typedArrayToString(
-        typedArray: Uint8Array,
+        typedArray: TypedArray<*, *>,
         begin: Int,
         end: Int
     ): JsString
@@ -696,7 +716,7 @@ internal external interface WasmMemory {
      * Uses TextDecoder to decode the given half-open range of the given TypedArray to a string.
      */
     fun typedArrayToString(
-        typedArray: Uint8Array,
+        typedArray: TypedArray<*, *>,
         begin: JsBigInt,
         end: JsBigInt
     ): JsString
@@ -750,8 +770,8 @@ internal fun WasmMemory.allocPtr(howMany: UInt): JsArray<WasmPointer> = when (ho
 /**
  * Return the size of [ir] value.
  */
-internal fun WasmMemory.sizeOfIR(ir: IR): Int {
-    return sizeOfIR(ir.value.toJsString())
+internal fun WasmMemory.sizeofIR(ir: IR): Int {
+    return sizeofIR(ir.value.toJsString())
 }
 
 /**

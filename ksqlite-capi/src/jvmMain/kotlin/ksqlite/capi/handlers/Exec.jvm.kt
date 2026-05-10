@@ -27,7 +27,7 @@ internal class ExecHandler(manager: MemoryManager) : Handler(manager) {
         columnCount: Int,
         values: MemorySegment,
         names: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3ExecCallback, userData ->
+    ): Int = handle(refPointer) { callback: Sqlite3ExecCallback, userData ->
         val columnValues = values.toArray(columnCount) { it.getStringUtf8OrNull() }
         val columnNames = names.toArray(columnCount) { it.getStringUtf8() }
 

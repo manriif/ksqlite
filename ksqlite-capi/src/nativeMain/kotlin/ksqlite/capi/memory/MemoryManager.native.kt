@@ -1,13 +1,11 @@
 package ksqlite.capi.memory
 
-import kotlinx.cinterop.Arena
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.Pinned
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
@@ -62,28 +60,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
         return pointer
     }
 
-    /**
-     * Allocates a copy of the [value] and returns a [CPointer] to the content.
-     * Returns `null` if [value] is `null`.
-     *
-     * The resulting disposable can be disposed using [globalDisposer].
-     */
-    fun stringPointer(
-        value: String?,
-        destructor: Sqlite3DestructorCallback? = null
-    ): CPointer<ByteVar>? = notClosed {
-        val cString = value?.cstr ?: return null
-        val arena = Arena()
-        val pointer = cString.getPointer(arena)
-
-        val disposable = registerDisposable { id ->
-            StringDisposable(id, destructor, arena, pointer, cString.size.toLong())
-        }
-
-        registerGlobalDisposable(pointer, disposable)
-        return pointer
-    }
-
     ///////////////////////////////////////////////////////////////////////////
     // Disposables
     ///////////////////////////////////////////////////////////////////////////
@@ -123,27 +99,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
         override fun release() {
             unregisterGlobalDisposable(pointer)
             pinned.unpin()
-        }
-    }
-
-    /**
-     * Reference to [String].
-     */
-    private inner class StringDisposable(
-        id: ULong,
-        destructor: Sqlite3DestructorCallback?,
-        private val arena: Arena,
-        private val pointer: COpaquePointer,
-        size: Long,
-    ) : AutoDisposable(id, destructor) {
-
-        override val userData: sqlite3_mutable_pointer? by lazy {
-            sqlite3_mutable_pointer.from(pointer, size)
-        }
-
-        override fun release() {
-            unregisterGlobalDisposable(pointer)
-            arena.clear()
         }
     }
 }

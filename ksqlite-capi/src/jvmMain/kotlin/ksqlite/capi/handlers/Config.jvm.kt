@@ -25,7 +25,7 @@ internal class ConfigLogHandler(manager: MemoryManager) : Handler(manager) {
         refPointer: MemorySegment,
         errCode: Int,
         errMsg: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback, userData ->
+    ): Unit = handle(refPointer) { callback: Sqlite3ConfigLogCallback, userData ->
         callback(
             userData,
             errCode,
@@ -51,7 +51,7 @@ internal class ConfigSqlLogHandler(manager: MemoryManager) : Handler(manager) {
         db: MemorySegment,
         name: MemorySegment,
         type: Int
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback, userData ->
+    ): Unit = handle(refPointer) { callback: Sqlite3ConfigSqlLogCallback, userData ->
         dispatchSqlLogEvent(
             callback = callback,
             userData = userData,

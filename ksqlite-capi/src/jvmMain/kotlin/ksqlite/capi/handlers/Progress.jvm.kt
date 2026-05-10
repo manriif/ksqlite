@@ -18,7 +18,7 @@ internal class ProgressHandlerHandler(manager: MemoryManager) : Handler(manager)
 
     fun handle(
         refPointer: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3ProgressHandlerCallback, userData ->
+    ): Int = handle(refPointer) { callback: Sqlite3ProgressHandlerCallback, userData ->
         callback(userData)
     }
 }

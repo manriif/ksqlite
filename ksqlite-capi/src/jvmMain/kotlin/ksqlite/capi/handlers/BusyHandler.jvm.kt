@@ -20,7 +20,7 @@ internal class BusyHandlerHandler(manager: MemoryManager) : Handler(manager) {
     fun handle(
         refPointer: MemorySegment,
         count: Int,
-    ): Int = handler(refPointer) { callback: Sqlite3BusyHandlerCallback, userData ->
+    ): Int = handle(refPointer) { callback: Sqlite3BusyHandlerCallback, userData ->
         callback(
             userData,
             count

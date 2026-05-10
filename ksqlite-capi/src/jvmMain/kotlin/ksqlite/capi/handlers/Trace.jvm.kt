@@ -28,7 +28,7 @@ internal class TraceHandler(manager: MemoryManager) : Handler(manager) {
         refPointer: MemorySegment,
         pointer1: MemorySegment,
         pointer2: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3TraceCallback, userData ->
+    ): Int = handle(refPointer) { callback: Sqlite3TraceCallback, userData ->
         dispatchTraceEvent(
             callback = callback,
             userData = userData,

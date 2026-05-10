@@ -10,18 +10,7 @@ import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.Any
-import kotlin.ByteArray
-import kotlin.NullPointerException
-import kotlin.String
-import kotlin.ULong
-import kotlin.Unit
-import kotlin.apply
-import kotlin.getValue
-import kotlin.lazy
 import kotlin.reflect.KClass
-import kotlin.text.String
-import kotlin.toULong
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
@@ -127,7 +116,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if [callback] is `null`.
      */
-    inline fun <reified H: Handler> functionPointer(
+    inline fun <reified H : Handler> functionPointer(
         callback: Any?,
         noinline factory: (MemoryManager) -> H
     ): MemorySegment = notClosed {
@@ -142,7 +131,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a pointer to a static function that will invoke the `handle` function of the
      * [Handler] returned by [factory].
      */
-    inline fun <reified H: Handler> functionPointer(
+    inline fun <reified H : Handler> functionPointer(
         noinline factory: (MemoryManager) -> H
     ): MemorySegment {
         return functionPointer(this, factory)
@@ -166,27 +155,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
 
         val disposable = registerDisposable { id ->
             ByteArrayDisposable(id, value, destructor)
-        }
-
-        registerGlobalDisposable(disposable.pointer, disposable)
-        return disposable.pointer
-    }
-
-    /**
-     * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
-     *
-     * Returns [MemorySegment.NULL] if [value] is `null`.
-     */
-    fun stringPointer(
-        value: String?,
-        destructor: Sqlite3DestructorCallback? = null
-    ): MemorySegment = notClosed {
-        if (value == null) {
-            return MemorySegment.NULL
-        }
-
-        val disposable = registerDisposable { id ->
-            StringDisposable(id, value, destructor)
         }
 
         registerGlobalDisposable(disposable.pointer, disposable)
@@ -258,27 +226,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
         val pointer: MemorySegment = arena.allocate(refValue.size.toLong()).apply {
             copyFrom(MemorySegment.ofArray(refValue))
         }
-
-        override val userData: sqlite3_mutable_pointer? by lazy {
-            sqlite3_mutable_pointer.from(pointer, pointer.byteSize())
-        }
-
-        override fun release() {
-            super.release()
-            unregisterGlobalDisposable(pointer)
-        }
-    }
-
-    /**
-     * Reference to [String].
-     */
-    private inner class StringDisposable(
-        id: ULong,
-        refValue: String,
-        destructor: Sqlite3DestructorCallback?,
-    ) : ArenaDisposable(id, destructor) {
-
-        val pointer: MemorySegment = arena.allocateFrom(refValue)
 
         override val userData: sqlite3_mutable_pointer? by lazy {
             sqlite3_mutable_pointer.from(pointer, pointer.byteSize())

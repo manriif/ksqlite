@@ -34,7 +34,7 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(
         val refPointer = sqlite3_user_data(context)
         val context = sqlite3_context(context)
 
-        handler(refPointer) { callbacks: CreateFunction, userData ->
+        handle(refPointer) { callbacks: CreateFunction, userData ->
             block(callbacks, userData, context)
         }
     }
