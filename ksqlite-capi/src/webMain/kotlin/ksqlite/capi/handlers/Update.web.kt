@@ -1,36 +1,40 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.convertActionCode
+import ksqlite.capi.interop.wasm.FunctionSignature
+import ksqlite.capi.interop.wasm.WasmFunctions
+import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.Sqlite3PreupdateHookCallback
 import ksqlite.capi.types.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.memory.toKStringFromUtf8
-import java.lang.foreign.FunctionDescriptor
-import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
 
 /**
  * Handler for [ksqlite.capi.sqlite3_preupdate_hook].
  */
 internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_LONG,
-        ValueLayout.JAVA_LONG
+    override fun WasmFunctions.install(): WasmPointer = installFunction(
+        signature = FunctionSignature.Void(
+            FunctionSignature.Pointer,
+            FunctionSignature.Pointer,
+            FunctionSignature.Int32,
+            FunctionSignature.Pointer,
+            FunctionSignature.Pointer,
+            FunctionSignature.Int64,
+            FunctionSignature.Int64,
+        ),
+        function = ::handle
     )
 
     fun handle(
-        refPointer: MemorySegment,
-        db: MemorySegment,
+        refPointer: WasmPointer,
+        db: WasmPointer,
         action: Int,
-        dbName: MemorySegment,
-        tableName: MemorySegment,
+        dbName: WasmPointer,
+        tableName: WasmPointer,
         oldRowId: Long,
         newRowId: Long
     ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback, userData ->
@@ -51,19 +55,22 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
  */
 internal class UpdateHookHandler(manager: MemoryManager) : Handler(manager) {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_LONG
+    override fun WasmFunctions.install(): WasmPointer = installFunction(
+        signature = FunctionSignature.Void(
+            FunctionSignature.Pointer,
+            FunctionSignature.Int32,
+            FunctionSignature.Pointer,
+            FunctionSignature.Pointer,
+            FunctionSignature.Int64,
+        ),
+        function = ::handle
     )
 
     fun handle(
-        refPointer: MemorySegment,
+        refPointer: WasmPointer,
         action: Int,
-        dbName: MemorySegment,
-        tableName: MemorySegment,
+        dbName: WasmPointer,
+        tableName: WasmPointer,
         rowId: Long
     ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback, userData ->
         callback(

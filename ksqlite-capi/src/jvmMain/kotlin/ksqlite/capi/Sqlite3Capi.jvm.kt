@@ -105,8 +105,8 @@ import ksqlite.capi.types.useParamsMemScoped
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.backing
-import ksqlite.capi.memory.getStringUtf8
-import ksqlite.capi.memory.getStringUtf8OrNull
+import ksqlite.capi.memory.toKStringFromUtf8
+import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.ksqliteLoadLibrary
@@ -296,7 +296,7 @@ public actual fun sqlite3_bind_parameter_name(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native.sqlite3_bind_parameter_name(stmt.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
@@ -311,7 +311,7 @@ public actual fun sqlite3_bind_pointer(
             stmt.pointer,
             index,
             stableRefPointer(this, data, disposer),
-            typePointer,
+            typePointer.notNull,
             stableRefDisposer(this, disposer)
         )
     }
@@ -482,13 +482,13 @@ public actual fun sqlite3_column_database_name(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native.sqlite3_column_database_name(stmt.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_column_decltype(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native.sqlite3_column_decltype(stmt.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_column_double(
     stmt: sqlite3_stmt,
@@ -509,25 +509,25 @@ public actual fun sqlite3_column_name(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native.sqlite3_column_name(stmt.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_column_origin_name(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native.sqlite3_column_origin_name(stmt.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_column_table_name(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native.sqlite3_column_table_name(stmt.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_column_text(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native.sqlite3_column_text(stmt.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_column_type(
     stmt: sqlite3_stmt,
@@ -555,7 +555,7 @@ public actual fun sqlite3_commit_hook(
 }
 
 public actual fun sqlite3_compileoption_get(index: Int): String? =
-    native.sqlite3_compileoption_get(index).getStringUtf8OrNull()
+    native.sqlite3_compileoption_get(index).toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_compileoption_used(optName: String): Int = memScoped {
     native.sqlite3_compileoption_used(optName.allocateUtf8())
@@ -780,7 +780,7 @@ public actual fun sqlite3_db_filename(
     name: String
 ): sqlite3_filename? = memScoped {
     native.sqlite3_db_filename(db.pointer, name.allocateUtf8())
-}.getStringUtf8OrNull()
+}.toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_db_handle(stmt: sqlite3_stmt): sqlite3? =
     native.sqlite3_db_handle(stmt.pointer).orNull?.let(::sqlite3)
@@ -789,7 +789,7 @@ public actual fun sqlite3_db_name(
     db: sqlite3,
     index: Int
 ): String? = native.sqlite3_db_name(db.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_db_readonly(
     db: sqlite3,
@@ -857,10 +857,10 @@ public actual fun sqlite3_errcode(db: sqlite3): Int =
     native.sqlite3_errcode(db.pointer)
 
 public actual fun sqlite3_errmsg(db: sqlite3): String? =
-    native.sqlite3_errmsg(db.pointer).getStringUtf8OrNull()
+    native.sqlite3_errmsg(db.pointer).toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_errstr(resultCode: Int): String? =
-    native.sqlite3_errstr(resultCode).getStringUtf8OrNull()
+    native.sqlite3_errstr(resultCode).toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_error_offset(db: sqlite3): Int =
     native.sqlite3_error_offset(db.pointer)
@@ -887,7 +887,7 @@ public actual fun sqlite3_exec(
 
 public actual fun sqlite3_expanded_sql(stmt: sqlite3_stmt): String? {
     val pointer = native.sqlite3_expanded_sql(stmt.pointer).orNull ?: return null
-    val expandedSql = pointer.getStringUtf8()
+    val expandedSql = pointer.toKStringFromUtf8()
     native.sqlite3_free(pointer)
     return expandedSql
 }
@@ -972,7 +972,7 @@ public actual fun sqlite3_last_insert_rowid(db: sqlite3): Long =
     native.sqlite3_last_insert_rowid(db.pointer)
 
 public actual fun sqlite3_libversion(): String =
-    native.sqlite3_libversion().getStringUtf8()
+    native.sqlite3_libversion().toKStringFromUtf8()
 
 public actual fun sqlite3_libversion_number(db: sqlite3): Int =
     native.sqlite3_libversion_number()
@@ -1226,7 +1226,7 @@ public actual fun sqlite3_result_pointer(
         native.sqlite3_result_pointer(
             context.pointer,
             stableRefPointer(this, data, this.disposer),
-            typePointer,
+            typePointer.notNull,
             stableRefDisposer(0, this.disposer)
         )
     }
@@ -1386,10 +1386,10 @@ public actual fun sqlite3_soft_heap_limit64(limit: Long): Long =
     native.sqlite3_soft_heap_limit64(limit)
 
 public actual fun sqlite3_sourceid(): String =
-    native.sqlite3_sourceid().getStringUtf8()
+    native.sqlite3_sourceid().toKStringFromUtf8()
 
 public actual fun sqlite3_sql(stmt: sqlite3_stmt): String =
-    native.sqlite3_sql(stmt.pointer).getStringUtf8()
+    native.sqlite3_sql(stmt.pointer).toKStringFromUtf8()
 
 public actual fun sqlite3_status(
     option: Sqlite3StatusOption,
@@ -1565,14 +1565,14 @@ public actual fun sqlite3_uri_key(
     index: Int
 ): String? = memScoped {
     native.sqlite3_uri_key(fileName.allocateUtf8(), index)
-}.getStringUtf8OrNull()
+}.toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_uri_parameter(
     fileName: sqlite3_filename,
     parameter: String
 ): String? = memScoped {
     native.sqlite3_uri_parameter(fileName.allocateUtf8(), parameter.allocateUtf8())
-}.getStringUtf8OrNull()
+}.toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_user_data(context: sqlite3_context): sqlite3_mutable_pointer? =
     context.db.memory
@@ -1624,7 +1624,7 @@ public actual fun sqlite3_value_subtype(value: sqlite3_value): UInt =
     native.sqlite3_value_subtype(value.pointer).toUInt()
 
 public actual fun sqlite3_value_text(value: sqlite3_value): String? =
-    native.sqlite3_value_text(value.pointer).getStringUtf8OrNull()
+    native.sqlite3_value_text(value.pointer).toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_value_type(value: sqlite3_value): Sqlite3DataType =
     convertDataType(native.sqlite3_value_type(value.pointer))
@@ -1645,7 +1645,7 @@ public actual fun sqlite3_vtab_collation(
     info: sqlite3_index_info,
     index: Int
 ): String? = native.sqlite3_vtab_collation(info.pointer, index)
-    .getStringUtf8OrNull()
+    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_vtab_config(
     db: sqlite3,

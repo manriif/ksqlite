@@ -63,7 +63,7 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryB
          *
          * The reference is disposed before being returned if [dispose] is `true`.
          */
-        /*context(manager: MemoryManager)
+        context(manager: MemoryManager)
         fun fromStableRef(
             pointer: WasmPointer,
             dispose: Boolean = true
@@ -73,12 +73,12 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryB
             }
 
             return manager.getStableRef(pointer).run {
-                Reference.userData?.also {
+                userData?.also {
                     if (dispose) {
-                        Reference.dispose()
+                        dispose()
                     }
                 }
             }
-        }*/
+        }
     }
 }

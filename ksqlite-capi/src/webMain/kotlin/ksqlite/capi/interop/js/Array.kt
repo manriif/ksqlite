@@ -38,19 +38,37 @@ internal fun <T : JsAny?> toJsArray(array: Array<T>): JsArray<T> {
 }
 
 /**
- * Returns the [array] as [JsArray].
+ * [Array.size].
+ */
+internal fun arraySize(array: Array<*>): Int {
+    return array.size
+}
+
+/**
+ * [ByteArray.size].
  */
 internal fun arraySize(array: ByteArray): Int {
     return array.size
 }
 
 /**
- * Workaround for IDE complaining about:
- *
- * Cannot access 'Cloneable' which is a supertype of 'Array'. Check your module classpath for
- * missing or conflicting dependencies.
+ * [Array.lastIndex].
  */
-internal inline fun <T : Any> joinToString(
+internal fun arrayLastIndex(array: Array<*>): Int {
+    return array.lastIndex
+}
+
+/**
+ * [Array.lastIndex].
+ */
+internal fun <T: Any> arrayGet(array: Array<T>, index: Int): T {
+    return array.get(index)
+}
+
+/**
+ * [Array.joinToString].
+ */
+internal inline fun <T : Any> arrayJoinToString(
     array: Array<T>,
     separator: CharSequence,
     crossinline transform: (T) -> Any

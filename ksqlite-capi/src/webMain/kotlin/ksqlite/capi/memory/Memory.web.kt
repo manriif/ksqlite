@@ -2,7 +2,11 @@
 
 package ksqlite.capi.memory
 
+import ksqlite.capi.interop.js.arrayGet
+import ksqlite.capi.interop.js.arrayLastIndex
+import ksqlite.capi.interop.js.arraySize
 import ksqlite.capi.interop.js.plus
+import ksqlite.capi.interop.js.toInt8Array
 import ksqlite.capi.interop.wasm.CString
 import ksqlite.capi.interop.wasm.IR
 import ksqlite.capi.interop.wasm.NullPtr
@@ -14,6 +18,8 @@ import ksqlite.capi.interop.wasm.allocPtr
 import ksqlite.capi.interop.wasm.scopedAllocCStringStruct
 import ksqlite.capi.interop.wasm.scopedAllocPtr
 import ksqlite.capi.interop.wasm.sizeofIR
+import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.wasm
 import kotlin.js.JsAny
 
@@ -23,6 +29,31 @@ public actual open class GenericPointer internal constructor(internal val pointe
  * Memory manager that is never cleared.
  */
 internal val StaticMemoryManager = MemoryManager()
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a stable [WasmPointer] to [data] available globally.
+ * Returns `null` if [data] is `null`.
+ *
+ * The resulting reference data can be accessed using [MemoryManager.getStableRef] and it can be
+ * disposed using [MemoryManager.stableRefDisposer].
+ *
+ * If a pointer was previously obtained using [key], it is disposed.
+ */
+internal fun MemoryManager.keyedStableRefPointer(
+    key: String,
+    data: Any?,
+    userData: sqlite3_mutable_pointer? = null,
+    destructor: Sqlite3DestructorCallback? = null,
+): WasmPointer = stableRefPointer(
+    data = data,
+    userData = userData,
+    destructor = destructor,
+    key = key
+)
 
 ///////////////////////////////////////////////////////////////////////////
 // Allocators
@@ -110,12 +141,45 @@ internal class HeapAllocatorScope(
 }
 
 /**
- * Allocates a pointer, initializes it with `this` UTF-8 string's content + a NUL terminator and
- * returns the pointer to it.
+ * Allocates a pointer, initializes it with `this` UTF-8 string's content + a NUL terminator.
  */
 context(scope: HeapAllocatorScope)
-internal fun String.allocateUtf8(): WasmPointer {
-    return scope.allocateUtf8(this).pointer
+internal fun String.allocateUtf8(): CString {
+    return scope.allocateUtf8(this)
+}
+
+/**
+ * Allocates a pointer, initializes it with `this` UTF-8 string's content + a NUL terminator and
+ * returns the pointer to it.
+ *
+ * Returns [NullPtr] if `this` is `null`.
+ */
+context(scope: HeapAllocatorScope)
+internal fun String?.allocateUtf8Pointer(): WasmPointer {
+    return if (this == null) NullPtr else scope.allocateUtf8(this).pointer
+}
+
+/**
+ * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
+ * the result into a memory segment.
+ */
+context(scope: HeapAllocatorScope)
+internal fun allocateUtf8Array(array: Array<String>?): WasmPointer {
+    if (array == null) {
+        return NullPtr
+    }
+
+    val pointerSize = scope.memory.sizeofIR(IR.Ptr)
+    val baseArrayPointer = scope.allocate(pointerSize * arraySize(array))
+
+    for (index in 0..arrayLastIndex(array)) {
+        scope.memory.pokePtr(
+            address = baseArrayPointer + (index * pointerSize),
+            value = arrayGet(array, index).allocateUtf8Pointer()
+        )
+    }
+
+    return baseArrayPointer
 }
 
 /**
@@ -219,10 +283,25 @@ internal inline fun <reified T> WasmPointer.toArray(
 /**
  * Reads bytes from this pointer until NULL and then convert to string.
  */
-internal fun WasmPointer.toKStringFromUtf8(memory: WasmMemory = wasm): String {
+internal fun WasmPointer.toKStringFromUtf8OrNull(memory: WasmMemory = wasm): String? {
     return memory
         .cstrToJs(this)
-        .toString()
+        ?.toString()
+}
+
+/**
+ * Reads bytes from this pointer until NULL and then convert to string.
+ */
+context(memory: WasmMemory)
+internal fun WasmPointer.toKStringFromUtf8OrNull(): String? {
+    return toKStringFromUtf8OrNull(memory)
+}
+
+/**
+ * Reads bytes from this pointer until NULL and then convert to string.
+ */
+internal fun WasmPointer.toKStringFromUtf8(memory: WasmMemory = wasm): String {
+    return checkNotNull(toKStringFromUtf8OrNull(memory))
 }
 
 /**

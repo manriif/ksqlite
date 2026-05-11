@@ -5,6 +5,8 @@ import kotlin.js.JsArray
 import kotlin.js.JsBigInt
 import kotlin.js.JsNumber
 import kotlin.js.definedExternally
+import kotlin.js.length
+import kotlin.js.toJsNumber
 
 /**
  * A [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray)
@@ -13,7 +15,13 @@ import kotlin.js.definedExternally
 internal sealed external class TypedArray<T : JsAny, R : TypedArray<T, R>> : JsAny {
 
     /**
-     * Read-only. The length of the ArrayBuffer (in bytes).
+     * The length accessor property of TypedArray instances returns the length (in elements) of this
+     * typed array.
+     */
+    val length: Int
+
+    /**
+     * The length of the ArrayBuffer (in bytes).
      */
     val byteLength: Int
 
@@ -34,6 +42,14 @@ internal sealed external class TypedArray<T : JsAny, R : TypedArray<T, R>> : JsA
     operator fun get(index: Int): T = definedExternally
 
     /**
+     * Sets the item located at the specified index.
+     */
+    operator fun set(
+        index: Int,
+        value: T,
+    ): Unit = definedExternally
+
+    /**
      * The set() method of TypedArray instances stores multiple values in the typed array, reading
      * input values from a specified array.
      */
@@ -44,8 +60,10 @@ internal sealed external class TypedArray<T : JsAny, R : TypedArray<T, R>> : JsA
 
     /**
      * Returns a section of an array.
+     *
      * @param start The beginning of the specified portion of the array.
-     * @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
+     * @param end The end of the specified portion of the array. This is exclusive of the element at
+     * the index 'end'.
      */
     fun slice(
         start: Int = definedExternally,
@@ -70,18 +88,14 @@ internal sealed external class TypedArray<T : JsAny, R : TypedArray<T, R>> : JsA
 // Subclasses
 ///////////////////////////////////////////////////////////////////////////
 
-internal external class Int8Array(array: JsArray<JsNumber>) : TypedArray<JsNumber, Int8Array>
-internal external class Uint8Array(array: JsArray<JsNumber>) : TypedArray<JsNumber, Uint8Array>
-internal external class Int16Array(array: JsArray<JsNumber>) : TypedArray<JsNumber, Int16Array>
-internal external class Uint16Array(array: JsArray<JsNumber>) : TypedArray<JsNumber, Uint16Array>
-internal external class Int32Array(array: JsArray<JsNumber>) : TypedArray<JsNumber, Int32Array>
-internal external class Uint32Array(array: JsArray<JsNumber>) : TypedArray<JsNumber, Uint32Array>
-
-internal external class BigInt64Array(array: JsArray<JsBigInt>) :
-    TypedArray<JsBigInt, BigInt64Array>
-
-internal external class BigUint64Array(array: JsArray<JsBigInt>) :
-    TypedArray<JsBigInt, BigUint64Array>
+internal external class Int8Array(length: Int) : TypedArray<JsNumber, Int8Array>
+internal external class Uint8Array(length: Int) : TypedArray<JsNumber, Uint8Array>
+internal external class Int16Array(length: Int) : TypedArray<JsNumber, Int16Array>
+internal external class Uint16Array(length: Int) : TypedArray<JsNumber, Uint16Array>
+internal external class Int32Array(length: Int) : TypedArray<JsNumber, Int32Array>
+internal external class Uint32Array(length: Int) : TypedArray<JsNumber, Uint32Array>
+internal external class BigInt64Array(length: Int) : TypedArray<JsBigInt, BigInt64Array>
+internal external class BigUint64Array(length: Int) : TypedArray<JsBigInt, BigUint64Array>
 
 ///////////////////////////////////////////////////////////////////////////
 // Conversions & util

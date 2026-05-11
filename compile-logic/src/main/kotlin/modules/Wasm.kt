@@ -38,6 +38,46 @@ private val WasmExtraResourceFileNames = listOf(
 ).sqlitePrefixed('-')
 
 /**
+ * Extra functions which aren't exported by default in the wasm build.
+ * Exports with care are theses aren't tested by the official wasm team.
+ * Some aren't that meaningful to use in web platforms but are exported to align at maximum with
+ * other platforms.
+ */
+private val WasmExtraExportedFunctions = listOf(
+    "autovacuum_pages",
+    "backup_finish",
+    "backup_init",
+    "backup_pagecount",
+    "backup_remaining",
+    "backup_step",
+    "bind_blob64",
+    "bind_text64",
+    "bind_value",
+    "bind_zeroblob64",
+    "blob_bytes",
+    "blob_close",
+    "blob_open",
+    "blob_read",
+    "blob_reopen",
+    "blob_write",
+    "close",
+    "config",
+    "db_cacheflush",
+    "db_config",
+    "db_release_memory",
+    "log",
+    "memory_used",
+    "memory_highwater",
+    "release_memory",
+    "result_blob64",
+    "result_text64",
+    "result_value",
+    "system_errno",
+    "value_encoding",
+    "vtab_config"
+).sqlitePrefixed()
+
+/**
  * Performs some adjustments and fixes for WASM compilation.
  */
 fun configureSqliteWasmTrunk(
@@ -59,7 +99,7 @@ fun configureSqliteWasmTrunk(
     val defaultExportedFunctions = exportedFunctionFile.readText()
 
     sqliteDirectory.resolve(EXPORTED_FUNCTIONS).outputStream().bufferedWriter().use { output ->
-        KsqliteFunctions.forEach { name ->
+        (KsqliteFunctions + WasmExtraExportedFunctions).forEach { name ->
             output.appendLine("_$name")
         }
 

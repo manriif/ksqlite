@@ -99,7 +99,9 @@ internal actual class MemoryManager : MemoryManagerBase() {
         factory: (MemoryManager) -> Handler
     ): WasmPointer = notClosed {
         functionPointers.getOrPut(handlerKlass) {
-            val handler = factory(this)
+            val handler = factory(this).apply {
+                this.memory = this@MemoryManager.memory
+            }
 
             val reference = registerDisposable { id ->
                 FunctionDisposable(id, handler)
@@ -220,7 +222,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     ) : PointerDisposable(id, destructor) {
 
         override val pointer = with(handler) {
-            memory.install()
+            this@MemoryManager.memory.install()
         }
 
         override val userData: sqlite3_mutable_pointer?

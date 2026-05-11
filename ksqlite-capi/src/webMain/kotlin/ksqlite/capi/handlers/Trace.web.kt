@@ -1,33 +1,37 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.dispatchTraceEvent
+import ksqlite.capi.interop.wasm.FunctionSignature
+import ksqlite.capi.interop.wasm.WasmFunctions
+import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.memory.toKStringFromUtf8
-import java.lang.foreign.FunctionDescriptor
-import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
+import kotlin.js.toLong
 
 /**
  * Handler for [ksqlite.capi.sqlite3_trace_v2].
  */
 internal class TraceHandler(manager: MemoryManager) : Handler(manager) {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
-        ValueLayout.JAVA_INT,
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
+    override fun WasmFunctions.install(): WasmPointer = installFunction(
+        signature = FunctionSignature.Int32(
+            FunctionSignature.Int32,
+            FunctionSignature.Pointer,
+            FunctionSignature.Pointer,
+            FunctionSignature.Pointer,
+        ),
+        function = ::handle
     )
 
-    fun handle(
+    private fun handle(
         code: Int,
-        refPointer: MemorySegment,
-        pointer1: MemorySegment,
-        pointer2: MemorySegment
+        refPointer: WasmPointer,
+        pointer1: WasmPointer,
+        pointer2: WasmPointer
     ): Int = handler(refPointer) { callback: Sqlite3TraceCallback, userData ->
         dispatchTraceEvent(
             callback = callback,
@@ -38,7 +42,7 @@ internal class TraceHandler(manager: MemoryManager) : Handler(manager) {
             toDb = ::sqlite3,
             toStatement = ::sqlite3_stmt,
             toString = { it.toKStringFromUtf8() },
-            toLong = { it.get(ValueLayout.JAVA_LONG, 0) }
+            toLong = { memory.peek64(it).toLong() }
         )
     }
 }

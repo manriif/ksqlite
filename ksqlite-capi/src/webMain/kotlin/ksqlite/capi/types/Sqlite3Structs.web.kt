@@ -2,13 +2,19 @@
 
 package ksqlite.capi.types
 
-import ksqlite.capi.memory.GenericPointer
 import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.capi.memory.GenericPointer
 
 public actual class sqlite3 internal constructor(pointer: WasmPointer) :
     GenericPointer(pointer)
 
 public actual class sqlite3_api_routines internal constructor(pointer: WasmPointer) :
+    GenericPointer(pointer)
+
+public actual class sqlite3_backup internal constructor(pointer: WasmPointer) :
+    GenericPointer(pointer)
+
+public actual class sqlite3_blob internal constructor(pointer: WasmPointer) :
     GenericPointer(pointer)
 
 public actual class sqlite3_context internal constructor(pointer: WasmPointer) :

@@ -1,5 +1,6 @@
 import komple.exec.createCommandExecutor
 import komple.task.doLastWhenOutputChanged
+import komple.tool.KompleTool
 import modules.compileSqliteWasm
 import modules.copySqliteWasmGeneratedResources
 import org.gradle.kotlin.dsl.support.serviceOf
@@ -16,6 +17,14 @@ val generatedResourcesDirectory =
     layout.buildDirectory.dir("generated/ksqlite/src/webMain/resources")
 
 val compileWasm by tasks.registeringKsqlite { context ->
+    val requiredTools = komple.tools.run {
+        listOf(emscripten, gnuSed, wabt)
+            .map(KompleTool::installTaskProvider)
+            .toTypedArray()
+    }
+
+    dependsOn(*requiredTools)
+
     val execEnvironment = komple.execEnvironments.wasm
     val fileOperations = serviceOf<FileSystemOperations>()
     val execOperations = serviceOf<ExecOperations>()

@@ -2,6 +2,7 @@ package ksqlite.capi
 
 import ksqlite.capi.interop.Sqlite3
 import ksqlite.capi.interop.Sqlite3Wasm
+import ksqlite.capi.interop.Sqlite3WasmExports
 import ksqlite.sqliteInitializer
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -30,6 +31,12 @@ internal val sqlite3: Sqlite3
  */
 internal inline val wasm: Sqlite3Wasm
     get() = sqlite3.wasm
+
+/**
+ * Returns the [Sqlite3Wasm] instance.
+ */
+internal inline val exports: Sqlite3WasmExports
+    get() = wasm.exports
 
 /**
  * Loads and initializes SQLite.

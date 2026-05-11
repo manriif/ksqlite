@@ -23,7 +23,7 @@ internal abstract class Handler(protected val manager: MemoryManager) {
      * Returns [block]'s result, invoked with [Data] and optional userData obtained from a
      * previously referenced [refPointer].
      */
-    protected inline fun <reified Data : Any, Result> handle(
+    protected inline fun <reified Data : Any, Result> handler(
         refPointer: MemorySegment,
         block: (data: Data, userData: sqlite3_mutable_pointer?) -> Result
     ): Result {

@@ -142,6 +142,14 @@ public actual class Sqlite3DatabaseConnectionOutParam actual constructor() :
     }
 }
 
+public actual class Sqlite3BlobOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_blob>() {
+
+    override fun WasmMemory.create(pointer: WasmPointer): sqlite3_blob {
+        return sqlite3_blob(pointer)
+    }
+}
+
 public actual class Sqlite3ContextOutParam actual constructor() :
     Sqlite3PointerOutParamBase<sqlite3_context>() {
 

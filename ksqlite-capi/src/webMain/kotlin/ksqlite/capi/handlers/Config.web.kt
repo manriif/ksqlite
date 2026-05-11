@@ -1,30 +1,34 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.dispatchSqlLogEvent
+import ksqlite.capi.interop.wasm.FunctionSignature
+import ksqlite.capi.interop.wasm.WasmFunctions
+import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.types.Sqlite3ConfigLogCallback
 import ksqlite.capi.types.Sqlite3ConfigSqlLogCallback
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import java.lang.foreign.FunctionDescriptor
-import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
 
 /**
  * Handler for the LOG option of [ksqlite.capi.sqlite3_config].
  */
 internal class ConfigLogHandler(manager: MemoryManager) : Handler(manager) {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS
+    override fun WasmFunctions.install(): WasmPointer = installFunction(
+        signature = FunctionSignature.Void(
+            FunctionSignature.Pointer,
+            FunctionSignature.Int32,
+            FunctionSignature.Pointer,
+        ),
+        function = ::handle
     )
 
-    fun handle(
-        refPointer: MemorySegment,
+    private fun handle(
+        refPointer: WasmPointer,
         errCode: Int,
-        errMsg: MemorySegment
+        errMsg: WasmPointer
     ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback, userData ->
         callback(
             userData,
@@ -39,17 +43,20 @@ internal class ConfigLogHandler(manager: MemoryManager) : Handler(manager) {
  */
 internal class ConfigSqlLogHandler(manager: MemoryManager) : Handler(manager) {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT
+    override fun WasmFunctions.install(): WasmPointer = installFunction(
+        signature = FunctionSignature.Void(
+            FunctionSignature.Pointer,
+            FunctionSignature.Pointer,
+            FunctionSignature.Pointer,
+            FunctionSignature.Int32,
+        ),
+        function = ::handle
     )
 
-    fun handle(
-        refPointer: MemorySegment,
-        db: MemorySegment,
-        name: MemorySegment,
+    private fun handle(
+        refPointer: WasmPointer,
+        db: WasmPointer,
+        name: WasmPointer,
         type: Int
     ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback, userData ->
         dispatchSqlLogEvent(

@@ -3,7 +3,7 @@ package ksqlite.capi.handlers
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.types.Sqlite3WalHookCallback
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.memory.getStringUtf8
+import ksqlite.capi.memory.toKStringFromUtf8
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
@@ -26,11 +26,11 @@ internal class WalHookHandler(manager: MemoryManager) : Handler(manager) {
         db: MemorySegment,
         dbName: MemorySegment,
         nPage: Int,
-    ): Int = handle(refPointer) { callback: Sqlite3WalHookCallback, userData ->
+    ): Int = handler(refPointer) { callback: Sqlite3WalHookCallback, userData ->
         callback(
             userData,
             sqlite3(db),
-            dbName.getStringUtf8(),
+            dbName.toKStringFromUtf8(),
             nPage
         ).code
     }

@@ -30,9 +30,4 @@ internal external interface Sqlite3Wasm : JsAny, WasmFunctions, WasmMemory {
      * Wasm exports namespace.
      */
     val exports: Sqlite3WasmExports
-
-    /**
-     * [WasmPtr] instance.
-     */
-    val ptr: WasmPtr
 }

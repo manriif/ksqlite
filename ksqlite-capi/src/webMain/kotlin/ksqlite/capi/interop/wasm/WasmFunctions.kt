@@ -2,7 +2,7 @@
 
 package ksqlite.capi.interop.wasm
 
-import ksqlite.capi.interop.js.joinToString
+import ksqlite.capi.interop.js.arrayJoinToString
 import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.JsString
@@ -253,7 +253,7 @@ internal value class FunctionSignature(val signature: String) {
         val value: Char
 
         operator fun invoke(vararg parameterTypes: Parameter): FunctionSignature {
-            val parameters = joinToString(parameterTypes, "", Parameter::value)
+            val parameters = arrayJoinToString(parameterTypes, "", Parameter::value)
             return FunctionSignature("$value$parameters")
         }
     }

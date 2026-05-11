@@ -115,7 +115,6 @@ internal fun ByteArray.backing(): MemorySegment {
  */
 context(allocator: SegmentAllocator)
 internal fun String?.allocateUtf8(): MemorySegment {
-
     return allocator.allocateFrom(this, Charsets.UTF_8)
 }
 
@@ -141,7 +140,7 @@ internal fun Array<String>?.allocateUtf8Array(): MemorySegment {
 /**
  * Reads and returns a null terminated String starting from [offset].
  */
-internal fun MemorySegment.getStringUtf8(offset: Long = 0): String {
+internal fun MemorySegment.toKStringFromUtf8(offset: Long = 0): String {
     return checkNotNull(getString(offset, Charsets.UTF_8))
 }
 
@@ -149,10 +148,10 @@ internal fun MemorySegment.getStringUtf8(offset: Long = 0): String {
  * Reads and returns a null terminated String starting from [offset] or returns `null` if `this`
  * [MemorySegment] is [MemorySegment.NULL].
  */
-internal fun MemorySegment.getStringUtf8OrNull(offset: Long = 0): String? {
+internal fun MemorySegment.toKStringFromUtf8OrNull(offset: Long = 0): String? {
     if (isNull) {
         return null
     }
 
-    return getStringUtf8(offset)
+    return toKStringFromUtf8(offset)
 }

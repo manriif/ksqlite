@@ -12,7 +12,7 @@ import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
 
 /**
- * Single handler for auto extensions.
+ * Singleton handler for auto extensions.
  */
 internal val SharedAutoExtensionHandler by lazy {
     StaticMemoryManager.functionPointer(::AutoExtensionHandler)

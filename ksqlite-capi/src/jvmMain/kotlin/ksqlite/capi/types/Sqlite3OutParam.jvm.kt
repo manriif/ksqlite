@@ -1,7 +1,7 @@
 package ksqlite.capi.types
 
 import ksqlite.capi.memory.memScoped
-import ksqlite.capi.memory.getStringUtf8
+import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.notNull
 import java.lang.foreign.MemorySegment
@@ -113,11 +113,11 @@ public actual class Sqlite3Utf8OutParam actual constructor() :
     internal var size: Int? = null
 
     override fun create(pointer: MemorySegment): String {
-        val size = size ?: return pointer.getStringUtf8()
+        val size = size ?: return pointer.toKStringFromUtf8()
 
         return pointer
             .asSlice(0, size.toLong())
-            .getStringUtf8()
+            .toKStringFromUtf8()
     }
 }
 

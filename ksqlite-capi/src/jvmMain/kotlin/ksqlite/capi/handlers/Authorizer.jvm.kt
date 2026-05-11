@@ -3,7 +3,7 @@ package ksqlite.capi.handlers
 import ksqlite.capi.convertActionCode
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
-import ksqlite.capi.memory.getStringUtf8OrNull
+import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
@@ -30,14 +30,14 @@ internal class SetAuthorizerHandler(manager: MemoryManager) : Handler(manager) {
         param4: MemorySegment,
         param5: MemorySegment,
         param6: MemorySegment
-    ): Int = handle(refPointer) { callback: Sqlite3SetAuthorizerCallback, userData ->
+    ): Int = handler(refPointer) { callback: Sqlite3SetAuthorizerCallback, userData ->
         callback(
             userData,
             convertActionCode(action),
-            param3.getStringUtf8OrNull(),
-            param4.getStringUtf8OrNull(),
-            param5.getStringUtf8OrNull(),
-            param6.getStringUtf8OrNull()
+            param3.toKStringFromUtf8OrNull(),
+            param4.toKStringFromUtf8OrNull(),
+            param5.toKStringFromUtf8OrNull(),
+            param6.toKStringFromUtf8OrNull()
         ).code
     }
 }

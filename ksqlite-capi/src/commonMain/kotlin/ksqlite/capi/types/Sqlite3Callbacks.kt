@@ -17,6 +17,17 @@ public typealias Sqlite3AutoExtensionCallback = (
 ) -> Sqlite3Result
 
 /**
+ * Callback for [ksqlite.capi.sqlite3_autovacuum_pages].
+ */
+public typealias Sqlite3AutoVacuumPagesCallback = (
+    userData: sqlite3_mutable_pointer?,
+    zSchema: String,
+    nDbPage: UInt,
+    nFreePage: UInt,
+    nBytePerPage: UInt
+) -> UInt
+
+/**
  * Callback for [ksqlite.capi.sqlite3_busy_handler].
  */
 public typealias Sqlite3BusyHandlerCallback = (

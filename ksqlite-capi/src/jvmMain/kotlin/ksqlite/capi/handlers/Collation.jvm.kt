@@ -5,7 +5,7 @@ import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.types.Sqlite3CollationNeededCallback
 import ksqlite.capi.types.Sqlite3CreateCollationCallback
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.memory.getStringUtf8
+import ksqlite.capi.memory.toKStringFromUtf8
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
@@ -27,12 +27,12 @@ internal class CollationNeededHandler(manager: MemoryManager) : Handler(manager)
         db: MemorySegment,
         eTextRep: Int,
         name: MemorySegment
-    ): Unit = handle(refPointer) { callback: Sqlite3CollationNeededCallback, userData ->
+    ): Unit = handler(refPointer) { callback: Sqlite3CollationNeededCallback, userData ->
         callback(
             userData,
             sqlite3(db),
             convertTextEncoding(eTextRep),
-            name.getStringUtf8()
+            name.toKStringFromUtf8()
         )
     }
 }
@@ -58,11 +58,11 @@ internal class CreateCollationHandler(manager: MemoryManager) : Handler(manager)
         text1: MemorySegment,
         size2: Int,
         text2: MemorySegment
-    ): Int = handle(refPointer) { callback: Sqlite3CreateCollationCallback, userData ->
+    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback, userData ->
         callback(
             userData,
-            text1.asSlice(0, size1.toLong()).getStringUtf8(),
-            text2.asSlice(0, size2.toLong()).getStringUtf8()
+            text1.asSlice(0, size1.toLong()).toKStringFromUtf8(),
+            text2.asSlice(0, size2.toLong()).toKStringFromUtf8()
         )
     }
 }

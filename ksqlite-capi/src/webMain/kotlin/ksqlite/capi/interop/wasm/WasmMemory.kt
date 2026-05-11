@@ -35,6 +35,11 @@ internal external interface WasmMemory {
      */
     val pstack: WasmPStack
 
+    /**
+     * [WasmPtr] instance.
+     */
+    val ptr: WasmPtr
+
     ///////////////////////////////////////////////////////////////////////////
     // Low-level Management
     //
@@ -573,7 +578,7 @@ internal external interface WasmMemory {
      * This function counts its byte length using cstrlen() then returns a JS-format string
      * representing its contents. As a special case, if the argument is falsy, `null` is returned.
      */
-    fun cstrToJs(ptr: WasmPointer): JsString
+    fun cstrToJs(ptr: WasmPointer): JsString?
 
     /**
      * Expects its argument to be a pointer into the WASM heap memory which refers to a
@@ -733,7 +738,7 @@ internal external interface WasmMemory {
 private fun JsAny.toCString(): CString = unsafeCast<JsArray<JsAny>>().run {
     CString(
         pointer = get(0)!!.unsafeCast<WasmPointer>(),
-        size = get(1)!!.unsafeCast<JsBigInt>()
+        byteLength = get(1)!!.unsafeCast<JsBigInt>()
     )
 }
 

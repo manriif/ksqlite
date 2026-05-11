@@ -3,6 +3,9 @@
 package ksqlite.capi
 
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
+import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.types.Sqlite3BlobOpenFlag
+import ksqlite.capi.types.Sqlite3BlobOutParam
 import ksqlite.capi.types.Sqlite3BusyHandlerCallback
 import ksqlite.capi.types.Sqlite3CollationNeededCallback
 import ksqlite.capi.types.Sqlite3CommitHookCallback
@@ -46,6 +49,8 @@ import ksqlite.capi.types.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.Sqlite3ValueOutParam
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.sqlite3
+import ksqlite.capi.types.sqlite3_backup
+import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
 import ksqlite.capi.types.sqlite3_index_info
@@ -55,7 +60,9 @@ import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
-/* TODO key and rekey APIs
+
+/* TODO key and rekey APIs */
+
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
  * first call. Subsequent calls return the same context that was returned on prior calls.
@@ -76,6 +83,68 @@ public expect fun sqlite3_aggregate_context(
 public expect fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result
 
 /**
+ * Register a function to be invoked prior to each autovacuum that determines the number of pages
+ * to vacuum.
+ *
+ * [sqlite3_autovacuum_pages()](https://sqlite.org/c3ref/autovacuum_pages.html)
+ */
+public expect fun sqlite3_autovacuum_pages(
+    db: sqlite3,
+    userData: sqlite3_mutable_pointer?,
+    destructor: Sqlite3DestructorCallback?,
+    callback: Sqlite3AutoVacuumPagesCallback?
+): Sqlite3Result
+
+/**
+ * Release all resources associated with an [sqlite3_backup]* handle.
+ *
+ * [sqlite3_backup_finish()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
+ */
+public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
+
+/**
+ * Create an [sqlite3_backup] process to copy the contents of [srcDbName] from connection handle
+ * [srcDb] to [destDbName] in [destDb].
+ * If successful, return a pointer to the new [sqlite3_backup] object.
+ * If an error occurs, NULL is returned and an error code and error message stored in database
+ * handle [destDb].
+ *
+ * [sqlite3_backup_init()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupinit)
+ */
+public expect fun sqlite3_backup_init(
+    destDb: sqlite3,
+    destDbName: String,
+    srcDb: sqlite3,
+    srcDbName: String
+): sqlite3_backup?
+
+/**
+ * Return the total number of pages in the source database as of the most recent call to
+ * [sqlite3_backup_step].
+ *
+ * [sqlite3_backup_pagecount()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backuppagecount)
+ */
+public expect fun sqlite3_backup_pagecount(backup: sqlite3_backup): Int
+
+/**
+ * Return the number of pages still to be backed up as of the most recent call to
+ * [sqlite3_backup_step].
+ *
+ * [sqlite3_backup_remaining](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
+ */
+public expect fun sqlite3_backup_remaining(backup: sqlite3_backup): Int
+
+/**
+ * Copy nPage pages from the source b-tree to the destination.
+ *
+ * [sqlite3_backup_step](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupstep)
+ */
+public expect fun sqlite3_backup_step(
+    backup: sqlite3_backup,
+    nPage: Int
+): Sqlite3Result
+
+/**
  * Bind a blob value to an SQL statement variable.
  *
  * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
@@ -85,6 +154,19 @@ public expect fun sqlite3_bind_blob(
     index: Int,
     data: ByteArray?,
     size: Int,
+    destructor: Sqlite3DestructorCallback?
+): Sqlite3Result
+
+/**
+ * Bind a blob value to an SQL statement variable.
+ *
+ * [sqlite3_bind_blob64()](https://sqlite.org/c3ref/bind_blob.html)
+ */
+public expect fun sqlite3_bind_blob64(
+    stmt: sqlite3_stmt,
+    index: Int,
+    data: sqlite3_mutable_pointer?,
+    size: Long,
     destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result
 
@@ -190,12 +272,116 @@ public expect fun sqlite3_bind_text(
 /**
  * Bind a blob value to an SQL statement variable.
  *
+ * [sqlite3_bind_text64()](https://sqlite.org/c3ref/bind_blob.html)
+ */
+public expect fun sqlite3_bind_text64(
+    stmt: sqlite3_stmt,
+    index: Int,
+    data: sqlite3_mutable_pointer?,
+    size: Long,
+    encoding: Sqlite3TextEncoding.Set1,
+    destructor: Sqlite3DestructorCallback?
+): Sqlite3Result
+
+/**
+ * Bind a blob value to an SQL statement variable.
+ *
+ * [sqlite3_bind_value()](https://sqlite.org/c3ref/bind_blob.html)
+ */
+public expect fun sqlite3_bind_value(
+    stmt: sqlite3_stmt,
+    index: Int,
+    value: sqlite3_value
+): Sqlite3Result
+
+/**
+ * Bind a blob value to an SQL statement variable.
+ *
  * [sqlite3_bind_zeroblob()](https://sqlite.org/c3ref/bind_blob.html)
  */
 public expect fun sqlite3_bind_zeroblob(
     stmt: sqlite3_stmt,
     index: Int,
     size: Int
+): Sqlite3Result
+
+/**
+ * Bind a blob value to an SQL statement variable.
+ *
+ * [sqlite3_bind_zeroblob64()](https://sqlite.org/c3ref/bind_blob.html)
+ */
+public expect fun sqlite3_bind_zeroblob64(
+    stmt: sqlite3_stmt,
+    index: Int,
+    size: ULong
+): Sqlite3Result
+
+/**
+ * Query a blob handle for the size of the data.
+ *
+ * [sqlite3_blob_bytes()](https://sqlite.org/c3ref/blob_bytes.html)
+ */
+public expect fun sqlite3_blob_bytes(blob: sqlite3_blob): Int
+
+/**
+ * Close a blob handle that was previously created using [sqlite3_blob_open].
+ *
+ * [sqlite3_blob_close()](https://sqlite.org/c3ref/blob_close.html)
+ */
+public expect fun sqlite3_blob_close(blob: sqlite3_blob): Sqlite3Result
+
+/**
+ * Open a blob handle.
+ *
+ * [sqlite3_blob_open()](https://sqlite.org/c3ref/blob_open.html)
+ */
+public expect fun sqlite3_blob_open(
+    db: sqlite3,
+    databaseName: String,
+    tableName: String,
+    columnName: String,
+    rowIndex: Long,
+    flags: Sqlite3BlobOpenFlag,
+    outBlob: Sqlite3BlobOutParam
+): Sqlite3Result
+
+/**
+ * Read data from a blob handle.
+ *
+ * [sqlite3_blob_read()](https://sqlite.org/c3ref/blob_read.html)
+ */
+public expect fun sqlite3_blob_read(
+    blob: sqlite3_blob,
+    buffer: ByteArray,
+    size: Int,
+    offset: Int
+): Sqlite3Result
+
+/**
+ * Move an existing blob handle to point to a different row of the same database table.
+ *
+ * If an error occurs, or if the specified row does not exist or does not contain a blob or text
+ * value, then an error code is returned and the database handle error code and message set.
+ * If this happens, then all subsequent calls to sqlite3_blob_xxx() functions (except blob_close())
+ * immediately return SQLITE_ABORT.
+ *
+ * [sqlite3_blob_reopen()](https://sqlite.org/c3ref/blob_reopen.html)
+ */
+public expect fun sqlite3_blob_reopen(
+    blob: sqlite3_blob,
+    rowIndex: Long
+): Sqlite3Result
+
+/**
+ * Write data to a blob handle.
+ *
+ * [sqlite3_blob_write()](https://sqlite.org/c3ref/blob_write.html)
+ */
+public expect fun sqlite3_blob_write(
+    blob: sqlite3_blob,
+    buffer: ByteArray,
+    size: Int,
+    offset: Int
 ): Sqlite3Result
 
 /**
@@ -480,7 +666,7 @@ public expect fun sqlite3_complete(sql: String): Sqlite3CompleteResult
  *
  * [sqlite3_config()](https://sqlite.org/c3ref/config.html)
  */
-public expect fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
+//public expect fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
 
 /**
  * Extract the user data from a sqlite3_context structure and return a pointer to it.
@@ -601,14 +787,21 @@ public expect fun sqlite3_create_window_function(
 public expect fun sqlite3_data_count(stmt: sqlite3_stmt): Int
 
 /**
+ * Flush any dirty pages in the pager-cache for any attached database to disk.
+ *
+ * [sqlite3_db_cacheflush()](https://sqlite.org/c3ref/db_cacheflush.html)
+ */
+public expect fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
+
+/**
  * Configuration settings for an individual database connection.
  *
  * [sqlite3_db_config()](https://sqlite.org/c3ref/db_config.html)
  */
-public expect fun sqlite3_db_config(
+/*public expect fun sqlite3_db_config(
     db: sqlite3,
     option: Sqlite3DbConfigOption,
-): Sqlite3Result
+): Sqlite3Result*/
 
 /**
  * Return the filename of the database associated with a database connection.
@@ -648,6 +841,13 @@ public expect fun sqlite3_db_readonly(
     db: sqlite3,
     name: String
 ): Int
+
+/**
+ * Free up as much memory as we can from the given database connection.
+ *
+ * [sqlite3_db_release_memory()](https://sqlite.org/c3ref/db_release_memory.html)
+ */
+public expect fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result
 
 /**
  * 32-bit variant of [sqlite3_db_status64].
@@ -923,7 +1123,7 @@ public expect fun sqlite3_keyword_check(
  * [sqlite3_last_insert_rowid()](https://sqlite.org/c3ref/last_insert_rowid.html)
  */
 public expect fun sqlite3_last_insert_rowid(db: sqlite3): Long
-*/
+
 /**
  * Return the SQLite version in the format "X.Y.Z" where X is the major version number (always 3 for
  * SQLite3) and Y is the minor version number and Z is the release number.
@@ -939,7 +1139,7 @@ public expect fun sqlite3_libversion(): String
  * [sqlite3_libversion_number()](https://sqlite.org/c3ref/libversion.html)
  */
 public expect fun sqlite3_libversion_number(db: sqlite3): Int
-/*
+
 /**
  * Change the value of a limit. Report the old value. If an invalid limit index is supplied,
  * report -1.
@@ -955,6 +1155,15 @@ public expect fun sqlite3_limit(
     id: Sqlite3Limit,
     newVal: Int
 ): Int
+/**
+ * Write a [message] to the log if logging is enabled.
+ *
+ * [sqlite3_log()](https://sqlite.org/c3ref/log.html)
+ */
+public expect fun sqlite3_log(
+    errCode: Int,
+    message: String
+)
 
 /**
  * This version of the memory allocation is for use by the application.
@@ -971,6 +1180,21 @@ public expect fun sqlite3_malloc(size: Int): sqlite3_mutable_pointer?
  * [sqlite3_malloc64()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_malloc64(size: Long): sqlite3_mutable_pointer?
+
+/**
+ * Return the amount of memory currently checked out.
+ *
+ * [sqlite3_memory_used()](https://sqlite.org/c3ref/memory_highwater.html)
+ */
+public expect fun sqlite3_memory_used(): Long
+
+/**
+ * Return the maximum amount of memory that has ever been checked out since either the beginning of
+ * this process or since the most recent reset.
+ *
+ * [sqlite3_memory_highwater()](https://sqlite.org/c3ref/memory_highwater.html)
+ */
+public expect fun sqlite3_memory_highwater(resetFlag: Int): Long
 
 /**
  * Returns the size of [data] memory allocation in bytes. The value returned by [sqlite3_msize]
@@ -1176,6 +1400,15 @@ public expect fun sqlite3_realloc64(
 ): sqlite3_mutable_pointer?
 
 /**
+ * Attempt to release up to [size] bytes of non-essential memory currently held by SQLite. An
+ * example of non-essential memory is memory used to cache database pages that are not currently in
+ * use.
+ *
+ * [sqlite3_release_memory()](https://sqlite.org/c3ref/release_memory.html)
+ */
+public expect fun sqlite3_release_memory(size: Int): Int
+
+/**
  * Terminate the current execution of an SQL statement and reset it back to its starting state so
  * that it can be reused. A success code from the prior execution is returned.
  *
@@ -1202,6 +1435,18 @@ public expect fun sqlite3_result_blob(
     context: sqlite3_context,
     data: ByteArray?,
     size: Int,
+    destructor: Sqlite3DestructorCallback?
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_blob64()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_blob64(
+    context: sqlite3_context,
+    data: sqlite3_mutable_pointer?,
+    size: Long,
     destructor: Sqlite3DestructorCallback?
 )
 
@@ -1309,6 +1554,19 @@ public expect fun sqlite3_result_text(
     context: sqlite3_context,
     text: String?,
     size: Int?
+)
+
+/**
+ * Routine used by user-defined functions to specify the function result.
+ *
+ * [sqlite3_result_text64()](https://sqlite.org/c3ref/result_blob.html)
+ */
+public expect fun sqlite3_result_text64(
+    context: sqlite3_context,
+    data: sqlite3_mutable_pointer?,
+    size: Long,
+    encoding: Sqlite3TextEncoding.Set1,
+    destructor: Sqlite3DestructorCallback?
 )
 
 /**
@@ -1562,6 +1820,14 @@ public expect fun sqlite3_strnicmp(
 ): Int
 
 /**
+ * Attempt to return the underlying operating system error code or error number that caused the most
+ * recent I/O error or failure to open a file. The return value is OS-dependent.
+ *
+ * [sqlite3_system_errno()](https://sqlite.org/c3ref/system_errno.html)
+ */
+public expect fun sqlite3_system_errno(db: sqlite3): Int
+
+/**
  * Return meta information about a specific column of a database table.
  *
  * [sqlite3_table_column_metadata()](https://sqlite.org/c3ref/table_column_metadata.html)
@@ -1705,6 +1971,13 @@ public expect fun sqlite3_value_double(value: sqlite3_value): Double
 public expect fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value?
 
 /**
+ * Return the current text encoding of the [value].
+ *
+ * [sqlite3_value_encoding()](https://sqlite.org/c3ref/value_encoding.html)
+ */
+public expect fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2?
+
+/**
  * Free an sqlite3_value object previously obtained from sqlite3_value_dup().
  *
  * [sqlite3_value_free()](https://sqlite.org/c3ref/value_dup.html)
@@ -1819,11 +2092,11 @@ public expect fun sqlite3_vtab_collation(
  * information about the behavior of the virtual table being implemented.
  *
  * [sqlite3_vtab_config()](https://sqlite.org/c3ref/vtab_config.html)
- */
+ *//*
 public expect fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
-): Sqlite3Result
+): Sqlite3Result*/
 
 /**
  * Return true if ORDER BY clause may be handled as DISTINCT.
@@ -1906,4 +2179,3 @@ public expect fun sqlite3_vtab_rhs_value(
     index: Int,
     outValue: Sqlite3ValueOutParam?
 ): Sqlite3Result
-*/

@@ -76,6 +76,13 @@ public expect class Sqlite3DatabaseConnectionOutParam() : Sqlite3OutParam<sqlite
 }
 
 /**
+ * Wrapper around [sqlite3_blob] intended to be passed as parameter and allocated by SQLite.
+ */
+public expect class Sqlite3BlobOutParam() : Sqlite3OutParam<sqlite3_blob?> {
+    override val value: sqlite3_blob?
+}
+
+/**
  * Wrapper around [sqlite3_context] intended to be passed as parameter and allocated by SQLite.
  */
 public expect class Sqlite3ContextOutParam() : Sqlite3OutParam<sqlite3_context?> {

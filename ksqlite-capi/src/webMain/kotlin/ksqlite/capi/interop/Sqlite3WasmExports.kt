@@ -19,7 +19,7 @@ import kotlin.js.JsBigInt
  */
 internal external interface Sqlite3WasmExports : JsAny {
 
-    fun ksqlite_auto_Extension(
+    fun ksqlite_auto_extension(
         p0: JsBigInt,
     ): Int
 
@@ -36,6 +36,37 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
     ): Int
 
+    fun sqlite3_autovacuum_pages(
+		p0: JsBigInt, 
+		p1: JsBigInt, 
+		p2: JsBigInt, 
+		p3: JsBigInt, 
+	): Int
+
+    fun sqlite3_backup_finish(
+		p0: JsBigInt, 
+	): Int
+
+    fun sqlite3_backup_init(
+		p0: JsBigInt, 
+		p1: JsBigInt, 
+		p2: JsBigInt, 
+		p3: JsBigInt, 
+	): JsBigInt
+
+    fun sqlite3_backup_pagecount(
+		p0: JsBigInt, 
+	): Int
+
+    fun sqlite3_backup_remaining(
+		p0: JsBigInt, 
+	): Int
+
+    fun sqlite3_backup_step(
+		p0: JsBigInt, 
+		p1: Int, 
+	): Int
+
     fun sqlite3_bind_blob(
         p0: JsBigInt,
         p1: Int,
@@ -43,6 +74,14 @@ internal external interface Sqlite3WasmExports : JsAny {
         p3: Int,
         p4: JsBigInt,
     ): Int
+
+    fun sqlite3_bind_blob64(
+		p0: JsBigInt, 
+		p1: Int, 
+		p2: JsBigInt, 
+		p3: JsBigInt, 
+		p4: JsBigInt, 
+	): Int
 
     fun sqlite3_bind_double(
         p0: JsBigInt,
@@ -97,11 +136,69 @@ internal external interface Sqlite3WasmExports : JsAny {
         p4: JsBigInt,
     ): Int
 
+    fun sqlite3_bind_text64(
+		p0: JsBigInt, 
+		p1: Int, 
+		p2: JsBigInt, 
+		p3: JsBigInt, 
+		p4: JsBigInt, 
+		p5: Int, 
+	): Int
+
+    fun sqlite3_bind_value(
+		p0: JsBigInt, 
+		p1: Int, 
+		p2: JsBigInt, 
+	): Int
+
     fun sqlite3_bind_zeroblob(
         p0: JsBigInt,
         p1: Int,
         p2: Int,
     ): Int
+
+    fun sqlite3_bind_zeroblob64(
+		p0: JsBigInt, 
+		p1: Int, 
+		p2: JsBigInt, 
+	): Int
+
+    fun sqlite3_blob_bytes(
+		p0: JsBigInt, 
+	): Int
+
+    fun sqlite3_blob_close(
+		p0: JsBigInt, 
+	): Int
+
+    fun sqlite3_blob_open(
+		p0: JsBigInt, 
+		p1: JsBigInt, 
+		p2: JsBigInt, 
+		p3: JsBigInt, 
+		p4: JsBigInt, 
+		p5: Int, 
+		p6: JsBigInt, 
+	): Int
+
+    fun sqlite3_blob_read(
+		p0: JsBigInt, 
+		p1: JsBigInt, 
+		p2: Int, 
+		p3: Int, 
+	): Int
+
+    fun sqlite3_blob_reopen(
+		p0: JsBigInt, 
+		p1: JsBigInt, 
+	): Int
+
+    fun sqlite3_blob_write(
+		p0: JsBigInt, 
+		p1: JsBigInt, 
+		p2: Int, 
+		p3: Int, 
+	): Int
 
     fun sqlite3_busy_handler(
         p0: JsBigInt,
@@ -129,6 +226,10 @@ internal external interface Sqlite3WasmExports : JsAny {
     fun sqlite3_clear_bindings(
         p0: JsBigInt,
     ): Int
+
+    fun sqlite3_close(
+		p0: JsBigInt, 
+	): Int
 
     fun sqlite3_close_v2(
         p0: JsBigInt,
@@ -228,9 +329,12 @@ internal external interface Sqlite3WasmExports : JsAny {
     ): Int
 
     /**
-     * TODO
+     * TODO variadic
      */
-    fun sqlite3_config()
+    fun sqlite3_config(
+		p0: Int, 
+		p1: JsBigInt, 
+	): Int
 
     fun sqlite3_context_db_handle(
         p0: JsBigInt,
@@ -308,10 +412,18 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
     ): Int
 
+    fun sqlite3_db_cacheflush(
+		p0: JsBigInt, 
+	): Int
+
     /**
-     * TODO
+     * TODO variadic
      */
-    fun sqlite3_db_config()
+    fun sqlite3_db_config(
+		p0: JsBigInt, 
+		p1: Int, 
+		p2: JsBigInt, 
+	): Int
 
     fun sqlite3_db_filename(
         p0: JsBigInt,
@@ -331,6 +443,10 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
         p1: JsBigInt,
     ): Int
+
+    fun sqlite3_db_release_memory(
+		p0: JsBigInt, 
+	): Int
 
     fun sqlite3_db_status(
         p0: JsBigInt,
@@ -428,8 +544,7 @@ internal external interface Sqlite3WasmExports : JsAny {
         p1: Int,
     ): JsBigInt
 
-    fun sqlite3_initialize(
-    ): Int
+    fun sqlite3_initialize(): Int
 
     fun sqlite3_interrupt(
         p0: JsBigInt,
@@ -457,8 +572,7 @@ internal external interface Sqlite3WasmExports : JsAny {
         p1: Int,
     ): Int
 
-    fun sqlite3_keyword_count(
-    ): Int
+    fun sqlite3_keyword_count(): Int
 
     fun sqlite3_keyword_name(
         p0: Int,
@@ -470,17 +584,24 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
     ): JsBigInt
 
-    fun sqlite3_libversion(
-    ): JsBigInt
+    fun sqlite3_libversion(): JsBigInt
 
-    fun sqlite3_libversion_number(
-    ): Int
+    fun sqlite3_libversion_number(): Int
 
     fun sqlite3_limit(
         p0: JsBigInt,
         p1: Int,
         p2: Int,
     ): Int
+
+    /**
+     * TODO variadic
+     */
+    fun sqlite3_log(
+		p0: Int, 
+		p1: JsBigInt, 
+		p2: JsBigInt
+    )
 
     fun sqlite3_malloc(
         p0: Int,
@@ -493,6 +614,13 @@ internal external interface Sqlite3WasmExports : JsAny {
     fun sqlite3_msize(
         p0: JsBigInt,
     ): JsBigInt
+
+    fun sqlite3_memory_used(
+	): JsBigInt
+
+    fun sqlite3_memory_highwater(
+		p0: Int, 
+	): JsBigInt
 
     fun sqlite3_next_stmt(
         p0: JsBigInt,
@@ -599,6 +727,10 @@ internal external interface Sqlite3WasmExports : JsAny {
         p3: Int,
     ): Int
 
+    fun sqlite3_release_memory(
+		p0: Int, 
+	): Int
+
     fun sqlite3_reset(
         p0: JsBigInt,
     ): Int
@@ -611,6 +743,12 @@ internal external interface Sqlite3WasmExports : JsAny {
         p2: Int,
         p3: JsBigInt,
     )
+
+    fun sqlite3_result_blob64(
+		p0: JsBigInt, 
+		p1: JsBigInt, 
+		p2: JsBigInt, 
+		p3: JsBigInt,)
 
     fun sqlite3_result_double(
         p0: JsBigInt,
@@ -669,6 +807,13 @@ internal external interface Sqlite3WasmExports : JsAny {
         p3: JsBigInt,
     )
 
+    fun sqlite3_result_text64(
+		p0: JsBigInt, 
+		p1: JsBigInt, 
+		p2: JsBigInt, 
+		p3: JsBigInt, 
+		p4: Int,)
+
     fun sqlite3_result_zeroblob(
         p0: JsBigInt,
         p1: Int,
@@ -678,6 +823,10 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
         p1: JsBigInt,
     ): Int
+
+    fun sqlite3_result_value(
+		p0: JsBigInt, 
+		p1: JsBigInt,)
 
     fun sqlite3_rollback_hook(
         p0: JsBigInt,
@@ -716,11 +865,9 @@ internal external interface Sqlite3WasmExports : JsAny {
         p1: JsBigInt,
     )
 
-    fun sqlite3_shutdown(
-    ): Int
+    fun sqlite3_shutdown(): Int
 
-    fun sqlite3_sourceid(
-    ): JsBigInt
+    fun sqlite3_sourceid(): JsBigInt
 
     fun sqlite3_sql(
         p0: JsBigInt,
@@ -788,6 +935,10 @@ internal external interface Sqlite3WasmExports : JsAny {
         p1: JsBigInt,
         p2: Int,
     ): Int
+
+    fun sqlite3_system_errno(
+		p0: JsBigInt, 
+	): Int
 
     fun sqlite3_table_column_metadata(
         p0: JsBigInt,
@@ -869,6 +1020,10 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
     ): JsBigInt
 
+    fun sqlite3_value_encoding(
+		p0: JsBigInt, 
+	): Int
+
     fun sqlite3_value_free(
         p0: JsBigInt,
     )
@@ -927,6 +1082,12 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
         p1: Int,
     ): JsBigInt
+
+    fun sqlite3_vtab_config(
+		p0: JsBigInt, 
+		p1: Int, 
+		p2: JsBigInt, 
+	): Int
 
     fun sqlite3_vtab_distinct(
         p0: JsBigInt,
