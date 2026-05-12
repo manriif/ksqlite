@@ -1,0 +1,281 @@
+package ksqlite.capi.types
+
+///////////////////////////////////////////////////////////////////////////
+// Param
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Base for output parameter.
+ */
+public abstract class Sqlite3OutParamBase<Value, JniType : CPointed>
+internal constructor(initialValue: Value) : Sqlite3OutParam<Value> {
+
+    private var actualValue: Value = initialValue
+
+    final override val value: Value
+        get() = actualValue
+
+    /**
+     * Allocates memory for [JniType] and initializes with [initialValue].
+     */
+    protected abstract fun NativePlacement.allocate(initialValue: Value): JniType
+
+    /**
+     * Reads the [Value] of [JniType] pointed by [pointer].
+     */
+    protected abstract fun readValue(pointer: CPointer<JniType>): Value
+
+    /**
+     * Allocates memory into [placement] and returns the [CPointer] to the allocated [JniType].
+     */
+    internal fun attach(placement: NativePlacement): CPointer<JniType> {
+        return placement.allocate(actualValue).ptr
+    }
+
+    /**
+     * Extracts the value of the previously allocated [JniType] from [pointer].
+     */
+    internal fun detach(pointer: CPointer<JniType>) {
+        actualValue = readValue(pointer)
+    }
+}
+
+/**
+ * Base for pointer output parameter.
+ */
+public abstract class Sqlite3PointerOutParamBase<Value, Var : CPointed> :
+    Sqlite3OutParamBase<Value?, CPointerVar<Var>>(null) {
+
+    final override fun NativePlacement.allocate(initialValue: Value?): CPointerVar<Var> {
+        check(initialValue == null)
+        return allocPointerTo()
+    }
+
+    /**
+     * Creates a new [Value] instance from [pointer].
+     */
+    protected abstract fun create(pointer: CPointer<Var>): Value
+
+    final override fun readValue(pointer: CPointer<CPointerVar<Var>>): Value? {
+        return pointer.pointed.value?.let(::create)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Primitives
+///////////////////////////////////////////////////////////////////////////
+
+
+public actual class Sqlite3IntOutParam actual constructor(initialValue: Int) :
+    Sqlite3OutParamBase<Int, IntVar>(initialValue) {
+
+    override fun NativePlacement.allocate(initialValue: Int): IntVar {
+        return alloc(value)
+    }
+
+    override fun readValue(pointer: CPointer<IntVar>): Int {
+        return pointer.pointed.value
+    }
+}
+
+public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
+    Sqlite3OutParamBase<Long, LongVar>(initialValue) {
+
+    override fun NativePlacement.allocate(initialValue: Long): LongVar {
+        return alloc(value)
+    }
+
+    override fun readValue(pointer: CPointer<LongVar>): Long {
+        return pointer.pointed.value
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// String
+///////////////////////////////////////////////////////////////////////////
+
+public actual class Sqlite3Utf8OutParam actual constructor() :
+    Sqlite3PointerOutParamBase<String?, ByteVar>() {
+
+    /**
+     * Custom size if not zero terminated.
+     */
+    internal var size: Int? = null
+
+    override fun create(pointer: CPointer<ByteVar>): String {
+        return size?.let { pointer.toKStringFromUtf8(it) } ?: pointer.toKStringFromUtf8()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Structs
+///////////////////////////////////////////////////////////////////////////
+
+public actual class Sqlite3DatabaseConnectionOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3, s3>() {
+
+    override fun create(pointer: CPointer<s3>): sqlite3 {
+        return sqlite3(pointer)
+    }
+}
+
+public actual class Sqlite3BlobOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_blob, s3_blob>() {
+
+    override fun create(pointer: CPointer<s3_blob>): sqlite3_blob {
+        return sqlite3_blob(pointer)
+    }
+}
+
+public actual class Sqlite3ContextOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_context, s3_context>() {
+
+    override fun create(pointer: CPointer<s3_context>): sqlite3_context {
+        return sqlite3_context(pointer)
+    }
+}
+
+public actual class Sqlite3SnapshotOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_snapshot, s3_snapshot>() {
+
+    override fun create(pointer: CPointer<s3_snapshot>): sqlite3_snapshot {
+        return sqlite3_snapshot(pointer)
+    }
+}
+
+public actual class Sqlite3StatementOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_stmt, s3_stmt>() {
+
+    override fun create(pointer: CPointer<s3_stmt>): sqlite3_stmt {
+        return sqlite3_stmt(pointer)
+    }
+}
+
+public actual class Sqlite3ValueOutParam actual constructor() :
+    Sqlite3PointerOutParamBase<sqlite3_value, s3_value>() {
+
+    override fun create(pointer: CPointer<s3_value>): sqlite3_value {
+        return sqlite3_value(pointer)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Allocates [Var] into [placement], invokes [block] with a pointer to it and returns [block]'s
+ * result.
+ *
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <Var : CPointed, R> Sqlite3OutParamBase<*, Var>.use(
+    placement: NativePlacement,
+    block: (CPointer<Var>) -> R
+): R {
+    val pointer = attach(placement)
+
+    val result = try {
+        block(pointer)
+    } finally {
+        detach(pointer)
+    }
+
+    return result
+}
+
+/**
+ * Allocates [Var] into `this` [NativePlacement], invokes [block] with a pointer to [Var] and
+ * returns [block]'s result.
+ *
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <Var : CPointed, R> NativePlacement.useParam(
+    param: Sqlite3OutParamBase<*, Var>?,
+    block: (CPointer<Var>?) -> R
+): R {
+    if (param == null) {
+        return block(null)
+    }
+
+    return param.use(this, block)
+}
+
+/**
+ * Allocates [Var] into a [kotlinx.cinterop.MemScope], invokes [block] with a pointer to [Var] and
+ * returns [block]'s result.
+ *
+ * The pointer passed to [block] must not escape.
+ */
+internal inline fun <Var : CPointed, R> useParamMemScoped(
+    param: Sqlite3OutParamBase<*, Var>?,
+    block: (CPointer<Var>?) -> R
+): R {
+    if (param == null) {
+        return block(null)
+    }
+
+    return memScoped {
+        param.use(this, block)
+    }
+}
+
+/**
+ * Allocates [Var1] and [Var2] into `this` [NativePlacement], invokes [block] with pointers to
+ * [Var1] and [Var2] and returns [block]'s result.
+ *
+ * The pointers passed to [block] must not escape.
+ */
+internal inline fun <Var1 : CPointed, Var2 : CPointed, R> NativePlacement.useParams(
+    param1: Sqlite3OutParamBase<*, Var1>?,
+    param2: Sqlite3OutParamBase<*, Var2>?,
+    block: (
+        pointer1: CPointer<Var1>?,
+        pointer2: CPointer<Var2>?
+    ) -> R
+): R {
+    if (param1 == null && param2 == null) {
+        return block(null, null)
+    }
+
+    val pointer1 = param1?.attach(this)
+    val pointer2 = param2?.attach(this)
+
+    return try {
+        block(pointer1, pointer2)
+    } finally {
+        pointer1?.let(param1::detach)
+        pointer2?.let(param2::detach)
+    }
+}
+
+/**
+ * Allocates [Var1] and [Var2] into a [kotlinx.cinterop.MemScope], invokes [block] with pointers to
+ * [Var1] and [Var2] and returns [block]'s result.
+ *
+ * The pointers passed to [block] must not escape.
+ */
+internal inline fun <Var1 : CPointed, Var2 : CPointed, R> useParamsMemScoped(
+    param1: Sqlite3OutParamBase<*, Var1>?,
+    param2: Sqlite3OutParamBase<*, Var2>?,
+    block: (
+        pointer1: CPointer<Var1>?,
+        pointer2: CPointer<Var2>?
+    ) -> R
+): R {
+    if (param1 == null && param2 == null) {
+        return block(null, null)
+    }
+
+    return memScoped {
+        val pointer1 = param1?.attach(this)
+        val pointer2 = param2?.attach(this)
+
+        try {
+            block(pointer1, pointer2)
+        } finally {
+            pointer1?.let(param1::detach)
+            pointer2?.let(param2::detach)
+        }
+    }
+}

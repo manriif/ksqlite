@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.AndroidLibrarySourceSet
 import modules.copyJniJavaSources
 import modules.createSqliteCMakeListsContent
 import modules.createSqliteJniRuntimeMetadataContent
@@ -70,11 +71,14 @@ val generateJniSources by tasks.registeringKsqlite {
     dependsOn(copyJniJavaSources)
 }
 
-registerTaskForIde(generateJniSources)
+val generateCmakeListWithJniSource by tasks.registeringKsqlite {
+    dependsOn(generateCmakeLists)
+    dependsOn(generateJniSources)
+}
 
-registerTaskForIde(generateCmakeLists) {
+registerTaskForIde(generateCmakeListWithJniSource) {
     // CMakeLists.txt file need to be generated or sync will fail so force task action(s) execution
-    generateCmakeLists.get().let { generateTask ->
+    generateCmakeListWithJniSource.get().let { generateTask ->
         generateTask.actions.forEach { it(generateTask) }
     }
 }
@@ -126,8 +130,10 @@ android {
         }
     }
 
-    /*sourceSets.named(SourceSet.MAIN_SOURCE_SET_NAME) {
+    // FIXME AGP 9.2.0 broken cast com.android.build.gradle.api.AndroidLibrarySourceSet =>
+    //  com.android.build.api.dsl.AndroidLibrarySourceSet
+    sourceSets.named(SourceSet.MAIN_SOURCE_SET_NAME, Action<AndroidLibrarySourceSet> {
         java.directories += generatedJavaSourceDirectory.get().asFile.absolutePath
         kotlin.directories += generatedKotlinSourceDirectory.get().asFile.absolutePath
-    }*/
+    })
 }

@@ -1,12 +1,12 @@
 plugins {
-    //alias(libs.plugins.android.multiplatformLibrary)
+    alias(libs.plugins.android.multiplatformLibrary)
     alias(libs.plugins.conventions.kmp)
-    alias(libs.plugins.opensavvy.resources.consumer)
-    alias(libs.plugins.opensavvy.resources.producer)
+    //alias(libs.plugins.opensavvy.resources.consumer)
+    //alias(libs.plugins.opensavvy.resources.producer)
 }
 
 kotlin {
-    //androidJvmTargets()
+    androidJvmTargets()
     jvmTargets()
     macosArm64()
     //nativeTargets()
@@ -18,9 +18,9 @@ kotlin {
             implementation(libs.kotlinx.coroutinesTest)
         }
 
-        /*androidMain.dependencies {
+        androidMain.dependencies {
             implementation(projects.ksqliteJni)
-        }*/
+        }
 
         jvmMain.dependencies {
             implementation(projects.ksqliteFfm)
@@ -37,11 +37,11 @@ kotlin {
     }
 }
 
-kotlinJsResConsumer {
+/*kotlinJsResConsumer {
     directory = ""
 }
 
 dependencies {
     jsConsumedResources(projects.ksqliteWeb)
     wasmConsumedResources(projects.ksqliteWeb)
-}
+}*/

@@ -237,6 +237,7 @@ fun compileSqliteWasm(
             "make",
             "-j4",
             "64bit",
+            "api.oo1=0",
             "sqlite3.h=${ksqliteAmalgamationHeaderFile.absolutePath}",
             "sqlite3.c=${ksqliteAmalgamationSourceFile.absolutePath}"
         ),

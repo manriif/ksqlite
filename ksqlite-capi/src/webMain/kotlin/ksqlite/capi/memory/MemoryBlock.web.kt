@@ -10,7 +10,7 @@ import ksqlite.capi.utils.checkBufferRange
 import kotlin.js.toLong
 
 /**
- * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for JVM.
+ * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for JS and Wasm.
  */
 internal class MemoryBlock(
     val memory: WasmMemory,

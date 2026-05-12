@@ -18,7 +18,7 @@ public abstract class sqlite3_pointer_base {
     public abstract val size: Long
 
     override fun toString(): String {
-        return "sqlite3_pointer(address=$address, size=$size)"
+        return "sqlite3_pointer(address=0x${address.toHexString()}, size=$size)"
     }
 }
 

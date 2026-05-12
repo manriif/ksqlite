@@ -61,13 +61,15 @@ import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
 
+public expect fun sqlite3_libversion(): String
+
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
  * first call. Subsequent calls return the same context that was returned on prior calls.
  *
  * [sqlite3_aggregate_context()](https://sqlite.org/c3ref/aggregate_context.html)
  */
-public expect fun sqlite3_aggregate_context(
+/*public expect fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
 ): sqlite3_mutable_pointer?
@@ -2243,4 +2245,4 @@ public expect fun sqlite3_vtab_rhs_value(
     info: sqlite3_index_info,
     index: Int,
     outValue: Sqlite3ValueOutParam?
-): Sqlite3Result
+): Sqlite3Result*/
