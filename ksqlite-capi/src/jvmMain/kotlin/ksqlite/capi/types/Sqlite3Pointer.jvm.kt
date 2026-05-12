@@ -10,9 +10,13 @@ import ksqlite.capi.memory.isNull
 import java.lang.foreign.MemorySegment
 
 public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :
+    sqlite3_pointer_base(),
     ReadableMemoryBlock by block {
 
-    public actual val size: Long
+    actual override val address: Long
+        get() = block.pointer.address()
+
+    public actual override val size: Long
         get() = block.blockSize
 
     internal companion object {

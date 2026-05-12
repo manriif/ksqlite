@@ -19,11 +19,8 @@ import kotlin.reflect.KClass
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
-    private val functionPointers by lazy { mutableMapOf<KClass<*>, WasmPointer>() }
-
-    private val stableRefDisposer: WasmPointer by lazy {
-        functionPointer(::StableRefDisposerHandler)
-    }
+    private val functionPointers: MutableMap<KClass<*>, WasmPointer> by lazy(::mutableMapOf)
+    private val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
 
     private val memory: Sqlite3Wasm
         inline get() = wasm

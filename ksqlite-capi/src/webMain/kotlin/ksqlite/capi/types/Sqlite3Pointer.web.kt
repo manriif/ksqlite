@@ -10,11 +10,16 @@ import ksqlite.capi.memory.ReadableMemoryBlock
 import ksqlite.capi.memory.WritableMemoryBlock
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.wasm
+import kotlin.js.toLong
 
 public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :
+    sqlite3_pointer_base(),
     ReadableMemoryBlock by block {
 
-    public actual val size: Long
+    actual override val address: Long
+        get() = block.pointer.toLong()
+
+    public actual override val size: Long
         get() = block.blockSize
 
     internal companion object {

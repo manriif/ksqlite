@@ -5,6 +5,23 @@ package ksqlite.capi.types
 import ksqlite.capi.memory.ReadableMemoryBlock
 import ksqlite.capi.memory.WritableMemoryBlock
 
+public abstract class sqlite3_pointer_base {
+
+    /**
+     * Native address.
+     */
+    protected abstract val address: Long
+
+    /**
+     * Size of the memory region.
+     */
+    public abstract val size: Long
+
+    override fun toString(): String {
+        return "sqlite3_pointer(address=$address, size=$size)"
+    }
+}
+
 /**
  * Generic pointer.
  *
@@ -14,12 +31,10 @@ import ksqlite.capi.memory.WritableMemoryBlock
  * It is unsafe to read a memory region that have been deallocated.
  * Developer are responsible for managing pointer they've reclaimed.
  */
-public expect open class sqlite3_pointer : ReadableMemoryBlock {
+public expect open class sqlite3_pointer: sqlite3_pointer_base, ReadableMemoryBlock {
 
-    /**
-     * Size of the readable memory region.
-     */
-    public val size: Long
+    override val address: Long
+    override val size: Long
 
     override fun read(
         size: Int,

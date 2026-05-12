@@ -9,17 +9,14 @@ import kotlin.concurrent.Volatile
  */
 internal abstract class MemoryManagerBase : AutoCloseable {
 
-    private lateinit var disposables: MutableMap<ULong, AutoDisposable>
-    private lateinit var keyedIds: MutableMap<String, ULong>
+    private val disposables: MutableMap<ULong, AutoDisposable> by lazy(::mutableMapOf)
+    private val keyedIds: MutableMap<String, ULong> by lazy(::mutableMapOf)
 
     @Volatile
     private var nextId = 0UL
 
     @Volatile
     private var closed = false
-
-    private val disposablesInitialized: Boolean
-        get() = ::disposables.isInitialized
 
     ///////////////////////////////////////////////////////////////////////////
     // Clearing
@@ -30,11 +27,11 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * Parent function must be called.
      */
     open fun clear() {
-        if (disposablesInitialized) {
+        if (disposables.isNotEmpty()) {
             disposables.onEach { it.value.destroy() }.clear()
         }
 
-        if (::keyedIds.isInitialized) {
+        if (keyedIds.isNotEmpty()) {
             keyedIds.clear()
         }
     }
@@ -65,19 +62,17 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * @throws NullPointerException if no object is associated with [id].
      */
     protected inline fun <reified D : AutoDisposable> getDisposable(id: ULong): D {
-        if (disposablesInitialized) {
-            val disposable = disposables[id]
+        val disposable = disposables[id]
 
-            if (disposable != null) {
-                if (disposable !is D) {
-                    throw ClassCastException(
-                        "Disposable expected to be of type ${D::class} but actual type is " +
-                                "${disposable::class}"
-                    )
-                }
-
-                return disposable
+        if (disposable != null) {
+            if (disposable !is D) {
+                throw ClassCastException(
+                    "Disposable expected to be of type ${D::class} but actual type is " +
+                            "${disposable::class}"
+                )
             }
+
+            return disposable
         }
 
         throw NullPointerException(
@@ -102,13 +97,9 @@ internal abstract class MemoryManagerBase : AutoCloseable {
 
         val disposable = block(disposableId)
 
-        if (disposablesInitialized) {
-            disposables
-                .put(disposableId, disposable)
-                ?.destroy() // Dispose previous disposable with the same key
-        } else {
-            disposables = mutableMapOf(disposableId to disposable)
-        }
+        disposables
+            .put(disposableId, disposable)
+            ?.destroy() // Dispose previous disposable with the same key
 
         return disposable
     }

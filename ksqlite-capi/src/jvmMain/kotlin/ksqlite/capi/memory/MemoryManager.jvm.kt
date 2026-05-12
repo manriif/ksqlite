@@ -14,11 +14,8 @@ import kotlin.reflect.KClass
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
-    private val functionPointers by lazy { ConcurrentHashMap<KClass<*>, MemorySegment>() }
-
-    private val stableRefDisposer: MemorySegment by lazy {
-        functionPointer(::StableRefDisposerHandler)
-    }
+    private val functionPointers: MutableMap<KClass<*>, MemorySegment> by lazy(::ConcurrentHashMap)
+    private val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
 
     ///////////////////////////////////////////////////////////////////////////
     // References
