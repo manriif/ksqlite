@@ -204,6 +204,8 @@ import ksqlite.sqlite3_hard_heap_limit64 as native_sqlite3_hard_heap_limit64
 import ksqlite.sqlite3_initialize as native_sqlite3_initialize
 import ksqlite.sqlite3_interrupt as native_sqlite3_interrupt
 import ksqlite.sqlite3_is_interrupted as native_sqlite3_is_interrupted
+import ksqlite.sqlite3_key as native_sqlite3_key
+import ksqlite.sqlite3_key_v2 as native_sqlite3_key_v2
 import ksqlite.sqlite3_keyword_check as native_sqlite3_keyword_check
 import ksqlite.sqlite3_keyword_count as native_sqlite3_keyword_count
 import ksqlite.sqlite3_keyword_name as native_sqlite3_keyword_name
@@ -233,6 +235,8 @@ import ksqlite.sqlite3_progress_handler as native_sqlite3_progress_handler
 import ksqlite.sqlite3_randomness as native_sqlite3_randomness
 import ksqlite.sqlite3_realloc as native_sqlite3_realloc
 import ksqlite.sqlite3_realloc64 as native_sqlite3_realloc64
+import ksqlite.sqlite3_rekey as native_sqlite3_rekey
+import ksqlite.sqlite3_rekey_v2 as native_sqlite3_rekey_v2
 import ksqlite.sqlite3_release_memory as native_sqlite3_release_memory
 import ksqlite.sqlite3_reset as native_sqlite3_reset
 import ksqlite.sqlite3_reset_auto_extension as native_sqlite3_reset_auto_extension
@@ -576,10 +580,11 @@ public actual fun sqlite3_blob_reopen(
 public actual fun sqlite3_blob_write(
     blob: sqlite3_blob,
     buffer: ByteArray,
-    size: Int,
+    size: Int?,
     offset: Int
-): Sqlite3Result =
-    convertResult(native_sqlite3_blob_write(blob.pointer, buffer.refTo(0), size, offset))
+): Sqlite3Result = convertResult(
+    native_sqlite3_blob_write(blob.pointer, buffer.refTo(0), size ?: buffer.size, offset)
+)
 
 public actual fun sqlite3_busy_handler(
     db: sqlite3,
@@ -1084,6 +1089,20 @@ public actual fun sqlite3_interrupt(db: sqlite3): Unit =
 public actual fun sqlite3_is_interrupted(db: sqlite3): Int =
     native_sqlite3_is_interrupted(db.pointer)
 
+public actual fun sqlite3_key(
+    db: sqlite3,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(native_sqlite3_key(db.pointer, key.refTo(0), nKey ?: key.size))
+
+public actual fun sqlite3_key_v2(
+    db: sqlite3,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result =
+    convertResult(native_sqlite3_key_v2(db.pointer, dbName, key.refTo(0), nKey ?: key.size))
+
 public actual fun sqlite3_keyword_count(): Int =
     native_sqlite3_keyword_count()
 
@@ -1277,6 +1296,20 @@ public actual fun sqlite3_realloc64(
     pointer = native_sqlite3_realloc64(data?.block?.pointer, size.convert()),
     size = size
 )
+
+public actual fun sqlite3_rekey(
+    db: sqlite3,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(native_sqlite3_rekey(db.pointer, key.refTo(0), nKey ?: key.size))
+
+public actual fun sqlite3_rekey_v2(
+    db: sqlite3,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result =
+    convertResult(native_sqlite3_rekey_v2(db.pointer, dbName, key.refTo(0), nKey ?: key.size))
 
 public actual fun sqlite3_release_memory(size: Int): Int =
     native_sqlite3_release_memory(size)

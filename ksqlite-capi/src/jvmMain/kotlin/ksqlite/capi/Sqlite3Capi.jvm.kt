@@ -26,13 +26,20 @@ import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.allocateUtf8
+import ksqlite.capi.memory.allocateUtf8Array
+import ksqlite.capi.memory.backing
 import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.keyedStableRefPointer
 import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.memory
+import ksqlite.capi.memory.notNull
+import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.stableRefData
+import ksqlite.capi.memory.toKStringFromUtf8
+import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.memory.useMemoryManager
 import ksqlite.capi.memory.userDataDisposer
 import ksqlite.capi.memory.withMemoryManager
@@ -102,13 +109,6 @@ import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParamMemScoped
 import ksqlite.capi.types.useParams
 import ksqlite.capi.types.useParamsMemScoped
-import ksqlite.capi.memory.allocateUtf8
-import ksqlite.capi.memory.allocateUtf8Array
-import ksqlite.capi.memory.backing
-import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import ksqlite.capi.memory.notNull
-import ksqlite.capi.memory.orNull
 import ksqlite.ksqliteLoadLibrary
 import java.lang.foreign.Arena
 import java.lang.foreign.MemoryLayout
@@ -397,7 +397,7 @@ public actual fun sqlite3_blob_read(
     buffer: ByteArray,
     size: Int,
     offset: Int
-): Sqlite3Result = 
+): Sqlite3Result =
     convertResult(native.sqlite3_blob_read(blob.pointer, buffer.backing(), size, offset))
 
 public actual fun sqlite3_blob_reopen(
@@ -408,10 +408,11 @@ public actual fun sqlite3_blob_reopen(
 public actual fun sqlite3_blob_write(
     blob: sqlite3_blob,
     buffer: ByteArray,
-    size: Int,
+    size: Int?,
     offset: Int
-): Sqlite3Result = 
-    convertResult(native.sqlite3_blob_write(blob.pointer, buffer.backing(), size, offset))
+): Sqlite3Result = convertResult(
+    native.sqlite3_blob_write(blob.pointer, buffer.backing(), size ?: buffer.size, offset)
+)
 
 public actual fun sqlite3_busy_handler(
     db: sqlite3,
@@ -620,7 +621,7 @@ public actual fun sqlite3_create_collation_v2(
             db.pointer,
             name.allocateUtf8(),
             encoding.utf8OrThrow().value,
-            keyedStableRefPointer( KEY_CREATE_COLLATION, callback, userData, destructor),
+            keyedStableRefPointer(KEY_CREATE_COLLATION, callback, userData, destructor),
             functionPointer(callback, ::CreateCollationHandler),
             stableRefDisposer(callback, destructor)
         )
@@ -941,6 +942,21 @@ public actual fun sqlite3_interrupt(db: sqlite3): Unit =
 public actual fun sqlite3_is_interrupted(db: sqlite3): Int =
     native.sqlite3_is_interrupted(db.pointer)
 
+public actual fun sqlite3_key(
+    db: sqlite3,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(native.sqlite3_key(db.pointer, key.backing(), nKey ?: key.size))
+
+public actual fun sqlite3_key_v2(
+    db: sqlite3,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(memScoped {
+    native.sqlite3_key_v2(db.pointer, dbName.allocateUtf8(), key.backing(), nKey ?: key.size)
+})
+
 public actual fun sqlite3_keyword_count(): Int =
     native.sqlite3_keyword_count()
 
@@ -1143,6 +1159,21 @@ public actual fun sqlite3_realloc64(
     size = size
 )
 
+public actual fun sqlite3_rekey(
+    db: sqlite3,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(native.sqlite3_rekey(db.pointer, key.backing(), nKey ?: key.size))
+
+public actual fun sqlite3_rekey_v2(
+    db: sqlite3,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(memScoped {
+    native.sqlite3_rekey_v2(db.pointer, dbName.allocateUtf8(), key.backing(), nKey ?: key.size)
+})
+
 public actual fun sqlite3_release_memory(size: Int): Int =
     native.sqlite3_release_memory(size)
 
@@ -1300,7 +1331,7 @@ public actual fun sqlite3_serialize(
     val pointer = memScoped {
         useParam(size) { sizePtr ->
             val mFlags = flags?.value ?: 0
-            native.sqlite3_serialize(db.pointer, schema.allocateUtf8(), sizePtr,mFlags)
+            native.sqlite3_serialize(db.pointer, schema.allocateUtf8(), sizePtr, mFlags)
         }
     }
 

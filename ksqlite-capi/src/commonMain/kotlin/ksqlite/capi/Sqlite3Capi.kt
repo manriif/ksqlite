@@ -40,12 +40,12 @@ import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
 import ksqlite.capi.types.Sqlite3StatementOutParam
 import ksqlite.capi.types.Sqlite3StatementStatusCounter
 import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3Utf8OutParam
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3UpdateHookCallback
+import ksqlite.capi.types.Sqlite3Utf8OutParam
 import ksqlite.capi.types.Sqlite3ValueOutParam
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.sqlite3
@@ -60,8 +60,6 @@ import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
-
-/* TODO key and rekey APIs */
 
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
@@ -380,7 +378,7 @@ public expect fun sqlite3_blob_reopen(
 public expect fun sqlite3_blob_write(
     blob: sqlite3_blob,
     buffer: ByteArray,
-    size: Int,
+    size: Int?,
     offset: Int
 ): Sqlite3Result
 
@@ -666,7 +664,7 @@ public expect fun sqlite3_complete(sql: String): Sqlite3CompleteResult
  *
  * [sqlite3_config()](https://sqlite.org/c3ref/config.html)
  */
-//public expect fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
+public expect fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
 
 /**
  * Extract the user data from a sqlite3_context structure and return a pointer to it.
@@ -798,10 +796,10 @@ public expect fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
  *
  * [sqlite3_db_config()](https://sqlite.org/c3ref/db_config.html)
  */
-/*public expect fun sqlite3_db_config(
+public expect fun sqlite3_db_config(
     db: sqlite3,
     option: Sqlite3DbConfigOption,
-): Sqlite3Result*/
+): Sqlite3Result
 
 /**
  * Return the filename of the database associated with a database connection.
@@ -1086,6 +1084,39 @@ public expect fun sqlite3_interrupt(db: sqlite3)
 public expect fun sqlite3_is_interrupted(db: sqlite3): Int
 
 /**
+ * sqlite3_key() set the database key to use when accessing an encrypted database, and should
+ * usually be called immediately after sqlite3_open().
+ *
+ * sqlite3_key() is used to set the key for the main database.
+ *
+ * If sqlite3_key() is called on an empty database, then the key will be initially set. The return
+ * value is SQLITE_OK on success, or a non-zero SQLite3 error code on failure.
+ */
+public expect fun sqlite3_key(
+    db: sqlite3,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result
+
+/**
+ * sqlite3_key_v2() set the database key to use when accessing an encrypted database, and should
+ * usually be called immediately after sqlite3_open().
+ *
+ * sqlite3_key_v2() sets the key for the database with the schema name specified by zDbName. The
+ * schema name is main for the main database, temp for the temporary database, or the schema name
+ * specified in an ATTACH statement for an attached database.
+ *
+ * If sqlite3_key_v2() is called on an empty database, then the key will be  initially set. The
+ * return value is SQLITE_OK on success, or a non-zero SQLite3 error code on failure.
+ */
+public expect fun sqlite3_key_v2(
+    db: sqlite3,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result
+
+/**
  * The sqlite3_keyword_count() interface returns the number of distinct keywords understood by
  * SQLite.
  *
@@ -1155,6 +1186,7 @@ public expect fun sqlite3_limit(
     id: Sqlite3Limit,
     newVal: Int
 ): Int
+
 /**
  * Write a [message] to the log if logging is enabled.
  *
@@ -1398,6 +1430,39 @@ public expect fun sqlite3_realloc64(
     data: sqlite3_mutable_pointer?,
     size: Long
 ): sqlite3_mutable_pointer?
+
+/**
+ * sqlite3_rekey() change the database encryption key.
+ *
+ * sqlite3_rekey() is used to change the key for the main database.
+ *
+ * Changing the key includes encrypting the database for the first time, decrypting the database
+ * (if pKey == NULL or nKey == 0), as well as re-encrypting it with a new key. The return value is
+ * SQLITE_OK on success, or a non-zero SQLite3 error code on failure.
+ */
+public expect fun sqlite3_rekey(
+    db: sqlite3,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result
+
+/**
+ * sqlite3_rekey_v2() change the database encryption key.
+ *
+ * sqlite3_rekey_v2() changes the key for the database with the schema name specified by zDbName.
+ * The schema name is main for the main database, temp for the temporary database, or the schema
+ * name specified in an ATTACH statement for an attached database.
+ *
+ * Changing the key includes encrypting the database for the first time, decrypting the database
+ * (if pKey == NULL or nKey == 0), as well as re-encrypting it with a new key. The return value is
+ * SQLITE_OK on success, or a non-zero SQLite3 error code on failure.
+ */
+public expect fun sqlite3_rekey_v2(
+    db: sqlite3,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result
 
 /**
  * Attempt to release up to [size] bytes of non-essential memory currently held by SQLite. An
@@ -2092,11 +2157,11 @@ public expect fun sqlite3_vtab_collation(
  * information about the behavior of the virtual table being implemented.
  *
  * [sqlite3_vtab_config()](https://sqlite.org/c3ref/vtab_config.html)
- *//*
+ */
 public expect fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
-): Sqlite3Result*/
+): Sqlite3Result
 
 /**
  * Return true if ORDER BY clause may be handled as DISTINCT.

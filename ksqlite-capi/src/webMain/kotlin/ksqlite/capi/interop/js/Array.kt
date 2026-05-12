@@ -52,17 +52,13 @@ internal fun arraySize(array: ByteArray): Int {
 }
 
 /**
- * [Array.lastIndex].
+ * [Array.forEachIndexed].
  */
-internal fun arrayLastIndex(array: Array<*>): Int {
-    return array.lastIndex
-}
-
-/**
- * [Array.lastIndex].
- */
-internal fun <T: Any> arrayGet(array: Array<T>, index: Int): T {
-    return array.get(index)
+internal fun <T> arrayForEachIndexed(
+    array: Array<T>,
+    block: (index: Int, value: T) -> Unit
+): Unit {
+    array.forEachIndexed(block)
 }
 
 /**

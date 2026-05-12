@@ -2,8 +2,8 @@
 
 package ksqlite.capi.memory
 
-import ksqlite.capi.interop.js.arrayGet
-import ksqlite.capi.interop.js.arrayLastIndex
+import ksqlite.capi.interop.js.Int8Array
+import ksqlite.capi.interop.js.arrayForEachIndexed
 import ksqlite.capi.interop.js.arraySize
 import ksqlite.capi.interop.js.plus
 import ksqlite.capi.interop.js.toInt8Array
@@ -172,10 +172,10 @@ internal fun allocateUtf8Array(array: Array<String>?): WasmPointer {
     val pointerSize = scope.memory.sizeofIR(IR.Ptr)
     val baseArrayPointer = scope.allocate(pointerSize * arraySize(array))
 
-    for (index in 0..arrayLastIndex(array)) {
+    arrayForEachIndexed(array) { index, string ->
         scope.memory.pokePtr(
             address = baseArrayPointer + (index * pointerSize),
-            value = arrayGet(array, index).allocateUtf8Pointer()
+            value = string.allocateUtf8Pointer()
         )
     }
 
@@ -273,6 +273,29 @@ internal inline fun <reified T> WasmPointer.toArray(
 
     return Array(count) { index ->
         transform(memory, plus(ptrSize * index))
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Buffer
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Allocates a pointer to store [buffer]'s content to wasm memory then invokes [block] with the
+ * pointer. The allocated memory is reclaimed after [block] returns or throws.
+ */
+internal fun <R> bufferScoped(
+    buffer: ByteArray,
+    memory: WasmMemory = wasm,
+    block: Int8Array.(buffer: WasmPointer) -> R
+): R {
+    val typedArray = toInt8Array(buffer)
+    val pointer = memory.allocFromTypedArray(typedArray)
+
+    return try {
+        block(typedArray, pointer)
+    } finally {
+        memory.dealloc(pointer)
     }
 }
 

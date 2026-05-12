@@ -1126,7 +1126,15 @@ internal external interface Sqlite3WasmExports : JsAny {
     ///////////////////////////////////////////////////////////////////////////
     // Extras
     //
-    // functions extracted from the sqlite3_64bit.wasm file but not yet used
+    // Functions extracted from the sqlite3_64bit.wasm file but not yet used.
+    //
+    // Usefull regexes to transform from webassembly to kotlin (to be applied in the same order):
+    // 
+    // \(export "(.*)"\) (.*)               -> fun $1($2)
+    // \(param \$var(\d) ((i|f)(32|64))\)   -> \n\t\tp$1: $2,
+    // \(result ((i|f)(32|64))\)\)          -> \n\t): $1
+    // i32                                  -> Int
+    // i64                                  -> JsBigInt
     ///////////////////////////////////////////////////////////////////////////
 
     /**

@@ -6,6 +6,8 @@ import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
+import ksqlite.capi.handlers.ConfigLogHandler
+import ksqlite.capi.handlers.ConfigSqlLogHandler
 import ksqlite.capi.handlers.CreateCollationHandler
 import ksqlite.capi.handlers.CreateFunctionFinalHandler
 import ksqlite.capi.handlers.CreateFunctionFuncHandler
@@ -20,13 +22,21 @@ import ksqlite.capi.handlers.SetAuthorizerHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
+import ksqlite.capi.interop.js.arrayForEachIndexed
+import ksqlite.capi.interop.js.arraySize
 import ksqlite.capi.interop.js.copyTo
-import ksqlite.capi.interop.js.toInt8Array
+import ksqlite.capi.interop.js.plus
+import ksqlite.capi.interop.wasm.IR
 import ksqlite.capi.interop.wasm.NullPtr
+import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.size
+import ksqlite.capi.interop.wasm.sizeofIR
+import ksqlite.capi.memory.HeapAllocatorScope
+import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.allocateUtf8Pointer
+import ksqlite.capi.memory.bufferScoped
 import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
@@ -50,6 +60,7 @@ import ksqlite.capi.types.Sqlite3BusyHandlerCallback
 import ksqlite.capi.types.Sqlite3CollationNeededCallback
 import ksqlite.capi.types.Sqlite3CommitHookCallback
 import ksqlite.capi.types.Sqlite3CompleteResult
+import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3CreateCollationCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionFinalCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionFuncCallback
@@ -58,6 +69,7 @@ import ksqlite.capi.types.Sqlite3CreateFunctionStepCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionValueCallback
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3DatabaseConnectionOutParam
+import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3DestructorCallback
@@ -85,6 +97,7 @@ import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.Sqlite3Utf8OutParam
 import ksqlite.capi.types.Sqlite3ValueOutParam
+import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
@@ -107,6 +120,53 @@ import kotlin.js.toLong
 ///////////////////////////////////////////////////////////////////////////
 // Helpers
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Invokes a function accepting a variadic parameter.
+ */
+private inline fun <Result> HeapAllocatorScope.invokeVariadic(
+    values: Array<out VariadicValue<WasmPointer>?>,
+    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
+): Result {
+    val pointerSize = memory.sizeofIR(IR.Ptr)
+    val argCount = arraySize(values)
+    val vaListSize = pointerSize * argCount
+    val vaListPointer = allocate(vaListSize)
+
+    arrayForEachIndexed(values) { index, value ->
+        val vaArgPointer = vaListPointer + (index * pointerSize)
+
+        when (value) {
+            is OfInt -> memory.poke32(vaArgPointer, value.value)
+            is OfUInt -> memory.poke32(vaArgPointer, value.value.toInt())
+            is OfLong -> memory.poke64(vaArgPointer, value.value.toJsBigInt())
+            is OfPointer -> memory.pokePtr(vaArgPointer, value.value)
+            is OfString -> memory.pokePtr(vaArgPointer, value.value.allocateUtf8Pointer())
+            null -> memory.pokePtr(vaArgPointer, NullPtr)
+        }
+    }
+
+    return invoke(vaListPointer)
+}
+
+/**
+ * Invokes a function accepting a variadic parameter.
+ */
+private inline fun <Result> invokeVariadic(
+    values: Array<out VariadicValue<WasmPointer>?>,
+    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
+): Result = heapScoped {
+    invokeVariadic(values, invoke)
+}
+
+/**
+ * Invokes a function accepting a variadic parameter.
+ */
+context(scope: HeapAllocatorScope)
+private inline fun <Result> invokeVariadic(
+    vararg values: VariadicValue<WasmPointer>?,
+    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
+): Result = scope.invokeVariadic(values, invoke)
 
 ///////////////////////////////////////////////////////////////////////////
 // Functions
@@ -367,16 +427,11 @@ public actual fun sqlite3_blob_reopen(
 public actual fun sqlite3_blob_write(
     blob: sqlite3_blob,
     buffer: ByteArray,
-    size: Int,
+    size: Int?,
     offset: Int
-): Sqlite3Result {
-    val memory = wasm
-    val typedArray = toInt8Array(buffer)
-    val pointer = memory.allocFromTypedArray(typedArray)
-    val result = convertResult(exports.sqlite3_blob_write(blob.pointer, pointer, size, offset))
-    memory.dealloc(pointer)
-    return result
-}
+): Sqlite3Result = convertResult(bufferScoped(buffer) { bufferPtr ->
+    exports.sqlite3_blob_write(blob.pointer, bufferPtr, size ?: byteLength, offset)
+})
 
 public actual fun sqlite3_busy_handler(
     db: sqlite3,
@@ -529,7 +584,6 @@ public actual fun sqlite3_compileoption_used(optName: String): Int = heapScoped 
 public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
     convertCompleteResult(heapScoped { exports.sqlite3_complete(sql.allocateUtf8Pointer()) })
 
-/*
 public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonSqlite3Config(
     option = option,
     logFunctionPointer = { globalMemory.functionPointer(it, ::ConfigLogHandler) },
@@ -537,21 +591,21 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
     memoryPointer = { it.block.pointer },
     keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
     rowidInView = {
-        useParamStackScoped(param) { paramPtr ->
-            exports.sqlite3_config
-                .makeInvoker(ValueLayout.ADDRESS)
-                .apply(id, paramPtr)
+        heapScoped {
+            useParam(param) { paramPtr ->
+                invokeVariadic(VariadicValue.OfPointer(paramPtr)) { vaListPtr ->
+                    exports.sqlite3_config(id, vaListPtr)
+                }
+            }
         }
     },
     nativeConfig = { id, values ->
-        invokeVariadic(values) { layouts, arguments ->
-            exports.sqlite3_config
-                .makeInvoker(*layouts)
-                .apply(id, *arguments)
+        invokeVariadic(values) { vaListPtr ->
+            exports.sqlite3_config(id, vaListPtr)
         }
     }
 )
-*/
+
 public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3? =
     exports.sqlite3_context_db_handle(context.pointer).orNull?.let(::sqlite3)
 
@@ -718,7 +772,7 @@ public actual fun sqlite3_data_count(stmt: sqlite3_stmt): Int =
 
 public actual fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result =
     convertResult(exports.sqlite3_db_cacheflush(db.pointer))
-/*
+
 public actual fun sqlite3_db_config(
     db: sqlite3,
     option: Sqlite3DbConfigOption,
@@ -726,20 +780,23 @@ public actual fun sqlite3_db_config(
     option = option,
     memoryPointer = { it.block.pointer },
     outParamConfig = {
-        useParamStackScoped(state) { statePtr ->
-            exports.sqlite3_db_config
-                .makeInvoker(ValueLayout.ADDRESS)
-                .apply(db.pointer, id, value, statePtr)
+        heapScoped {
+            useParam(state) { statePtr ->
+                invokeVariadic(
+                    VariadicValue.OfInt(value),
+                    VariadicValue.OfPointer(statePtr)
+                ) { vaListPtr ->
+                    exports.sqlite3_db_config(db.pointer, id, vaListPtr)
+                }
+            }
         }
     },
     nativeConfig = { id, values ->
-        invokeVariadic(values) { layouts, arguments ->
-            exports.sqlite3_db_config
-                .makeInvoker(*layouts)
-                .apply(db.pointer, id, *arguments)
+        invokeVariadic(values) { vaListPtr ->
+            exports.sqlite3_db_config(db.pointer, id, vaListPtr)
         }
     }
-)*/
+)
 
 public actual fun sqlite3_db_filename(
     db: sqlite3,
@@ -903,6 +960,30 @@ public actual fun sqlite3_interrupt(db: sqlite3): Unit =
 
 public actual fun sqlite3_is_interrupted(db: sqlite3): Int =
     exports.sqlite3_is_interrupted(db.pointer)
+
+public actual fun sqlite3_key(
+    db: sqlite3,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(bufferScoped(key) { keyPtr ->
+    exports.sqlite3_key(db.pointer, keyPtr, nKey ?: byteLength)
+})
+
+public actual fun sqlite3_key_v2(
+    db: sqlite3,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(heapScoped {
+    bufferScoped(key, memory) { keyPtr ->
+        exports.sqlite3_key_v2(
+            db.pointer,
+            dbName.allocateUtf8Pointer(),
+            keyPtr,
+            nKey ?: byteLength
+        )
+    }
+})
 
 public actual fun sqlite3_keyword_count(): Int =
     exports.sqlite3_keyword_count()
@@ -1112,6 +1193,30 @@ public actual fun sqlite3_realloc64(
     pointer = exports.sqlite3_realloc64(data?.block?.pointer.notNull, size.toJsBigInt()),
     size = size
 )
+
+public actual fun sqlite3_rekey(
+    db: sqlite3,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(bufferScoped(key) { keyPtr ->
+    exports.sqlite3_rekey(db.pointer, keyPtr, nKey ?: byteLength)
+})
+
+public actual fun sqlite3_rekey_v2(
+    db: sqlite3,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int?,
+): Sqlite3Result = convertResult(heapScoped {
+    bufferScoped(key, memory) { keyPtr ->
+        exports.sqlite3_rekey_v2(
+            db.pointer,
+            dbName.allocateUtf8Pointer(),
+            keyPtr,
+            nKey ?: byteLength
+        )
+    }
+})
 
 public actual fun sqlite3_release_memory(size: Int): Int =
     exports.sqlite3_release_memory(size)
@@ -1576,10 +1681,6 @@ public actual fun sqlite3_value_text(value: sqlite3_value): String? =
 public actual fun sqlite3_value_type(value: sqlite3_value): Sqlite3DataType =
     convertDataType(exports.sqlite3_value_type(value.pointer))
 
-/*
-public actual fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2? =
-    convertTextEncoding(exports.sqlite3_value_encoding(value.pointer))
-*/
 public actual fun sqlite3_vfs_find(name: String?): sqlite3_vfs? = heapScoped {
     exports.sqlite3_vfs_find(name.allocateUtf8Pointer()).orNull?.let(::sqlite3_vfs)
 }
@@ -1598,18 +1699,16 @@ public actual fun sqlite3_vtab_collation(
 ): String? = exports.sqlite3_vtab_collation(info.pointer, index)
     .toKStringFromUtf8OrNull()
 
-/*
+
 public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
 ): Sqlite3Result = commonSqlite3VtabConfig(option) { id, values ->
-    invokeVariadic(values) { layouts, arguments ->
-        exports.sqlite3_vtab_config
-            .makeInvoker(*layouts)
-            .apply(db.pointer, id, *arguments)
+    invokeVariadic(values) { vaListPtr ->
+        exports.sqlite3_vtab_config(db.pointer, id, vaListPtr)
     }
 }
-*/
+
 public actual fun sqlite3_vtab_distinct(info: sqlite3_index_info): Int =
     exports.sqlite3_vtab_distinct(info.pointer)
 
