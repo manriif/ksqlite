@@ -1,5 +1,6 @@
 import com.android.build.api.withAndroid
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 /**
  * Copyright (c) 2024 Maanrifa Bacar Ali.
@@ -26,21 +27,45 @@ kotlin {
         }
     }
 
-    sourceSets.configureEach outer@{
-        println("sourceSet = $name")
-        when (name) {
-            in SourceSetMainNatives -> languageSettings {
-                optIn("kotlin.experimental.ExperimentalNativeApi")
-                optIn("kotlinx.cinterop.BetaInteropApi")
-                optIn("kotlinx.cinterop.ExperimentalForeignApi")
-            }
+    var androidDeviceTest: KotlinSourceSet? = null
+    var walTest: KotlinSourceSet? = null
 
-            in SourceSetMainWebs -> languageSettings {
-                optIn("kotlin.js.ExperimentalWasmJsInterop")
-            }
+    fun configureAndroidDeviceTest() {
+        val android = androidDeviceTest
+        val wal = walTest
 
-            "androidDeviceTest" -> {
+        if (android != null && wal != null) {
+            android.dependsOn(wal)
+        }
+    }
 
+    sourceSets {
+        configureEach outer@{
+            when (name) {
+                in SourceSetMainNatives -> languageSettings {
+                    optIn("kotlin.experimental.ExperimentalNativeApi")
+                    optIn("kotlinx.cinterop.BetaInteropApi")
+                    optIn("kotlinx.cinterop.ExperimentalForeignApi")
+                }
+
+                in SourceSetMainWebs -> languageSettings {
+                    optIn("kotlin.js.ExperimentalWasmJsInterop")
+                }
+
+                "androidDeviceTest" -> {
+                    androidDeviceTest = this
+                    dependsOn(getByName("commonTest"))
+                    configureAndroidDeviceTest()
+
+                    dependencies {
+                        implementation(libs.androidx.testRunner)
+                    }
+                }
+
+                "walTest" -> {
+                    walTest = this
+                    configureAndroidDeviceTest()
+                }
             }
         }
     }

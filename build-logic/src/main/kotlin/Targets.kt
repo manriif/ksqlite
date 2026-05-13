@@ -27,6 +27,8 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
         }
 
         withDeviceTest {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
             targetSdk {
                 version = release(libs.versions.android.sdk.compile.get().toInt())
             }

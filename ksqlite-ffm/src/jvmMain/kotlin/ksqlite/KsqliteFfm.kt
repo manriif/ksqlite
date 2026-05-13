@@ -2,6 +2,10 @@ package ksqlite
 
 import java.nio.file.Files
 
+///////////////////////////////////////////////////////////////////////////
+// Library
+///////////////////////////////////////////////////////////////////////////
+
 private fun String.isX64(): Boolean {
     return contains("amd64") || contains("x86_64")
 }
@@ -13,6 +17,7 @@ private fun String.isArm64(): Boolean {
 /**
  * Loads the Kotlin SQLite library.
  */
+@Suppress("UnsafeDynamicallyLoadedCode")
 public fun ksqliteLoadLibrary() {
     val osName = System.getProperty("os.name").lowercase()
     val osArch = System.getProperty("os.arch").lowercase()

@@ -14,6 +14,7 @@ import komple.tool.task.checksum
 import komple.tool.task.register
 import komple.tool.task.unzip
 import komple.tool.task.url
+import modules.configureSqliteJniTrunk
 import modules.configureSqliteWasmTrunk
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileSystemOperations
@@ -76,10 +77,15 @@ abstract class SqliteConfigurator @Inject constructor(toolName: String) :
                     into(context.outputDirectory)
                 }
 
+                val sqliteDir = context.outputDirectory.asFile
+                val ksqliteDir = ksqliteDirectory.get().asFile
+
                 configureSqliteWasmTrunk(
-                    ksqliteDirectory = ksqliteDirectory.get().asFile,
-                    sqliteDirectory = context.outputDirectory.asFile
+                    ksqliteDirectory = ksqliteDir,
+                    sqliteDirectory = sqliteDir
                 )
+
+                configureSqliteJniTrunk(sqliteDir)
             }
         }
     }

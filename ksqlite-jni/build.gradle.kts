@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.AndroidLibrarySourceSet
+import modules.SQLITE3_JNI
 import modules.copyJniJavaSources
 import modules.createSqliteCMakeListsContent
 import modules.createSqliteJniRuntimeMetadataContent
@@ -13,12 +14,12 @@ plugins {
 val generatedSourceDirectory = layout.buildDirectory.dir("generated/ksqlite/src/main")
 val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java") }
 val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
-val ksqliteCmakeDirectory = layout.buildDirectory.dir("ksqlite")
+val sqliteCmakeDirectory = layout.buildDirectory.dir("sqlite")
 
 val generateCmakeLists by tasks.registeringKsqlite {
     val cProject = komple.projects.kotlinSqlite.kProject
     val sqliteDirectory = ksqlite.sqliteDirectory
-    val cmakeListsFile = ksqliteCmakeDirectory.map { it.file("CMakeLists.txt") }
+    val cmakeListsFile = sqliteCmakeDirectory.map { it.file("CMakeLists.txt") }
     val cmakeVersion = libs.versions.cmake
 
     inputs.dir(sqliteDirectory)
@@ -115,7 +116,8 @@ android {
             cmake {
                 arguments(
                     "-DKSQLITE_LIB_NAME=${ksqlite.libraryName.get()}",
-                    "-DKSQLITE_CMAKE_DIR=${ksqliteCmakeDirectory.get().asFile.absolutePath}"
+                    "-DSQLITE_LIB_NAME=$SQLITE3_JNI",
+                    "-DSQLITE_CMAKE_DIR=${sqliteCmakeDirectory.get().asFile.absolutePath}"
                 )
             }
         }
