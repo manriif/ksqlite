@@ -45,8 +45,8 @@ public actual class sqlite3_index_info internal constructor(pointer: Long) :
 public actual class sqlite3_module internal constructor(pointer: Long) :
     GenericPointer(pointer)
 
-/*public actual class sqlite3_snapshot internal constructor(pointer: MemorySegment) :
-    GenericPointer(pointer)*/
+public actual class sqlite3_snapshot internal constructor(pointer: Long) :
+    GenericPointer(pointer)
 
 public actual class sqlite3_stmt internal constructor(holder: s3_stmt) :
     HolderGenericPointer<s3_stmt>(holder)

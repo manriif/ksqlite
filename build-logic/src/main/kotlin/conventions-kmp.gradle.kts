@@ -1,3 +1,4 @@
+import com.android.build.api.withAndroid
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 /**
@@ -11,19 +12,22 @@ plugins {
 }
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)
+@Suppress("UnstableApiUsage")
 kotlin {
     configureKotlin()
 
     applyDefaultHierarchyTemplate {
         common {
-            group("nonWeb") {
+            group("wal") {
+                withAndroid()
                 withJvm()
                 group("native")
             }
         }
     }
 
-    sourceSets.configureEach {
+    sourceSets.configureEach outer@{
+        println("sourceSet = $name")
         when (name) {
             in SourceSetMainNatives -> languageSettings {
                 optIn("kotlin.experimental.ExperimentalNativeApi")
@@ -33,6 +37,10 @@ kotlin {
 
             in SourceSetMainWebs -> languageSettings {
                 optIn("kotlin.js.ExperimentalWasmJsInterop")
+            }
+
+            "androidDeviceTest" -> {
+
             }
         }
     }

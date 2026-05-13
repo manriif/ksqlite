@@ -18,7 +18,6 @@ import java.io.File
 ///////////////////////////////////////////////////////////////////////////
 
 private const val KSQLITE_AMALGAMATION = "${KSQLITE}_amalgamation"
-private const val SQLITE_ARTIFACTS = "artifacts"
 
 private const val EXT_WASM_PATH = "ext/wasm"
 private const val GNU_MAKEFILE = "${EXT_WASM_PATH}/GNUmakefile"
@@ -84,16 +83,12 @@ fun configureSqliteWasmTrunk(
     ksqliteDirectory: File,
     sqliteDirectory: File
 ) {
-    listOf(
+    replaceFiles(
+        sourceDirectory = ksqliteDirectory,
+        destinationDirectory = sqliteDirectory,
         GNU_MAKEFILE,
         PRE_JS_CPP_JS
-    ).forEach { filePath ->
-        sqliteDirectory.resolve(filePath).outputStream().use { output ->
-            ksqliteDirectory.resolve(filePath).inputStream().use { input ->
-                input.copyTo(output)
-            }
-        }
-    }
+    )
 
     val exportedFunctionFile = sqliteDirectory.resolve(EXPORTED_FUNCTIONS)
     val defaultExportedFunctions = exportedFunctionFile.readText()
@@ -248,12 +243,12 @@ fun compileSqliteWasm(
 
     fileOperations.copy {
         from(generatedWasmArtifactsDirectory)
-        into(outputDirectory.resolve(SQLITE_ARTIFACTS))
+        into(outputDirectory.resolve(GENERATED_ARTIFACTS))
     }
 
     fileOperations.copy {
         from(ksqliteAmalgamationHeaderFile, ksqliteAmalgamationSourceFile)
-        into(outputDirectory.resolve("sources"))
+        into(outputDirectory.resolve(GENERATED_SOURCES))
     }
 }
 
@@ -265,7 +260,7 @@ fun copySqliteWasmGeneratedResources(
     inputDirectory: File,
     outputDirectory: File,
 ) {
-    val artifactsDirectory = inputDirectory.resolve(SQLITE_ARTIFACTS)
+    val artifactsDirectory = inputDirectory.resolve(GENERATED_ARTIFACTS)
     val esm64Directory = artifactsDirectory.resolve("esm64")
     val sqliteFile = esm64Directory.resolve("$SQLITE3-64bit.mjs")
 

@@ -26,6 +26,12 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
             version = release(libs.versions.android.sdk.min.get().toInt())
         }
 
+        withDeviceTest {
+            targetSdk {
+                version = release(libs.versions.android.sdk.compile.get().toInt())
+            }
+        }
+
         compilations.configureEach {
             compileTaskProvider.configure {
                 compilerOptions {

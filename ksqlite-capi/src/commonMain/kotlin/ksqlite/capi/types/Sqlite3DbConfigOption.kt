@@ -16,7 +16,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
     public sealed class IntOutput(
         id: Int,
         internal val value: Int,
-        internal val state: Sqlite3IntOutParam?
+        internal val state: IntOutputParam?
     ) : Sqlite3DbConfigOption(id)
 
     /**
@@ -81,7 +81,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_FKEY(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1002, value, state)
 
     /**
@@ -94,7 +94,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_TRIGGER(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1003, value, state)
 
     /**
@@ -111,7 +111,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_FTS3_TOKENIZER(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1004, value, state)
 
     /**
@@ -129,7 +129,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_LOAD_EXTENSION(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1005, value, state)
 
     /**
@@ -146,7 +146,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class NO_CKPT_ON_CLOSE(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1006, value, state)
 
     /**
@@ -163,7 +163,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_QPSG(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1007, value, state)
 
     /**
@@ -177,7 +177,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class TRIGGER_EQP(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1008, value, state)
 
     /**
@@ -205,7 +205,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class RESET_DATABASE(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1009, value, state)
 
     /**
@@ -222,7 +222,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class DEFENSIVE(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1010, value, state)
 
     /**
@@ -236,7 +236,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class WRITABLE_SCHEMA(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1011, value, state)
 
     /**
@@ -248,7 +248,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class LEGACY_ALTER_TABLE(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1012, value, state)
 
     /**
@@ -259,7 +259,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class DQS_DML(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1013, value, state)
 
     /**
@@ -269,7 +269,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class DQS_DDL(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1014, value, state)
 
     /**
@@ -285,7 +285,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_VIEW(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1015, value, state)
 
     /**
@@ -307,7 +307,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class LEGACY_FILE_FORMAT(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1016, value, state)
 
     /**
@@ -328,7 +328,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class TRUSTED_SCHEMA(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1017, value, state)
 
     /**
@@ -345,7 +345,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class STMT_SCANSTATUS(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1018, value, state)
 
     /**
@@ -362,7 +362,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class REVERSE_SCANORDER(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1019, value, state)
 
     /**
@@ -380,7 +380,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_ATTACH_CREATE(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1020, value, state)
 
     /**
@@ -401,7 +401,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_ATTACH_WRITE(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1021, value, state)
 
     /**
@@ -417,6 +417,6 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      */
     public class ENABLE_COMMENTS(
         value: Int,
-        state: Sqlite3IntOutParam?
+        state: IntOutputParam?
     ) : IntOutput(1022, value, state)
 }

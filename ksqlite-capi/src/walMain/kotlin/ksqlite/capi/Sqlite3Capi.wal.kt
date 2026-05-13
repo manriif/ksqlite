@@ -2,15 +2,7 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.types.Sqlite3CheckpointMode
-import ksqlite.capi.types.Sqlite3IntOutParam
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3SnapshotOutParam
-import ksqlite.capi.types.Sqlite3WalHookCallback
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_snapshot
-
+/*
 /**
  * Set the hard heap-size limit for the library. An argument of zero disables the hard heap limit.
  * A negative argument is a no-op used to obtain the return value without affecting the hard heap
@@ -126,8 +118,8 @@ public expect fun sqlite3_wal_checkpoint_v2(
     db: sqlite3,
     name: String?,
     mode: Sqlite3CheckpointMode,
-    outNLog: Sqlite3IntOutParam?,
-    outNCkpt: Sqlite3IntOutParam?
+    outNLog: IntOutputParam?,
+    outNCkpt: IntOutputParam?
 ): Sqlite3Result
 
 /**
@@ -140,4 +132,4 @@ public expect fun sqlite3_wal_hook(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3WalHookCallback?
-): sqlite3_mutable_pointer?
+): sqlite3_mutable_pointer?*/

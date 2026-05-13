@@ -15,8 +15,8 @@ import java.lang.foreign.ValueLayout
 /**
  * Base for output parameter.
  */
-public abstract class Sqlite3OutParamBase<Value> internal constructor(initialValue: Value) :
-    Sqlite3OutParam<Value> {
+public abstract class OutputParamBase<Value> internal constructor(initialValue: Value) :
+    OutputParameter<Value> {
 
     private var actualValue: Value = initialValue
 
@@ -51,7 +51,7 @@ public abstract class Sqlite3OutParamBase<Value> internal constructor(initialVal
 /**
  * Base for pointer output parameter.
  */
-public abstract class Sqlite3PointerOutParamBase<Value> : Sqlite3OutParamBase<Value?>(null) {
+public abstract class PointerOutputParam<Value> : OutputParamBase<Value?>(null) {
 
     final override fun SegmentAllocator.allocate(initialValue: Value?): MemorySegment {
         check(initialValue == null)
@@ -76,8 +76,8 @@ public abstract class Sqlite3PointerOutParamBase<Value> : Sqlite3OutParamBase<Va
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
-public actual open class Sqlite3IntOutParam actual constructor(initialValue: Int) :
-    Sqlite3OutParamBase<Int>(initialValue) {
+public actual open class IntOutputParam actual constructor(initialValue: Int) :
+    OutputParamBase<Int>(initialValue) {
 
     override fun SegmentAllocator.allocate(initialValue: Int): MemorySegment {
         return allocateFrom(ValueLayout.JAVA_INT, initialValue)
@@ -88,8 +88,8 @@ public actual open class Sqlite3IntOutParam actual constructor(initialValue: Int
     }
 }
 
-public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
-    Sqlite3OutParamBase<Long>(initialValue) {
+public actual class LongOutputParam actual constructor(initialValue: Long) :
+    OutputParamBase<Long>(initialValue) {
 
     override fun SegmentAllocator.allocate(initialValue: Long): MemorySegment {
         return allocateFrom(ValueLayout.JAVA_LONG, initialValue)
@@ -104,8 +104,7 @@ public actual class Sqlite3LongOutParam actual constructor(initialValue: Long) :
 // String
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3Utf8OutParam actual constructor() :
-    Sqlite3PointerOutParamBase<String>() {
+public actual class Utf8OutputParam actual constructor() : PointerOutputParam<String>() {
 
     /**
      * Custom size if not zero terminated.
@@ -125,48 +124,40 @@ public actual class Sqlite3Utf8OutParam actual constructor() :
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3DatabaseConnectionOutParam actual constructor() :
-    Sqlite3PointerOutParamBase<sqlite3>() {
+public actual class Sqlite3OutputParam actual constructor() :
+    PointerOutputParam<sqlite3>() {
 
     override fun create(pointer: MemorySegment): sqlite3 {
         return sqlite3(pointer)
     }
 }
 
-public actual class Sqlite3BlobOutParam actual constructor() :
-    Sqlite3PointerOutParamBase<sqlite3_blob>() {
+public actual class Sqlite3BlobOutputParam actual constructor() :
+    PointerOutputParam<sqlite3_blob>() {
 
     override fun create(pointer: MemorySegment): sqlite3_blob {
         return sqlite3_blob(pointer)
     }
 }
 
-public actual class Sqlite3ContextOutParam actual constructor() :
-    Sqlite3PointerOutParamBase<sqlite3_context>() {
-
-    override fun create(pointer: MemorySegment): sqlite3_context {
-        return sqlite3_context(pointer)
-    }
-}
-
-public actual class Sqlite3SnapshotOutParam actual constructor() :
-    Sqlite3PointerOutParamBase<sqlite3_snapshot>() {
+public actual class Sqlite3SnapshotOutputParam actual constructor() :
+    PointerOutputParam<sqlite3_snapshot>() {
 
     override fun create(pointer: MemorySegment): sqlite3_snapshot {
         return sqlite3_snapshot(pointer)
     }
 }
 
-public actual class Sqlite3StatementOutParam actual constructor() :
-    Sqlite3PointerOutParamBase<sqlite3_stmt>() {
+public actual class Sqlite3StmtOutputParam actual constructor() :
+    PointerOutputParam<sqlite3_stmt>() {
 
     override fun create(pointer: MemorySegment): sqlite3_stmt {
         return sqlite3_stmt(pointer)
     }
 }
 
-public actual class Sqlite3ValueOutParam actual constructor() :
-    Sqlite3PointerOutParamBase<sqlite3_value>() {
+public actual class Sqlite3ValueOutputParam actual constructor() :
+    PointerOutputParam<sqlite3_value>() {
 
     override fun create(pointer: MemorySegment): sqlite3_value {
         return sqlite3_value(pointer)
@@ -182,7 +173,7 @@ public actual class Sqlite3ValueOutParam actual constructor() :
  * result.
  * The pointer passed to [block] must not escape.
  */
-internal inline fun <R> Sqlite3OutParamBase<*>.use(
+internal inline fun <R> OutputParamBase<*>.use(
     allocator: SegmentAllocator,
     block: (MemorySegment) -> R
 ): R {
@@ -204,7 +195,7 @@ internal inline fun <R> Sqlite3OutParamBase<*>.use(
  * The pointer passed to [block] must not escape.
  */
 internal inline fun <R> SegmentAllocator.useParam(
-    param: Sqlite3OutParamBase<*>?,
+    param: OutputParamBase<*>?,
     block: (MemorySegment) -> R
 ): R {
     if (param == null) {
@@ -221,7 +212,7 @@ internal inline fun <R> SegmentAllocator.useParam(
  * The pointer passed to [block] must not escape.
  */
 internal inline fun <R> useParamMemScoped(
-    param: Sqlite3OutParamBase<*>?,
+    param: OutputParamBase<*>?,
     block: (MemorySegment) -> R
 ): R {
     if (param == null) {
@@ -240,8 +231,8 @@ internal inline fun <R> useParamMemScoped(
  * The pointers passed to [block] must not escape.
  */
 internal inline fun <R> SegmentAllocator.useParams(
-    param1: Sqlite3OutParamBase<*>?,
-    param2: Sqlite3OutParamBase<*>?,
+    param1: OutputParamBase<*>?,
+    param2: OutputParamBase<*>?,
     block: (
         pointer1: MemorySegment,
         pointer2: MemorySegment
@@ -269,8 +260,8 @@ internal inline fun <R> SegmentAllocator.useParams(
  * The pointers passed to [block] must not escape.
  */
 internal inline fun <R> useParamsMemScoped(
-    param1: Sqlite3OutParamBase<*>?,
-    param2: Sqlite3OutParamBase<*>?,
+    param1: OutputParamBase<*>?,
+    param2: OutputParamBase<*>?,
     block: (
         pointer1: MemorySegment,
         pointer2: MemorySegment

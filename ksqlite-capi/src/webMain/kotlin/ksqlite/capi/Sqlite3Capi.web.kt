@@ -55,7 +55,7 @@ import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
-import ksqlite.capi.types.Sqlite3BlobOutParam
+import ksqlite.capi.types.Sqlite3BlobOutputParam
 import ksqlite.capi.types.Sqlite3BusyHandlerCallback
 import ksqlite.capi.types.Sqlite3CollationNeededCallback
 import ksqlite.capi.types.Sqlite3CommitHookCallback
@@ -68,7 +68,7 @@ import ksqlite.capi.types.Sqlite3CreateFunctionInverseCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionStepCallback
 import ksqlite.capi.types.Sqlite3CreateFunctionValueCallback
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DatabaseConnectionOutParam
+import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
@@ -77,9 +77,9 @@ import ksqlite.capi.types.Sqlite3ExecCallback
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
 import ksqlite.capi.types.Sqlite3FileOpenFlag
-import ksqlite.capi.types.Sqlite3IntOutParam
+import ksqlite.capi.types.IntOutputParam
 import ksqlite.capi.types.Sqlite3Limit
-import ksqlite.capi.types.Sqlite3LongOutParam
+import ksqlite.capi.types.LongOutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3PreupdateHookCallback
 import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
@@ -87,7 +87,7 @@ import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3RollbackHookCallback
 import ksqlite.capi.types.Sqlite3SerializeFlag
 import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
-import ksqlite.capi.types.Sqlite3StatementOutParam
+import ksqlite.capi.types.Sqlite3StmtOutputParam
 import ksqlite.capi.types.Sqlite3StatementStatusCounter
 import ksqlite.capi.types.Sqlite3StatusOption
 import ksqlite.capi.types.Sqlite3TextEncoding
@@ -95,8 +95,8 @@ import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3UpdateHookCallback
-import ksqlite.capi.types.Sqlite3Utf8OutParam
-import ksqlite.capi.types.Sqlite3ValueOutParam
+import ksqlite.capi.types.Utf8OutputParam
+import ksqlite.capi.types.Sqlite3ValueOutputParam
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
@@ -378,7 +378,7 @@ public actual fun sqlite3_blob_open(
     columnName: String,
     rowIndex: Long,
     flags: Sqlite3BlobOpenFlag,
-    outBlob: Sqlite3BlobOutParam
+    outBlob: Sqlite3BlobOutputParam
 ): Sqlite3Result = convertResult(heapScoped {
     useParam(outBlob) { blobPtr ->
         exports.sqlite3_blob_open(
@@ -827,8 +827,8 @@ public actual fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result =
 public actual fun sqlite3_db_status(
     db: sqlite3,
     option: Sqlite3DbStatusOption,
-    outCurrent: Sqlite3IntOutParam?,
-    outHighwater: Sqlite3IntOutParam?,
+    outCurrent: IntOutputParam?,
+    outHighwater: IntOutputParam?,
     resetFlag: Int
 ): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
     exports.sqlite3_db_status(db.pointer, option.id, curPtr, highPtr, resetFlag)
@@ -837,8 +837,8 @@ public actual fun sqlite3_db_status(
 public actual fun sqlite3_db_status64(
     db: sqlite3,
     option: Sqlite3DbStatusOption,
-    outCurrent: Sqlite3LongOutParam?,
-    outHighwater: Sqlite3LongOutParam?,
+    outCurrent: LongOutputParam?,
+    outHighwater: LongOutputParam?,
     resetFlag: Int
 ): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
     exports.sqlite3_db_status64(db.pointer, option.id, curPtr, highPtr, resetFlag)
@@ -891,7 +891,7 @@ public actual fun sqlite3_error_offset(db: sqlite3): Int =
 public actual fun sqlite3_exec(
     db: sqlite3,
     sql: String,
-    outErrorMessage: Sqlite3Utf8OutParam?,
+    outErrorMessage: Utf8OutputParam?,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3ExecCallback?
 ): Sqlite3Result = convertResult(useMemoryManager {
@@ -990,10 +990,10 @@ public actual fun sqlite3_keyword_count(): Int =
 
 public actual fun sqlite3_keyword_name(
     index: Int,
-    outName: Sqlite3Utf8OutParam,
+    outName: Utf8OutputParam,
 ): Sqlite3Result = convertResult(stackScoped {
     useParam(outName) { namePtr ->
-        val size = Sqlite3IntOutParam(0)
+        val size = IntOutputParam(0)
 
         useParam(size) { sizePtr ->
             exports.sqlite3_keyword_name(index, namePtr, sizePtr)
@@ -1059,7 +1059,7 @@ public actual fun sqlite3_next_stmt(
 
 public actual fun sqlite3_open(
     fileName: String,
-    outDb: Sqlite3DatabaseConnectionOutParam
+    outDb: Sqlite3OutputParam
 ): Sqlite3Result = convertResult(heapScoped {
     useParam(outDb) { dbPtr ->
         exports.sqlite3_open(fileName.allocateUtf8Pointer(), dbPtr)
@@ -1068,7 +1068,7 @@ public actual fun sqlite3_open(
 
 public actual fun sqlite3_open_v2(
     fileName: String,
-    outDb: Sqlite3DatabaseConnectionOutParam,
+    outDb: Sqlite3OutputParam,
     flags: Sqlite3FileOpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result = convertResult(heapScoped {
@@ -1094,8 +1094,8 @@ public actual fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
     size: Int?,
-    outStmt: Sqlite3StatementOutParam,
-    outTail: Sqlite3Utf8OutParam?
+    outStmt: Sqlite3StmtOutputParam,
+    outTail: Utf8OutputParam?
 ): Sqlite3Result = convertResult(heapScoped {
     useParams(outStmt, outTail) { stmtPtr, tailPtr ->
         val cSql = sql.allocateUtf8()
@@ -1109,8 +1109,8 @@ public actual fun sqlite3_prepare_v3(
     sql: String,
     size: Int?,
     flags: Sqlite3PrepareFlag?,
-    outStmt: Sqlite3StatementOutParam,
-    outTail: Sqlite3Utf8OutParam?
+    outStmt: Sqlite3StmtOutputParam,
+    outTail: Utf8OutputParam?
 ): Sqlite3Result = convertResult(heapScoped {
     useParams(outStmt, outTail) { stmtPtr, tailPtr ->
         val cSql = sql.allocateUtf8()
@@ -1146,7 +1146,7 @@ public actual fun sqlite3_preupdate_hook(
 public actual fun sqlite3_preupdate_new(
     db: sqlite3,
     index: Int,
-    outValue: Sqlite3ValueOutParam
+    outValue: Sqlite3ValueOutputParam
 ): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_preupdate_new(db.pointer, index, valuePtr)
 })
@@ -1154,7 +1154,7 @@ public actual fun sqlite3_preupdate_new(
 public actual fun sqlite3_preupdate_old(
     db: sqlite3,
     index: Int,
-    outValue: Sqlite3ValueOutParam
+    outValue: Sqlite3ValueOutputParam
 ): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_preupdate_old(db.pointer, index, valuePtr)
 })
@@ -1370,7 +1370,7 @@ public actual fun sqlite3_serialize(
     schema: String?,
     flags: Sqlite3SerializeFlag?
 ): sqlite3_mutable_pointer? {
-    val size = Sqlite3LongOutParam(0)
+    val size = LongOutputParam(0)
 
     val pointer = heapScoped {
         useParam(size) { sizePtr ->
@@ -1432,8 +1432,8 @@ public actual fun sqlite3_sql(stmt: sqlite3_stmt): String =
 
 public actual fun sqlite3_status(
     option: Sqlite3StatusOption,
-    outCurrent: Sqlite3IntOutParam,
-    outHighwater: Sqlite3IntOutParam,
+    outCurrent: IntOutputParam,
+    outHighwater: IntOutputParam,
     resetFlag: Int
 ): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
     exports.sqlite3_status(option.id, curPtr, highPtr, resetFlag)
@@ -1441,8 +1441,8 @@ public actual fun sqlite3_status(
 
 public actual fun sqlite3_status64(
     option: Sqlite3StatusOption,
-    outCurrent: Sqlite3LongOutParam,
-    outHighwater: Sqlite3LongOutParam,
+    outCurrent: LongOutputParam,
+    outHighwater: LongOutputParam,
     resetFlag: Int
 ): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
     exports.sqlite3_status64(option.id, curPtr, highPtr, resetFlag)
@@ -1513,11 +1513,11 @@ public actual fun sqlite3_table_column_metadata(
     dbName: String?,
     tableName: String,
     columnName: String,
-    outDataType: Sqlite3Utf8OutParam?,
-    outCollationName: Sqlite3Utf8OutParam?,
-    outNotNull: Sqlite3IntOutParam?,
-    outPrimaryKey: Sqlite3IntOutParam?,
-    outAutoIncrement: Sqlite3IntOutParam?
+    outDataType: Utf8OutputParam?,
+    outCollationName: Utf8OutputParam?,
+    outNotNull: IntOutputParam?,
+    outPrimaryKey: IntOutputParam?,
+    outAutoIncrement: IntOutputParam?
 ): Sqlite3Result = convertResult(heapScoped {
     val dataTypePtr = outDataType?.attach(this)
     val collationNamePtr = outCollationName?.attach(this)
@@ -1720,14 +1720,14 @@ public actual fun sqlite3_vtab_in(
 
 public actual fun sqlite3_vtab_in_first(
     value: sqlite3_value,
-    outValue: Sqlite3ValueOutParam?
+    outValue: Sqlite3ValueOutputParam?
 ): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_vtab_in_first(value.pointer, valuePtr)
 })
 
 public actual fun sqlite3_vtab_in_next(
     value: sqlite3_value,
-    outValue: Sqlite3ValueOutParam?
+    outValue: Sqlite3ValueOutputParam?
 ): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_vtab_in_next(value.pointer, valuePtr)
 })
@@ -1741,7 +1741,7 @@ public actual fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result =
 public actual fun sqlite3_vtab_rhs_value(
     info: sqlite3_index_info,
     index: Int,
-    outValue: Sqlite3ValueOutParam?
+    outValue: Sqlite3ValueOutputParam?
 ): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_vtab_rhs_value(info.pointer, index, valuePtr)
 })

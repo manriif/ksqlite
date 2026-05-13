@@ -2,65 +2,6 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.types.Sqlite3AutoExtensionCallback
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
-import ksqlite.capi.types.Sqlite3BlobOpenFlag
-import ksqlite.capi.types.Sqlite3BlobOutParam
-import ksqlite.capi.types.Sqlite3BusyHandlerCallback
-import ksqlite.capi.types.Sqlite3CollationNeededCallback
-import ksqlite.capi.types.Sqlite3CommitHookCallback
-import ksqlite.capi.types.Sqlite3CompleteResult
-import ksqlite.capi.types.Sqlite3ConfigOption
-import ksqlite.capi.types.Sqlite3CreateCollationCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionFinalCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionFuncCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionInverseCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionStepCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionValueCallback
-import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DatabaseConnectionOutParam
-import ksqlite.capi.types.Sqlite3DbConfigOption
-import ksqlite.capi.types.Sqlite3DbStatusOption
-import ksqlite.capi.types.Sqlite3DeserializeFlag
-import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.Sqlite3ExecCallback
-import ksqlite.capi.types.Sqlite3ExplainMode
-import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3FileOpenFlag
-import ksqlite.capi.types.Sqlite3IntOutParam
-import ksqlite.capi.types.Sqlite3Limit
-import ksqlite.capi.types.Sqlite3LongOutParam
-import ksqlite.capi.types.Sqlite3PrepareFlag
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
-import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3RollbackHookCallback
-import ksqlite.capi.types.Sqlite3SerializeFlag
-import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
-import ksqlite.capi.types.Sqlite3StatementOutParam
-import ksqlite.capi.types.Sqlite3StatementStatusCounter
-import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3TextEncoding
-import ksqlite.capi.types.Sqlite3TraceCallback
-import ksqlite.capi.types.Sqlite3TraceCode
-import ksqlite.capi.types.Sqlite3TransactionState
-import ksqlite.capi.types.Sqlite3UpdateHookCallback
-import ksqlite.capi.types.Sqlite3Utf8OutParam
-import ksqlite.capi.types.Sqlite3ValueOutParam
-import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_backup
-import ksqlite.capi.types.sqlite3_blob
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.types.sqlite3_index_info
-import ksqlite.capi.types.sqlite3_module
-import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_pointer
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.types.sqlite3_vfs
-
 public expect fun sqlite3_libversion(): String
 
 /**
