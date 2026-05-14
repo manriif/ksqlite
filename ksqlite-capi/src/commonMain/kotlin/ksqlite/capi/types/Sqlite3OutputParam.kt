@@ -36,7 +36,7 @@ public interface OutputParameter<Value> {
  *
  * An [initialValue] can optionally be supplied.
  */
-public expect class IntOutputParam(initialValue: Int) : OutputParameter<Int> {
+public expect class Int32OutputParam(initialValue: Int) : OutputParameter<Int> {
     override val value: Int
 }
 
@@ -45,7 +45,7 @@ public expect class IntOutputParam(initialValue: Int) : OutputParameter<Int> {
  *
  * An [initialValue] can optionally be supplied.
  */
-public expect class LongOutputParam(initialValue: Long) : OutputParameter<Long> {
+public expect class Int64OutputParam(initialValue: Long) : OutputParameter<Long> {
     override val value: Long
 }
 
@@ -107,7 +107,7 @@ public expect class Sqlite3ValueOutputParam() : OutputParameter<sqlite3_value?> 
  * - `true` if value is positive
  * - throws ISE if value is negative
  */
-public val IntOutputParam.booleanValue: Boolean
+public val Int32OutputParam.booleanValue: Boolean
     get() {
         val intValue = value
 
@@ -125,7 +125,7 @@ public val IntOutputParam.booleanValue: Boolean
  * - `true` if value == `1`
  * - throws ISE otherwise
  */
-public val IntOutputParam.booleanValueStrict: Boolean
+public val Int32OutputParam.booleanValueStrict: Boolean
     get() = when (val intValue = value) {
         0 -> false
         1 -> true

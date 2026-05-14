@@ -1,8 +1,16 @@
 @file:Suppress("FunctionName", "SpellCheckingInspection")
 
 package ksqlite.capi
-
 /*
+import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.types.Sqlite3CheckpointMode
+import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.Sqlite3SnapshotOutputParam
+import ksqlite.capi.types.Sqlite3WalHookCallback
+import ksqlite.capi.types.sqlite3
+import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.types.sqlite3_snapshot
+
 /**
  * Set the hard heap-size limit for the library. An argument of zero disables the hard heap limit.
  * A negative argument is a no-op used to obtain the return value without affecting the hard heap
@@ -43,7 +51,7 @@ public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot)
 public expect fun sqlite3_snapshot_get(
     db: sqlite3,
     name: String?,
-    outSnapshot: Sqlite3SnapshotOutParam
+    outSnapshot: Sqlite3SnapshotOutputParam
 ): Sqlite3Result
 
 /**
@@ -118,8 +126,8 @@ public expect fun sqlite3_wal_checkpoint_v2(
     db: sqlite3,
     name: String?,
     mode: Sqlite3CheckpointMode,
-    outNLog: IntOutputParam?,
-    outNCkpt: IntOutputParam?
+    outNLog: Int32OutputParam?,
+    outNCkpt: Int32OutputParam?
 ): Sqlite3Result
 
 /**

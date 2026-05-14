@@ -52,7 +52,7 @@ public abstract class PointerOutputParam<Value, OutPtr> :
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class IntOutputParam actual constructor(initialValue: Int) :
+public actual class Int32OutputParam actual constructor(initialValue: Int) :
     OutputParamBase<Int, OutputPointer.Int32>(initialValue) {
 
     override fun allocate(initialValue: Int): OutputPointer.Int32 {
@@ -64,7 +64,7 @@ public actual class IntOutputParam actual constructor(initialValue: Int) :
     }
 }
 
-public actual class LongOutputParam actual constructor(initialValue: Long) :
+public actual class Int64OutputParam actual constructor(initialValue: Long) :
     OutputParamBase<Long, OutputPointer.Int64>(initialValue) {
 
     override fun allocate(initialValue: Long): OutputPointer.Int64 {
@@ -80,14 +80,8 @@ public actual class LongOutputParam actual constructor(initialValue: Long) :
 // String
 ///////////////////////////////////////////////////////////////////////////
 
-// TODO sealed string or bytes
 public actual class Utf8OutputParam actual constructor() :
     PointerOutputParam<String, OutputPointer.String>() {
-
-    /**
-     * Custom size if not zero terminated.
-     */
-    internal var size: Int? = null
 
     override fun allocate(initialValue: String?): OutputPointer.String {
         return OutputPointer.String(initialValue)

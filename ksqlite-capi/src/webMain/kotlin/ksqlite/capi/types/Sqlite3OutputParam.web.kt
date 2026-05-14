@@ -85,7 +85,7 @@ public abstract class PointerOutputParam<Value> : OutputParamBase<Value?>(null) 
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
-public actual open class IntOutputParam actual constructor(initialValue: Int) :
+public actual open class Int32OutputParam actual constructor(initialValue: Int) :
     OutputParamBase<Int>(initialValue) {
 
     override fun MemoryAllocator.allocate(initialValue: Int): WasmPointer {
@@ -99,7 +99,7 @@ public actual open class IntOutputParam actual constructor(initialValue: Int) :
     }
 }
 
-public actual class LongOutputParam actual constructor(initialValue: Long) :
+public actual class Int64OutputParam actual constructor(initialValue: Long) :
     OutputParamBase<Long>(initialValue) {
 
     override fun MemoryAllocator.allocate(initialValue: Long): WasmPointer {

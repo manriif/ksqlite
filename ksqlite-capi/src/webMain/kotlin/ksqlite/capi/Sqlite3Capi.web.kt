@@ -77,9 +77,9 @@ import ksqlite.capi.types.Sqlite3ExecCallback
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
 import ksqlite.capi.types.Sqlite3FileOpenFlag
-import ksqlite.capi.types.IntOutputParam
+import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Sqlite3Limit
-import ksqlite.capi.types.LongOutputParam
+import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3PreupdateHookCallback
 import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
@@ -827,8 +827,8 @@ public actual fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result =
 public actual fun sqlite3_db_status(
     db: sqlite3,
     option: Sqlite3DbStatusOption,
-    outCurrent: IntOutputParam?,
-    outHighwater: IntOutputParam?,
+    outCurrent: Int32OutputParam?,
+    outHighwater: Int32OutputParam?,
     resetFlag: Int
 ): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
     exports.sqlite3_db_status(db.pointer, option.id, curPtr, highPtr, resetFlag)
@@ -837,8 +837,8 @@ public actual fun sqlite3_db_status(
 public actual fun sqlite3_db_status64(
     db: sqlite3,
     option: Sqlite3DbStatusOption,
-    outCurrent: LongOutputParam?,
-    outHighwater: LongOutputParam?,
+    outCurrent: Int64OutputParam?,
+    outHighwater: Int64OutputParam?,
     resetFlag: Int
 ): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
     exports.sqlite3_db_status64(db.pointer, option.id, curPtr, highPtr, resetFlag)
@@ -993,7 +993,7 @@ public actual fun sqlite3_keyword_name(
     outName: Utf8OutputParam,
 ): Sqlite3Result = convertResult(stackScoped {
     useParam(outName) { namePtr ->
-        val size = IntOutputParam(0)
+        val size = Int32OutputParam(0)
 
         useParam(size) { sizePtr ->
             exports.sqlite3_keyword_name(index, namePtr, sizePtr)
@@ -1338,8 +1338,8 @@ public actual fun sqlite3_result_text64(
 
 public actual fun sqlite3_result_value(
     context: sqlite3_context,
-    value: sqlite3_value?,
-): Unit = exports.sqlite3_result_value(context.pointer, value?.pointer.notNull)
+    value: sqlite3_value,
+): Unit = exports.sqlite3_result_value(context.pointer, value.pointer)
 
 public actual fun sqlite3_result_zeroblob(
     context: sqlite3_context,
@@ -1370,7 +1370,7 @@ public actual fun sqlite3_serialize(
     schema: String?,
     flags: Sqlite3SerializeFlag?
 ): sqlite3_mutable_pointer? {
-    val size = LongOutputParam(0)
+    val size = Int64OutputParam(0)
 
     val pointer = heapScoped {
         useParam(size) { sizePtr ->
@@ -1432,8 +1432,8 @@ public actual fun sqlite3_sql(stmt: sqlite3_stmt): String =
 
 public actual fun sqlite3_status(
     option: Sqlite3StatusOption,
-    outCurrent: IntOutputParam,
-    outHighwater: IntOutputParam,
+    outCurrent: Int32OutputParam,
+    outHighwater: Int32OutputParam,
     resetFlag: Int
 ): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
     exports.sqlite3_status(option.id, curPtr, highPtr, resetFlag)
@@ -1441,8 +1441,8 @@ public actual fun sqlite3_status(
 
 public actual fun sqlite3_status64(
     option: Sqlite3StatusOption,
-    outCurrent: LongOutputParam,
-    outHighwater: LongOutputParam,
+    outCurrent: Int64OutputParam,
+    outHighwater: Int64OutputParam,
     resetFlag: Int
 ): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
     exports.sqlite3_status64(option.id, curPtr, highPtr, resetFlag)
@@ -1515,9 +1515,9 @@ public actual fun sqlite3_table_column_metadata(
     columnName: String,
     outDataType: Utf8OutputParam?,
     outCollationName: Utf8OutputParam?,
-    outNotNull: IntOutputParam?,
-    outPrimaryKey: IntOutputParam?,
-    outAutoIncrement: IntOutputParam?
+    outNotNull: Int32OutputParam?,
+    outPrimaryKey: Int32OutputParam?,
+    outAutoIncrement: Int32OutputParam?
 ): Sqlite3Result = convertResult(heapScoped {
     val dataTypePtr = outDataType?.attach(this)
     val collationNamePtr = outCollationName?.attach(this)

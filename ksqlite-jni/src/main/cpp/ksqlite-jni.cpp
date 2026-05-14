@@ -1,11 +1,46 @@
 #include <jni.h>
 #include <ksqlite.h>
 
+#ifndef KSQLITE_JNI
+#define KSQLITE_JNI
+
+///////////////////////////////////////////////////////////////////////////
+// Global
+///////////////////////////////////////////////////////////////////////////
+
+/*
+** Global state, e.g. caches and metrics.
+*/
+struct KsqliteJniGlobal {
+    JavaVM* jvm;
+    char* init;
+};
+
+static KsqliteJniGlobal KsqliteJniGlobalInstance;
+
+#define KJG KsqliteJniGlobalInstance
+
+///////////////////////////////////////////////////////////////////////////
+// JNI hooks
+///////////////////////////////////////////////////////////////////////////
+
+JNIEXPORT jint JNICALL
+JNI_OnLoad(JavaVM* vm, void* reserved) {
+    KJG.jvm = vm;
+
+    return JNI_VERSION_1_6;
+}
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite 1 to 1 mapping
+///////////////////////////////////////////////////////////////////////////
+
 extern "C" JNIEXPORT jstring JNICALL
 Java_ksqlite_KsqliteJni_ksqliteHello(
     JNIEnv* env,
     jclass clazz
 ) {
-    const auto hello = "Hello from C++, Ksqlite";
-    return env->NewStringUTF(hello);
+    return env->NewStringUTF(KJG.init);
 }
+
+#endif //KSQLITE_JNI

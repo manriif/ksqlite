@@ -328,9 +328,6 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
     ): Int
 
-    /**
-     * TODO variadic
-     */
     fun sqlite3_config(
 		p0: Int, 
 		p1: JsBigInt, 
@@ -416,9 +413,6 @@ internal external interface Sqlite3WasmExports : JsAny {
 		p0: JsBigInt, 
 	): Int
 
-    /**
-     * TODO variadic
-     */
     fun sqlite3_db_config(
 		p0: JsBigInt, 
 		p1: Int, 
@@ -594,9 +588,6 @@ internal external interface Sqlite3WasmExports : JsAny {
         p2: Int,
     ): Int
 
-    /**
-     * TODO variadic
-     */
     fun sqlite3_log(
 		p0: Int, 
 		p1: JsBigInt, 

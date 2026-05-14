@@ -82,7 +82,7 @@ public abstract class PointerOutputParam<Value, Var : CPointed> :
 ///////////////////////////////////////////////////////////////////////////
 
 
-public actual class IntOutputParam actual constructor(initialValue: Int) :
+public actual class Int32OutputParam actual constructor(initialValue: Int) :
     OutputParamBase<Int, IntVar>(initialValue) {
 
     override fun NativePlacement.allocate(initialValue: Int): IntVar {
@@ -94,7 +94,7 @@ public actual class IntOutputParam actual constructor(initialValue: Int) :
     }
 }
 
-public actual class LongOutputParam actual constructor(initialValue: Long) :
+public actual class Int64OutputParam actual constructor(initialValue: Long) :
     OutputParamBase<Long, LongVar>(initialValue) {
 
     override fun NativePlacement.allocate(initialValue: Long): LongVar {
