@@ -12,30 +12,34 @@ package ksqlite
  */
 public fun ksqliteLoadLibrary() {
     System.loadLibrary(KSQLITE_NATIVE_LIB_NAME)
+    ksqlite_init()
 }
+
+/**
+ * Initializes the library on native side.
+ */
+private external fun ksqlite_init()
 
 ///////////////////////////////////////////////////////////////////////////
 // JNI
 ///////////////////////////////////////////////////////////////////////////
 
-public external fun ksqliteHello(): String
-
+/**
+ * To align with other platforms behavior, only one auto extension is allowed.
+ * Therefore, SQLITE_MISUSE is returned if an auto extension is already registered.
+ */
 public external fun ksqlite_auto_extension(
-    p0: Long,
+    callback: AutoExtensionCallback,
 ): Int
 
 public external fun ksqlite_cancel_auto_extension(
-    p0: Long,
+    callback: AutoExtensionCallback
 ): Int
 
 public external fun sqlite3_aggregate_context(
     p0: Long,
     p1: Int,
 ): Long
-
-public external fun sqlite3_auto_extension(
-    p0: Long,
-): Int
 
 public external fun sqlite3_autovacuum_pages(
     p0: Long,
@@ -44,6 +48,7 @@ public external fun sqlite3_autovacuum_pages(
     p3: Long,
 ): Int
 
+/*
 public external fun sqlite3_backup_finish(
     p0: Long,
 ): Int
@@ -1123,3 +1128,4 @@ public external fun sqlite3_vtab_rhs_value(
     p1: Int,
     p2: Long,
 ): Int
+ */
