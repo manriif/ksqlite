@@ -6,6 +6,7 @@ import ksqlite.capi.memory.MemoryBlock
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.ReadableMemoryBlock
 import ksqlite.capi.memory.WritableMemoryBlock
+import ksqlite.capi.memory.isNullPointer
 
 public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :
     sqlite3_pointer_base(),
@@ -42,9 +43,9 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryB
          * Returns a [sqlite3_pointer] from [pointer] or `null` if [pointer] is `null`.
          */
         fun from(pointer: Long, size: Long): sqlite3_mutable_pointer? {
-            /*if (pointer.isNull) {
+            if (pointer.isNullPointer) {
                 return null
-            }*/
+            }
 
             return sqlite3_mutable_pointer(MemoryBlock(pointer, size))
         }
@@ -60,9 +61,9 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryB
             pointer: Long,
             dispose: Boolean = true
         ): sqlite3_mutable_pointer? {
-            /*if (pointer.isNull) {
+            if (pointer.isNullPointer) {
                 return null
-            }*/
+            }
 
             TODO()
 

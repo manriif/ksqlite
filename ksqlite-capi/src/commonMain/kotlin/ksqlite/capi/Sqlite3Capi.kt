@@ -2,9 +2,6 @@
 
 package ksqlite.capi
 
-public expect fun sqlite3_libversion(): String
-
-/*
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
@@ -64,6 +61,8 @@ import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
 
+public expect fun sqlite3_libversion(): String
+
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
  * first call. Subsequent calls return the same context that was returned on prior calls.
@@ -101,7 +100,7 @@ public expect fun sqlite3_autovacuum_pages(
  *
  * [sqlite3_backup_finish()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
  */
-public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
+/*public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
 
 /**
  * Create an [sqlite3_backup] process to copy the contents of [srcDbName] from connection handle

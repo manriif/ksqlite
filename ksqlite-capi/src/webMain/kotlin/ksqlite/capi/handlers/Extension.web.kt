@@ -3,16 +3,17 @@ package ksqlite.capi.handlers
 import ksqlite.capi.autoExtensionHandle
 import ksqlite.capi.exports
 import ksqlite.capi.interop.wasm.FunctionSignature
+import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.StaticMemoryManager
+import ksqlite.capi.memory.allocateUtf8Pointer
+import ksqlite.capi.memory.heapScoped
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
-import kotlin.js.toJsString
-import kotlin.js.toLong
 
 /**
  * Singleton handler for auto extensions.
@@ -44,12 +45,11 @@ internal class AutoExtensionHandler(manager: MemoryManager) : Handler(manager) {
         api = sqlite3_api_routines(pApi),
         errorPointer = pzErrMsg.takeUnless(WasmPointer::isNull)
     ) { errorPointer, message ->
-        val bytes = memory.jstrToUintArray(message.toJsString(), true)
-        val destinationPointer = exports.sqlite3_malloc(bytes.length)
-
-        if (!destinationPointer.isNull) {
-            memory.heap8u().set(bytes, destinationPointer.toLong().toInt())
-            memory.pokePtr(errorPointer, destinationPointer)
+        heapScoped {
+            memory.pokePtr(
+                errorPointer,
+                exports.sqlite3_mprintf(message.allocateUtf8Pointer(), NullPtr)
+            )
         }
     }
 }

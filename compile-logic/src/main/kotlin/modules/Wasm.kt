@@ -67,6 +67,7 @@ private val WasmExtraExportedFunctions = listOf(
     "log",
     "memory_used",
     "memory_highwater",
+    "mprintf",
     "release_memory",
     "result_blob64",
     "result_text64",

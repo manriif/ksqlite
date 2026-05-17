@@ -602,6 +602,11 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
     ): JsBigInt
 
+    fun sqlite3_mprintf(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): JsBigInt
+
     fun sqlite3_msize(
         p0: JsBigInt,
     ): JsBigInt

@@ -316,7 +316,7 @@ private val Sqlite3Functions = mapOf(
     "soft_heap_limit64" to true,
 
     // String Functions
-    "mprintf" to false,
+    "mprintf" to true,
     "vmprintf" to false,
     "snprintf" to false,
     "vsnprintf" to false,

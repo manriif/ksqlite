@@ -3,10 +3,11 @@ package ksqlite.capi.handlers
 import ksqlite.capi.autoExtensionHandle
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.StaticMemoryManager
+import ksqlite.capi.memory.allocateUtf8
+import ksqlite.capi.memory.isNull
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
-import ksqlite.capi.memory.isNull
-import ksqlite.sqlite3.sqlite3_malloc
+import java.lang.foreign.Arena
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
@@ -39,13 +40,8 @@ internal class AutoExtensionHandler(manager: MemoryManager) : Handler(manager) {
         api = sqlite3_api_routines(pApi),
         errorPointer = pzErrMsg.takeUnless(MemorySegment::isNull)
     ) { errorPointer, message ->
-        val bytes = message.toByteArray(Charsets.UTF_8)
-        val destinationPointer = sqlite3_malloc(bytes.size)
-
-        if (!destinationPointer.isNull) {
-            val sourcePointer = MemorySegment.ofArray(bytes)
-            MemorySegment.copy(sourcePointer, 0, destinationPointer, 0, bytes.size.toLong())
-            errorPointer.set(ValueLayout.ADDRESS, 0, destinationPointer)
+        Arena.ofConfined().use { arena ->
+            errorPointer.set(ValueLayout.ADDRESS, 0, message.allocateUtf8(arena))
         }
     }
 }

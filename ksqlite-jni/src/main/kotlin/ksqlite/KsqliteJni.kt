@@ -3,6 +3,8 @@
 
 package ksqlite
 
+import java.nio.ByteBuffer
+
 ///////////////////////////////////////////////////////////////////////////
 // Library
 ///////////////////////////////////////////////////////////////////////////
@@ -15,31 +17,72 @@ public fun ksqliteLoadLibrary() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// JNI
+// Buffer helper
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a [ByteBuffer] wrapping [size] bytes from the memory region at the address
+ * [pointer] + [offset].
+ *
+ * Returns `null` if [pointer] points to `nullptr`.
+ */
+public external fun createBuffer(
+    pointer: Long,
+    size: Long,
+    offset: Long = 0
+): ByteBuffer?
+
+/**
+ * Returns a [ByteBuffer] wrapping [size] bytes from the memory region at the address
+ * [pointer] + [offset].
+ */
+public fun requireBuffer(
+    pointer: Long,
+    size: Long,
+    offset: Long = 0
+): ByteBuffer = checkNotNull(requireBuffer(pointer, size, offset)) {
+    "Cannot create a ByteBuffer from a null pointer"
+}
+
+public external fun nativeBufferRead(
+    pointer: Long,
+    size: Int,
+    sourceOffset: Long,
+    destinationOffset: Int,
+    destination: ByteArray
+)
+
+public external fun nativeBufferWrite(
+    pointer: Long,
+    source: ByteArray,
+    size: Int,
+    sourceOffset: Int,
+    destinationOffset: Long
+)
+
+///////////////////////////////////////////////////////////////////////////
+// C-API
 ///////////////////////////////////////////////////////////////////////////
 
 /**
  * To align with other platforms behavior, only one auto extension is allowed.
- * Therefore, SQLITE_MISUSE is returned if an auto extension is already registered.
  */
-public external fun ksqlite_auto_extension(
-    callback: AutoExtensionCallback,
-): Int
+public external fun ksqlite_auto_extension(callback: AutoExtensionCallback): Int
 
-public external fun ksqlite_cancel_auto_extension(
-    callback: AutoExtensionCallback
-): Int
+public external fun ksqlite_cancel_auto_extension(callback: AutoExtensionCallback): Int
 
 public external fun sqlite3_aggregate_context(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    nBytes: Int,
 ): Long
 
+/**
+ * Replaces the previous callback if any.
+ */
 public external fun sqlite3_autovacuum_pages(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
+    db: Long,
+    callback: AutoVacuumPagesCallback?,
+    destructor: DestructorCallback?,
 ): Int
 
 /*

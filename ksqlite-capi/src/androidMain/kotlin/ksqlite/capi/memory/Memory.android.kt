@@ -1,7 +1,5 @@
 package ksqlite.capi.memory
 
-import org.sqlite.jni.capi.NativePointerHolder
-
 public actual open class GenericPointer internal constructor(internal val pointer: Long)
 
 ///////////////////////////////////////////////////////////////////////////
@@ -9,13 +7,7 @@ public actual open class GenericPointer internal constructor(internal val pointe
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns [W] instantiated after [factory] which is passed the non-null pointing instance [H]
- *
+ * Whether this long represents a null pointer.
  */
-internal inline fun <H: NativePointerHolder<*>, W> H?.wrapOrNull(factory: (H) -> W): W? {
-    if (this == null || nativePointer == 0L) {
-        return null
-    }
-
-    return factory(this)
-}
+internal val Long.isNullPointer: Boolean
+    get() = this == 0L

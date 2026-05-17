@@ -1,6 +1,8 @@
 package ksqlite.capi.memory
 
 import ksqlite.capi.utils.checkBufferRange
+import ksqlite.nativeBufferRead
+import ksqlite.nativeBufferWrite
 
 /**
  * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for Android.
@@ -25,7 +27,13 @@ internal class MemoryBlock(
             size = size
         )
 
-        TODO()
+        nativeBufferRead(
+            pointer = pointer,
+            size = size,
+            sourceOffset = sourceOffset,
+            destinationOffset = destinationOffset,
+            destination = destination
+        )
 
         return destination
     }
@@ -44,6 +52,12 @@ internal class MemoryBlock(
             size = size
         )
 
-        TODO()
+        nativeBufferWrite(
+            pointer = pointer,
+            size = size,
+            source = source,
+            sourceOffset = sourceOffset,
+            destinationOffset = destinationOffset
+        )
     }
 }

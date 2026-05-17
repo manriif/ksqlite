@@ -6,14 +6,17 @@ package ksqlite.capi.memory
 public interface ReadableMemoryBlock {
 
     /**
-     * Reads [size] bytes from the memory block into [destination] and returns [destination].
-     * Reading starts at [sourceOffset] from the memory block and writing starts at
-     * [destinationOffset] to the [destination] buffer.
+     * Reads [size] bytes from the native memory block into [destination].
      *
-     * @throws IllegalArgumentException if any of [sourceOffset], [destinationOffset] or [size] is
-     * negative.
-     * @throws IndexOutOfBoundsException if not all bytes can fit in [destination] or can be read
-     * from memory block.
+     * The read starts at [sourceOffset] in the native memory region and writes into [destination]
+     * starting at [destinationOffset].
+     *
+     * @return the same [destination] array for convenience
+     *
+     * @throws IllegalArgumentException if [size], [sourceOffset], or [destinationOffset] is
+     * negative
+     * @throws IndexOutOfBoundsException if the requested range is out of bounds in either the
+     * native memory block or [destination]
      */
     public fun read(
         size: Int,
@@ -32,14 +35,15 @@ public interface ReadableMemoryBlock {
 public interface WritableMemoryBlock {
 
     /**
-     * Writes [size] bytes from [source] to the memory block.
-     * Reading starts at [sourceOffset] from the [source] buffer and writing starts at
-     * [destinationOffset] to the memory block.
+     * Writes [size] bytes from [source] into the native memory block.
      *
-     * @throws IllegalArgumentException if any of [sourceOffset], [destinationOffset] or [size] is
-     * negative.
-     * @throws IndexOutOfBoundsException if not all bytes can fit in the memory block or can be read
-     * from [source].
+     * Reading starts at [sourceOffset] in [source], and writing starts at [destinationOffset] in
+     * the native memory region.
+     *
+     * @throws IllegalArgumentException if [size], [sourceOffset], or [destinationOffset] is
+     * negative
+     * @throws IndexOutOfBoundsException if the requested range is out of bounds in either [source]
+     * or the native memory block
      */
     public fun write(
         source: ByteArray,

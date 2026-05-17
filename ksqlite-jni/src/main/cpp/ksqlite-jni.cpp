@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstring>
 #include <jni.h>
 
 #include "ksqlite.h"
@@ -13,13 +14,41 @@
 // Classes
 ///////////////////////////////////////////////////////////////////////////
 
-#define JAVA_STRING "java.lang.String"
 #define KSQLITE_JNI_EXCEPTION "KsqliteJniException"
 #define AUTO_EXTENSION_CALLBACK "AutoExtensionCallback"
 
 ///////////////////////////////////////////////////////////////////////////
 // Exceptions
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Raises a fatal error if object is not null.
+ */
+static inline void requireNull(
+    JNIEnv* const env,
+    jobject object
+) {
+    if (object != nullptr) {
+        env->FatalError("Expected Java object to be null");
+    }
+}
+
+/**
+ * Raises a fatal error if object is null.
+ */
+static inline jobject requireNonNull(
+    JNIEnv* const env,
+    jobject object
+) {
+    if (object == nullptr) {
+        env->FatalError("Expected Java object not to be null");
+    }
+
+    return object;
+}
+
+#define RequireNull(O) requireNonNull(env, (O))
+#define RequireNonNull(O) requireNonNull(env, (O))
 
 /**
  * Raises a fatal error if there is a pending exception.
@@ -105,20 +134,29 @@ static inline jfieldID fieldIdOrThrow(
     RequireField(klass, name, signature, "ksqlite." className)
 
 /**
- * Raises a fatal error if object is null.
+ * Returns true if an exception has been reported.
  */
-static inline jobject requireNonNull(
+static inline bool reportException(
     JNIEnv* const env,
-    jobject object
+    bool clear
 ) {
-    if (object == nullptr) {
-        env->FatalError("Expected Java object not to be null");
+    if (env->ExceptionCheck()) {
+        env->ExceptionDescribe();
+
+        if (clear) {
+            env->ExceptionClear();
+        }
+
+        return true;
     }
 
-    return object;
+    return false;
 }
 
-#define RequireNonNull(O) requireNonNull(env, (O))
+#define IfExceptionThrownClear(clear) if (reportException(env, clear))
+#define IfExceptionThrown IfExceptionThrownClear(false)
+#define IfExceptionNotThrownClear(clear) if (!reportException(env, clear))
+#define IfExceptionNotThrown IfExceptionNotThrownClear(false)
 
 ///////////////////////////////////////////////////////////////////////////
 // JNI reference management helpers
@@ -189,6 +227,48 @@ static inline void deleteLocalReference(
 #define LongCast_s3_value(L) LongCast(sqlite3_value, (L))
 
 ///////////////////////////////////////////////////////////////////////////
+// Mutex
+///////////////////////////////////////////////////////////////////////////
+
+#define MutexAllocate(S) \
+    S.mutex = sqlite3_mutex_alloc(SQLITE_MUTEX_FAST); \
+    OutOfMemoryCheck(S.mutex)
+
+#define MutexEnter(S) sqlite3_mutex_enter(S.mutex)
+#define MutexLeave(S) sqlite3_mutex_leave(S.mutex)
+
+///////////////////////////////////////////////////////////////////////////
+// Handler
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Common type for callback handlers.
+ */
+struct Handler {
+    sqlite3_mutex* mutex;
+    jobject callback;
+    jmethodID call;
+};
+
+/**
+ * Common type for callback handlers with a destructor.
+ */
+struct HandlerWithDestructor : Handler {
+    jobject destructor;
+    jmethodID destroy;
+};
+
+/**
+ * Declares the common variables for handler callback invocation.
+ * The callback is wrapped into a local reference that can be released when no longer required.
+ */
+#define HandlerCallbackDeclare(Handler) \
+    MutexEnter(Handler); \
+    const auto callback = LocalRefCreate(RequireNonNull(Handler.callback)); \
+    const auto call = Handler.call; \
+    MutexLeave(Handler)
+
+///////////////////////////////////////////////////////////////////////////
 // Global
 ///////////////////////////////////////////////////////////////////////////
 
@@ -202,48 +282,37 @@ struct KsqliteJniGlobal {
     struct {
         jclass klass;
         jmethodID resultCode;
-        jmethodID message;
+        jmethodID messageUtf8;
     } ksqliteJniException;
 
-    // Auto extension
-    struct {
-        sqlite3_mutex* mutex;
-        jobject callback;
-        jmethodID call;
-    } autoExtension;
+    // Handlers
+    Handler autoExtension;
+    HandlerWithDestructor autoVacuumPages;
 };
 
 static KsqliteJniGlobal KsqliteJniGlobalState;
+
 #define KJG KsqliteJniGlobalState
+#define KJE KJG.ksqliteJniException
+#define KAE KJG.autoExtension
+#define KAP KJG.autoVacuumPages
 
 /**
  * Initializes and cache KsqliteJniException class and methods.
  */
 static void initializeKsqliteJniException(JNIEnv* env) {
-    KJG.ksqliteJniException.klass = RequireKsqliteClass(KSQLITE_JNI_EXCEPTION);
-
-    KJG.ksqliteJniException.resultCode = RequireKsqliteMethod(
-        KJG.ksqliteJniException.klass,
-        "getResultCode",
-        "I",
-        KSQLITE_JNI_EXCEPTION
-    );
-
-    KJG.ksqliteJniException.message = RequireKsqliteMethod(
-        KJG.ksqliteJniException.klass,
-        "getMessage",
-        JAVA_STRING,
-        KSQLITE_JNI_EXCEPTION
-    );
+    KJE.klass = RequireKsqliteClass(KSQLITE_JNI_EXCEPTION);
+    KJE.resultCode = RequireKsqliteMethod(KJE.klass, "getResultCode", "()I", KSQLITE_JNI_EXCEPTION);
+    KJE.messageUtf8 =
+        RequireKsqliteMethod(KJE.klass, "getMessageUtf8", "[B", KSQLITE_JNI_EXCEPTION);
 }
 
 /**
  * Initializes and cache mutexes.
  */
 static void initializeMutexes(JNIEnv* env) {
-    // Auto extension
-    KJG.autoExtension.mutex = sqlite3_mutex_alloc(SQLITE_MUTEX_FAST);
-    OutOfMemoryCheck(KJG.autoExtension.mutex);
+    MutexAllocate(KAE);
+    MutexAllocate(KAP);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -258,9 +327,15 @@ static void initializeMutexes(JNIEnv* env) {
  */
 static JNIEnv* retrieveJniEnv() {
     JNIEnv* env = nullptr;
+    const auto result = KJG.jvm->GetEnv(reinterpret_cast<void**>(env), JNI_VERSION);
 
-    if (KJG.jvm->GetEnv(reinterpret_cast<void**>(env), JNI_VERSION)) {
-        fprintf(stderr, "Fatal error: cannot get current JNIEnv.\n");
+    if (result != JNI_OK) {
+        if (result == JNI_EDETACHED) {
+            fprintf(stderr, "Fatal error: thread is not attached.\n");
+        } else {
+            fprintf(stderr, "Fatal error: cannot get current JNIEnv.\n");
+        }
+
         abort();
     }
 
@@ -290,43 +365,197 @@ JNI_OnUnload(JavaVM* vm, void* reserved) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// SQLite Hooks
+// String helpers
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Handle auto-extension globally.
+ * Allocates a null terminated buffer to hold a string given its length.
+ *
+ * Note that Java exception must be checked after the function return if length is greater than
+ * byteArray actual length.
  */
+static char* allocateStringLength(
+    JNIEnv* const env,
+    jbyteArray byteArray,
+    jsize length
+) {
+    if (byteArray == nullptr) {
+        return nullptr;
+    }
+
+    auto bytes = (char*) sqlite3_malloc(length);
+
+    if (bytes != nullptr) {
+        env->GetByteArrayRegion(byteArray, 0, length, (jbyte*) bytes);
+
+        IfExceptionNotThrown {
+            bytes[length] = 0;
+        }
+    }
+
+    return bytes;
+}
+
+/**
+ * Allocates a null terminated buffer to hold a string and sets the length to outLength.
+ */
+static char* allocateString(
+    JNIEnv* const env,
+    jbyteArray byteArray,
+    jsize* outLength
+) {
+    if (byteArray != nullptr) {
+        return nullptr;
+    }
+
+    const auto length = env->GetArrayLength(byteArray);
+
+    if (outLength != nullptr) {
+        *outLength = length;
+    }
+
+    return allocateStringLength(env, byteArray, length);
+}
+
+#define AllocateStringLength(byteArray, length) allocateStringLength(env, byteArray, lenght)
+#define AllocateString(byteArray, outLength) allocateString(env, byteArray, outLength)
+
+///////////////////////////////////////////////////////////////////////////
+// Buffer helpers
+///////////////////////////////////////////////////////////////////////////
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_ksqlite_KsqliteJni_createBuffer(
+    JNIEnv* env,
+    jclass clazz,
+    jlong pointer,
+    jlong size,
+    jlong offset
+) {
+    const auto baseAddress = LongToPtr(pointer);
+
+    if (baseAddress == nullptr) {
+        return nullptr;
+    }
+
+    const auto address = ((jbyte*) baseAddress) + offset;
+    return env->NewDirectByteBuffer(address, size);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_nativeBufferRead(
+    JNIEnv* env,
+    jclass clazz,
+    jlong pointer,
+    jint size,
+    jlong sourceOffset,
+    jint destinationOffset,
+    jbyteArray destination
+) {
+    const auto sourceAddress = LongToPtr(pointer);
+
+    if (sourceAddress == nullptr) {
+        return;
+    }
+
+    const auto destinationAddress = (jbyte*) env->GetPrimitiveArrayCritical(destination, nullptr);
+
+    if (destinationAddress == nullptr) {
+        return;
+    }
+
+    memcpy(
+        destinationAddress + destinationOffset,
+        ((jbyte*) sourceAddress) + sourceOffset,
+        size
+    );
+
+    env->ReleasePrimitiveArrayCritical(destination, destinationAddress, 0);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_nativeBufferWrite(
+    JNIEnv* env,
+    jclass clazz,
+    jlong pointer,
+    jbyteArray source,
+    jint size,
+    jint sourceOffset,
+    jlong destinationOffset
+) {
+    const auto destinationAddress = LongToPtr(pointer);
+
+    if (destinationAddress == nullptr) {
+        return;
+    }
+
+    const auto sourceAddress = (jbyte*) env->GetPrimitiveArrayCritical(source, nullptr);
+
+    if (sourceAddress == nullptr) {
+        return;
+    }
+
+    memcpy(
+        ((jbyte*) destinationAddress) + destinationOffset,
+        sourceAddress + sourceOffset,
+        size
+    );
+
+    env->ReleasePrimitiveArrayCritical(source, sourceAddress, 0);
+}
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite 1 to 1 mapping
+///////////////////////////////////////////////////////////////////////////
+
 static int autoExtensionHandler(
     sqlite3* pDb,
     char** pzErr,
     const sqlite3_api_routines* pApi
 ) {
     const auto env = retrieveJniEnv();
-
-    sqlite3_mutex_enter(KJG.autoExtension.mutex);
-
-    const auto callback = RequireNonNull(KJG.autoExtension.callback);
-    const auto call = KJG.autoExtension.call;
-
-    sqlite3_mutex_leave(KJG.autoExtension.mutex);
+    HandlerCallbackDeclare(KAE);
 
     const auto dbPtr = PtrToLong(pDb);
     const auto apiPtr = PtrToLong(pApi);
-
     auto rc = env->CallIntMethod(callback, call, dbPtr, apiPtr);
+    LocalRefDestroy(callback);
 
-    if (const auto exception = env->ExceptionOccurred()) {
+    if (const auto exception = env->ExceptionOccurred(); exception != nullptr) {
         env->ExceptionClear();
-        // TODO
+
+        if (!env->IsInstanceOf(exception, KJE.klass)) {
+            env->FatalError("Unexpected exception type thrown in AutoExtensionCallback#call");
+        }
+
+        const auto messageUtf8 = (jbyteArray) env->CallObjectMethod(exception, KJE.messageUtf8);
+
+        // Let Java handle theses unexpected method call exceptions
+        IfExceptionThrown {
+            rc = SQLITE_ERROR;
+        } else {
+            const auto message = AllocateString(messageUtf8, nullptr);
+
+            if (message != nullptr) {
+                *pzErr = sqlite3_mprintf(message);
+                sqlite3_free(message);
+            }
+
+            rc = env->CallIntMethod(exception, KJE.resultCode);
+
+            IfExceptionThrown {
+                rc = SQLITE_ERROR;
+            }
+        }
+
         LocalRefDestroy(exception);
     }
 
     return rc;
 }
-
-///////////////////////////////////////////////////////////////////////////
-// SQLite 1 to 1 mapping
-///////////////////////////////////////////////////////////////////////////
 
 extern "C"
 JNIEXPORT jint JNICALL
@@ -341,10 +570,10 @@ Java_ksqlite_KsqliteJni_ksqlite_1auto_1extension(
 
     auto rc = SQLITE_OK;
 
-    sqlite3_mutex_enter(KJG.autoExtension.mutex);
+    MutexEnter(KAE);
 
-    if (KJG.autoExtension.callback != nullptr) {
-        if (!env->IsSameObject(callback, KJG.autoExtension.callback)) {
+    if (KAE.callback != nullptr) {
+        if (!env->IsSameObject(callback, KAE.callback)) {
             rc = SQLITE_MISUSE;
         }
     } else {
@@ -352,16 +581,13 @@ Java_ksqlite_KsqliteJni_ksqlite_1auto_1extension(
 
         if (rc == SQLITE_OK) {
             const auto klass = env->GetObjectClass(callback);
-
-            KJG.autoExtension.call =
-                RequireKsqliteMethod(klass, "call", "(JJ)I", AUTO_EXTENSION_CALLBACK);
-
-            KJG.autoExtension.callback = GlobalRefCreate(callback);
+            KAE.call = RequireKsqliteMethod(klass, "call", "(JJ)I", AUTO_EXTENSION_CALLBACK);
+            KAE.callback = GlobalRefCreate(callback);
             LocalRefDestroy(klass);
         }
     }
 
-    sqlite3_mutex_leave(KJG.autoExtension.mutex);
+    MutexLeave(KAE);
     return rc;
 }
 
@@ -372,6 +598,17 @@ Java_ksqlite_KsqliteJni_ksqlite_1cancel_1auto_1extension(
     jclass clazz,
     jobject callback
 ) {
+    MutexEnter(KAE);
+    auto rc = 0;
+
+    if (KAE.callback != nullptr && env->IsSameObject(callback, KAE.callback)) {
+        GlobalRefDestroy(KAE.callback);
+        KAE.call = nullptr;
+        rc = 1;
+    }
+
+    MutexLeave(KAE);
+    return rc;
 }
 
 extern "C"
@@ -379,13 +616,39 @@ JNIEXPORT jlong JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1aggregate_1context(
     JNIEnv* env,
     jclass clazz,
-    jlong p0,
-    jint p1
+    jlong context,
+    jint nBytes
 ) {
-    const auto s3Context = LongCast_s3_context(p0);
-    const auto pointer = sqlite3_aggregate_context(s3Context, p1);
+    const auto s3Context = LongCast_s3_context(context);
+    const auto pointer = sqlite3_aggregate_context(s3Context, nBytes);
 
     return PtrToLong(pointer);
+}
+
+static unsigned int autoVacuumPagesHandler(
+    void* pClientData,
+    const char* zSchema,
+    unsigned int nDbPage,
+    unsigned int nFreePage,
+    unsigned int nBytePerPage
+) {
+    const auto env = retrieveJniEnv();
+    HandlerCallbackDeclare(KAP);
+}
+
+static void autoVacuumPagesDestructor(void*) {
+    const auto env = retrieveJniEnv();
+    MutexEnter(KAP);
+
+    if (KAP.callback != nullptr) {
+        GlobalRefDestroy(KAP.callback);
+        KAE.call = nullptr;
+    }
+
+    GlobalRefDestroy(KAP.destructor);
+    KAP.destroy = nullptr;
+
+    MutexLeave(KAP);
 }
 
 extern "C"
@@ -393,10 +656,33 @@ JNIEXPORT jint JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1autovacuum_1pages(
     JNIEnv* env,
     jclass clazz,
-    jlong p0,
-    jlong p1,
-    jlong p2,
-    jlong p3
+    jlong db,
+    jobject callback,
+    jobject destructor
 ) {
-    // TODO: implement sqlite3_autovacuum_pages()
+    const auto s3 = LongCast_s3(db);
+
+    // Force previous callback destruction
+    auto rc = sqlite3_autovacuum_pages(s3, nullptr, nullptr, nullptr);
+
+    MutexEnter(KAP);
+
+    // Ensure destructor have been called
+    RequireNull(KAP.callback);
+    RequireNull(KAP.destructor);
+
+    if (callback != nullptr) {
+        rc = sqlite3_autovacuum_pages(autoExtensionHandler);
+
+        if (rc == SQLITE_OK) {
+            const auto klass = env->GetObjectClass(callback);
+            KAE.call = RequireKsqliteMethod(klass, "call", "(JJ)I", AUTO_EXTENSION_CALLBACK);
+            KAE.callback = GlobalRefCreate(callback);
+            LocalRefDestroy(klass);
+        }
+    }
+
+    MutexLeave(KAP);
+
+    return rc;
 }

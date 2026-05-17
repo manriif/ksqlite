@@ -113,9 +113,19 @@ internal fun ByteArray.backing(): MemorySegment {
  *
  * Returns [MemorySegment.NULL] if `this` is `null`.
  */
+internal fun String?.allocateUtf8(allocator: SegmentAllocator): MemorySegment {
+    return allocator.allocateFrom(this, Charsets.UTF_8)
+}
+
+/**
+ * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
+ * the result into a memory segment.
+ *
+ * Returns [MemorySegment.NULL] if `this` is `null`.
+ */
 context(allocator: SegmentAllocator)
 internal fun String?.allocateUtf8(): MemorySegment {
-    return allocator.allocateFrom(this, Charsets.UTF_8)
+    return allocateUtf8(allocator)
 }
 
 /**

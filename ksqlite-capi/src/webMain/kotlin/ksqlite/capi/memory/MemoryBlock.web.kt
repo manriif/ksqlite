@@ -11,6 +11,7 @@ import kotlin.js.toLong
 
 /**
  * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for JS and Wasm.
+ * TODO ensure BigInt behaviour with subarray
  */
 internal class MemoryBlock(
     val memory: WasmMemory,

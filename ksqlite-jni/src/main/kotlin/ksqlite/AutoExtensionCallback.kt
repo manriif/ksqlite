@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for auto extension.
+ * Callback for [ksqlite_auto_extension].
  */
 public fun interface AutoExtensionCallback {
 
@@ -10,9 +10,6 @@ public fun interface AutoExtensionCallback {
      *
      * If an error is encountered, then a [KsqliteJniException] should be thrown with the expected
      * error message and the result code to be returned by the JNI call.
-     * .
-     * @param dbPtr pointer to the sqlite3 struct.
-     * @param apiPtr pointer to the sqlite3_api_routines struct.
      */
     public fun call(
         dbPtr: Long,
