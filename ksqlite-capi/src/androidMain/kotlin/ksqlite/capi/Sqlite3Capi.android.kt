@@ -1,6 +1,7 @@
 @file:Suppress("FunctionName", "SpellCheckingInspection")
 
 package ksqlite.capi
+
 /*
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.deallocateNullable
@@ -74,13 +75,20 @@ import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParams
  */
-import ksqlite.ksqliteHello
+import ksqlite.capi.handlers.SharedAutoExtensionHandler
+import ksqlite.capi.types.Sqlite3AutoExtensionCallback
+import ksqlite.capi.types.Sqlite3Result
 import ksqlite.ksqliteLoadLibrary
+import ksqlite.ksqlite_auto_extension as native_ksqlite_auto_extension
+
 //import org.sqlite.jni.capi.CApi as native
 
 public actual fun sqlite3_libversion(): String {
-    return ksqliteHello()
+    return "test"//ksqliteHello()
 }
+
+public fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
+    autoExtensionRegister(callback) { native_ksqlite_auto_extension(SharedAutoExtensionHandler) }
 
 ///////////////////////////////////////////////////////////////////////////
 // Library

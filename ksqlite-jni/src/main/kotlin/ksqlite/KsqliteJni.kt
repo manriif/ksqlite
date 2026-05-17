@@ -12,13 +12,7 @@ package ksqlite
  */
 public fun ksqliteLoadLibrary() {
     System.loadLibrary(KSQLITE_NATIVE_LIB_NAME)
-    ksqlite_init()
 }
-
-/**
- * Initializes the library on native side.
- */
-private external fun ksqlite_init()
 
 ///////////////////////////////////////////////////////////////////////////
 // JNI

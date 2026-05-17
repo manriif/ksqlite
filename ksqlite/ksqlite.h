@@ -14,9 +14,9 @@ extern "C" {
  * complete signature.
  */
 typedef int (* xEntryPoint)(
-    sqlite3*,
-    const char**,
-    const struct sqlite3_api_routines*
+    sqlite3* db,
+    char** pzErrMsg,
+    const struct sqlite3_api_routines* pThunk
 );
 
 /**
