@@ -6,6 +6,7 @@ add_subdirectory(${SQLITE_CMAKE_DIR} ${KSQLITE_JNI_BUILD_DIR})
 
 add_library(${KSQLITE_LIB_NAME} SHARED
         ksqlite-jni.cpp
+        utils/Unicode.cpp
 )
 
 target_link_libraries(${KSQLITE_LIB_NAME} PRIVATE

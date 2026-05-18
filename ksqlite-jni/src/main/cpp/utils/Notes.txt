@@ -1,0 +1,9 @@
+Unicode.h and Unicode.cpp have been stolen from Android AOSP.
+log.h includes various macros and functions stolen from Android AOSP log_xx.h files.
+
+Unicode.h:
+https://android.googlesource.com/platform/system/core/+/refs/heads/main/libutils/binder/include/utils/Unicode.h
+
+Unicode.cpp:
+https://android.googlesource.com/platform/system/core/+/refs/heads/main/libutils/binder/Unicode.cpp
+

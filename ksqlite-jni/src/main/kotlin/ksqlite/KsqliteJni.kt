@@ -26,7 +26,7 @@ public fun ksqliteLoadLibrary() {
  *
  * Returns `null` if [pointer] points to `nullptr`.
  */
-public external fun createBuffer(
+public external fun createByteBuffer(
     pointer: Long,
     size: Long,
     offset: Long = 0

@@ -7,20 +7,22 @@ package ksqlite
 @Suppress("unused")
 public class KsqliteJniException(
     private val resultCode: Int,
-    message: String
+    override val message: String
 ) : Exception(message) {
 
     /**
      * Returns the result code.
      */
+    @JvmName("getResultCode")
     internal fun getResultCode(): Int {
         return resultCode
     }
 
     /**
-     * Returns the message as UTF_8 encoded [ByteArray].
+     * Returns the message.
      */
-    internal fun getMessageUtf8(): ByteArray? {
-        return message?.toByteArray(Charsets.UTF_8)
+    @JvmName("getMessage")
+    internal fun getMessage(): String {
+        return message
     }
 }
