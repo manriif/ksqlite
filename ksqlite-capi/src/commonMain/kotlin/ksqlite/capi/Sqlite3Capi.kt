@@ -100,7 +100,7 @@ public expect fun sqlite3_autovacuum_pages(
  *
  * [sqlite3_backup_finish()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
  */
-/*public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
+public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
 
 /**
  * Create an [sqlite3_backup] process to copy the contents of [srcDbName] from connection handle
@@ -149,7 +149,7 @@ public expect fun sqlite3_backup_step(
  *
  * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
  */
-public expect fun sqlite3_bind_blob(
+/*public expect fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
     data: ByteArray?,

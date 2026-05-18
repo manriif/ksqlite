@@ -2,94 +2,28 @@
 
 package ksqlite.capi
 
-/*
-import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.memory.deallocateNullable
-import ksqlite.capi.memory.globalMemory
-import ksqlite.capi.memory.memory
-import ksqlite.capi.memory.useMemoryManager
-import ksqlite.capi.memory.withMemoryManager
-import ksqlite.capi.memory.wrapOrNull
-import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.Int64OutputParam
-import ksqlite.capi.types.Sqlite3AutoExtensionCallback
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
-import ksqlite.capi.types.Sqlite3BlobOpenFlag
-import ksqlite.capi.types.Sqlite3BlobOutputParam
-import ksqlite.capi.types.Sqlite3BusyHandlerCallback
-import ksqlite.capi.types.Sqlite3CheckpointMode
-import ksqlite.capi.types.Sqlite3CollationNeededCallback
-import ksqlite.capi.types.Sqlite3CommitHookCallback
-import ksqlite.capi.types.Sqlite3CompleteResult
-import ksqlite.capi.types.Sqlite3ConfigOption
-import ksqlite.capi.types.Sqlite3CreateCollationCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionFinalCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionFuncCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionInverseCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionStepCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionValueCallback
-import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DbConfigOption
-import ksqlite.capi.types.Sqlite3DbStatusOption
-import ksqlite.capi.types.Sqlite3DeserializeFlag
-import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.Sqlite3ExecCallback
-import ksqlite.capi.types.Sqlite3ExplainMode
-import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3FileOpenFlag
-import ksqlite.capi.types.Sqlite3Limit
-import ksqlite.capi.types.Sqlite3OutputParam
-import ksqlite.capi.types.Sqlite3PrepareFlag
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
-import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3RollbackHookCallback
-import ksqlite.capi.types.Sqlite3SerializeFlag
-import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
-import ksqlite.capi.types.Sqlite3SnapshotOutputParam
-import ksqlite.capi.types.Sqlite3StatementStatusCounter
-import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3StmtOutputParam
-import ksqlite.capi.types.Sqlite3TextEncoding
-import ksqlite.capi.types.Sqlite3TraceCallback
-import ksqlite.capi.types.Sqlite3TraceCode
-import ksqlite.capi.types.Sqlite3TransactionState
-import ksqlite.capi.types.Sqlite3UpdateHookCallback
-import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
-import ksqlite.capi.types.Sqlite3WalHookCallback
-import ksqlite.capi.types.Utf8OutputParam
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_backup
-import ksqlite.capi.types.sqlite3_blob
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.types.sqlite3_index_info
-import ksqlite.capi.types.sqlite3_module
-import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_pointer
-import ksqlite.capi.types.sqlite3_snapshot
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.types.sqlite3_vfs
-import ksqlite.capi.types.useParam
-import ksqlite.capi.types.useParams
- */
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
+import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.sqlite3
+import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.ksqliteLoadLibrary
 import ksqlite.ksqlite_auto_extension as native_ksqlite_auto_extension
 import ksqlite.sqlite3_aggregate_context as native_sqlite3_aggregate_context
 import ksqlite.sqlite3_autovacuum_pages as native_sqlite3_autovacuum_pages
+import ksqlite.sqlite3_backup_finish as native_sqlite3_backup_finish
+import ksqlite.sqlite3_backup_init as native_sqlite3_backup_init
+import ksqlite.sqlite3_backup_pagecount as native_sqlite3_backup_pagecount
+import ksqlite.sqlite3_backup_remaining as native_sqlite3_backup_remaining
+import ksqlite.sqlite3_backup_step as native_sqlite3_backup_step
 
 //import org.sqlite.jni.capi.CApi as native
 
@@ -108,24 +42,6 @@ public actual fun sqlite3_libversion(): String {
 private val nativeInit = run {
     ksqliteLoadLibrary()
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Helpers
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Converts `this` [Boolean] into an [Int].
- */
-/*private fun Boolean.toInt(): Int {
-    return if (this) 1 else 0
-}
-
-/**
- * Converts `this` [Int] into an [Boolean].
- */
-private fun Int.toBoolean(): Boolean {
-    return this > 0
-}*/
 
 ///////////////////////////////////////////////////////////////////////////
 // Functions
@@ -155,7 +71,6 @@ public actual fun sqlite3_autovacuum_pages(
     )
 )
 
-/*
 public actual fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result = convertResult(
     native_sqlite3_backup_finish(backup.pointer)
 )
@@ -183,7 +98,7 @@ public actual fun sqlite3_backup_step(
     nPage: Int
 ): Sqlite3Result = convertResult(native_sqlite3_backup_step(backup.pointer, nPage))
 
-public actual fun sqlite3_bind_blob(
+/*public actual fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
     data: ByteArray?,

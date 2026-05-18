@@ -85,128 +85,121 @@ public external fun sqlite3_autovacuum_pages(
     destructor: DestructorCallback?,
 ): Int
 
-/*
-public external fun sqlite3_backup_finish(
-    p0: Long,
-): Int
+
+public external fun sqlite3_backup_finish(backup: Long): Int
 
 public external fun sqlite3_backup_init(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
+    destDb: Long,
+    destDbName: String,
+    srcDb: Long,
+    srcDbName: String
 ): Long
 
-public external fun sqlite3_backup_pagecount(
-    p0: Long,
-): Int
+public external fun sqlite3_backup_pagecount(backup: Long): Int
 
-public external fun sqlite3_backup_remaining(
-    p0: Long,
-): Int
+public external fun sqlite3_backup_remaining(backup: Long): Int
 
 public external fun sqlite3_backup_step(
-    p0: Long,
-    p1: Int,
+    backup: Long,
+    nPage: Int,
 ): Int
 
 public external fun sqlite3_bind_blob(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Int,
-    p4: Long,
+    stmt: Long,
+    index: Int,
+    data: ByteArray?,
+    size: Int,
+    destructor: DestructorCallback?
 ): Int
 
 public external fun sqlite3_bind_blob64(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-    p4: Long,
+    stmt: Long,
+    index: Int,
+    data: ByteBuffer?,
+    size: Long,
+    destructor: DestructorCallback?
 ): Int
 
 public external fun sqlite3_bind_double(
-    p0: Long,
-    p1: Int,
-    p2: Double,
+    stmt: Long,
+    index: Int,
+    value: Double
 ): Int
 
 public external fun sqlite3_bind_int(
-    p0: Long,
-    p1: Int,
-    p2: Int,
+    stmt: Long,
+    index: Int,
+    value: Int
 ): Int
 
 public external fun sqlite3_bind_int64(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    stmt: Long,
+    index: Int,
+    value: Long
 ): Int
 
 public external fun sqlite3_bind_null(
-    p0: Long,
-    p1: Int,
+    stmt: Long,
+    index: Int
 ): Int
 
 public external fun sqlite3_bind_parameter_count(
-    p0: Long,
+    stmt: Long,
 ): Int
 
 public external fun sqlite3_bind_parameter_index(
-    p0: Long,
-    p1: Long,
+    stmt: Long,
+    name: String
 ): Int
 
 public external fun sqlite3_bind_parameter_name(
-    p0: Long,
-    p1: Int,
-): Long
+    stmt: Long,
+    index: Int
+): String
 
 public external fun sqlite3_bind_pointer(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-    p4: Long,
+    stmt: Long,
+    index: Int,
+    data: Any?,
+    type: String?,
+    destructor: DestructorCallback?
 ): Int
 
 public external fun sqlite3_bind_text(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Int,
-    p4: Long,
+    stmt: Long,
+    index: Int,
+    text: String?,
+    size: Int
 ): Int
 
 public external fun sqlite3_bind_text64(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-    p4: Long,
-    p5: Int,
+    stmt: Long,
+    index: Int,
+    data: ByteBuffer?,
+    size: Long,
+    encoding: Int,
+    destructor: DestructorCallback?
 ): Int
 
 public external fun sqlite3_bind_value(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    stmt: Long,
+    index: Int,
+    value: Long
 ): Int
 
 public external fun sqlite3_bind_zeroblob(
-    p0: Long,
-    p1: Int,
-    p2: Int,
+    stmt: Long,
+    index: Int,
+    size: Int
 ): Int
 
 public external fun sqlite3_bind_zeroblob64(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    stmt: Long,
+    index: Int,
+    size: ULong
 ): Int
 
-public external fun sqlite3_blob_bytes(
+/*public external fun sqlite3_blob_bytes(
     p0: Long,
 ): Int
 
@@ -934,24 +927,24 @@ public external fun sqlite3_step(
     p0: Long,
 ): Int
 
-public external fun sqlite3_stmt_busy(
+public external fun Long_busy(
     p0: Long,
 ): Int
 
-public external fun sqlite3_stmt_explain(
+public external fun Long_explain(
     p0: Long,
     p1: Int,
 ): Int
 
-public external fun sqlite3_stmt_isexplain(
+public external fun Long_isexplain(
     p0: Long,
 ): Int
 
-public external fun sqlite3_stmt_readonly(
+public external fun Long_readonly(
     p0: Long,
 ): Int
 
-public external fun sqlite3_stmt_status(
+public external fun Long_status(
     p0: Long,
     p1: Int,
     p2: Int,
@@ -1047,64 +1040,64 @@ public external fun sqlite3_user_data(
     p0: Long,
 ): Long
 
-public external fun sqlite3_value_blob(
+public external fun Long_blob(
     p0: Long,
 ): Long
 
-public external fun sqlite3_value_bytes(
+public external fun Long_bytes(
     p0: Long,
 ): Int
 
-public external fun sqlite3_value_double(
+public external fun Long_double(
     p0: Long,
 ): Double
 
-public external fun sqlite3_value_dup(
+public external fun Long_dup(
     p0: Long,
 ): Long
 
-public external fun sqlite3_value_encoding(
+public external fun Long_encoding(
     p0: Long,
 ): Int
 
-public external fun sqlite3_value_free(
+public external fun Long_free(
     p0: Long,
 )
 
-public external fun sqlite3_value_frombind(
+public external fun Long_frombind(
     p0: Long,
 ): Int
 
-public external fun sqlite3_value_int(
+public external fun Long_int(
     p0: Long,
 ): Int
 
-public external fun sqlite3_value_int64(
+public external fun Long_int64(
     p0: Long,
 ): Long
 
-public external fun sqlite3_value_nochange(
+public external fun Long_nochange(
     p0: Long,
 ): Int
 
-public external fun sqlite3_value_numeric_type(
+public external fun Long_numeric_type(
     p0: Long,
 ): Int
 
-public external fun sqlite3_value_pointer(
+public external fun Long_pointer(
     p0: Long,
     p1: Long,
 ): Long
 
-public external fun sqlite3_value_subtype(
+public external fun Long_subtype(
     p0: Long,
 ): Int
 
-public external fun sqlite3_value_text(
+public external fun Long_text(
     p0: Long,
 ): Long
 
-public external fun sqlite3_value_type(
+public external fun Long_type(
     p0: Long,
 ): Int
 
