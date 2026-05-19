@@ -149,7 +149,7 @@ public expect fun sqlite3_backup_step(
  *
  * [sqlite3_bind_blob()](https://sqlite.org/c3ref/bind_blob.html)
  */
-/*public expect fun sqlite3_bind_blob(
+public expect fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
     data: ByteArray?,
@@ -321,7 +321,7 @@ public expect fun sqlite3_bind_zeroblob64(
  *
  * [sqlite3_blob_bytes()](https://sqlite.org/c3ref/blob_bytes.html)
  */
-public expect fun sqlite3_blob_bytes(blob: sqlite3_blob): Int
+/*public expect fun sqlite3_blob_bytes(blob: sqlite3_blob): Int
 
 /**
  * Close a blob handle that was previously created using [sqlite3_blob_open].

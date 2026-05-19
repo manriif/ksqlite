@@ -8,11 +8,9 @@
 
 #include <unordered_map>
 
-#ifndef KSQLITE_JNI
-#define KSQLITE_JNI
-
-// TODO move the following at the end of the when all the functions are defined
-#endif //KSQLITE_JNI
+// FIXME I do not know if the IDE is broken but this is declared in <jni.h> but IDE complain that
+//  it does not exists
+typedef uint8_t jboolean;
 
 ///////////////////////////////////////////////////////////////////////////
 // Classes
@@ -37,33 +35,44 @@
 #define FatalError(M) env->FatalError(M)
 
 /**
- * Raises a fatal error if object is not null.
+ * Raises a fatal error if pointer is not null.
  */
 static inline void requireNull(
     JNIEnv* const env,
-    jobject object
+    void* pointer
 ) {
-    if (object != nullptr) {
-        FatalError("Expected Java object to be null");
+    if (pointer != nullptr) {
+        FatalError("Expected object to be null");
     }
+}
+
+/**
+ * Raises a fatal error if pointer is null.
+ */
+static inline void* requireNonNull(
+    JNIEnv* const env,
+    void* pointer
+) {
+    if (pointer == nullptr) {
+        FatalError("Expected object not to be null");
+    }
+
+    return pointer;
 }
 
 /**
  * Raises a fatal error if object is null.
  */
-static inline jobject requireNonNull(
+static inline jobject requireNonNullJobject(
     JNIEnv* const env,
     jobject object
 ) {
-    if (object == nullptr) {
-        FatalError("Expected Java object not to be null");
-    }
-
-    return object;
+    return static_cast<jobject>(requireNonNull(env, object));
 }
 
-#define RequireNull(O) requireNull(env, (O))
-#define RequireNonNull(O) requireNonNull(env, (O))
+#define RequireNull(P) requireNull(env, (P))
+#define RequireNonNull(P) requireNonNull(env, (P))
+#define RequireNonNullJobject(O) requireNonNullJobject(env, (O))
 
 /**
  * Raises a fatal error if there is a pending exception.
@@ -234,8 +243,13 @@ struct MutexGuarded {
 #define MutexLeave(O) sqlite3_mutex_leave(O.mutex)
 
 ///////////////////////////////////////////////////////////////////////////
-// Handler
+// Destructor
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Destructor function type.
+ */
+typedef void(* DestructorFunction)(void*);
 
 /**
  * Common type for objects which can be destroyed.
@@ -243,6 +257,10 @@ struct MutexGuarded {
 struct Destroyable {
     jobject destructor;
 };
+
+///////////////////////////////////////////////////////////////////////////
+// Handler
+///////////////////////////////////////////////////////////////////////////
 
 /**
  * Common type for callback handlers.
@@ -280,15 +298,63 @@ struct DestroyableHandler : Handler, Destroyable {
  */
 #define HandlerCallbackConsume(handler) \
     MutexEnter(handler); \
-    const auto callback = LocalRefCreate(RequireNonNull(handler.callback)); \
+    const auto callback = LocalRefCreate(RequireNonNullJobject(handler.callback)); \
     const auto call = handler.call; \
     MutexLeave(handler)
 
 ///////////////////////////////////////////////////////////////////////////
-// Global State
+// Holders
 ///////////////////////////////////////////////////////////////////////////
 
-typedef std::unordered_map<void*, Destroyable*> StatementMap;
+/**
+ * Holder for an optional pointer allocated with sqlite3_malloc(), an optional Java object to keep
+ * globally reachable and an optional globally referenced destructor.
+ */
+struct Freeable : Destroyable {
+    void* pointer;
+    jobject target;
+};
+
+/**
+ * Allocates a new Freeable if at least one of pointer, target or destructor is not null. Returns
+ * null if none of the supplied arguments is not null.
+ */
+static Freeable* allocateFreeable(
+    JNIEnv* env,
+    void* pointer,
+    jobject target,
+    jobject destructor
+) {
+    if (pointer == nullptr && target == nullptr && destructor == nullptr) {
+        return nullptr;
+    }
+
+    jobject globalTarget = nullptr;
+    jobject globalDestructor = nullptr;
+
+    if (target != nullptr) {
+        globalTarget = GlobalRefCreate(target);
+    }
+
+    if (destructor != nullptr) {
+        globalDestructor = GlobalRefCreate(destructor);
+    }
+
+    return new Freeable { { globalDestructor }, pointer, globalTarget };
+}
+
+#define AllocateFreeable(pointer, target, destructor) \
+    allocateFreeable(env, pointer, target, destructor)
+
+#define AllocateFreeablePointer(pointer, destructor) \
+    AllocateFreeable(pointer, nullptr, destructor)
+
+#define AllocateFreeableTarget(target, destructor) \
+    AllocateFreeable(nullptr, target, destructor)
+
+///////////////////////////////////////////////////////////////////////////
+// Global State
+///////////////////////////////////////////////////////////////////////////
 
 /**
  * Common type for java classes.
@@ -302,6 +368,15 @@ struct Class {
  */
 static struct {
     JavaVM* jvm = nullptr;
+
+    // Holds Freeable object associated by a pointer passed to sqlite as `user_data`
+    struct : MutexGuarded {
+        std::unordered_map<void*, Freeable*> map;
+    } freeables { };
+
+    struct {
+        jclass illegalArgumentException;
+    } java { };
 
     // KsqliteJni classes
     struct {
@@ -320,19 +395,23 @@ static struct {
         Handler autoExtension;
         DestroyableHandler autoVacuumPages;
     } handlers { };
-
-    // Holds per statement map of pointer to pointer.
-    struct : MutexGuarded {
-        std::unordered_map<sqlite3_stmt*, StatementMap> map;
-    } statement { };
 } KsqliteJniGlobalState;
 
 #define K KsqliteJniGlobalState
+#define KF K.freeables
+#define KJV K.java
 #define KKJE K.ksqlite.jniException
 #define KKDC K.ksqlite.destructorCallback
 #define KHAE K.handlers.autoExtension
 #define KHAP K.handlers.autoVacuumPages
-#define KSTMT K.statement
+
+/**
+ * Initializes and caches the Java related classes and objects.
+ */
+static void initializeJavaJniCache(JNIEnv* env) {
+    // IllegalArgumentException
+    KJV.illegalArgumentException = RequireClass("java/lang/IllegalArgumentException");
+}
 
 /**
  * Initializes and caches the Ksqlite related classes and objects.
@@ -354,9 +433,9 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
  * Initializes and cache mutexes.
  */
 static void initializeMutexes(JNIEnv* env) {
+    MutexAllocate(KF);
     MutexAllocate(KHAE);
     MutexAllocate(KHAP);
-    MutexAllocate(KSTMT);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -394,10 +473,11 @@ JNI_OnLoad(
     K.jvm = vm;
     const auto env = retrieveJniEnv();
 
-    // Classes
+    // Cache
+    initializeJavaJniCache(env);
     initializeKsqliteJniCache(env);
 
-    // Sqlite3
+    // Mutexes
     sqlite3_initialize();
     initializeMutexes(env);
     sqlite3_shutdown();
@@ -412,7 +492,7 @@ JNI_OnUnload(
 ) {
     const auto env = retrieveJniEnv();
 
-    if (!KSTMT.map.empty()) {
+    if (!KF.map.empty()) {
         fprintf(stderr, "Statements did not cleaned up correctly.\n");
     }
 
@@ -423,9 +503,9 @@ JNI_OnUnload(
     KKJE.message = nullptr;
     KKJE.resultCode = nullptr;
 
+    MutexDestroy(KF);
     MutexDestroy(KHAE);
     MutexDestroy(KHAP);
-    MutexDestroy(KSTMT);
 
     K.jvm = nullptr;
 }
@@ -449,22 +529,44 @@ JNI_OnUnload(
 // Buffer helpers
 ///////////////////////////////////////////////////////////////////////////
 
+/**
+ * Returns the direct buffer address of the given buffer or raises an exception if the address
+ * cannot be obtained.
+ */
+static inline void* bufferDirectAddress(
+    JNIEnv* env,
+    jobject buffer
+) {
+    if (buffer == nullptr) {
+        return nullptr;
+    }
+
+    const auto address = env->GetDirectBufferAddress(buffer);
+
+    if (address == nullptr) {
+        // TODO ensure java NIO is supported
+        FatalError("Failed to get direct buffer address");
+    }
+
+    return address;
+}
+
+#define BufferDirectAddress(buffer) bufferDirectAddress(env, buffer)
+
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_ksqlite_KsqliteJni_createByteBuffer(
     JNIEnv* env,
     jclass clazz,
     jlong pointer,
-    jlong size,
-    jlong offset
+    jlong size
 ) {
-    const auto baseAddress = LongToPtr(pointer);
+    const auto address = LongToPtr(pointer);
 
-    if (baseAddress == nullptr) {
+    if (address == nullptr) {
         return nullptr;
     }
 
-    const auto address = static_cast<jbyte*>(baseAddress) + offset;
     return env->NewDirectByteBuffer(address, size);
 }
 
@@ -473,13 +575,13 @@ JNIEXPORT void JNICALL
 Java_ksqlite_KsqliteJni_nativeBufferRead(
     JNIEnv* env,
     jclass clazz,
-    jlong pointer,
+    jobject buffer,
     jint size,
     jlong sourceOffset,
     jint destinationOffset,
     jbyteArray destination
 ) {
-    const auto sourceAddress = LongToPtr(pointer);
+    const auto sourceAddress = BufferDirectAddress(buffer);
 
     if (sourceAddress == nullptr) {
         return;
@@ -506,13 +608,13 @@ JNIEXPORT void JNICALL
 Java_ksqlite_KsqliteJni_nativeBufferWrite(
     JNIEnv* env,
     jclass clazz,
-    jlong pointer,
+    jobject buffer,
     jbyteArray source,
     jint size,
     jint sourceOffset,
     jlong destinationOffset
 ) {
-    const auto destinationAddress = LongToPtr(pointer);
+    const auto destinationAddress = BufferDirectAddress(buffer);
 
     if (destinationAddress == nullptr) {
         return;
@@ -533,29 +635,6 @@ Java_ksqlite_KsqliteJni_nativeBufferWrite(
 
     env->ReleasePrimitiveArrayCritical(source, sourceAddress, 0);
 }
-
-/**
- * Returns the direct buffer address of the given buffer or raises an exception if the address
- * cannot be obtained.
- */
-static inline jbyte* bufferDirectAddress(
-    JNIEnv* env,
-    jobject buffer
-) {
-    if (buffer == nullptr) {
-        return nullptr;
-    }
-
-    const auto address = env->GetDirectBufferAddress(buffer);
-
-    if (address == nullptr) {
-        FatalError("Failed to get direct buffer address");
-    }
-
-    return static_cast<jbyte*>(address);
-}
-
-#define BufferDirectAddress(buffer) bufferDirectAddress(env, buffer)
 
 ///////////////////////////////////////////////////////////////////////////
 // ByteArray helpers
@@ -716,159 +795,95 @@ static jstring utf8ToJstring(
 #define Utf8ToJstring(utf8) Utf8ToJstringLength(utf8, -1)
 
 ///////////////////////////////////////////////////////////////////////////
-// Statements
+// Freeable allocation
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Insert a value into a statement map.
+ * Insert a value into the freeable map.
  */
-static void putStatementValue(
+static void pushFreeable(
     JNIEnv* env,
-    sqlite3_stmt* stmt,
     void* key,
-    Destroyable* value
+    Freeable* value
 ) {
-    MutexEnter(KSTMT);
-
-    auto& map = KSTMT.map;
-    auto& inner = map[stmt];
-    auto [_, inserted] = inner.emplace(key, value);
-
-    MutexLeave(KSTMT);
+    MutexEnter(KF);
+    auto [_, inserted] = KF.map.emplace(key, value);
+    MutexLeave(KF);
 
     if (!inserted) {
-        FatalError("An object already exists for the given key and statement and may have not been"
-                   " cleaned up");
+        FatalError("An object already exists for the given key and may have not been cleaned up");
     }
 }
 
 /**
- * Remove and returns a value from a statement map.
+ * Remove and returns a value from the freeable map.
  */
-static Destroyable* removeStatementValue(
+static Freeable* popFreeable(
     JNIEnv* env,
-    sqlite3_stmt* stmt,
     void* key
 ) {
-    MutexEnter(KSTMT);
+    MutexEnter(KF);
 
-    auto& map = KSTMT.map;
-    auto innerIterator = map.find(stmt);
+    auto& map = KF.map;
+    auto iterator = map.find(key);
 
-    if (innerIterator == map.end()) {
-        FatalError("No map exists for the given statement, something wrong has been coded");
-    }
-
-    auto& inner = innerIterator->second;
-    auto iterator = inner.find(key);
-
-    if (iterator == inner.end()) {
-        FatalError("No value exists for the given key, value may have been cleaned up previously"
+    if (iterator == map.end()) {
+        FatalError("No value exists for the given key, it may have been cleaned up previously"
                    " and reference tracking may be broken");
     }
 
     const auto value = iterator->second;
-    inner.erase(iterator);
 
-    if (inner.empty()) {
-        map.erase(innerIterator);
-    }
+    map.erase(iterator);
+    MutexLeave(KF);
 
-    MutexLeave(KSTMT);
     return value;
 }
 
+#define FreeablePush(key, value) pushFreeable(env, key, value)
+#define FreeablePop(key) popFreeable(env, key)
+
 ///////////////////////////////////////////////////////////////////////////
-// Holders
+// Parameter checks
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Holder for an optional pointer allocated with sqlite3_malloc() and an optional globally
- * referenced destructor.
+ * Throws an IllegalArgumentException if the destructor argument is not null but argument is.
  */
-struct Freeable : Destroyable {
-    void* pointer;
-};
-
-/**
- * Holder for an optional globally referenced java object and an optional globally referenced
- * destructor.
- */
-struct Releasable : Destroyable {
-    jobject target;
-};
-
-/**
- * Allocates a new Freeable if either pointer or destructor is not null or returns null otherwise.
- */
-static Freeable* allocateFreeable(
-    JNIEnv* env,
-    void* pointer,
-    jobject destructor
-) {
-    if (pointer == nullptr && destructor == nullptr) {
-        return nullptr;
+#define DestructorCheck(argument, result) \
+    if (argument == nullptr) { \
+        env->ThrowNew(                    \
+            KJV.illegalArgumentException, \
+            "destructor must be null if " #argument " is null" \
+        )         ;                        \
+        return result; \
     }
-
-    jobject globalDestructor = nullptr;
-
-    if (destructor != nullptr) {
-        globalDestructor = GlobalRefCreate(destructor);
-    }
-
-    return new Freeable {{ globalDestructor }, pointer};
-}
-
-/**
- * Allocates a new Releasable if either target or destructor is not null or returns  null otherwise.
- */
-static Releasable* allocateReleasable(
-    JNIEnv* env,
-    jobject target,
-    jobject destructor
-) {
-    if (target == nullptr && destructor == nullptr) {
-        return nullptr;
-    }
-
-    jobject globalTarget = nullptr;
-    jobject globalDestructor = nullptr;
-
-    if (target != nullptr) {
-        globalTarget = GlobalRefCreate(target);
-    }
-
-    if (destructor != nullptr) {
-        globalDestructor = GlobalRefCreate(destructor);
-    }
-
-    return new Releasable {{ globalDestructor },globalTarget};
-}
-
-#define AllocateFreeable(pointer, destructor) allocateFreeable(env, pointer, destructor)
-#define AllocateReleasable(target, destructor) allocateReleasable(env, target, destructor)
 
 ///////////////////////////////////////////////////////////////////////////
 // Callbacks
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Calls the Java destructor for the given freeable and releases associated resources.
- * The destructible must have been allocated with `new`.
+ * Calls the Java destructor for the given Freeable and releases associated resources.
+ * The pointer must have been allocated with `new`.
  */
-static void freeableDestructor(void* ptrToFreeable) {
-    const auto env = retrieveJniEnv();
-    const auto freeablePtr = reinterpret_cast<Freeable*>(ptrToFreeable);
+static void destroyFreeable(
+    JNIEnv* env,
+    void* ptrToFreeable
+) {
+    const auto freeablePtr = reinterpret_cast<Freeable*>(RequireNonNull(ptrToFreeable));
     auto freeable = *freeablePtr;
 
     jobject destructor = LocalRefCreate(freeable.destructor);
 
     if (destructor != nullptr) {
         GlobalRefDestroy(freeable.destructor);
-        freeable.destructor = nullptr;
-
         env->CallVoidMethod(destructor, KKDC.destroy);
         LocalRefDestroy(destructor);
+    }
+
+    if (freeable.target != nullptr) {
+        GlobalRefDestroy(freeable.target);
     }
 
     if (freeable.pointer != nullptr) {
@@ -879,49 +894,46 @@ static void freeableDestructor(void* ptrToFreeable) {
 }
 
 /**
- * Calls the Java destructor for the given freeable and releases associated resources.
- * The destructible must have been allocated with `new`.
+ * Calls the Java destructor for the given Freeable pointer and releases associated resources.
+ * The pointer must have been allocated with `new`.
  */
-static void statementFreeableDestructor(void *pointer) {
-    // TODO
+static void freeableDestructor(void* ptrToFreeable) {
+    const auto env = retrieveJniEnv();
+    destroyFreeable(env, ptrToFreeable);
+}
+
+/**
+ * Retrieves the Freeable pointer associated with pointer and calls the Java destructor releasing
+ * associated resources.
+ */
+static void freeableDestructorPop(void* pointer) {
+    const auto env = retrieveJniEnv();
+    const auto ptrToFreeable = FreeablePop(pointer);
+    destroyFreeable(env, ptrToFreeable);
+}
+
+/**
+ * Pushes freeable and returns the destructor function for it.
+ * Returns null if freeable is null.
+ */
+static inline DestructorFunction freeableDestructorPush(
+    JNIEnv* env,
+    void* key,
+    Freeable* freeable
+) {
+    if (freeable == nullptr) {
+        return nullptr;
+    }
+
+    FreeablePush(key, freeable);
+    return freeableDestructorPop;
 }
 
 /**
  * Returns freeableDestructor() callback if given pointer P is not null.
  */
 #define FreeableDestructor(P) (P) == nullptr ? nullptr : freeableDestructor
-
-/**
- * Calls the Java destructor for the given releasable and releases associated resources.
- * The destructible must have been allocated with `new`.
- */
-static void releasableDestructor(void* ptrToReleasable) {
-    const auto env = retrieveJniEnv();
-    const auto releasablePtr = reinterpret_cast<Releasable*>(ptrToReleasable);
-    auto releasable = *releasablePtr;
-
-    jobject destructor = LocalRefCreate(releasable.destructor);
-
-    if (destructor != nullptr) {
-        GlobalRefDestroy(releasable.destructor);
-        releasable.destructor = nullptr;
-
-        env->CallVoidMethod(destructor, KKDC.destroy);
-        LocalRefDestroy(destructor);
-    }
-
-    if (releasable.target != nullptr) {
-        GlobalRefDestroy(releasable.target);
-        releasable.target = nullptr;
-    }
-
-    delete releasablePtr;
-}
-
-/**
- * Returns releasableDestructor() callback if given pointer P is not null.
- */
-#define ReleasableDestructor(P) (P) == nullptr ? nullptr : releasableDestructor
+#define FreeableDestructorPush(K, F) freeableDestructorPush(env, K, F)
 
 /**
  * Calls the Java destructor for the given handler and releases associated resources.
@@ -944,7 +956,7 @@ static void handlerDestructor(void* ptrToHandler) {
 
     // Destructor is also optional but required for callback
     if (handler.destructor != nullptr) {
-        destructor = LocalRefCreate(RequireNonNull(handler.destructor));
+        destructor = LocalRefCreate(RequireNonNullJobject(handler.destructor));
         GlobalRefDestroy(handler.destructor);
         handler.destructor = nullptr;
     }
@@ -982,7 +994,7 @@ static int callAutoExtensionCallback(
         env->ExceptionClear();
 
         if (!env->IsInstanceOf(exception, KKJE.klass)) {
-            env->FatalError("Unexpected exception type thrown in AutoExtensionCallback#call");
+            FatalError("Unexpected exception type thrown in AutoExtensionCallback#call");
         }
 
         const auto message =
@@ -1234,12 +1246,13 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1blob(
     jint size,
     jobject destructor
 ) {
+    DestructorCheck(data, SQLITE_MISUSE)
+
     const auto pStmt = LongTo_s3_stmt(stmt);
     const auto buffer = ByteArrayToBuffer(data, size);
-    const auto freeable = AllocateFreeable(buffer, destructor);
-    const auto pDestructor = FreeableDestructor(freeable);
+    const auto freeable = AllocateFreeablePointer(buffer, destructor);
+    const auto pDestructor = FreeableDestructorPush(buffer, freeable);
 
-    // TODO buffer address is passed to destructor, not freeable
     return sqlite3_bind_blob(pStmt, index, buffer, size, pDestructor);
 }
 
@@ -1254,10 +1267,12 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1blob64(
     jlong size,
     jobject destructor
 ) {
+    DestructorCheck(data, SQLITE_MISUSE)
+
     const auto pStmt = LongTo_s3_stmt(stmt);
     const auto buffer = BufferDirectAddress(data);
-    const auto releasable = AllocateReleasable(data, destructor);
-    const auto pDestructor = ReleasableDestructor(releasable);
+    const auto freeable = AllocateFreeableTarget(data, destructor);
+    const auto pDestructor = FreeableDestructorPush(buffer, freeable);
 
     return sqlite3_bind_blob64(pStmt, index, buffer, size, pDestructor);
 }
@@ -1332,7 +1347,6 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1parameter_1index(
     const auto index = sqlite3_bind_parameter_index(pStmt, zName);
 
     sqlite3_free(zName);
-
     return index;
 }
 
@@ -1359,10 +1373,11 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1pointer(
     jobject destructor
 ) {
     const auto pStmt = LongTo_s3_stmt(stmt);
-    const auto releasable = AllocateReleasable(data, destructor);
-    const auto pDestructor = ReleasableDestructor(releasable);
+    const auto zType = JstringToUtf8(type);
+    const auto freeable = AllocateFreeable(zType, data, destructor);
+    const auto pDestructor = FreeableDestructor(freeable);
 
-    return sqlite3_bind_pointer(pStmt, index, buffer, pDestructor);
+    return sqlite3_bind_pointer(pStmt, index, freeable, zType, pDestructor);
 }
 
 extern "C"
@@ -1373,9 +1388,20 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text(
     jlong stmt,
     jint index,
     jstring text,
-    jint size
+    jint size,
+    jboolean computeSize
 ) {
-    // TODO: implement sqlite3_bind_text()
+    const auto pStmt = LongTo_s3_stmt(stmt);
+    size_t textSize = 0;
+    const auto buffer = JstringToUtf8Out(text, &textSize);
+    const auto freeable = AllocateFreeablePointer(buffer, nullptr);
+    const auto pDestructor = FreeableDestructorPush(buffer, freeable);
+
+    if (computeSize == JNI_TRUE) {
+        size = static_cast<jint>(textSize);
+    }
+
+    return sqlite3_bind_text(pStmt, index, buffer, size, pDestructor);
 }
 
 extern "C"
@@ -1387,10 +1413,15 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text64(
     jint index,
     jobject data,
     jlong size,
-    jint encoding,
-    jobject destructor
+    jobject destructor,
+    jint encoding
 ) {
-    // TODO: implement sqlite3_bind_text64()
+    const auto pStmt = LongTo_s3_stmt(stmt);
+    const auto buffer = reinterpret_cast<char *>(BufferDirectAddress(data));
+    const auto freeable = AllocateFreeableTarget(data, destructor);
+    const auto pDestructor = FreeableDestructorPush(buffer, freeable);
+
+    return sqlite3_bind_text64(pStmt, index, buffer, size, pDestructor, encoding);
 }
 
 extern "C"

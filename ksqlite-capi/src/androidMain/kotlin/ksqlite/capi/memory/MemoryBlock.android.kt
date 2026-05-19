@@ -3,6 +3,7 @@ package ksqlite.capi.memory
 import ksqlite.capi.utils.checkBufferRange
 import ksqlite.nativeBufferRead
 import ksqlite.nativeBufferWrite
+import ksqlite.requireBuffer
 
 /**
  * Implementation of both [ReadableMemoryBlock] and [WritableMemoryBlock] for Android.
@@ -12,6 +13,10 @@ internal class MemoryBlock(
     val blockSize: Long
 ) : ReadableMemoryBlock,
     WritableMemoryBlock {
+
+    val buffer by lazy {
+        requireBuffer(pointer, blockSize)
+    }
 
     override fun read(
         size: Int,
@@ -28,7 +33,7 @@ internal class MemoryBlock(
         )
 
         nativeBufferRead(
-            pointer = pointer,
+            buffer = buffer,
             size = size,
             sourceOffset = sourceOffset,
             destinationOffset = destinationOffset,
@@ -53,9 +58,9 @@ internal class MemoryBlock(
         )
 
         nativeBufferWrite(
-            pointer = pointer,
-            size = size,
+            buffer = buffer,
             source = source,
+            size = size,
             sourceOffset = sourceOffset,
             destinationOffset = destinationOffset
         )

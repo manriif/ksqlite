@@ -21,31 +21,26 @@ public fun ksqliteLoadLibrary() {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns a [ByteBuffer] wrapping [size] bytes from the memory region at the address
- * [pointer] + [offset].
- *
+ * Returns a [ByteBuffer] wrapping [size] bytes from the memory region at the address [pointer].
  * Returns `null` if [pointer] points to `nullptr`.
  */
 public external fun createByteBuffer(
     pointer: Long,
-    size: Long,
-    offset: Long = 0
+    size: Long
 ): ByteBuffer?
 
 /**
- * Returns a [ByteBuffer] wrapping [size] bytes from the memory region at the address
- * [pointer] + [offset].
+ * Returns a [ByteBuffer] wrapping [size] bytes from the memory region at the address [pointer].
  */
 public fun requireBuffer(
     pointer: Long,
-    size: Long,
-    offset: Long = 0
-): ByteBuffer = checkNotNull(requireBuffer(pointer, size, offset)) {
+    size: Long
+): ByteBuffer = checkNotNull(createByteBuffer(pointer, size)) {
     "Cannot create a ByteBuffer from a null pointer"
 }
 
 public external fun nativeBufferRead(
-    pointer: Long,
+    buffer: ByteBuffer,
     size: Int,
     sourceOffset: Long,
     destinationOffset: Int,
@@ -53,7 +48,7 @@ public external fun nativeBufferRead(
 )
 
 public external fun nativeBufferWrite(
-    pointer: Long,
+    buffer: ByteBuffer,
     source: ByteArray,
     size: Int,
     sourceOffset: Int,
@@ -169,7 +164,8 @@ public external fun sqlite3_bind_text(
     stmt: Long,
     index: Int,
     text: String?,
-    size: Int
+    size: Int,
+    computeSize: Boolean
 ): Int
 
 public external fun sqlite3_bind_text64(
@@ -177,8 +173,8 @@ public external fun sqlite3_bind_text64(
     index: Int,
     data: ByteBuffer?,
     size: Long,
-    encoding: Int,
-    destructor: DestructorCallback?
+    destructor: DestructorCallback?,
+    encoding: Int
 ): Int
 
 public external fun sqlite3_bind_value(
@@ -196,7 +192,7 @@ public external fun sqlite3_bind_zeroblob(
 public external fun sqlite3_bind_zeroblob64(
     stmt: Long,
     index: Int,
-    size: ULong
+    size: Long
 ): Int
 
 /*public external fun sqlite3_blob_bytes(
