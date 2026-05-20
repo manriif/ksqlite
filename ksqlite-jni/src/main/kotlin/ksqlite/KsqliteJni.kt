@@ -227,42 +227,27 @@ public external fun sqlite3_blob_write(
     size: Int,
     offset: Int,
 ): Int
-/*
+
 public external fun sqlite3_busy_handler(
-    p0: Long,
-    p1: Long,
-    p2: Long,
+    db: Long,
+    callback: BusyHandlerCallback?,
 ): Int
 
 public external fun sqlite3_busy_timeout(
-    p0: Long,
-    p1: Int,
+    db: Long,
+    millis: Int,
 ): Int
 
-public external fun sqlite3_cancel_auto_extension(
-    p0: Long,
-): Int
+public external fun sqlite3_changes(db: Long): Int
 
-public external fun sqlite3_changes(
-    p0: Long,
-): Int
+public external fun sqlite3_changes64(db: Long): Long
 
-public external fun sqlite3_changes64(
-    p0: Long,
-): Long
+public external fun sqlite3_clear_bindings(stmt: Long): Int
 
-public external fun sqlite3_clear_bindings(
-    p0: Long,
-): Int
+public external fun sqlite3_close(db: Long): Int
 
-public external fun sqlite3_close(
-    p0: Long,
-): Int
-
-public external fun sqlite3_close_v2(
-    p0: Long,
-): Int
-
+public external fun sqlite3_close_v2(db: Long): Int
+/*
 public external fun sqlite3_collation_needed(
     p0: Long,
     p1: Long,

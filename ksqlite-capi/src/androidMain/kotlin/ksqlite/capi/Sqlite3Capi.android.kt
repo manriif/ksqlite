@@ -3,14 +3,17 @@
 package ksqlite.capi
 
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
+import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
+import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
+import ksqlite.capi.types.Sqlite3BusyHandlerCallback
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
@@ -23,6 +26,7 @@ import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.useParam
 import ksqlite.ksqliteLoadLibrary
+import ksqlite.ksqlite_cancel_auto_extension
 import ksqlite.ksqlite_auto_extension as native_ksqlite_auto_extension
 import ksqlite.sqlite3_aggregate_context as native_sqlite3_aggregate_context
 import ksqlite.sqlite3_autovacuum_pages as native_sqlite3_autovacuum_pages
@@ -52,6 +56,13 @@ import ksqlite.sqlite3_blob_open as native_sqlite3_blob_open
 import ksqlite.sqlite3_blob_read as native_sqlite3_blob_read
 import ksqlite.sqlite3_blob_reopen as native_sqlite3_blob_reopen
 import ksqlite.sqlite3_blob_write as native_sqlite3_blob_write
+import ksqlite.sqlite3_busy_handler as native_sqlite3_busy_handler
+import ksqlite.sqlite3_busy_timeout as native_sqlite3_busy_timeout
+import ksqlite.sqlite3_changes as native_sqlite3_changes
+import ksqlite.sqlite3_changes64 as native_sqlite3_changes64
+import ksqlite.sqlite3_clear_bindings as native_sqlite3_clear_bindings
+import ksqlite.sqlite3_close as native_sqlite3_close
+import ksqlite.sqlite3_close_v2 as native_sqlite3_close_v2
 
 public actual fun sqlite3_libversion(): String {
     return "test"//ksqliteHello()
@@ -302,18 +313,17 @@ public actual fun sqlite3_blob_write(
 ): Sqlite3Result = convertResult(
     native_sqlite3_blob_write(blob.pointer, buffer, size ?: buffer.size, offset)
 )
-/*
+
 public actual fun sqlite3_busy_handler(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3BusyHandlerCallback?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+): Sqlite3Result = convertResult(
     native_sqlite3_busy_handler(
         db.pointer,
-        functionPointer(callback, ::BusyHandlerHandler),
-        keyedStableRefPointer(KEY_BUSY_HANDLER, callback, userData)
+        callbackHandler(callback, userData, ::BusyHandlerHandler)
     )
-})
+)
 
 public actual fun sqlite3_busy_timeout(
     db: sqlite3,
@@ -321,9 +331,7 @@ public actual fun sqlite3_busy_timeout(
 ): Sqlite3Result = convertResult(native_sqlite3_busy_timeout(db.pointer, millis))
 
 public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int =
-    autoExtensionUnregister(callback) {
-        native_ksqlite_cancel_auto_extension(SharedAutoExtensionHandler)
-    }
+    autoExtensionUnregister(callback) { ksqlite_cancel_auto_extension(SharedAutoExtensionHandler) }
 
 public actual fun sqlite3_changes(db: sqlite3): Int =
     native_sqlite3_changes(db.pointer)
@@ -335,12 +343,12 @@ public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
     commonSqlite3ClearBindings(stmt, native_sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3?): Sqlite3Result =
-    db.deallocateNullable { native_sqlite3_close(it?.pointer) }
+    db.deallocateNullable { native_sqlite3_close(it?.pointer ?: 0) }
 
 public actual fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result =
-    db.deallocateNullable { native_sqlite3_close_v2(it?.pointer) }
+    db.deallocateNullable { native_sqlite3_close_v2(it?.pointer ?: 0) }
 
-public actual fun sqlite3_collation_needed(
+/*public actual fun sqlite3_collation_needed(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CollationNeededCallback?,

@@ -390,7 +390,7 @@ public expect fun sqlite3_blob_write(
  *
  * [sqlite3_busy_handler()](https://sqlite.org/c3ref/busy_handler.html)
  */
-/*public expect fun sqlite3_busy_handler(
+public expect fun sqlite3_busy_handler(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3BusyHandlerCallback?
@@ -468,7 +468,7 @@ public expect fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result
  *
  * [sqlite3_collation_needed()](https://sqlite.org/c3ref/collation_needed.html)
  */
-public expect fun sqlite3_collation_needed(
+/*public expect fun sqlite3_collation_needed(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CollationNeededCallback?,

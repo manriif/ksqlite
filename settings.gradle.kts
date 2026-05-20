@@ -45,7 +45,7 @@ dependencyResolutionManagement {
 
     versionCatalogs {
         create("kompleLibs") {
-            val kompleVersion = file("komple.version.txt").readText()
+            val kompleVersion = file("komple.version").readText()
             from("io.github.manriif.komple:komple-catalog:$kompleVersion")
         }
     }

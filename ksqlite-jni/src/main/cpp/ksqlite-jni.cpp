@@ -23,6 +23,7 @@ typedef uint8_t jboolean;
 #define DESTRUCTOR_CALLBACK "DestructorCallback"
 #define AUTO_EXTENSION_CALLBACK "AutoExtensionCallback"
 #define AUTO_VACUUM_PAGES_CALLBACK "AutoVacuumPagesCallback"
+#define BUSY_HANDLER_CALLBACK "BusyHandlerCallback"
 #define OUTPUT_POINTER "OutputPointer"
 
 ///////////////////////////////////////////////////////////////////////////
@@ -184,6 +185,26 @@ static inline void deleteLocalReference(
 // JNI classes, methods, fields helpers
 ///////////////////////////////////////////////////////////////////////////
 
+/**
+ * Common type for java classes.
+ */
+struct Class {
+    jclass klass;
+};
+
+/**
+ * Clears a Class.
+ */
+static inline void clearClass(
+    JNIEnv* env,
+    Class* klass
+) {
+    GlobalRefDestroy(klass->klass);
+    klass->klass = nullptr;
+}
+
+#define ClassClear(klass) clearClass(env, &klass)
+
 static inline jclass getClassOrDie(
     JNIEnv* const env,
     const char* name,
@@ -284,58 +305,89 @@ struct MutexGuarded {
 typedef void(* DestructorFunction)(void*);
 
 /**
- * Common type for objects which can be destroyed.
+ * Holder for Java object that can be destroyed.
  */
 struct Destroyable {
     jobject destructor;
 };
 
+/**
+ * Clears a Destroyable.
+ */
+static inline void clearDestroyable(
+    JNIEnv* env,
+    Destroyable* destroyable
+) {
+    GlobalRefDestroy(destroyable->destructor);
+    destroyable->destructor = nullptr;
+}
+
+#define DestroyableClear(destroyable) clearHook(env, &destroyable)
+
 ///////////////////////////////////////////////////////////////////////////
-// Handler
+// Hooks
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Common type for callback handlers.
+ * Holder for a Java object with a call method.
  */
-struct Handler : MutexGuarded {
-    jobject callback;
+struct Hook {
+    jobject instance;
     jmethodID call;
 };
 
 /**
- * Common type for callback handlers with a destructor.
+ * Holder for a Java object with a call method and a java object that can be destroyed.
  */
-struct DestroyableHandler : Handler, Destroyable {
+struct HookDestroyable : Hook, Destroyable {
 };
 
 /**
- * Configures a handler callback.
+ * Configures a hook.
  */
-#define HandlerConfigure(handler, callback, signature, className) \
-    const auto klass = env->GetObjectClass(callback); \
-    handler.call = RequireKsqliteClassMethod(klass, "call", signature, className); \
-    handler.callback = GlobalRefCreate(callback); \
+#define HookConfigure(hook, object, signature, className) \
+    const auto klass = env->GetObjectClass(object); \
+    hook.call = RequireKsqliteClassMethod(klass, "call", signature, className); \
+    hook.instance = GlobalRefCreate(object); \
     LocalRefDestroy(klass)
 
 /**
- * Configures a handler callback and the associated destructor.
+ * Configures a hook and the associated destructor.
  */
-#define HandlerWithDestructorConfigure(handler, destructor, callback, signature, className) \
-    if (destructor != nullptr) handler.destructor = GlobalRefCreate(destructor);            \
-    HandlerConfigure(handler, callback, signature, className)                               \
+#define HookDestroyableConfigure(hook, destructor, instance, signature, className) \
+    if (destructor != nullptr) hook.destructor = GlobalRefCreate(destructor); \
+    HookConfigure(hook, instance, signature, className)
 
 /**
- * Declares the common variables for handler callback invocation.
- * The callback is wrapped into a local reference that can be released when no longer required.
+ * Declares the common variables for hook call method invocation.
+ * The instance is wrapped into a local reference that can be released when no longer required.
  */
-#define HandlerCallbackConsume(handler) \
-    MutexEnter(handler); \
-    const auto callback = LocalRefCreate(RequireNonNullJobject(handler.callback)); \
-    const auto call = handler.call; \
-    MutexLeave(handler)
+#define HookEnter(guard, hook) \
+    MutexEnter(guard); \
+    const auto instance = LocalRefCreate(RequireNonNullJobject(hook.instance)); \
+    const auto call = hook.call; \
+    MutexLeave(guard)
+
+#define HookLeave() LocalRefDestroy(instance)
+#define HookEnterGlobal(hook) HookEnter(KHS, KHS.hook)
+#define HookEnterDbState(hook) HookEnter(dbState, dbState.hooks.hook)
+
+/**
+ * Clears a Hook.
+ */
+static inline void clearHook(
+    JNIEnv* env,
+    Hook* hook
+) {
+    GlobalRefDestroy(hook->instance);
+    hook->instance = nullptr;
+    hook->call = nullptr;
+}
+
+#define HookClear(hook) clearHook(env, &hook)
 
 ///////////////////////////////////////////////////////////////////////////
-// Holders
+// Freeable
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -377,6 +429,37 @@ static Freeable* allocateFreeable(
     return new Freeable { { globalDestructor }, pointer, globalTarget };
 }
 
+/**
+ * Calls the Java destructor for the given Freeable and releases associated resources.
+ * The pointer must have been allocated with `new`.
+ */
+static void destroyFreeable(
+    JNIEnv* env,
+    void* ptrToFreeable,
+    jmethodID destroy
+) {
+    const auto freeablePtr = reinterpret_cast<Freeable*>(RequireNonNull(ptrToFreeable));
+    auto freeable = *freeablePtr;
+
+    jobject destructor = LocalRefCreate(freeable.destructor);
+
+    if (destructor != nullptr) {
+        GlobalRefDestroy(freeable.destructor);
+        env->CallVoidMethod(destructor, destroy);
+        LocalRefDestroy(destructor);
+    }
+
+    if (freeable.target != nullptr) {
+        GlobalRefDestroy(freeable.target);
+    }
+
+    if (freeable.pointer != nullptr) {
+        sqlite3_free(freeable.pointer);
+    }
+
+    delete freeablePtr;
+}
+
 #define AllocateFreeable(pointer, target, destructor) \
     allocateFreeable(env, pointer, target, destructor)
 
@@ -387,21 +470,36 @@ static Freeable* allocateFreeable(
     AllocateFreeable(nullptr, target, destructor)
 
 ///////////////////////////////////////////////////////////////////////////
-// Global State
+// Database
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Common type for java classes.
+ * Database connection state.
  */
-struct Class {
-    jclass klass;
+struct DbState : MutexGuarded {
+
+    struct {
+        HookDestroyable autoVacuumPages;
+        Hook busyHandler;
+    } hooks;
 };
+
+typedef std::unordered_map<sqlite3*, DbState*> DbStateMap;
+
+///////////////////////////////////////////////////////////////////////////
+// Global State
+///////////////////////////////////////////////////////////////////////////
 
 /**
  * Global state.
  */
 static struct {
     JavaVM* jvm;
+
+    // Holds database connection states
+    struct : MutexGuarded {
+        DbStateMap* map;
+    } dbs;
 
     // Holds Freeable object associated by a pointer passed to sqlite as `user_data`
     struct : MutexGuarded {
@@ -438,73 +536,27 @@ static struct {
         } outputPointer;
     } ksqlite;
 
-    // Handlers
-    struct {
-        Handler autoExtension;
-        DestroyableHandler autoVacuumPages;
-    } handlers;
+    // Global hooks
+    struct : MutexGuarded {
+        Hook autoExtension;
+    } hooks;
 } KsqliteJniGlobalState;
 
 #define K KsqliteJniGlobalState
-#define KF K.freeables
+#define KDS K.dbs
+#define KFS K.freeables
+#define KHS K.hooks
+
 #define KJV K.java
 #define KJVI K.java.int32
 #define KJVL K.java.int64
+
 #define KKDC K.ksqlite.destructorCallback
 #define KKJE K.ksqlite.jniException
 #define KKOP K.ksqlite.outputPointer
-#define KHAE K.handlers.autoExtension
-#define KHAP K.handlers.autoVacuumPages
-
-/**
- * Initializes and caches the Java related classes and objects.
- */
-static void initializeJavaJniCache(JNIEnv* env) {
-    // IllegalArgumentException
-    KJV.illegalArgumentException = RequireClass("java/lang/IllegalArgumentException");
-
-    // Integer
-    KJVI.klass = RequireClass("java/lang/Integer");
-    KJVI.constructor = RequireMethod(KJVI, "<init>", "(I)V", JAVA_INT);
-    KJVI.intValue = RequireMethod(KJVI, "intValue", "()I", JAVA_INT);
-
-    // Long
-    KJVL.klass = RequireClass("java/lang/Long");
-    KJVL.constructor = RequireMethod(KJVL, "<init>", "(J)V", JAVA_LONG);
-    KJVL.longValue = RequireMethod(KJVL, "longValue", "()J", JAVA_LONG);
-}
-
-/**
- * Initializes and caches the Ksqlite related classes and objects.
- */
-static void initializeKsqliteJniCache(JNIEnv* env) {
-    // DestructorCallback
-    KKDC.klass = RequireKsqliteClass(DESTRUCTOR_CALLBACK);
-    KKDC.destroy = RequireKsqliteMethod(KKDC, "destroy", "()V", DESTRUCTOR_CALLBACK);
-
-    // KsqliteJniException
-    KKJE.klass = RequireKsqliteClass(KSQLITE_JNI_EXCEPTION);
-    KKJE.resultCode = RequireKsqliteMethod(KKJE, "getResultCode", "()I", KSQLITE_JNI_EXCEPTION);
-
-    KKJE.message =
-        RequireKsqliteMethod(KKJE, "getMessage", "()Ljava/lang/String;", KSQLITE_JNI_EXCEPTION);
-
-    // OutputPointer
-    KKOP.klass = RequireKsqliteClass(OUTPUT_POINTER);
-    KKOP.value = RequireKsqliteField(KKOP, "value", "Ljava/lang/Object;", OUTPUT_POINTER);
-}
-
-/**
- * Initializes and cache mutexes.
- */
-static void initializeMutexes(JNIEnv* env) {
-    MutexAllocate(KF);
-    MutexAllocate(KHAE);
-    MutexAllocate(KHAP);
-}
 
 ///////////////////////////////////////////////////////////////////////////
-// JNI Lifecycle
+// JNI Environment
 ///////////////////////////////////////////////////////////////////////////
 
 #define JNI_VERSION_1_8 0x00010008
@@ -530,21 +582,119 @@ static JNIEnv* retrieveJniEnv() {
     return env;
 }
 
+/**
+ * Declares the JNIEnv in the function body.
+ */
+#define JniEnvDeclare() const auto env = retrieveJniEnv()
+
+///////////////////////////////////////////////////////////////////////////
+// Lifecycle
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Initializes and caches the Java related classes and objects.
+ */
+static void initializeJavaJniCache(JNIEnv* env) {
+    // IllegalArgumentException
+    KJV.illegalArgumentException = RequireClass("java/lang/IllegalArgumentException");
+
+    // Integer
+    KJVI.klass = RequireClass("java/lang/Integer");
+    KJVI.constructor = RequireMethod(KJVI, "<init>", "(I)V", JAVA_INT);
+    KJVI.intValue = RequireMethod(KJVI, "intValue", "()I", JAVA_INT);
+
+    // Long
+    KJVL.klass = RequireClass("java/lang/Long");
+    KJVL.constructor = RequireMethod(KJVL, "<init>", "(J)V", JAVA_LONG);
+    KJVL.longValue = RequireMethod(KJVL, "longValue", "()J", JAVA_LONG);
+}
+
+/**
+ * Deinitializes cached Java related classes and objects.
+ */
+static void deinitializeJavaJniCache(JNIEnv* env) {
+    ClassClear(KJVL);
+    KJVL.constructor = nullptr;
+    KJVL.longValue = nullptr;
+
+    ClassClear(KJVI);
+    KJVI.constructor = nullptr;
+    KJVI.intValue = nullptr;
+
+    GlobalRefDestroy(KJV.illegalArgumentException);
+}
+
+/**
+ * Initializes and caches the Ksqlite related classes and objects.
+ */
+static void initializeKsqliteJniCache(JNIEnv* env) {
+    // DestructorCallback
+    KKDC.klass = RequireKsqliteClass(DESTRUCTOR_CALLBACK);
+    KKDC.destroy = RequireKsqliteMethod(KKDC, "destroy", "()V", DESTRUCTOR_CALLBACK);
+
+    // KsqliteJniException
+    KKJE.klass = RequireKsqliteClass(KSQLITE_JNI_EXCEPTION);
+    KKJE.resultCode = RequireKsqliteMethod(KKJE, "getResultCode", "()I", KSQLITE_JNI_EXCEPTION);
+
+    KKJE.message =
+        RequireKsqliteMethod(KKJE, "getMessage", "()Ljava/lang/String;", KSQLITE_JNI_EXCEPTION);
+
+    // OutputPointer
+    KKOP.klass = RequireKsqliteClass(OUTPUT_POINTER);
+    KKOP.value = RequireKsqliteField(KKOP, "value", "Ljava/lang/Object;", OUTPUT_POINTER);
+}
+
+/**
+ * Deinitializes cached Ksqlite related classes and objects.
+ */
+static void deinitializeKsqliteJniCache(JNIEnv* env) {
+    ClassClear(KKOP);
+    KKOP.value = nullptr;
+
+    ClassClear(KKJE);
+    KKJE.message = nullptr;
+    KKJE.resultCode = nullptr;
+
+    ClassClear(KKDC);
+    KKDC.destroy = nullptr;
+}
+
+/**
+ * Initializes and cache global mutexes.
+ */
+static void initializeMutexes(JNIEnv* env) {
+    MutexAllocate(KDS);
+    MutexAllocate(KFS);
+    MutexAllocate(KHS);
+}
+
+/**
+ * Deinitializes cached global mutexes.
+ */
+static void deinitializeMutexes(JNIEnv* env) {
+    MutexDestroy(KHS);
+    MutexDestroy(KFS);
+    MutexDestroy(KDS);
+}
+
+///////////////////////////////////////////////////////////////////////////
+// JNI Lifecycle
+//
+// TODO move at the bottom of the file after all functions getting generated
+///////////////////////////////////////////////////////////////////////////
+
 JNIEXPORT jint JNICALL
 JNI_OnLoad(
     JavaVM* vm,
     void* reserved
 ) {
     K.jvm = vm;
-    KF.map = new FreeableMap();
+    KDS.map = new DbStateMap();
+    KFS.map = new FreeableMap();
 
-    const auto env = retrieveJniEnv();
-
-    // Cache
+    JniEnvDeclare();
     initializeJavaJniCache(env);
     initializeKsqliteJniCache(env);
-
-    // Mutexes
     sqlite3_initialize();
     initializeMutexes(env);
     sqlite3_shutdown();
@@ -557,42 +707,173 @@ JNI_OnUnload(
     JavaVM* vm,
     void* reserved
 ) {
-    const auto env = retrieveJniEnv();
+    JniEnvDeclare();
 
-    if (!KF.map->empty()) {
-        fprintf(stderr, "Statements did not cleaned up correctly.\n");
+    if (!KDS.map->empty()) {
+        fprintf(stderr, "Database connections were not closed correctly.\n");
     }
 
-    GlobalRefDestroy(KJVI.klass);
-    KJVI.klass = nullptr;
-    KJVI.constructor = nullptr;
-    KJVI.intValue = nullptr;
+    if (!KFS.map->empty()) {
+        fprintf(stderr, "Statements were not cleaned up correctly.\n");
+    }
 
-    GlobalRefDestroy(KJVL.klass);
-    KJVL.klass = nullptr;
-    KJVL.constructor = nullptr;
-    KJVL.longValue = nullptr;
+    deinitializeMutexes(env);
+    deinitializeKsqliteJniCache(env);
+    deinitializeJavaJniCache(env);
 
-    GlobalRefDestroy(KKDC.klass);
-    KKDC.klass = nullptr;
-    KKDC.destroy = nullptr;
-
-    GlobalRefDestroy(KKJE.klass);
-    KKJE.klass = nullptr;
-    KKJE.message = nullptr;
-    KKJE.resultCode = nullptr;
-
-    GlobalRefDestroy(KKOP.klass);
-    KKOP.klass = nullptr;
-    KKOP.value = nullptr;
-
-    MutexDestroy(KF);
-    MutexDestroy(KHAE);
-    MutexDestroy(KHAP);
-
-    delete KF.map;
+    delete KFS.map;
+    delete KDS.map;
     K.jvm = nullptr;
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Database connection operations
+///////////////////////////////////////////////////////////////////////////
+
+#define DbStateNotFoundFatalError() \
+    FatalError("No state exists for the given database, pushDbState may have not been called")
+
+/**
+ * Creates and inserts the state of a newly created database connection.
+ */
+static DbState* pushDbState(
+    JNIEnv* env,
+    sqlite3* db
+) {
+    auto state = DbState();
+    MutexAllocate(state);
+
+    MutexEnter(KDS);
+    const auto [iterator, inserted] = KDS.map->emplace(db, new DbState(state));
+    MutexLeave(KDS);
+
+    if (!inserted) {
+        FatalError("Database state is already initialized");
+    }
+
+    return iterator->second;
+}
+
+/**
+ * Removes and cleanups the state of a closed database connection.
+ */
+static void popDbState(
+    JNIEnv* env,
+    sqlite3* db
+) {
+    MutexEnter(KDS);
+
+    const auto& map = KDS.map;
+    const auto iterator = map->find(db);
+
+    if (iterator == map->end()) {
+        DbStateNotFoundFatalError();
+    }
+
+    const auto pState = iterator->second;
+    auto state = *pState;
+
+    MutexDestroy(state);
+    delete pState;
+
+    map->erase(iterator);
+    MutexLeave(KDS);
+}
+
+/**
+ * Returns the state of the supplied database.
+ */
+static DbState* getDbState(
+    JNIEnv* env,
+    sqlite3* db
+) {
+    MutexEnter(KDS);
+
+    const auto& map = KDS.map;
+    const auto iterator = KDS.map->find(db);
+
+    if (iterator == map->end()) {
+        DbStateNotFoundFatalError();
+    }
+
+    const auto state = iterator->second;
+    MutexLeave(KDS);
+
+    return state;
+}
+
+#define DbStatePush(db) pushDbState(env, db)
+#define DbStatePop(db) popDbState(env, db)
+#define DbStateGet(db) getDbState(env, db)
+
+/**
+ * Declares the variables to the database state in a hook caller function.
+ */
+#define DbStateEnterHook(P) \
+    const auto pDbState = reinterpret_cast<DbState*>(P); \
+    auto dbState = *pDbState \
+
+/**
+ * Returns the state of the supplied database and enter its mutex.
+ */
+#define DbStateMutexEnter(db) \
+    const auto pDbState = DbStateGet(db); \
+    auto dbState = *pDbState; \
+    MutexEnter(dbState)
+
+/**
+ * Leave the mutex from a previous call to DbStateMutexEnter().
+ */
+#define DbStateMutexLeave() MutexLeave(dbState)
+
+///////////////////////////////////////////////////////////////////////////
+// Freeable operations
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Inserts a value into the freeable map.
+ */
+static void pushFreeable(
+    JNIEnv* env,
+    void* key,
+    Freeable* value
+) {
+    MutexEnter(KFS);
+    const auto [_, inserted] = KFS.map->emplace(key, value);
+    MutexLeave(KFS);
+
+    if (!inserted) {
+        FatalError("An object already exists for the given key and may have not been cleaned up");
+    }
+}
+
+/**
+ * Removes and returns a value from the freeable map.
+ */
+static Freeable* popFreeable(
+    JNIEnv* env,
+    void* key
+) {
+    MutexEnter(KFS);
+
+    const auto& map = KFS.map;
+    const auto iterator = map->find(key);
+
+    if (iterator == map->end()) {
+        FatalError("No value exists for the given key, it may have been cleaned up previously"
+                   " and reference tracking may be broken");
+    }
+
+    const auto value = iterator->second;
+
+    map->erase(iterator);
+    MutexLeave(KFS);
+
+    return value;
+}
+
+#define FreeablePush(key, value) pushFreeable(env, key, value)
+#define FreeablePop(key) popFreeable(env, key)
 
 ///////////////////////////////////////////////////////////////////////////
 // Casting
@@ -879,56 +1160,7 @@ static jstring utf8ToJstring(
 #define Utf8ToJstring(utf8) Utf8ToJstringLength(utf8, -1)
 
 ///////////////////////////////////////////////////////////////////////////
-// Freeable allocation
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Insert a value into the freeable map.
- */
-static void pushFreeable(
-    JNIEnv* env,
-    void* key,
-    Freeable* value
-) {
-    MutexEnter(KF);
-    auto [_, inserted] = KF.map->emplace(key, value);
-    MutexLeave(KF);
-
-    if (!inserted) {
-        FatalError("An object already exists for the given key and may have not been cleaned up");
-    }
-}
-
-/**
- * Remove and returns a value from the freeable map.
- */
-static Freeable* popFreeable(
-    JNIEnv* env,
-    void* key
-) {
-    MutexEnter(KF);
-
-    auto& map = KF.map;
-    auto iterator = map->find(key);
-
-    if (iterator == map->end()) {
-        FatalError("No value exists for the given key, it may have been cleaned up previously"
-                   " and reference tracking may be broken");
-    }
-
-    const auto value = iterator->second;
-
-    map->erase(iterator);
-    MutexLeave(KF);
-
-    return value;
-}
-
-#define FreeablePush(key, value) pushFreeable(env, key, value)
-#define FreeablePop(key) popFreeable(env, key)
-
-///////////////////////////////////////////////////////////////////////////
-// Parameters
+// Output pointers
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -1029,6 +1261,10 @@ static void outputPointerSetInt64Value(
 #define OutputPointerSetPointerValue(pointer, value) \
     OutputPointerSetInt64Value(pointer, PtrToLong(value))
 
+///////////////////////////////////////////////////////////////////////////
+// Parameters
+///////////////////////////////////////////////////////////////////////////
+
 /**
  * Throws an IllegalArgumentException if the destructor argument is not null but argument is.
  */
@@ -1046,59 +1282,28 @@ static void outputPointerSetInt64Value(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Calls the Java destructor for the given Freeable and releases associated resources.
- * The pointer must have been allocated with `new`.
- */
-static void destroyFreeable(
-    JNIEnv* env,
-    void* ptrToFreeable
-) {
-    const auto freeablePtr = reinterpret_cast<Freeable*>(RequireNonNull(ptrToFreeable));
-    auto freeable = *freeablePtr;
-
-    jobject destructor = LocalRefCreate(freeable.destructor);
-
-    if (destructor != nullptr) {
-        GlobalRefDestroy(freeable.destructor);
-        env->CallVoidMethod(destructor, KKDC.destroy);
-        LocalRefDestroy(destructor);
-    }
-
-    if (freeable.target != nullptr) {
-        GlobalRefDestroy(freeable.target);
-    }
-
-    if (freeable.pointer != nullptr) {
-        sqlite3_free(freeable.pointer);
-    }
-
-    delete freeablePtr;
-}
-
-/**
  * Calls the Java destructor for the given Freeable pointer and releases associated resources.
  * The pointer must have been allocated with `new`.
  */
-static void freeableDestructor(void* ptrToFreeable) {
-    const auto env = retrieveJniEnv();
-    destroyFreeable(env, ptrToFreeable);
+static void freeableDestroyer(void* ptrToFreeable) {
+    destroyFreeable(retrieveJniEnv(), ptrToFreeable, KKDC.destroy);
 }
 
 /**
  * Retrieves the Freeable pointer associated with pointer and calls the Java destructor releasing
  * associated resources.
  */
-static void freeableDestructorPop(void* pointer) {
+static void freeableDestroyerPop(void* pointer) {
     const auto env = retrieveJniEnv();
     const auto ptrToFreeable = FreeablePop(pointer);
-    destroyFreeable(env, ptrToFreeable);
+    destroyFreeable(env, ptrToFreeable, KKDC.destroy);
 }
 
 /**
  * Pushes freeable and returns the destructor function for it.
  * Returns null if freeable is null.
  */
-static inline DestructorFunction freeableDestructorPush(
+static inline DestructorFunction freeableDestroyerPush(
     JNIEnv* env,
     void* key,
     Freeable* freeable
@@ -1108,42 +1313,39 @@ static inline DestructorFunction freeableDestructorPush(
     }
 
     FreeablePush(key, freeable);
-    return freeableDestructorPop;
+    return freeableDestroyerPop;
 }
 
 /**
- * Returns freeableDestructor() callback if given pointer P is not null.
+ * Returns freeableDestructor() function if given pointer P is not null.
  */
-#define FreeableDestructor(P) (P) == nullptr ? nullptr : freeableDestructor
-#define FreeableDestructorPush(K, F) freeableDestructorPush(env, K, F)
+#define FreeableDestroyer(P) (P) == nullptr ? nullptr : freeableDestroyer
+#define FreeableDestroyerPush(K, F) freeableDestroyerPush(env, K, F)
 
 /**
- * Calls the Java destructor for the given handler and releases associated resources.
+ * Calls the Java destructor for the given hook and releases associated resources.
  */
-static void handlerDestructor(void* ptrToHandler) {
-    const auto env = retrieveJniEnv();
-    const auto handlerPtr = reinterpret_cast<DestroyableHandler*>(ptrToHandler);
-    auto handler = *handlerPtr;
+static void hookDestroyer(void* ptrToHook) {
+    JniEnvDeclare();
+    const auto hookPtr = reinterpret_cast<HookDestroyable*>(ptrToHook);
+    auto hook = *hookPtr;
 
-    MutexEnter(handler);
+    MutexEnter(KHS);
 
-    // Callback is optional
-    if (handler.callback != nullptr) {
-        GlobalRefDestroy(handler.callback);
-        handler.callback = nullptr;
-        handler.call = nullptr;
+    // Instance is optional
+    if (hook.instance != nullptr) {
+        HookClear(hook);
     }
 
     jobject destructor = nullptr;
 
     // Destructor is also optional but required for callback
-    if (handler.destructor != nullptr) {
-        destructor = LocalRefCreate(RequireNonNullJobject(handler.destructor));
-        GlobalRefDestroy(handler.destructor);
-        handler.destructor = nullptr;
+    if (hook.destructor != nullptr) {
+        destructor = LocalRefCreate(RequireNonNullJobject(hook.destructor));
+        DestroyableClear(hook);
     }
 
-    MutexLeave(handler);
+    MutexLeave(KHS);
 
     if (destructor != nullptr) {
         env->CallVoidMethod(destructor, KKDC.destroy);
@@ -1152,25 +1354,25 @@ static void handlerDestructor(void* ptrToHandler) {
 }
 
 /**
- * Returns handlerDestructor() callback if given pointer P is not null.
+ * Returns hookDestroy() callback if given pointer P is not null.
  */
-#define HandlerDestructor(P) if ((P) == nullptr) nullptr else handlerDestructor
+#define HookDestroyer(P) if ((P) == nullptr) nullptr else hookDestroy
 
 /**
- * Calls the Java AutoExtensionCallback.
+ * Calls the auto_extension hook.
  */
-static int callAutoExtensionCallback(
+static int autoExtensionCaller(
     sqlite3* pDb,
     char** pzErr,
     const sqlite3_api_routines* pApi
 ) {
-    const auto env = retrieveJniEnv();
-    HandlerCallbackConsume(KHAE);
-
+    JniEnvDeclare();
     const auto dbPtr = PtrToLong(pDb);
     const auto apiPtr = PtrToLong(pApi);
-    auto rc = env->CallIntMethod(callback, call, dbPtr, apiPtr);
-    LocalRefDestroy(callback);
+
+    HookEnterGlobal(autoExtension);
+    auto rc = env->CallIntMethod(instance, call, dbPtr, apiPtr);
+    HookLeave();
 
     if (const auto exception = env->ExceptionOccurred(); exception != nullptr) {
         env->ExceptionClear();
@@ -1207,22 +1409,23 @@ static int callAutoExtensionCallback(
 }
 
 /**
- * Calls the Java AutoVacuumPagesCallback.
+ * Calls the Java auto_vacuum_pages hook.
  */
-static unsigned int callAutoVacuumPagesCallback(
-    void* pClientData,
+static unsigned int autoVacuumPagesCaller(
+    void* pDbStateHook,
     const char* zSchema,
     unsigned int nDbPage,
     unsigned int nFreePage,
     unsigned int nBytePerPage
 ) {
-    const auto env = retrieveJniEnv();
-    HandlerCallbackConsume(KHAP);
-
+    JniEnvDeclare();
     const auto schema = Utf8ToJstring(zSchema);
 
+    DbStateEnterHook(pDbStateHook);
+    HookEnterDbState(autoVacuumPages);
+
     uint result = env->CallIntMethod(
-        callback,
+        instance,
         call,
         schema,
         nDbPage,
@@ -1230,19 +1433,41 @@ static unsigned int callAutoVacuumPagesCallback(
         nBytePerPage
     );
 
+    HookLeave();
+    LocalRefDestroy(schema);
+
     IfExceptionThrown {
         // Default behaviour
         result = nFreePage;
     }
 
-    LocalRefDestroy(schema);
-    LocalRefDestroy(callback);
+    return result;
+}
+
+/**
+ * Calls the Java busy_handler hook.
+ */
+static int busyHandlerCaller(
+    void* pDbStateHook,
+    int n
+) {
+    JniEnvDeclare();
+    DbStateEnterHook(pDbStateHook);
+
+    HookEnterDbState(autoVacuumPages);
+    jint result = env->CallIntMethod(instance, call, n);
+    HookLeave();
+
+    IfExceptionThrown {
+        // Default behaviour
+        result = 0;
+    }
 
     return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// SQLite 1 to 1 mapping
+// Ksqlite + SQLite 1 to 1 mapping
 ///////////////////////////////////////////////////////////////////////////
 
 extern "C"
@@ -1257,21 +1482,23 @@ Java_ksqlite_KsqliteJni_ksqlite_1auto_1extension(
     }
 
     auto rc = SQLITE_OK;
-    MutexEnter(KHAE);
 
-    if (KHAE.callback != nullptr) {
-        if (!env->IsSameObject(callback, KHAE.callback)) {
+    MutexEnter(KHS);
+    auto& hook = KHS.autoExtension;
+
+    if (hook.instance != nullptr) {
+        if (!env->IsSameObject(callback, hook.instance)) {
             rc = SQLITE_MISUSE;
         }
     } else {
-        rc = ksqlite_auto_extension(callAutoExtensionCallback);
+        rc = ksqlite_auto_extension(autoExtensionCaller);
 
         if (rc == SQLITE_OK) {
-            HandlerConfigure(KHAE, callback, "(JJ)I", AUTO_EXTENSION_CALLBACK);
+            HookConfigure(hook, callback, "(JJ)I", AUTO_EXTENSION_CALLBACK);
         }
     }
 
-    MutexLeave(KHAE);
+    MutexLeave(KHS);
     return rc;
 }
 
@@ -1282,16 +1509,20 @@ Java_ksqlite_KsqliteJni_ksqlite_1cancel_1auto_1extension(
     jclass clazz,
     jobject callback
 ) {
-    MutexEnter(KHAE);
-    auto rc = 0;
+    auto rc = SQLITE_OK;
 
-    if (KHAE.callback != nullptr && env->IsSameObject(callback, KHAE.callback)) {
-        GlobalRefDestroy(KHAE.callback);
-        KHAE.call = nullptr;
-        rc = ksqlite_cancel_auto_extension(callAutoExtensionCallback);
+    MutexEnter(KHS);
+    auto& hook = KHS.autoExtension;
+
+    if (hook.instance != nullptr && env->IsSameObject(callback, hook.instance)) {
+        rc = ksqlite_cancel_auto_extension(autoExtensionCaller);
+
+        if (rc == SQLITE_OK) {
+            HookClear(hook);
+        }
     }
 
-    MutexLeave(KHAE);
+    MutexLeave(KHS);
     return rc;
 }
 
@@ -1327,18 +1558,20 @@ Java_ksqlite_KsqliteJni_sqlite3_1autovacuum_1pages(
         return rc;
     }
 
-    MutexEnter(KHAP);
+    DbStateMutexEnter(pDb);
+    const auto pHook = &dbState.hooks.autoVacuumPages;
+    auto& hook = *pHook;
 
     // Ensure that destructor, if any, has been called
-    RequireNull(KHAP.callback);
-    RequireNull(KHAP.destructor);
+    RequireNull(hook.instance);
+    RequireNull(hook.destructor);
 
     if (callback != nullptr) {
-        rc = sqlite3_autovacuum_pages(pDb, callAutoVacuumPagesCallback, &KHAP, handlerDestructor);
+        rc = sqlite3_autovacuum_pages(pDb, autoVacuumPagesCaller, pDbState, hookDestroyer);
 
         if (rc == SQLITE_OK) {
-            HandlerWithDestructorConfigure(
-                KHAP,
+            HookDestroyableConfigure(
+                hook,
                 destructor,
                 callback,
                 "(Ljava/lang/String;III)I",
@@ -1350,7 +1583,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1autovacuum_1pages(
         RequireNull(destructor);
     }
 
-    MutexLeave(KHAP);
+    DbStateMutexLeave();
     return rc;
 }
 
@@ -1433,9 +1666,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1blob(
     const auto pStmt = LongTo_s3_stmt(stmt);
     const auto buffer = ByteArrayToBuffer(data, size);
     const auto freeable = AllocateFreeablePointer(buffer, destructor);
-    const auto pDestructor = FreeableDestructorPush(buffer, freeable);
+    const auto destroyer = FreeableDestroyerPush(buffer, freeable);
 
-    return sqlite3_bind_blob(pStmt, index, buffer, size, pDestructor);
+    return sqlite3_bind_blob(pStmt, index, buffer, size, destroyer);
 }
 
 extern "C"
@@ -1454,9 +1687,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1blob64(
     const auto pStmt = LongTo_s3_stmt(stmt);
     const auto buffer = BufferDirectAddress(data);
     const auto freeable = AllocateFreeableTarget(data, destructor);
-    const auto pDestructor = FreeableDestructorPush(buffer, freeable);
+    const auto destroyer = FreeableDestroyerPush(buffer, freeable);
 
-    return sqlite3_bind_blob64(pStmt, index, buffer, size, pDestructor);
+    return sqlite3_bind_blob64(pStmt, index, buffer, size, destroyer);
 }
 
 extern "C"
@@ -1557,9 +1790,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1pointer(
     const auto pStmt = LongTo_s3_stmt(stmt);
     const auto zType = JstringToUtf8(type);
     const auto freeable = AllocateFreeable(zType, data, destructor);
-    const auto pDestructor = FreeableDestructor(freeable);
+    const auto destroyer = FreeableDestroyer(freeable);
 
-    return sqlite3_bind_pointer(pStmt, index, freeable, zType, pDestructor);
+    return sqlite3_bind_pointer(pStmt, index, freeable, zType, destroyer);
 }
 
 extern "C"
@@ -1577,7 +1810,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text(
     size_t textSize = 0;
     const auto buffer = JstringToUtf8Out(text, &textSize);
     const auto freeable = AllocateFreeablePointer(buffer, nullptr);
-    const auto pDestructor = FreeableDestructorPush(buffer, freeable);
+    const auto pDestructor = FreeableDestroyerPush(buffer, freeable);
 
     if (computeSize == JNI_TRUE) {
         size = static_cast<jint>(textSize);
@@ -1601,9 +1834,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text64(
     const auto pStmt = LongTo_s3_stmt(stmt);
     const auto buffer = reinterpret_cast<char*>(BufferDirectAddress(data));
     const auto freeable = AllocateFreeableTarget(data, destructor);
-    const auto pDestructor = FreeableDestructorPush(buffer, freeable);
+    const auto destroyer = FreeableDestroyerPush(buffer, freeable);
 
-    return sqlite3_bind_text64(pStmt, index, buffer, size, pDestructor, encoding);
+    return sqlite3_bind_text64(pStmt, index, buffer, size, destroyer, encoding);
 }
 
 extern "C"
@@ -1703,9 +1936,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1blob_1read(
     jint size,
     jint offset
 ) {
-    RequireNonNullJobject(buffer);
     const auto pBlob = LongTo_s3_blob(blob);
-
     const auto elements = env->GetByteArrayElements(buffer);
     OutOfMemoryCheck(elements);
 
@@ -1746,4 +1977,96 @@ Java_ksqlite_KsqliteJni_sqlite3_1blob_1write(
     const auto rc = sqlite3_blob_write(pBlob, pBuffer, size, offset);
     sqlite3_free(pBuffer);
     return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1busy_1handler(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jobject callback
+) {
+    const auto pDb = LongTo_s3(db);
+    auto rc = SQLITE_OK;
+
+    DbStateMutexEnter(pDb);
+    const auto pHook = &dbState.hooks.busyHandler;
+    auto& hook = *pHook;
+
+    if (hook.instance != nullptr) {
+        HookClear(hook);
+    }
+
+    if (callback != nullptr) {
+        rc = sqlite3_busy_handler(pDb, busyHandlerCaller, pDbState);
+
+        if (rc == SQLITE_OK) {
+            HookConfigure(hook, callback, "(I)I", BUSY_HANDLER_CALLBACK);
+        }
+    }
+
+    DbStateMutexLeave();
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1busy_1timeout(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jint millis
+) {
+    return sqlite3_busy_timeout(LongTo_s3(db), millis);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1changes(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db
+) {
+    return sqlite3_changes(LongTo_s3(db));
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1changes64(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db
+) {
+    return sqlite3_changes64(LongTo_s3(db));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1clear_1bindings(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt
+) {
+    return sqlite3_clear_bindings(LongTo_s3_stmt(stmt));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1close(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db
+) {
+    return sqlite3_close(LongTo_s3(db));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1close_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db
+) {
+    return sqlite3_close_v2(LongTo_s3(db));
 }
