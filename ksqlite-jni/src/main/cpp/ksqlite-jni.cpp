@@ -24,6 +24,7 @@ typedef uint8_t jboolean;
 #define AUTO_EXTENSION_CALLBACK "AutoExtensionCallback"
 #define AUTO_VACUUM_PAGES_CALLBACK "AutoVacuumPagesCallback"
 #define BUSY_HANDLER_CALLBACK "BusyHandlerCallback"
+#define COLLATION_NEEDED_CALLBACK "CollationNeededCallback"
 #define OUTPUT_POINTER "OutputPointer"
 
 ///////////////////////////////////////////////////////////////////////////
@@ -481,6 +482,13 @@ struct DbState : MutexGuarded {
     struct {
         HookDestroyable autoVacuumPages;
         Hook busyHandler;
+        Hook collationNeeded;
+        /*S3JniHook commit;
+        S3JniHook progress;
+        S3JniHook rollback;
+        S3JniHook trace;
+        S3JniHook update;
+        S3JniHook auth;*/
     } hooks;
 };
 
@@ -508,6 +516,7 @@ static struct {
 
     struct {
         jclass illegalArgumentException;
+        jclass illegalStateException;
 
         struct : Class {
             jmethodID constructor; // (I)V
@@ -528,7 +537,7 @@ static struct {
 
         struct : Class {
             jmethodID resultCode; // ()I
-            jmethodID message; // ()Ljava.lang.String;
+            jmethodID message; // ()Ljava/lang/String;
         } jniException;
 
         struct : Class {
@@ -595,8 +604,9 @@ static JNIEnv* retrieveJniEnv() {
  * Initializes and caches the Java related classes and objects.
  */
 static void initializeJavaJniCache(JNIEnv* env) {
-    // IllegalArgumentException
+    // Exceptions
     KJV.illegalArgumentException = RequireClass("java/lang/IllegalArgumentException");
+    KJV.illegalStateException = RequireClass("java/lang/IllegalStateException");
 
     // Integer
     KJVI.klass = RequireClass("java/lang/Integer");
@@ -621,6 +631,7 @@ static void deinitializeJavaJniCache(JNIEnv* env) {
     KJVI.constructor = nullptr;
     KJVI.intValue = nullptr;
 
+    GlobalRefDestroy(KJV.illegalStateException);
     GlobalRefDestroy(KJV.illegalArgumentException);
 }
 
@@ -809,7 +820,7 @@ static DbState* getDbState(
 /**
  * Declares the variables to the database state in a hook caller function.
  */
-#define DbStateEnterHook(P) \
+#define DbStateDeclare(P) \
     const auto pDbState = reinterpret_cast<DbState*>(P); \
     auto dbState = *pDbState \
 
@@ -825,6 +836,32 @@ static DbState* getDbState(
  * Leave the mutex from a previous call to DbStateMutexEnter().
  */
 #define DbStateMutexLeave() MutexLeave(dbState)
+
+/**
+ * Declares the code needed to replace a database connection hook without destructor
+ */
+#define DbHookReplace(H, signature, klassName, function)        \
+    const auto pDb = LongTo_s3(db);                             \
+    auto rc = SQLITE_OK;                                        \
+                                                                \
+    DbStateMutexEnter(pDb);                                     \
+    const auto pHook = &dbState.hooks.H;                        \
+    auto& hook = *pHook;                                        \
+                                                                \
+    if (hook.instance != nullptr) {                             \
+        HookClear(hook);                                        \
+    }                                                           \
+                                                                \
+    if (callback != nullptr) {                                  \
+        rc = function;                                          \
+                                                                \
+        if (rc == SQLITE_OK) {                                  \
+            HookConfigure(hook, callback, signature, klassName);\
+        }                                                       \
+    }                                                           \
+                                                                \
+    DbStateMutexLeave();                                        \
+    return rc
 
 ///////////////////////////////////////////////////////////////////////////
 // Freeable operations
@@ -1419,25 +1456,16 @@ static unsigned int autoVacuumPagesCaller(
     unsigned int nBytePerPage
 ) {
     JniEnvDeclare();
+    DbStateDeclare(pDbStateHook);
+
     const auto schema = Utf8ToJstring(zSchema);
 
-    DbStateEnterHook(pDbStateHook);
     HookEnterDbState(autoVacuumPages);
-
-    uint result = env->CallIntMethod(
-        instance,
-        call,
-        schema,
-        nDbPage,
-        nFreePage,
-        nBytePerPage
-    );
-
+    uint result = env->CallIntMethod(instance, call, schema, nDbPage, nFreePage, nBytePerPage);
     HookLeave();
     LocalRefDestroy(schema);
 
     IfExceptionThrown {
-        // Default behaviour
         result = nFreePage;
     }
 
@@ -1452,18 +1480,38 @@ static int busyHandlerCaller(
     int n
 ) {
     JniEnvDeclare();
-    DbStateEnterHook(pDbStateHook);
+    DbStateDeclare(pDbStateHook);
 
-    HookEnterDbState(autoVacuumPages);
+    HookEnterDbState(busyHandler);
     jint result = env->CallIntMethod(instance, call, n);
     HookLeave();
 
     IfExceptionThrown {
-        // Default behaviour
         result = 0;
     }
 
     return result;
+}
+
+/**
+ * Calls the Java collation_needed hook.
+ */
+static void collationNeededCaller(
+    void* pDbStateHook,
+    sqlite3* pDb,
+    int eTextRep,
+    const char* zName
+) {
+    JniEnvDeclare();
+    DbStateDeclare(pDbStateHook);
+
+    const auto db = PtrToLong(pDb);
+    const auto name = Utf8ToJstring(zName);
+
+    HookEnterDbState(collationNeeded);
+    env->CallVoidMethod(instance, call, db, eTextRep, zName);
+    HookLeave();
+    LocalRefDestroy(name);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1987,27 +2035,12 @@ Java_ksqlite_KsqliteJni_sqlite3_1busy_1handler(
     jlong db,
     jobject callback
 ) {
-    const auto pDb = LongTo_s3(db);
-    auto rc = SQLITE_OK;
-
-    DbStateMutexEnter(pDb);
-    const auto pHook = &dbState.hooks.busyHandler;
-    auto& hook = *pHook;
-
-    if (hook.instance != nullptr) {
-        HookClear(hook);
-    }
-
-    if (callback != nullptr) {
-        rc = sqlite3_busy_handler(pDb, busyHandlerCaller, pDbState);
-
-        if (rc == SQLITE_OK) {
-            HookConfigure(hook, callback, "(I)I", BUSY_HANDLER_CALLBACK);
-        }
-    }
-
-    DbStateMutexLeave();
-    return rc;
+    DbHookReplace(
+        busyHandler,
+        "(I)I",
+        BUSY_HANDLER_CALLBACK,
+        sqlite3_busy_handler(pDb, busyHandlerCaller, pDbState)
+    );
 }
 
 extern "C"
@@ -2069,4 +2102,196 @@ Java_ksqlite_KsqliteJni_sqlite3_1close_1v2(
     jlong db
 ) {
     return sqlite3_close_v2(LongTo_s3(db));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1collation_1needed(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jobject callback
+) {
+    DbHookReplace(
+        busyHandler,
+        "(JILjava/lang/String;)V",
+        COLLATION_NEEDED_CALLBACK,
+        sqlite3_collation_needed(pDb, pDbState, collationNeededCaller)
+    );
+}
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1blob(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    const auto pStmt = LongTo_s3_stmt(stmt);
+    const auto pBlob = sqlite3_column_blob(pStmt, index);
+
+    if (pBlob == nullptr) {
+        return nullptr;
+    }
+
+    const auto length = sqlite3_column_bytes(pStmt, index);
+
+    if (length == 0) {
+        return env->NewByteArray(0);
+    }
+
+    switch (sqlite3_column_type(pStmt, index)) {
+        case SQLITE_NULL:
+            return nullptr;
+        case SQLITE_BLOB:
+            return BufferToByteArray(pBlob, length);
+        default:
+            env->ThrowNew(KJV.illegalStateException, "Column is not a blob");
+            return nullptr;
+    }
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1bytes(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return sqlite3_column_bytes(LongTo_s3_stmt(stmt), index);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1count(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt
+) {
+    return sqlite3_column_count(LongTo_s3_stmt(stmt));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1database_1name(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return Utf8ToJstring(sqlite3_column_database_name(LongTo_s3_stmt(stmt), index));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1decltype(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return Utf8ToJstring(sqlite3_column_decltype(LongTo_s3_stmt(stmt), index));
+}
+
+extern "C"
+JNIEXPORT jdouble JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1double(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return sqlite3_column_double(LongTo_s3_stmt(stmt), index);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1int(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return sqlite3_column_int(LongTo_s3_stmt(stmt), index);
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1int64(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return sqlite3_column_int64(LongTo_s3_stmt(stmt), index);
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1name(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return Utf8ToJstring(sqlite3_column_name(LongTo_s3_stmt(stmt), index));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1origin_1name(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return Utf8ToJstring(sqlite3_column_origin_name(LongTo_s3_stmt(stmt), index));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1table_1name(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return Utf8ToJstring(sqlite3_column_table_name(LongTo_s3_stmt(stmt), index));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1text(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return Utf8ToJstring(
+        reinterpret_cast<const char*>(sqlite3_column_text(LongTo_s3_stmt(stmt), index))
+    );
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1type(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return sqlite3_column_type(LongTo_s3_stmt(stmt), index);
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1column_1value(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt,
+    jint index
+) {
+    return PtrToLong(sqlite3_column_value(LongTo_s3_stmt(stmt), index));
 }

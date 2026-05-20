@@ -6,6 +6,7 @@ import ksqlite.capi.interop.js.Int8Array
 import ksqlite.capi.interop.js.arrayForEachIndexed
 import ksqlite.capi.interop.js.arraySize
 import ksqlite.capi.interop.js.plus
+import ksqlite.capi.interop.js.toByteArray
 import ksqlite.capi.interop.js.toInt8Array
 import ksqlite.capi.interop.wasm.CString
 import ksqlite.capi.interop.wasm.IR
@@ -22,6 +23,7 @@ import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.wasm
 import kotlin.js.JsAny
+import kotlin.js.toLong
 
 public actual open class GenericPointer internal constructor(internal val pointer: WasmPointer)
 
@@ -297,6 +299,20 @@ internal fun <R> bufferScoped(
     } finally {
         memory.dealloc(pointer)
     }
+}
+
+/**
+ * Reads [size] bytes starting from this pointer and returns them as [ByteArray].
+ */
+internal fun WasmPointer.readByteArray(
+    size: Int,
+    memory: WasmMemory = wasm
+): ByteArray {
+    val begin = toLong().toInt()
+    val end = begin + size
+    val region = memory.heap8().subarray(begin, end)
+
+    return toByteArray(region)
 }
 
 ///////////////////////////////////////////////////////////////////////////

@@ -15,6 +15,12 @@ internal actual inline fun toInt8Array(array: ByteArray): Int8Array {
     return Int8Array(length = array.size).fill(array::get)
 }
 
+internal actual inline fun toByteArray(array: Int8Array): ByteArray {
+    return ByteArray(size = array.length) { index ->
+        array[index].toInt().toByte()
+    }
+}
+
 internal actual inline fun Int8Array.copyTo(
     target: ByteArray,
     targetOffset: Int

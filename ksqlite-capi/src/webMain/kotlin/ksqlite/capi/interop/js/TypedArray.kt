@@ -107,6 +107,11 @@ internal external class BigUint64Array(length: Int) : TypedArray<JsBigInt, BigUi
 internal expect inline fun toInt8Array(array: ByteArray): Int8Array
 
 /**
+ * Converts [array] to [ByteArray].
+ */
+internal expect inline fun toByteArray(array: Int8Array): ByteArray
+
+/**
  * Copies `this` [Int8Array] bytes to [target] starting at [targetOffset].
  */
 internal expect inline fun Int8Array.copyTo(target: ByteArray, targetOffset: Int)

@@ -4,6 +4,7 @@ package ksqlite.capi
 
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
+import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
@@ -14,6 +15,8 @@ import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
 import ksqlite.capi.types.Sqlite3BusyHandlerCallback
+import ksqlite.capi.types.Sqlite3CollationNeededCallback
+import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
@@ -22,6 +25,7 @@ import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.useParam
@@ -63,10 +67,21 @@ import ksqlite.sqlite3_changes64 as native_sqlite3_changes64
 import ksqlite.sqlite3_clear_bindings as native_sqlite3_clear_bindings
 import ksqlite.sqlite3_close as native_sqlite3_close
 import ksqlite.sqlite3_close_v2 as native_sqlite3_close_v2
-
-public actual fun sqlite3_libversion(): String {
-    return "test"//ksqliteHello()
-}
+import ksqlite.sqlite3_collation_needed as native_sqlite3_collation_needed
+import ksqlite.sqlite3_column_blob as native_sqlite3_column_blob
+import ksqlite.sqlite3_column_bytes as native_sqlite3_column_bytes
+import ksqlite.sqlite3_column_count as native_sqlite3_column_count
+import ksqlite.sqlite3_column_database_name as native_sqlite3_column_database_name
+import ksqlite.sqlite3_column_decltype as native_sqlite3_column_decltype
+import ksqlite.sqlite3_column_double as native_sqlite3_column_double
+import ksqlite.sqlite3_column_int as native_sqlite3_column_int
+import ksqlite.sqlite3_column_int64 as native_sqlite3_column_int64
+import ksqlite.sqlite3_column_name as native_sqlite3_column_name
+import ksqlite.sqlite3_column_origin_name as native_sqlite3_column_origin_name
+import ksqlite.sqlite3_column_table_name as native_sqlite3_column_table_name
+import ksqlite.sqlite3_column_text as native_sqlite3_column_text
+import ksqlite.sqlite3_column_type as native_sqlite3_column_type
+import ksqlite.sqlite3_column_value as native_sqlite3_column_value
 
 ///////////////////////////////////////////////////////////////////////////
 // Library
@@ -348,25 +363,21 @@ public actual fun sqlite3_close(db: sqlite3?): Sqlite3Result =
 public actual fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result =
     db.deallocateNullable { native_sqlite3_close_v2(it?.pointer ?: 0) }
 
-/*public actual fun sqlite3_collation_needed(
+public actual fun sqlite3_collation_needed(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CollationNeededCallback?,
-): Sqlite3Result = convertResult(db.withMemoryManager {
+): Sqlite3Result = convertResult(
     native_sqlite3_collation_needed(
         db.pointer,
-        keyedStableRefPointer(KEY_COLLATION_NEEDED, callback, userData),
-        functionPointer(callback, ::CollationNeededHandler)
+        callbackHandler(callback, userData, ::CollationNeededHandler)
     )
-})
+)
 
 public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): sqlite3_pointer? = sqlite3_pointer.from(
-    pointer = native_sqlite3_column_blob(stmt.pointer, index),
-    size = native_sqlite3_column_bytes(stmt.pointer, index).toLong()
-)
+): ByteArray? = native_sqlite3_column_blob(stmt.pointer, index)
 
 public actual fun sqlite3_column_bytes(
     stmt: sqlite3_stmt,
@@ -420,7 +431,6 @@ public actual fun sqlite3_column_text(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native_sqlite3_column_text(stmt.pointer, index)
-    .toString(Charsets.UTF_8)
 
 public actual fun sqlite3_column_type(
     stmt: sqlite3_stmt,
@@ -432,7 +442,7 @@ public actual fun sqlite3_column_value(
     index: Int
 ): sqlite3_value? = native_sqlite3_column_value(stmt.pointer, index)
     .wrapOrNull(::sqlite3_value)
-
+/*
 public actual fun sqlite3_commit_hook(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,

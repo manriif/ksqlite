@@ -26,6 +26,7 @@ import ksqlite.capi.interop.js.arrayForEachIndexed
 import ksqlite.capi.interop.js.arraySize
 import ksqlite.capi.interop.js.copyTo
 import ksqlite.capi.interop.js.plus
+import ksqlite.capi.interop.js.toByteArray
 import ksqlite.capi.interop.wasm.IR
 import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmPointer
@@ -45,6 +46,7 @@ import ksqlite.capi.memory.keyedStableRefPointer
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
+import ksqlite.capi.memory.readByteArray
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.toKStringFromUtf8
@@ -485,9 +487,13 @@ public actual fun sqlite3_collation_needed(
 public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): sqlite3_pointer? = sqlite3_pointer.from(
+): ByteArray? = commonSqlite3ColumnBlob(
+    stmt = stmt,
+    index = index,
     pointer = exports.sqlite3_column_blob(stmt.pointer, index),
-    size = exports.sqlite3_column_bytes(stmt.pointer, index).toLong()
+    toByteArray = { pointer, size ->
+        pointer.readByteArray(size)
+    }
 )
 
 public actual fun sqlite3_column_bytes(

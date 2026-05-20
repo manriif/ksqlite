@@ -2,66 +2,23 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
 import ksqlite.capi.types.Sqlite3BusyHandlerCallback
 import ksqlite.capi.types.Sqlite3CollationNeededCallback
-import ksqlite.capi.types.Sqlite3CommitHookCallback
-import ksqlite.capi.types.Sqlite3CompleteResult
-import ksqlite.capi.types.Sqlite3ConfigOption
-import ksqlite.capi.types.Sqlite3CreateCollationCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionFinalCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionFuncCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionInverseCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionStepCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionValueCallback
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DbConfigOption
-import ksqlite.capi.types.Sqlite3DbStatusOption
-import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.Sqlite3ExecCallback
-import ksqlite.capi.types.Sqlite3ExplainMode
-import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3FileOpenFlag
-import ksqlite.capi.types.Sqlite3Limit
-import ksqlite.capi.types.Sqlite3OutputParam
-import ksqlite.capi.types.Sqlite3PrepareFlag
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
-import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3RollbackHookCallback
-import ksqlite.capi.types.Sqlite3SerializeFlag
-import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
-import ksqlite.capi.types.Sqlite3StatementStatusCounter
-import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3StmtOutputParam
 import ksqlite.capi.types.Sqlite3TextEncoding
-import ksqlite.capi.types.Sqlite3TraceCallback
-import ksqlite.capi.types.Sqlite3TraceCode
-import ksqlite.capi.types.Sqlite3TransactionState
-import ksqlite.capi.types.Sqlite3UpdateHookCallback
-import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
-import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.types.sqlite3_index_info
-import ksqlite.capi.types.sqlite3_module
 import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.types.sqlite3_vfs
-
-public expect fun sqlite3_libversion(): String
 
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
@@ -468,7 +425,7 @@ public expect fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result
  *
  * [sqlite3_collation_needed()](https://sqlite.org/c3ref/collation_needed.html)
  */
-/*public expect fun sqlite3_collation_needed(
+public expect fun sqlite3_collation_needed(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3CollationNeededCallback?,
@@ -482,7 +439,7 @@ public expect fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result
 public expect fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): sqlite3_pointer?
+): ByteArray?
 
 /**
  * The following routines are used to access elements of the current row in the result set.
@@ -619,7 +576,7 @@ public expect fun sqlite3_column_value(
     stmt: sqlite3_stmt,
     index: Int
 ): sqlite3_value?
-
+/*
 /**
  * Register a function to be invoked when a transaction commits. If the invoked function returns
  * non-zero, then the commit becomes a rollback.

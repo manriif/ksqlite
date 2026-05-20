@@ -7,6 +7,7 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.refTo
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toCStringArray
@@ -35,6 +36,7 @@ import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.handlers.handle
 import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.copyBytes
 import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.keyedStableRefPointer
@@ -636,9 +638,13 @@ public actual fun sqlite3_collation_needed(
 public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): sqlite3_pointer? = sqlite3_pointer.from(
+): ByteArray? = commonSqlite3ColumnBlob(
+    stmt = stmt,
+    index = index,
     pointer = native_sqlite3_column_blob(stmt.pointer, index),
-    size = native_sqlite3_column_bytes(stmt.pointer, index).toLong()
+    toByteArray = { pointer, size ->
+        pointer.copyBytes(size)
+    }
 )
 
 public actual fun sqlite3_column_bytes(

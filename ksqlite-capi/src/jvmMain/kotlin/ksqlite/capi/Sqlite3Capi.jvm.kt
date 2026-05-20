@@ -466,9 +466,15 @@ public actual fun sqlite3_collation_needed(
 public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): sqlite3_pointer? = sqlite3_pointer.from(
+): ByteArray? = commonSqlite3ColumnBlob(
+    stmt = stmt,
+    index = index,
     pointer = native.sqlite3_column_blob(stmt.pointer, index),
-    size = native.sqlite3_column_bytes(stmt.pointer, index).toLong()
+    toByteArray = { pointer, size ->
+        pointer
+            .reinterpret(size.toLong())
+            .toArray(ValueLayout.JAVA_BYTE)
+    }
 )
 
 public actual fun sqlite3_column_bytes(

@@ -247,83 +247,80 @@ public external fun sqlite3_clear_bindings(stmt: Long): Int
 public external fun sqlite3_close(db: Long): Int
 
 public external fun sqlite3_close_v2(db: Long): Int
-/*
+
 public external fun sqlite3_collation_needed(
-    p0: Long,
-    p1: Long,
-    p2: Long,
+    db: Long,
+    callback: CollationNeededCallback?,
 ): Int
 
 public external fun sqlite3_column_blob(
-    p0: Long,
-    p1: Int,
-): Long
+    stmt: Long,
+    index: Int,
+): ByteArray
 
 public external fun sqlite3_column_bytes(
-    p0: Long,
-    p1: Int,
+    stmt: Long,
+    index: Int,
 ): Int
 
-public external fun sqlite3_column_count(
-    p0: Long,
-): Int
+public external fun sqlite3_column_count(stmt: Long): Int
 
 public external fun sqlite3_column_database_name(
-    p0: Long,
-    p1: Int,
-): Long
+    stmt: Long,
+    index: Int,
+): String?
 
 public external fun sqlite3_column_decltype(
-    p0: Long,
-    p1: Int,
-): Long
+    stmt: Long,
+    index: Int,
+): String?
 
 public external fun sqlite3_column_double(
-    p0: Long,
-    p1: Int,
+    stmt: Long,
+    index: Int,
 ): Double
 
 public external fun sqlite3_column_int(
-    p0: Long,
-    p1: Int,
+    stmt: Long,
+    index: Int,
 ): Int
 
 public external fun sqlite3_column_int64(
-    p0: Long,
-    p1: Int,
+    stmt: Long,
+    index: Int,
 ): Long
 
 public external fun sqlite3_column_name(
-    p0: Long,
-    p1: Int,
-): Long
+    stmt: Long,
+    index: Int,
+): String?
 
 public external fun sqlite3_column_origin_name(
-    p0: Long,
-    p1: Int,
-): Long
+    stmt: Long,
+    index: Int,
+): String?
 
 public external fun sqlite3_column_table_name(
-    p0: Long,
-    p1: Int,
-): Long
+    stmt: Long,
+    index: Int,
+): String?
 
 public external fun sqlite3_column_text(
-    p0: Long,
-    p1: Int,
-): Long
+    stmt: Long,
+    index: Int,
+): String?
 
 public external fun sqlite3_column_type(
-    p0: Long,
-    p1: Int,
+    stmt: Long,
+    index: Int,
 ): Int
 
 public external fun sqlite3_column_value(
-    p0: Long,
-    p1: Int,
+    stmt: Long,
+    index: Int,
 ): Long
 
-public external fun sqlite3_commit_hook(
+/*public external fun sqlite3_commit_hook(
     p0: Long,
     p1: Long,
     p2: Long,

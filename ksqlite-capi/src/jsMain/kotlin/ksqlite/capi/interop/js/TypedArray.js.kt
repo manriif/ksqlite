@@ -6,6 +6,10 @@ internal actual inline fun toInt8Array(array: ByteArray): Int8Array {
     return array.unsafeCast<Int8Array>()
 }
 
+internal actual inline fun toByteArray(array: Int8Array): ByteArray {
+    return array.unsafeCast<ByteArray>()
+}
+
 internal actual inline fun Int8Array.copyTo(
     target: ByteArray,
     targetOffset: Int

@@ -4,6 +4,7 @@ import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.memoryOrNull
 import ksqlite.capi.types.Sqlite3ConfigOption
+import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
@@ -13,6 +14,8 @@ import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import kotlin.jvm.JvmInline
+
+private val EmptyByteArray = ByteArray(0)
 
 ///////////////////////////////////////////////////////////////////////////
 // Helpers
@@ -64,6 +67,33 @@ internal fun commonSqlite3ClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite
     }
 
     return convertResult(result)
+}
+
+/**
+ * Handles the [ksqlite.capi.sqlite3_column_blob].
+ */
+internal fun <Pointer : Any> commonSqlite3ColumnBlob(
+    stmt: sqlite3_stmt,
+    index:  Int,
+    pointer: Pointer?,
+    toByteArray: (pointer: Pointer, size: Int) -> ByteArray
+): ByteArray? {
+    if (pointer == null) {
+        return null
+    }
+
+    val size = sqlite3_column_bytes(stmt, index)
+    check(size >= 0) { "sqlite3_column_bytes() must returns a non-negative integer"}
+
+    return if (size == 0) {
+        when (sqlite3_column_type(stmt, index)) {
+            Sqlite3DataType.BLOB -> EmptyByteArray
+            Sqlite3DataType.NULL -> null
+            else -> error("Column at index $index is not a blob")
+        }
+    } else {
+        toByteArray(pointer, size)
+    }
 }
 
 /**
