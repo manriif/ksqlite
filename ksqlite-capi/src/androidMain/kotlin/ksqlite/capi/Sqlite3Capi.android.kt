@@ -9,15 +9,19 @@ import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.types.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.types.Sqlite3BlobOpenFlag
+import ksqlite.capi.types.Sqlite3BlobOutputParam
 import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
+import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.types.useParam
 import ksqlite.ksqliteLoadLibrary
 import ksqlite.ksqlite_auto_extension as native_ksqlite_auto_extension
 import ksqlite.sqlite3_aggregate_context as native_sqlite3_aggregate_context
@@ -42,8 +46,12 @@ import ksqlite.sqlite3_bind_text64 as native_sqlite3_bind_text64
 import ksqlite.sqlite3_bind_value as native_sqlite3_bind_value
 import ksqlite.sqlite3_bind_zeroblob as native_sqlite3_bind_zeroblob
 import ksqlite.sqlite3_bind_zeroblob64 as native_sqlite3_bind_zeroblob64
-
-//import org.sqlite.jni.capi.CApi as native
+import ksqlite.sqlite3_blob_bytes as native_sqlite3_blob_bytes
+import ksqlite.sqlite3_blob_close as native_sqlite3_blob_close
+import ksqlite.sqlite3_blob_open as native_sqlite3_blob_open
+import ksqlite.sqlite3_blob_read as native_sqlite3_blob_read
+import ksqlite.sqlite3_blob_reopen as native_sqlite3_blob_reopen
+import ksqlite.sqlite3_blob_write as native_sqlite3_blob_write
 
 public actual fun sqlite3_libversion(): String {
     return "test"//ksqliteHello()
@@ -123,13 +131,7 @@ public actual fun sqlite3_bind_blob(
     size: Int,
     destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
-    native_sqlite3_bind_blob(
-        stmt.pointer,
-        index,
-        data,
-        size,
-        destructorHandler(destructor)
-    )
+    native_sqlite3_bind_blob(stmt.pointer, index, data, size, destructorHandler(destructor))
 )
 
 public actual fun sqlite3_bind_blob64(
@@ -251,7 +253,7 @@ public actual fun sqlite3_bind_zeroblob64(
     size: ULong
 ): Sqlite3Result = convertResult(native_sqlite3_bind_zeroblob64(stmt.pointer, index, size.toLong()))
 
-/*public actual fun sqlite3_blob_bytes(blob: sqlite3_blob): Int =
+public actual fun sqlite3_blob_bytes(blob: sqlite3_blob): Int =
     native_sqlite3_blob_bytes(blob.pointer)
 
 public actual fun sqlite3_blob_close(blob: sqlite3_blob): Sqlite3Result =
@@ -285,7 +287,7 @@ public actual fun sqlite3_blob_read(
     size: Int,
     offset: Int
 ): Sqlite3Result =
-    convertResult(native_sqlite3_blob_read(blob.pointer, buffer.backing(), size, offset))
+    convertResult(native_sqlite3_blob_read(blob.pointer, buffer, size, offset))
 
 public actual fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
@@ -298,9 +300,9 @@ public actual fun sqlite3_blob_write(
     size: Int?,
     offset: Int
 ): Sqlite3Result = convertResult(
-    native_sqlite3_blob_write(blob.pointer, buffer.backing(), size ?: buffer.size, offset)
+    native_sqlite3_blob_write(blob.pointer, buffer, size ?: buffer.size, offset)
 )
-
+/*
 public actual fun sqlite3_busy_handler(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,

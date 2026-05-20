@@ -7,7 +7,7 @@ package ksqlite.capi.types
 /**
  * Base for output parameter.
  */
-public interface OutputParameter<Value> {
+public interface OutputParam<Value> {
 
     /**
      * Value written on native side.
@@ -17,7 +17,7 @@ public interface OutputParameter<Value> {
      * For pointers to sqlite3* structs, [Value] is a wrapper enclosing the pointer to the allocated
      * struct which can be `null` in the following cases:
      *
-     * - This [OutputParameter] instance was not passed to any SQLite interface intended to allocate
+     * - This [OutputParam] instance was not passed to any SQLite interface intended to allocate
      * the struct
      * - The SQLite interface failed to make the allocation
      *
@@ -36,7 +36,7 @@ public interface OutputParameter<Value> {
  *
  * An [initialValue] can optionally be supplied.
  */
-public expect class Int32OutputParam(initialValue: Int) : OutputParameter<Int> {
+public expect class Int32OutputParam(initialValue: Int) : OutputParam<Int> {
     override val value: Int
 }
 
@@ -45,7 +45,7 @@ public expect class Int32OutputParam(initialValue: Int) : OutputParameter<Int> {
  *
  * An [initialValue] can optionally be supplied.
  */
-public expect class Int64OutputParam(initialValue: Long) : OutputParameter<Long> {
+public expect class Int64OutputParam(initialValue: Long) : OutputParam<Long> {
     override val value: Long
 }
 
@@ -56,7 +56,7 @@ public expect class Int64OutputParam(initialValue: Long) : OutputParameter<Long>
 /**
  * Wrapper around UTF-8 encoded [String] intended to be passed as parameter and written by SQLite.
  */
-public expect class Utf8OutputParam() : OutputParameter<String?> {
+public expect class Utf8OutputParam() : OutputParam<String?> {
 
     /**
      * UTF-8 encoded [String] or `null` if no string has been allocated or allocation failed.
@@ -71,28 +71,28 @@ public expect class Utf8OutputParam() : OutputParameter<String?> {
 /**
  * Wrapper around [sqlite3] intended to be passed as parameter and written by SQLite.
  */
-public expect class Sqlite3OutputParam() : OutputParameter<sqlite3?> {
+public expect class Sqlite3OutputParam() : OutputParam<sqlite3?> {
     override val value: sqlite3?
 }
 
 /**
  * Wrapper around [sqlite3_blob] intended to be passed as parameter and written by SQLite.
  */
-public expect class Sqlite3BlobOutputParam() : OutputParameter<sqlite3_blob?> {
+public expect class Sqlite3BlobOutputParam() : OutputParam<sqlite3_blob?> {
     override val value: sqlite3_blob?
 }
 
 /**
  * Wrapper around [sqlite3_stmt] intended to be passed as parameter and written by SQLite.
  */
-public expect class Sqlite3StmtOutputParam() : OutputParameter<sqlite3_stmt?> {
+public expect class Sqlite3StmtOutputParam() : OutputParam<sqlite3_stmt?> {
     override val value: sqlite3_stmt?
 }
 
 /**
  * Wrapper around [sqlite3_value] intended to be passed as parameter and written by SQLite.
  */
-public expect class Sqlite3ValueOutputParam() : OutputParameter<sqlite3_value?> {
+public expect class Sqlite3ValueOutputParam() : OutputParam<sqlite3_value?> {
     override val value: sqlite3_value?
 }
 

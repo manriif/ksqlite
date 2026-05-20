@@ -17,7 +17,7 @@ public fun ksqliteLoadLibrary() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Buffer helper
+// Buffer helpers
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -195,43 +195,39 @@ public external fun sqlite3_bind_zeroblob64(
     size: Long
 ): Int
 
-/*public external fun sqlite3_blob_bytes(
-    p0: Long,
-): Int
+public external fun sqlite3_blob_bytes(blob: Long): Int
 
-public external fun sqlite3_blob_close(
-    p0: Long,
-): Int
+public external fun sqlite3_blob_close(blob: Long): Int
 
 public external fun sqlite3_blob_open(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
-    p5: Int,
-    p6: Long,
+    db: Long,
+    databaseName: String,
+    tableName: String,
+    columnName: String,
+    rowIndex: Long,
+    flags: Int,
+    outBlob: OutputPointer.OfPointer?,
 ): Int
 
 public external fun sqlite3_blob_read(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
+    blob: Long,
+    buffer: ByteArray,
+    size: Int,
+    offset: Int,
 ): Int
 
 public external fun sqlite3_blob_reopen(
-    p0: Long,
-    p1: Long,
+    blob: Long,
+    rowIndex: Long,
 ): Int
 
 public external fun sqlite3_blob_write(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
+    blob: Long,
+    buffer: ByteArray,
+    size: Int,
+    offset: Int,
 ): Int
-
+/*
 public external fun sqlite3_busy_handler(
     p0: Long,
     p1: Long,

@@ -1,6 +1,7 @@
 package ksqlite.capi.types
 
-import org.sqlite.jni.capi.OutputPointer
+import ksqlite.OutputPointer
+import ksqlite.capi.memory.isNullPointer
 
 ///////////////////////////////////////////////////////////////////////////
 // Param
@@ -9,8 +10,8 @@ import org.sqlite.jni.capi.OutputPointer
 /**
  * Base for output parameter.
  */
-public abstract class OutputParamBase<Value, OutPtr>
-internal constructor(initialValue: Value) : OutputParameter<Value> {
+public abstract class OutputParamBase<Value, OutPtr : OutputPointer<*>>
+internal constructor(initialValue: Value) : OutputParam<Value> {
 
     private var actualValue: Value = initialValue
 
@@ -45,34 +46,48 @@ internal constructor(initialValue: Value) : OutputParameter<Value> {
 /**
  * Base for pointer output parameter.
  */
-public abstract class PointerOutputParam<Value, OutPtr> :
-    OutputParamBase<Value?, OutPtr>(null)
+public abstract class PointerOutputParam<Value> :
+    OutputParamBase<Value?, OutputPointer.OfPointer>(null) {
+
+    final override fun allocate(initialValue: Value?): OutputPointer.OfPointer {
+        return OutputPointer.OfPointer(0L)
+    }
+
+    /**
+     * Creates a new [Value] from non-null pointing [pointer].
+     */
+    protected abstract fun create(pointer: Long): Value
+
+    final override fun readValue(pointer: OutputPointer.OfPointer): Value? {
+        return pointer.value.takeUnless(Long::isNullPointer)?.let(::create)
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
 public actual class Int32OutputParam actual constructor(initialValue: Int) :
-    OutputParamBase<Int, OutputPointer.Int32>(initialValue) {
+    OutputParamBase<Int, OutputPointer.OfInt32>(initialValue) {
 
-    override fun allocate(initialValue: Int): OutputPointer.Int32 {
-        return OutputPointer.Int32(initialValue)
+    override fun allocate(initialValue: Int): OutputPointer.OfInt32 {
+        return OutputPointer.OfInt32(initialValue)
     }
 
-    override fun readValue(pointer: OutputPointer.Int32): Int {
-        return pointer.get()
+    override fun readValue(pointer: OutputPointer.OfInt32): Int {
+        return pointer.value
     }
 }
 
 public actual class Int64OutputParam actual constructor(initialValue: Long) :
-    OutputParamBase<Long, OutputPointer.Int64>(initialValue) {
+    OutputParamBase<Long, OutputPointer.OfInt64>(initialValue) {
 
-    override fun allocate(initialValue: Long): OutputPointer.Int64 {
-        return OutputPointer.Int64(initialValue)
+    override fun allocate(initialValue: Long): OutputPointer.OfInt64 {
+        return OutputPointer.OfInt64(initialValue)
     }
 
-    override fun readValue(pointer: OutputPointer.Int64): Long {
-        return pointer.get()
+    override fun readValue(pointer: OutputPointer.OfInt64): Long {
+        return pointer.value
     }
 }
 
@@ -81,14 +96,14 @@ public actual class Int64OutputParam actual constructor(initialValue: Long) :
 ///////////////////////////////////////////////////////////////////////////
 
 public actual class Utf8OutputParam actual constructor() :
-    PointerOutputParam<String, OutputPointer.String>() {
+    OutputParamBase<String?, OutputPointer.OfString>(null) {
 
-    override fun allocate(initialValue: String?): OutputPointer.String {
-        return OutputPointer.String(initialValue)
+    override fun allocate(initialValue: String?): OutputPointer.OfString {
+        return OutputPointer.OfString(initialValue)
     }
 
-    override fun readValue(pointer: OutputPointer.String): String? {
-        return pointer.get()
+    override fun readValue(pointer: OutputPointer.OfString): String? {
+        return pointer.value
     }
 }
 
@@ -97,62 +112,42 @@ public actual class Utf8OutputParam actual constructor() :
 ///////////////////////////////////////////////////////////////////////////
 
 public actual class Sqlite3OutputParam actual constructor() :
-    PointerOutputParam<sqlite3, OutputPointer.sqlite3>() {
+    PointerOutputParam<sqlite3>() {
 
-    override fun allocate(initialValue: sqlite3?): OutputPointer.sqlite3 {
-        return OutputPointer.sqlite3()
-    }
-
-    override fun readValue(pointer: OutputPointer.sqlite3): sqlite3? {
-        return pointer.take()?.let(::sqlite3)
+    override fun create(pointer: Long): sqlite3 {
+        return sqlite3(pointer)
     }
 }
 
 public actual class Sqlite3BlobOutputParam actual constructor() :
-    PointerOutputParam<sqlite3_blob, OutputPointer.sqlite3_blob>() {
+    PointerOutputParam<sqlite3_blob>() {
 
-    override fun allocate(initialValue: sqlite3_blob?): OutputPointer.sqlite3_blob {
-        return OutputPointer.sqlite3_blob()
-    }
-
-    override fun readValue(pointer: OutputPointer.sqlite3_blob): sqlite3_blob? {
-        return pointer.take()?.let(::sqlite3_blob)
+    override fun create(pointer: Long): sqlite3_blob {
+        return sqlite3_blob(pointer)
     }
 }
 
 public actual class Sqlite3SnapshotOutputParam actual constructor() :
-    PointerOutputParam<sqlite3_snapshot, Nothing>() {
+    PointerOutputParam<sqlite3_snapshot>() {
 
-    override fun allocate(initialValue: sqlite3_snapshot?): Nothing {
-        TODO()
-    }
-
-    override fun readValue(pointer: Nothing): sqlite3_snapshot? {
-        TODO()
+    override fun create(pointer: Long): sqlite3_snapshot {
+        return sqlite3_snapshot(pointer)
     }
 }
 
 public actual class Sqlite3StmtOutputParam actual constructor() :
-    PointerOutputParam<sqlite3_stmt, OutputPointer.sqlite3_stmt>() {
+    PointerOutputParam<sqlite3_stmt>() {
 
-    override fun allocate(initialValue: sqlite3_stmt?): OutputPointer.sqlite3_stmt {
-        return OutputPointer.sqlite3_stmt()
-    }
-
-    override fun readValue(pointer: OutputPointer.sqlite3_stmt): sqlite3_stmt? {
-        return pointer.take()?.let(::sqlite3_stmt)
+    override fun create(pointer: Long): sqlite3_stmt {
+        return sqlite3_stmt(pointer)
     }
 }
 
 public actual class Sqlite3ValueOutputParam actual constructor() :
-    PointerOutputParam<sqlite3_value, OutputPointer.sqlite3_value>() {
+    PointerOutputParam<sqlite3_value>() {
 
-    override fun allocate(initialValue: sqlite3_value?): OutputPointer.sqlite3_value {
-        return OutputPointer.sqlite3_value()
-    }
-
-    override fun readValue(pointer: OutputPointer.sqlite3_value): sqlite3_value? {
-        return pointer.take()?.let(::sqlite3_value)
+    override fun create(pointer: Long): sqlite3_value {
+        return sqlite3_value(pointer)
     }
 }
 
@@ -165,7 +160,9 @@ public actual class Sqlite3ValueOutputParam actual constructor() :
  *
  * The pointer passed to [block] must not escape.
  */
-internal inline fun <OutPtr, R> OutputParamBase<*, OutPtr>.use(block: (OutPtr) -> R): R {
+internal inline fun <OutPtr : OutputPointer<*>, R> OutputParamBase<*, OutPtr>.use(
+    block: (OutPtr) -> R
+): R {
     val pointer = attach()
 
     val result = try {
@@ -182,7 +179,7 @@ internal inline fun <OutPtr, R> OutputParamBase<*, OutPtr>.use(block: (OutPtr) -
  *
  * The pointer passed to [block] must not escape.
  */
-internal inline fun <OutPtr, R> useParam(
+internal inline fun <OutPtr : OutputPointer<*>, R> useParam(
     param: OutputParamBase<*, OutPtr>?,
     block: (OutPtr?) -> R
 ): R {
@@ -199,7 +196,7 @@ internal inline fun <OutPtr, R> useParam(
  *
  * The pointers passed to [block] must not escape.
  */
-internal inline fun <OutPtr1, OutPtr2, R> useParams(
+internal inline fun <OutPtr1 : OutputPointer<*>, OutPtr2 : OutputPointer<*>, R> useParams(
     param1: OutputParamBase<*, OutPtr1>?,
     param2: OutputParamBase<*, OutPtr2>?,
     block: (

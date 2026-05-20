@@ -21,7 +21,7 @@ import kotlin.js.toLong
  * Base for output parameter.
  */
 public abstract class OutputParamBase<Value> internal constructor(initialValue: Value) :
-    OutputParameter<Value> {
+    OutputParam<Value> {
 
     private var actualValue: Value = initialValue
     private var attachedMemory: WasmMemory? = null

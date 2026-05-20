@@ -24,7 +24,7 @@ import ksqlite.capi.memory.toKStringFromUtf8
  * Base for output parameter.
  */
 public abstract class OutputParamBase<Value, Var : CPointed>
-internal constructor(initialValue: Value) : OutputParameter<Value> {
+internal constructor(initialValue: Value) : OutputParam<Value> {
 
     private var actualValue: Value = initialValue
 

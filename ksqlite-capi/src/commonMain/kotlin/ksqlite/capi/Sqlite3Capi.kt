@@ -321,7 +321,7 @@ public expect fun sqlite3_bind_zeroblob64(
  *
  * [sqlite3_blob_bytes()](https://sqlite.org/c3ref/blob_bytes.html)
  */
-/*public expect fun sqlite3_blob_bytes(blob: sqlite3_blob): Int
+public expect fun sqlite3_blob_bytes(blob: sqlite3_blob): Int
 
 /**
  * Close a blob handle that was previously created using [sqlite3_blob_open].
@@ -390,7 +390,7 @@ public expect fun sqlite3_blob_write(
  *
  * [sqlite3_busy_handler()](https://sqlite.org/c3ref/busy_handler.html)
  */
-public expect fun sqlite3_busy_handler(
+/*public expect fun sqlite3_busy_handler(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
     callback: Sqlite3BusyHandlerCallback?

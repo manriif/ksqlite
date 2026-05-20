@@ -16,10 +16,14 @@ typedef uint8_t jboolean;
 // Classes
 ///////////////////////////////////////////////////////////////////////////
 
+#define JAVA_INT "java.lang.Integer"
+#define JAVA_LONG "java.lang.Long"
+
 #define KSQLITE_JNI_EXCEPTION "KsqliteJniException"
 #define DESTRUCTOR_CALLBACK "DestructorCallback"
 #define AUTO_EXTENSION_CALLBACK "AutoExtensionCallback"
 #define AUTO_VACUUM_PAGES_CALLBACK "AutoVacuumPagesCallback"
+#define OUTPUT_POINTER "OutputPointer"
 
 ///////////////////////////////////////////////////////////////////////////
 // Exceptions
@@ -223,6 +227,34 @@ static inline jmethodID getMethodIdOrDie(
 #define RequireKsqliteMethod(O, name, signature, className) \
     RequireKsqliteClassMethod(O.klass, name, signature, className)
 
+/**
+ * Raises a fatal error when a field was not found on a given class.
+ */
+static inline jfieldID getFieldIdOrDie(
+    JNIEnv* const env,
+    jclass klass,
+    const char* name,
+    const char* signature,
+    const char* errorMessage
+) {
+    const auto fieldId = env->GetFieldID(klass, name, signature);
+    ExceptionClearAndAbort(errorMessage);
+    return fieldId;
+}
+
+#define RequireClassField(klass, name, signature, className) \
+    getFieldIdOrDie(env, klass, name, signature, \
+    "Error getting reference to " className "#" name " field")
+
+#define RequireField(O, name, signature, className) \
+    RequireClassField(O.klass, name, signature, className)
+
+#define RequireKsqliteClassField(klass, name, signature, className) \
+    RequireClassField(klass, name, signature, "ksqlite." className)
+
+#define RequireKsqliteField(O, name, signature, className) \
+    RequireKsqliteClassField(O.klass, name, signature, className)
+
 ///////////////////////////////////////////////////////////////////////////
 // Mutex
 ///////////////////////////////////////////////////////////////////////////
@@ -315,6 +347,8 @@ struct Freeable : Destroyable {
     jobject target;
 };
 
+typedef std::unordered_map<void*, Freeable*> FreeableMap;
+
 /**
  * Allocates a new Freeable if at least one of pointer, target or destructor is not null. Returns
  * null if none of the supplied arguments is not null.
@@ -367,16 +401,26 @@ struct Class {
  * Global state.
  */
 static struct {
-    JavaVM* jvm = nullptr;
+    JavaVM* jvm;
 
     // Holds Freeable object associated by a pointer passed to sqlite as `user_data`
     struct : MutexGuarded {
-        std::unordered_map<void*, Freeable*> map;
-    } freeables { };
+        FreeableMap* map;
+    } freeables;
 
     struct {
         jclass illegalArgumentException;
-    } java { };
+
+        struct : Class {
+            jmethodID constructor; // (I)V
+            jmethodID intValue; // ()I
+        } int32; // Integer
+
+        struct : Class {
+            jmethodID constructor; //(J)V
+            jmethodID longValue; // ()J
+        } int64; // Long
+    } java;
 
     // KsqliteJni classes
     struct {
@@ -388,20 +432,27 @@ static struct {
             jmethodID resultCode; // ()I
             jmethodID message; // ()Ljava.lang.String;
         } jniException;
-    } ksqlite { };
+
+        struct : Class {
+            jfieldID value; // Ljava/lang/Object;
+        } outputPointer;
+    } ksqlite;
 
     // Handlers
     struct {
         Handler autoExtension;
         DestroyableHandler autoVacuumPages;
-    } handlers { };
+    } handlers;
 } KsqliteJniGlobalState;
 
 #define K KsqliteJniGlobalState
 #define KF K.freeables
 #define KJV K.java
-#define KKJE K.ksqlite.jniException
+#define KJVI K.java.int32
+#define KJVL K.java.int64
 #define KKDC K.ksqlite.destructorCallback
+#define KKJE K.ksqlite.jniException
+#define KKOP K.ksqlite.outputPointer
 #define KHAE K.handlers.autoExtension
 #define KHAP K.handlers.autoVacuumPages
 
@@ -411,6 +462,16 @@ static struct {
 static void initializeJavaJniCache(JNIEnv* env) {
     // IllegalArgumentException
     KJV.illegalArgumentException = RequireClass("java/lang/IllegalArgumentException");
+
+    // Integer
+    KJVI.klass = RequireClass("java/lang/Integer");
+    KJVI.constructor = RequireMethod(KJVI, "<init>", "(I)V", JAVA_INT);
+    KJVI.intValue = RequireMethod(KJVI, "intValue", "()I", JAVA_INT);
+
+    // Long
+    KJVL.klass = RequireClass("java/lang/Long");
+    KJVL.constructor = RequireMethod(KJVL, "<init>", "(J)V", JAVA_LONG);
+    KJVL.longValue = RequireMethod(KJVL, "longValue", "()J", JAVA_LONG);
 }
 
 /**
@@ -427,6 +488,10 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
 
     KKJE.message =
         RequireKsqliteMethod(KKJE, "getMessage", "()Ljava/lang/String;", KSQLITE_JNI_EXCEPTION);
+
+    // OutputPointer
+    KKOP.klass = RequireKsqliteClass(OUTPUT_POINTER);
+    KKOP.value = RequireKsqliteField(KKOP, "value", "Ljava/lang/Object;", OUTPUT_POINTER);
 }
 
 /**
@@ -471,6 +536,8 @@ JNI_OnLoad(
     void* reserved
 ) {
     K.jvm = vm;
+    KF.map = new FreeableMap();
+
     const auto env = retrieveJniEnv();
 
     // Cache
@@ -492,21 +559,38 @@ JNI_OnUnload(
 ) {
     const auto env = retrieveJniEnv();
 
-    if (!KF.map.empty()) {
+    if (!KF.map->empty()) {
         fprintf(stderr, "Statements did not cleaned up correctly.\n");
     }
 
+    GlobalRefDestroy(KJVI.klass);
+    KJVI.klass = nullptr;
+    KJVI.constructor = nullptr;
+    KJVI.intValue = nullptr;
+
+    GlobalRefDestroy(KJVL.klass);
+    KJVL.klass = nullptr;
+    KJVL.constructor = nullptr;
+    KJVL.longValue = nullptr;
+
     GlobalRefDestroy(KKDC.klass);
+    KKDC.klass = nullptr;
     KKDC.destroy = nullptr;
 
     GlobalRefDestroy(KKJE.klass);
+    KKJE.klass = nullptr;
     KKJE.message = nullptr;
     KKJE.resultCode = nullptr;
+
+    GlobalRefDestroy(KKOP.klass);
+    KKOP.klass = nullptr;
+    KKOP.value = nullptr;
 
     MutexDestroy(KF);
     MutexDestroy(KHAE);
     MutexDestroy(KHAP);
 
+    delete KF.map;
     K.jvm = nullptr;
 }
 
@@ -807,7 +891,7 @@ static void pushFreeable(
     Freeable* value
 ) {
     MutexEnter(KF);
-    auto [_, inserted] = KF.map.emplace(key, value);
+    auto [_, inserted] = KF.map->emplace(key, value);
     MutexLeave(KF);
 
     if (!inserted) {
@@ -825,16 +909,16 @@ static Freeable* popFreeable(
     MutexEnter(KF);
 
     auto& map = KF.map;
-    auto iterator = map.find(key);
+    auto iterator = map->find(key);
 
-    if (iterator == map.end()) {
+    if (iterator == map->end()) {
         FatalError("No value exists for the given key, it may have been cleaned up previously"
                    " and reference tracking may be broken");
     }
 
     const auto value = iterator->second;
 
-    map.erase(iterator);
+    map->erase(iterator);
     MutexLeave(KF);
 
     return value;
@@ -844,8 +928,106 @@ static Freeable* popFreeable(
 #define FreeablePop(key) popFreeable(env, key)
 
 ///////////////////////////////////////////////////////////////////////////
-// Parameter checks
+// Parameters
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Gets the value of an OutputPointer.
+ */
+static jobject outputPointerGetValue(
+    JNIEnv* env,
+    jobject pointer
+) {
+    if (pointer == nullptr) {
+        return nullptr;
+    }
+
+    const auto value = env->GetObjectField(pointer, KKOP.value);
+    ExceptionClearAndAbort("Cannot get OutputPointer.value");
+
+    return value;
+}
+
+/**
+ * Sets the value of an OutputPointer.
+ */
+static void outputPointerSetValue(
+    JNIEnv* env,
+    jobject pointer,
+    jobject value
+) {
+    if (pointer != nullptr) {
+        env->SetObjectField(pointer, KKOP.value, value);
+        ExceptionClearAndAbort("Cannot set OutputPointer.value");
+    }
+}
+
+/**
+ * Gets the value of a 32bits integer OutputPointer.
+ */
+static jint outputPointerGetInt32Value(
+    JNIEnv* env,
+    jobject pointer
+) {
+    const auto boxedInt = RequireNonNullJobject(outputPointerGetValue(env, pointer));
+    const auto value = env->CallIntMethod(boxedInt, KJVI.intValue);
+    ExceptionClearAndAbort("Failed to get the integer value from a boxed int");
+    return value;
+}
+
+/**
+ * Sets the value of a 32bits integer OutputPointer.
+ */
+static void outputPointerSetInt32Value(
+    JNIEnv* env,
+    jobject pointer,
+    jint value
+) {
+    if (pointer != nullptr) {
+        jobject boxedInt = env->NewObject(KJVI.klass, KJVI.constructor, value);
+        outputPointerSetValue(env, pointer, boxedInt);
+    }
+}
+
+/**
+ * Gets the value of a 64bits integer OutputPointer.
+ */
+static jlong outputPointerGetInt64Value(
+    JNIEnv* env,
+    jobject pointer
+) {
+    const auto boxedLong = RequireNonNullJobject(outputPointerGetValue(env, pointer));
+    const auto value = env->CallLongMethod(boxedLong, KJVL.longValue);
+    ExceptionClearAndAbort("Failed to get the long value from a boxed long");
+    return value;
+}
+
+/**
+ * Sets the value of a 64bits integer OutputPointer.
+ */
+static void outputPointerSetInt64Value(
+    JNIEnv* env,
+    jobject pointer,
+    jlong value
+) {
+    if (pointer != nullptr) {
+        jobject boxedLong = env->NewObject(KJVL.klass, KJVL.constructor, value);
+        outputPointerSetValue(env, pointer, boxedLong);
+    }
+}
+
+#define OutputPointerGetValue(pointer) outputPointerGetValue(env, pointer)
+#define OutputPointerSetValue(pointer, value) outputPointerSetValue(env, pointer, value)
+#define OutputPointerGetInt32Value(pointer) outputPointerGetInt32Value(env, pointer)
+#define OutputPointerSetInt32Value(pointer, value) outputPointerSetInt32Value(env, pointer, value)
+#define OutputPointerGetInt64Value(pointer) outputPointerGetInt64Value(env, pointer)
+#define OutputPointerSetInt64Value(pointer, value) outputPointerSetInt64Value(env, pointer, value)
+
+#define OutputPointerGetPointerValue(T, pointer) \
+    reinterpret_cast<T*>(OutputPointerGetInt64Value(pointer))
+
+#define OutputPointerSetPointerValue(pointer, value) \
+    OutputPointerSetInt64Value(pointer, PtrToLong(value))
 
 /**
  * Throws an IllegalArgumentException if the destructor argument is not null but argument is.
@@ -1417,7 +1599,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text64(
     jint encoding
 ) {
     const auto pStmt = LongTo_s3_stmt(stmt);
-    const auto buffer = reinterpret_cast<char *>(BufferDirectAddress(data));
+    const auto buffer = reinterpret_cast<char*>(BufferDirectAddress(data));
     const auto freeable = AllocateFreeableTarget(data, destructor);
     const auto pDestructor = FreeableDestructorPush(buffer, freeable);
 
@@ -1458,4 +1640,110 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1zeroblob64(
     jlong size
 ) {
     return sqlite3_bind_zeroblob64(LongTo_s3_stmt(stmt), index, size);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1blob_1bytes(
+    JNIEnv* env,
+    jclass clazz,
+    jlong blob
+) {
+    return sqlite3_blob_bytes(LongTo_s3_blob(blob));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1blob_1close(
+    JNIEnv* env,
+    jclass clazz,
+    jlong blob
+) {
+    return sqlite3_blob_close(LongTo_s3_blob(blob));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1blob_1open(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring databaseName,
+    jstring tableName,
+    jstring columnName,
+    jlong rowIndex,
+    jint flags,
+    jobject outBlob
+) {
+    const auto pDb = LongTo_s3(db);
+    const auto zDb = JstringToUtf8(databaseName);
+    const auto zTable = JstringToUtf8(tableName);
+    const auto zColumn = JstringToUtf8(columnName);
+    auto pBlob = OutputPointerGetPointerValue(sqlite3_blob, outBlob);
+    const auto rc = sqlite3_blob_open(pDb, zDb, zTable, zColumn, rowIndex, flags, &pBlob);
+
+    sqlite3_free(zDb);
+    sqlite3_free(zTable);
+    sqlite3_free(zColumn);
+
+    if (rc == SQLITE_OK) {
+        OutputPointerSetPointerValue(outBlob, pBlob);
+    }
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1blob_1read(
+    JNIEnv* env,
+    jclass clazz,
+    jlong blob,
+    jbyteArray buffer,
+    jint size,
+    jint offset
+) {
+    RequireNonNullJobject(buffer);
+    const auto pBlob = LongTo_s3_blob(blob);
+
+    const auto elements = env->GetByteArrayElements(buffer);
+    OutOfMemoryCheck(elements);
+
+    const auto rc = sqlite3_blob_read(pBlob, elements, size, offset);
+
+    if (rc == SQLITE_OK) {
+        env->ReleaseByteArrayElements(buffer, elements, JNI_COMMIT);
+    } else {
+        env->ReleaseByteArrayElements(buffer, elements, JNI_ABORT);
+    }
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1blob_1reopen(
+    JNIEnv* env,
+    jclass clazz,
+    jlong blob,
+    jlong rowIndex
+) {
+    return sqlite3_blob_reopen(LongTo_s3_blob(blob), rowIndex);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1blob_1write(
+    JNIEnv* env,
+    jclass clazz,
+    jlong blob,
+    jbyteArray buffer,
+    jint size,
+    jint offset
+) {
+    const auto pBlob = LongTo_s3_blob(blob);
+    const auto pBuffer = ByteArrayToBuffer(buffer, size);
+    const auto rc = sqlite3_blob_write(pBlob, pBuffer, size, offset);
+    sqlite3_free(pBuffer);
+    return rc;
 }

@@ -16,7 +16,7 @@ import java.lang.foreign.ValueLayout
  * Base for output parameter.
  */
 public abstract class OutputParamBase<Value> internal constructor(initialValue: Value) :
-    OutputParameter<Value> {
+    OutputParam<Value> {
 
     private var actualValue: Value = initialValue
 
