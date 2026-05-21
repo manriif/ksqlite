@@ -2,23 +2,62 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.types.Sqlite3AutoExtensionCallback
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
+import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
+import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
+import ksqlite.capi.callbacks.Sqlite3CreateCollationCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionFinalCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionStepCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionValueCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
+import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
+import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3TraceCallback
+import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
+import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
-import ksqlite.capi.types.Sqlite3BusyHandlerCallback
-import ksqlite.capi.types.Sqlite3CollationNeededCallback
+import ksqlite.capi.types.Sqlite3CompleteResult
+import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.types.Sqlite3DbConfigOption
+import ksqlite.capi.types.Sqlite3DbStatusOption
+import ksqlite.capi.types.Sqlite3DeserializeFlag
+import ksqlite.capi.types.Sqlite3ExplainMode
+import ksqlite.capi.types.Sqlite3FileControlOpcode
+import ksqlite.capi.types.Sqlite3FileOpenFlag
+import ksqlite.capi.types.Sqlite3Limit
+import ksqlite.capi.types.Sqlite3OutputParam
+import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.Sqlite3SerializeFlag
+import ksqlite.capi.types.Sqlite3StatementStatusCounter
+import ksqlite.capi.types.Sqlite3StatusOption
+import ksqlite.capi.types.Sqlite3StmtOutputParam
 import ksqlite.capi.types.Sqlite3TextEncoding
+import ksqlite.capi.types.Sqlite3TraceCode
+import ksqlite.capi.types.Sqlite3TransactionState
+import ksqlite.capi.types.Sqlite3ValueOutputParam
+import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
+import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.types.sqlite3_filename
+import ksqlite.capi.types.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.types.sqlite3_vfs
 
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
@@ -26,10 +65,10 @@ import ksqlite.capi.types.sqlite3_value
  *
  * [sqlite3_aggregate_context()](https://sqlite.org/c3ref/aggregate_context.html)
  */
-public expect fun sqlite3_aggregate_context(
+public expect inline fun <reified Data: Any> sqlite3_aggregate_context(
     context: sqlite3_context,
-    nBytes: Int
-): sqlite3_mutable_pointer?
+    noinline factory: (() -> Data)?
+): Data? // TODO
 
 /**
  * Register a statically linked extension that is automatically loaded by every new database
@@ -45,11 +84,11 @@ public expect fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback)
  *
  * [sqlite3_autovacuum_pages()](https://sqlite.org/c3ref/autovacuum_pages.html)
  */
-public expect fun sqlite3_autovacuum_pages(
+public expect fun <ClientData> sqlite3_autovacuum_pages(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    destructor: Sqlite3DestructorCallback?,
-    callback: Sqlite3AutoVacuumPagesCallback?
+    clientData: ClientData,
+    destructor: Sqlite3DestructorCallback<ClientData>?,
+    callback: Sqlite3AutoVacuumPagesCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -109,9 +148,9 @@ public expect fun sqlite3_backup_step(
 public expect fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
-    data: ByteArray?,
+    data: ByteArray,
     size: Int,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestructorCallback<ByteArray>?
 ): Sqlite3Result
 
 /**
@@ -122,9 +161,9 @@ public expect fun sqlite3_bind_blob(
 public expect fun sqlite3_bind_blob64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_mutable_pointer?,
+    data: sqlite3_mutable_pointer,
     size: Long,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
 ): Sqlite3Result
 
 /**
@@ -206,12 +245,12 @@ public expect fun sqlite3_bind_parameter_name(
  *
  * [sqlite3_bind_pointer()](https://sqlite.org/c3ref/bind_blob.html)
  */
-public expect fun sqlite3_bind_pointer(
+public expect fun <ClientData> sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_mutable_pointer?,
+    data: ClientData,
     type: String?,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestructorCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -222,8 +261,8 @@ public expect fun sqlite3_bind_pointer(
 public expect fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String?,
-    size: Int?
+    text: String,
+    size: Int? = null
 ): Sqlite3Result
 
 /**
@@ -234,10 +273,10 @@ public expect fun sqlite3_bind_text(
 public expect fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_mutable_pointer?,
+    data: sqlite3_mutable_pointer,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
 ): Sqlite3Result
 
 /**
@@ -347,10 +386,10 @@ public expect fun sqlite3_blob_write(
  *
  * [sqlite3_busy_handler()](https://sqlite.org/c3ref/busy_handler.html)
  */
-public expect fun sqlite3_busy_handler(
+public expect fun <ClientData> sqlite3_busy_handler(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3BusyHandlerCallback?
+    clientData: ClientData,
+    callback: Sqlite3BusyHandlerCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -425,10 +464,10 @@ public expect fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result
  *
  * [sqlite3_collation_needed()](https://sqlite.org/c3ref/collation_needed.html)
  */
-public expect fun sqlite3_collation_needed(
+public expect fun <ClientData> sqlite3_collation_needed(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3CollationNeededCallback?,
+    clientData: ClientData,
+    callback: Sqlite3CollationNeededCallback<ClientData>?,
 ): Sqlite3Result
 
 /**
@@ -576,18 +615,18 @@ public expect fun sqlite3_column_value(
     stmt: sqlite3_stmt,
     index: Int
 ): sqlite3_value?
-/*
+
 /**
  * Register a function to be invoked when a transaction commits. If the invoked function returns
  * non-zero, then the commit becomes a rollback.
  *
  * [sqlite_commit_hook()](https://sqlite.org/c3ref/commit_hook.html)
  */
-public expect fun sqlite3_commit_hook(
+public expect inline fun <reified ClientData> sqlite3_commit_hook(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3CommitHookCallback?
-): sqlite3_mutable_pointer?
+    clientData: ClientData,
+    callback: Sqlite3CommitHookCallback<ClientData>?
+): ClientData?
 
 /**
  * Return the [index]-th compile-time option string. If [index] is out of range, return `null`.
@@ -637,12 +676,12 @@ public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
  *
  * [sqlite3_create_collation()](https://sqlite.org/c3ref/create_collation.html)
  */
-public expect fun sqlite3_create_collation(
+public expect fun <ClientData> sqlite3_create_collation(
     db: sqlite3,
     name: String,
     encoding: Sqlite3TextEncoding.Set0,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3CreateCollationCallback?
+    clientData: ClientData,
+    callback: Sqlite3CreateCollationCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -650,13 +689,13 @@ public expect fun sqlite3_create_collation(
  *
  * [sqlite3_create_collation_v2()](https://sqlite.org/c3ref/create_collation.html)
  */
-public expect fun sqlite3_create_collation_v2(
+public expect fun <ClientData> sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
     encoding: Sqlite3TextEncoding.Set0,
-    userData: sqlite3_mutable_pointer?,
-    destructor: Sqlite3DestructorCallback?,
-    callback: Sqlite3CreateCollationCallback?
+    clientData: ClientData,
+    destructor: Sqlite3DestructorCallback<ClientData>?,
+    callback: Sqlite3CreateCollationCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -664,15 +703,15 @@ public expect fun sqlite3_create_collation_v2(
  *
  * [sqlite3_create_function()](https://sqlite.org/c3ref/create_function.html)
  */
-public expect fun sqlite3_create_function(
+public expect fun <ClientData> sqlite3_create_function(
     db: sqlite3,
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    userData: sqlite3_mutable_pointer?,
-    func: Sqlite3CreateFunctionFuncCallback?,
-    step: Sqlite3CreateFunctionStepCallback?,
-    final: Sqlite3CreateFunctionFinalCallback?
+    clientData: ClientData,
+    func: Sqlite3CreateFunctionFuncCallback<ClientData>?,
+    step: Sqlite3CreateFunctionStepCallback<ClientData>?,
+    final: Sqlite3CreateFunctionFinalCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -680,18 +719,18 @@ public expect fun sqlite3_create_function(
  *
  * [sqlite3_create_function_v2()](https://sqlite.org/c3ref/create_function.html)
  */
-public expect fun sqlite3_create_function_v2(
+public expect fun <ClientData> sqlite3_create_function_v2(
     db: sqlite3,
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    userData: sqlite3_mutable_pointer?,
-    func: Sqlite3CreateFunctionFuncCallback?,
-    step: Sqlite3CreateFunctionStepCallback?,
-    final: Sqlite3CreateFunctionFinalCallback?,
-    destructor: Sqlite3DestructorCallback?
+    clientData: ClientData,
+    func: Sqlite3CreateFunctionFuncCallback<ClientData>?,
+    step: Sqlite3CreateFunctionStepCallback<ClientData>?,
+    final: Sqlite3CreateFunctionFinalCallback<ClientData>?,
+    destructor: Sqlite3DestructorCallback<ClientData>?
 ): Sqlite3Result
-
+/*
 /**
  * External API function used to create a new virtual-table module.
  *
@@ -701,7 +740,7 @@ public expect fun sqlite3_create_module(
     db: sqlite3,
     name: String,
     module: sqlite3_module?,
-    userData: sqlite3_mutable_pointer?
+    clientData: Any?
 ): Sqlite3Result
 
 /**
@@ -709,30 +748,30 @@ public expect fun sqlite3_create_module(
  *
  * [sqlite3_create_module_v2()](https://sqlite.org/c3ref/create_module.html)
  */
-public expect fun sqlite3_create_module_v2(
+public expect fun <ClientData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
     module: sqlite3_module?,
-    userData: sqlite3_mutable_pointer?,
-    destructor: Sqlite3DestructorCallback?,
+    clientData: ClientData,
+    destructor: Sqlite3DestructorCallback<ClientData>?,
 ): Sqlite3Result
-
+*/
 /**
  * Create new user functions.
  *
  * [sqlite3_create_window_function()](https://sqlite.org/c3ref/create_function.html)
  */
-public expect fun sqlite3_create_window_function(
+public expect fun <ClientData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    userData: sqlite3_mutable_pointer?,
-    step: Sqlite3CreateFunctionStepCallback?,
-    final: Sqlite3CreateFunctionFinalCallback?,
-    value: Sqlite3CreateFunctionValueCallback?,
-    inverse: Sqlite3CreateFunctionInverseCallback?,
-    destructor: Sqlite3DestructorCallback?
+    clientData: ClientData,
+    step: Sqlite3CreateFunctionStepCallback<ClientData>?,
+    final: Sqlite3CreateFunctionFinalCallback<ClientData>?,
+    value: Sqlite3CreateFunctionValueCallback<ClientData>?,
+    inverse: Sqlite3CreateFunctionInverseCallback<ClientData>?,
+    destructor: Sqlite3DestructorCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -905,12 +944,12 @@ public expect fun sqlite3_error_offset(db: sqlite3): Int
  *
  * [sqlite3_exec()](https://sqlite.org/c3ref/exec.html)
  */
-public expect fun sqlite3_exec(
+public expect fun <ClientData> sqlite3_exec(
     db: sqlite3,
     sql: String,
     outErrorMessage: Utf8OutputParam?,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3ExecCallback?
+    clientData: ClientData,
+    callback: Sqlite3ExecCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -951,7 +990,7 @@ public expect fun sqlite3_file_control(
     db: sqlite3,
     name: String?,
     opcode: Sqlite3FileControlOpcode,
-    userData: sqlite3_mutable_pointer?
+    //clientData: Any?
 ): Sqlite3Result
 
 /**
@@ -994,10 +1033,10 @@ public expect fun sqlite3_get_autocommit(db: sqlite3): Int
  *
  * [sqlite3_get_auxdata()](https://sqlite.org/c3ref/get_auxdata.html)
  */
-public expect fun sqlite3_get_auxdata(
+public expect inline fun <reified ClientData> sqlite3_get_auxdata(
     context: sqlite3_context,
     index: Int
-): sqlite3_mutable_pointer?
+): ClientData?
 
 /**
  * Initialize SQLite.
@@ -1315,11 +1354,11 @@ public expect fun sqlite3_preupdate_depth(db: sqlite3): Int
  *
  * [sqlite3_preupdate_hook()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
  */
-public expect fun sqlite3_preupdate_hook(
+public expect inline fun <reified ClientData> sqlite3_preupdate_hook(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3PreupdateHookCallback?
-): sqlite3_mutable_pointer?
+    clientData: ClientData,
+    callback: Sqlite3PreupdateHookCallback<ClientData>?
+): ClientData?
 
 /**
  * This function is called from within a pre-update callback to retrieve a field of the row
@@ -1351,11 +1390,11 @@ public expect fun sqlite3_preupdate_old(
  *
  * [sqlite3_progress_handler()](https://sqlite.org/c3ref/progress_handler.html)
  */
-public expect fun sqlite3_progress_handler(
+public expect fun <ClientData> sqlite3_progress_handler(
     db: sqlite3,
     nOps: Int,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3ProgressHandlerCallback?
+    clientData: ClientData,
+    callback: Sqlite3ProgressHandlerCallback<ClientData>?
 )
 
 /**
@@ -1455,11 +1494,11 @@ public expect fun sqlite3_reset_auto_extension()
  *
  * [sqlite3_result_blob()](https://sqlite.org/c3ref/result_blob.html)
  */
-public expect fun sqlite3_result_blob(
+public expect fun <Data : ByteArray?> sqlite3_result_blob(
     context: sqlite3_context,
-    data: ByteArray?,
+    data: Data,
     size: Int,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestructorCallback<Data>?
 )
 
 /**
@@ -1469,9 +1508,9 @@ public expect fun sqlite3_result_blob(
  */
 public expect fun sqlite3_result_blob64(
     context: sqlite3_context,
-    data: sqlite3_mutable_pointer?,
+    data: sqlite3_mutable_pointer,
     size: Long,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
 )
 
 /**
@@ -1551,11 +1590,11 @@ public expect fun sqlite3_result_null(context: sqlite3_context)
  *
  * [sqlite3_result_pointer()](https://sqlite.org/c3ref/result_blob.html)
  */
-public expect fun sqlite3_result_pointer(
+public expect fun <ClientData> sqlite3_result_pointer(
     context: sqlite3_context,
-    data: sqlite3_mutable_pointer?,
+    data: ClientData,
     type: String?,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestructorCallback<ClientData>?
 )
 
 /**
@@ -1587,10 +1626,10 @@ public expect fun sqlite3_result_text(
  */
 public expect fun sqlite3_result_text64(
     context: sqlite3_context,
-    data: sqlite3_mutable_pointer?,
+    data: sqlite3_mutable_pointer,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
 )
 
 /**
@@ -1629,11 +1668,11 @@ public expect fun sqlite3_result_zeroblob64(
  *
  * [sqlite3_rollback_hook()](https://sqlite.org/c3ref/commit_hook.html)
  */
-public expect fun sqlite3_rollback_hook(
+public expect inline fun <reified ClientData> sqlite3_rollback_hook(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3RollbackHookCallback?
-): sqlite3_mutable_pointer?
+    clientData: ClientData,
+    callback: Sqlite3RollbackHookCallback<ClientData>?
+): ClientData?
 
 /**
  * Return the serialization of a database.
@@ -1651,10 +1690,10 @@ public expect fun sqlite3_serialize(
  *
  * [sqlite3_set_authorizer()](https://sqlite.org/c3ref/set_authorizer.html)
  */
-public expect fun sqlite3_set_authorizer(
+public expect fun <ClientData> sqlite3_set_authorizer(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3SetAuthorizerCallback?
+    clientData: ClientData,
+    callback: Sqlite3SetAuthorizerCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -1669,11 +1708,11 @@ public expect fun sqlite3_set_authorizer(
  *
  * [sqlite3_set_auxdata()](https://sqlite.org/c3ref/get_auxdata.html)
  */
-public expect fun sqlite3_set_auxdata(
+public expect fun <ClientData> sqlite3_set_auxdata(
     context: sqlite3_context,
     index: Int,
-    data: sqlite3_mutable_pointer?,
-    destructor: Sqlite3DestructorCallback?
+    data: ClientData,
+    destructor: Sqlite3DestructorCallback<ClientData>?
 )
 
 /**
@@ -1887,11 +1926,11 @@ public expect fun sqlite3_total_changes64(db: sqlite3): Long
  *
  * [sqlite3_trace_v2()](https://sqlite.org/c3ref/trace_v2.html)
  */
-public expect fun sqlite3_trace_v2(
+public expect fun <ClientData> sqlite3_trace_v2(
     db: sqlite3,
     mask: Sqlite3TraceCode?,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3TraceCallback?
+    clientData: ClientData,
+    callback: Sqlite3TraceCallback<ClientData>?
 ): Sqlite3Result
 
 /**
@@ -1911,11 +1950,11 @@ public expect fun sqlite3_txn_state(
  *
  * [sqlite3_update_hook()](https://sqlite.org/c3ref/update_hook.html)
  */
-public expect fun sqlite3_update_hook(
+public expect inline fun <reified ClientData> sqlite3_update_hook(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3UpdateHookCallback?
-): sqlite3_mutable_pointer?
+    clientData: ClientData,
+    callback: Sqlite3UpdateHookCallback<ClientData>?
+): ClientData?
 
 /**
  * Return a boolean value for a query parameter.
@@ -1971,7 +2010,7 @@ public expect fun sqlite3_uri_parameter(
  *
  * [sqlite3_user_data()](https://sqlite.org/c3ref/user_data.html)
  */
-public expect fun sqlite3_user_data(context: sqlite3_context): sqlite3_mutable_pointer?
+public expect inline fun <reified Data> sqlite3_user_data(context: sqlite3_context): Data?
 
 /**
  * Extract information from sqlite3_value structure.
@@ -2050,10 +2089,10 @@ public expect fun sqlite3_value_numeric_type(value: sqlite3_value): Sqlite3DataT
  *
  * [sqlite3_value_pointer()](https://sqlite.org/c3ref/value_blob.html)
  */
-public expect fun sqlite3_value_pointer(
+public expect inline fun <reified ClientData> sqlite3_value_pointer(
     value: sqlite3_value,
     type: String?
-): sqlite3_mutable_pointer?
+): ClientData?
 
 /**
  * Return the subtype for an application-defined SQL function argument [value].
@@ -2203,4 +2242,3 @@ public expect fun sqlite3_vtab_rhs_value(
     index: Int,
     outValue: Sqlite3ValueOutputParam?
 ): Sqlite3Result
-*/

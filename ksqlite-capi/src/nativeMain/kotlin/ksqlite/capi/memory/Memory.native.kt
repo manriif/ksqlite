@@ -9,7 +9,7 @@ import kotlinx.cinterop.convert
 import kotlinx.cinterop.get
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import platform.posix.memcpy
 

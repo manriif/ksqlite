@@ -5,7 +5,7 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.capi.types.Sqlite3WalHookCallback
+import ksqlite.capi.callbacks.Sqlite3WalHookCallback
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
 

@@ -1,7 +1,7 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.handlers.Handler
-import ksqlite.capi.types.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
@@ -70,39 +70,39 @@ internal fun unregisterGlobalDisposable(pointer: MemorySegment) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// User data
+// Client data
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * [Disposable] invoking [destructor] with [userData] when disposed.
+ * [Disposable] invoking [destructor] with [clientData] when disposed.
  */
-private class UserDataDisposable(
-    private val userData: sqlite3_mutable_pointer,
-    private val destructor: Sqlite3DestructorCallback
+private class ClientDataDisposable(
+    private val clientData: sqlite3_mutable_pointer,
+    private val destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>
 ) : Disposable {
 
     override fun dispose() {
-        unregisterGlobalDisposable(userData.block.pointer)
-        destructor(userData)
+        unregisterGlobalDisposable(clientData.block.pointer)
+        destructor.handle(clientData)
     }
 }
 
 /**
  * Registers a [Disposable] which will invoke [destructor] when disposed.
- * Returns [GlobalDisposer] only if [userData] != `null` and [destructor] != `null`.
+ * If [destructor] is `null`then [MemorySegment.NULL] is returned.
  */
-internal fun userDataDisposer(
-    userData: sqlite3_mutable_pointer?,
-    destructor: Sqlite3DestructorCallback?
+internal fun clientDataDisposer(
+    clientData: sqlite3_mutable_pointer,
+    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
 ): MemorySegment {
-    if (userData == null || destructor == null) {
+    if (destructor == null) {
         return MemorySegment.NULL
     }
 
     registerGlobalDisposable(
-        pointer = userData.block.pointer,
-        disposable = UserDataDisposable(
-            userData = userData,
+        pointer = clientData.block.pointer,
+        disposable = ClientDataDisposable(
+            clientData = clientData,
             destructor = destructor
         )
     )

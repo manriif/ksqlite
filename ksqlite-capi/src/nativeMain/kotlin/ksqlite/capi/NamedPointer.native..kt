@@ -4,7 +4,7 @@ import kotlinx.cinterop.Arena
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.cstr
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 
 /**
  * Wrapper for [sqlite3_bind_pointer] and [sqlite3_result_pointer] userData.

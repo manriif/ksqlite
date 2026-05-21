@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
 import ksqlite.AutoVacuumPagesCallback
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_autovacuum_pages].

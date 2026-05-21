@@ -8,8 +8,8 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.convertActionCode
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
-import ksqlite.capi.types.Sqlite3UpdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
 import ksqlite.sqlite3_int64

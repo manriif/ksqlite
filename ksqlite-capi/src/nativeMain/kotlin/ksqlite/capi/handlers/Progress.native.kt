@@ -4,7 +4,7 @@ package ksqlite.capi.handlers
 
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 
 /**
  * Static C function for [progressHandlerHandler].

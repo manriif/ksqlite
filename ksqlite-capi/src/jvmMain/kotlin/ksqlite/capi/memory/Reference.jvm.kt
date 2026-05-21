@@ -7,9 +7,9 @@ import java.lang.foreign.MemorySegment
  *
  * Throws [IllegalStateException] if [pointer] is [MemorySegment.NULL].
  */
-internal inline fun <reified Data : Any> MemoryManager.stableRefData(
+internal inline fun <reified Data : Any, ClientData> MemoryManager.stableRefData(
     pointer: MemorySegment
-): ReferencedData<Data> {
+): ReferencedData<Data, ClientData> {
     check(!pointer.isNull) { "Pointer must not point to null" }
-    return getStableRef(pointer).getReferencedData()
+    return getStableRef<ClientData>(pointer).getReferencedData()
 }

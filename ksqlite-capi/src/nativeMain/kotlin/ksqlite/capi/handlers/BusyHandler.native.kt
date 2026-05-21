@@ -2,7 +2,7 @@ package ksqlite.capi.handlers
 
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.types.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 
 /**
  * Static C function for [busyHandlerHandler].

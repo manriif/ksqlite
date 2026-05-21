@@ -3,7 +3,7 @@ package ksqlite.capi.memory
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 
 /**

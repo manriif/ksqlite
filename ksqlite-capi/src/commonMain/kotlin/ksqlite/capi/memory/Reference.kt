@@ -1,11 +1,9 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.types.sqlite3_mutable_pointer
-
 /**
  * Reference to an object preventing GC from collecting or moving it.
  */
-internal interface Reference : Disposable {
+internal interface Reference<ClientData> : Disposable {
 
     /**
      * Internally referenced data.
@@ -13,10 +11,9 @@ internal interface Reference : Disposable {
     val data: Any?
 
     /**
-     * The associated user data.
-     * For [ByteArray] and [String], it is the content of the underlying type.
+     * The associated client data.
      * */
-    val userData: sqlite3_mutable_pointer?
+    val clientData: ClientData
 
     /**
      * Disposes the reference, making referenced object(s) eligible to GC.
@@ -24,19 +21,19 @@ internal interface Reference : Disposable {
     override fun dispose()
 }
 
-internal typealias ReferencedData<Data> = Pair<Data, sqlite3_mutable_pointer?>
+internal typealias ReferencedData<Data, ClientData> = Pair<Data, ClientData>
 
 /**
- * Returns `this` [Reference]'s referenced data as [Data] paired with the user data.
+ * Returns `this` [Reference]'s referenced data as [D] paired with the user data.
  */
-internal inline fun <reified Data : Any> Reference.getReferencedData(): ReferencedData<Data> {
+internal inline fun <reified D : Any, C> Reference<C>.getReferencedData(): ReferencedData<D, C> {
     val data = checkNotNull(data) {
         "No data exists for reference"
     }
 
-    check(data is Data) {
-        "Data is not of expected type (${data::class} vs ${Data::class})"
+    check(data is D) {
+        "Data is not of expected type (${data::class} vs ${D::class})"
     }
 
-    return data to userData
+    return data to clientData
 }

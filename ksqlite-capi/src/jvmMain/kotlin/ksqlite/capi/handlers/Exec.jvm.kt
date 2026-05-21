@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3ExecCallback
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.memory.toArray
@@ -12,7 +12,8 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_exec].
  */
-internal class ExecHandler(manager: MemoryManager) : Handler(manager) {
+internal class ExecHandler<ClientData>(manager: MemoryManager) :
+    Handler<ClientData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -27,15 +28,15 @@ internal class ExecHandler(manager: MemoryManager) : Handler(manager) {
         columnCount: Int,
         values: MemorySegment,
         names: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3ExecCallback, userData ->
+    ): Int = handler(refPointer) { callback: Sqlite3ExecCallback<ClientData>, data ->
         val columnValues = values.toArray(columnCount) { it.toKStringFromUtf8OrNull() }
         val columnNames = names.toArray(columnCount) { it.toKStringFromUtf8() }
 
-        callback(
-            userData,
-            columnCount,
-            columnValues,
-            columnNames
+        callback.handle(
+            clientData = data,
+            columnCount = columnCount,
+            columnValues = columnValues,
+            columnNames = columnNames
         )
     }
 }

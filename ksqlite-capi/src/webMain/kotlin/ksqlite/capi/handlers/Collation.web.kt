@@ -7,8 +7,8 @@ import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.Sqlite3CollationNeededCallback
-import ksqlite.capi.types.Sqlite3CreateCollationCallback
+import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
+import ksqlite.capi.callbacks.Sqlite3CreateCollationCallback
 import ksqlite.capi.types.sqlite3
 
 /**

@@ -5,7 +5,7 @@ import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_busy_handler].

@@ -2,6 +2,9 @@
 
 package ksqlite.capi.types
 
+import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
+import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
+
 /**
  * These constants are the available integer configuration options that can be passed as the first
  * argument to the sqlite3_config() interface.

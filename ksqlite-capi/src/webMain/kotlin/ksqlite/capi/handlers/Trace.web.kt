@@ -7,7 +7,7 @@ import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.Sqlite3TraceCallback
+import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_stmt
 import kotlin.js.toLong
@@ -35,7 +35,7 @@ internal class TraceHandler(manager: MemoryManager) : Handler(manager) {
     ): Int = handler(refPointer) { callback: Sqlite3TraceCallback, userData ->
         dispatchTraceEvent(
             callback = callback,
-            userData = userData,
+            clientData = userData,
             code = code,
             pointer1 = pointer1,
             pointer2 = pointer2,

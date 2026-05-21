@@ -9,15 +9,18 @@ import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.deallocateNullable
+import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.memory.wrapOrNull
-import ksqlite.capi.types.Sqlite3AutoExtensionCallback
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
+import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
-import ksqlite.capi.types.Sqlite3BusyHandlerCallback
-import ksqlite.capi.types.Sqlite3CollationNeededCallback
+import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
+import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
+import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3
@@ -25,7 +28,6 @@ import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.useParam
@@ -102,7 +104,7 @@ private val nativeInit = run {
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): sqlite3_mutable_pointer? = sqlite3_mutable_pointer.from(
+): Any? = sqlite3_mutable_pointer.from(
     pointer = native_sqlite3_aggregate_context(context.pointer, nBytes),
     size = nBytes.toLong()
 )
@@ -231,7 +233,7 @@ public actual fun sqlite3_bind_pointer(
 public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String?,
+    text: String,
     size: Int?
 ): Sqlite3Result = convertResult(
     native_sqlite3_bind_text(
@@ -355,7 +357,7 @@ public actual fun sqlite3_changes64(db: sqlite3): Long =
     native_sqlite3_changes64(db.pointer)
 
 public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
-    commonSqlite3ClearBindings(stmt, native_sqlite3_clear_bindings(stmt.pointer))
+    commonClearBindings(stmt, native_sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3?): Sqlite3Result =
     db.deallocateNullable { native_sqlite3_close(it?.pointer ?: 0) }
@@ -442,7 +444,7 @@ public actual fun sqlite3_column_value(
     index: Int
 ): sqlite3_value? = native_sqlite3_column_value(stmt.pointer, index)
     .wrapOrNull(::sqlite3_value)
-/*
+
 public actual fun sqlite3_commit_hook(
     db: sqlite3,
     userData: sqlite3_mutable_pointer?,
@@ -466,7 +468,7 @@ public actual fun sqlite3_compileoption_used(optName: String): Int =
 public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
     convertCompleteResult(native_sqlite3_complete(sql))
 
-public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonSqlite3Config(
+/*public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonSqlite3Config(
     option = option,
     logFunctionPointer = { globalMemory.functionPointer(it, ::ConfigLogHandler) },
     sqllogFunctionPointer = { globalMemory.functionPointer(it, ::ConfigSqlLogHandler) },

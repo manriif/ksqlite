@@ -1,14 +1,13 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.CreateFunction
+import ksqlite.capi.callbacks.Sqlite3CreateFunction1Callback
+import ksqlite.capi.callbacks.Sqlite3CreateFunction3Callback
 import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3CreateFunction1Callback
-import ksqlite.capi.types.Sqlite3CreateFunction3Callback
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.toArray
+import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.types.sqlite3_value
 import ksqlite.sqlite3.sqlite3_user_data
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
@@ -18,7 +17,8 @@ import kotlin.reflect.KProperty1
 /**
  * Base for create function [Handler]s.
  */
-internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(manager) {
+internal abstract class CreateFunctionHandler<ClientData>(manager: MemoryManager) :
+    Handler<ClientData>(manager) {
 
     /**
      * Handler for create function callback.
@@ -26,16 +26,16 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(
     protected inline fun functionHandler(
         context: MemorySegment,
         block: (
-            callbacks: CreateFunction,
-            userData: sqlite3_mutable_pointer?,
+            callbacks: CreateFunction<ClientData>,
+            clientData: ClientData,
             context: sqlite3_context
         ) -> Unit
     ) {
         val refPointer = sqlite3_user_data(context)
         val context = sqlite3_context(context)
 
-        handler(refPointer) { callbacks: CreateFunction, userData ->
-            block(callbacks, userData, context)
+        handler(refPointer) { callbacks: CreateFunction<ClientData>, clientData ->
+            block(callbacks, clientData, context)
         }
     }
 }
@@ -47,8 +47,8 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(
 /**
  * Base for 1-arg create function [Handler]s.
  */
-internal abstract class CreateFunction1ArgHandler(manager: MemoryManager) :
-    CreateFunctionHandler(manager) {
+internal abstract class CreateFunction1ArgHandler<ClientData>(manager: MemoryManager) :
+    CreateFunctionHandler<ClientData>(manager) {
 
     final override fun createFunctionDescriptor(): FunctionDescriptor =
         FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
@@ -58,9 +58,9 @@ internal abstract class CreateFunction1ArgHandler(manager: MemoryManager) :
      */
     protected fun functionHandler(
         context: MemorySegment,
-        selector: KProperty1<CreateFunction, Sqlite3CreateFunction1Callback?>
-    ) = functionHandler(context) { callbacks, userData, context ->
-        selector(callbacks)!!.invoke(userData, context)
+        selector: KProperty1<CreateFunction<ClientData>, Sqlite3CreateFunction1Callback<ClientData>?>
+    ) = functionHandler(context) { callbacks, clientData, context ->
+        selector(callbacks)!!.handle(clientData, context)
     }
 }
 
@@ -68,19 +68,19 @@ internal abstract class CreateFunction1ArgHandler(manager: MemoryManager) :
  * Handler for the `final` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class CreateFunctionFinalHandler(manager: MemoryManager) :
-    CreateFunction1ArgHandler(manager) {
+internal class CreateFunctionFinalHandler<ClientData>(manager: MemoryManager) :
+    CreateFunction1ArgHandler<ClientData>(manager) {
 
-    fun handle(context: MemorySegment) = functionHandler(context, CreateFunction::final)
+    fun handle(context: MemorySegment) = functionHandler(context, CreateFunction<ClientData>::final)
 }
 
 /**
  * Handler for the `value` argument of  [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class CreateFunctionValueHandler(manager: MemoryManager) :
-    CreateFunction1ArgHandler(manager) {
+internal class CreateFunctionValueHandler<ClientData>(manager: MemoryManager) :
+    CreateFunction1ArgHandler<ClientData>(manager) {
 
-    fun handle(context: MemorySegment) = functionHandler(context, CreateFunction::value)
+    fun handle(context: MemorySegment) = functionHandler(context, CreateFunction<ClientData>::value)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -90,8 +90,8 @@ internal class CreateFunctionValueHandler(manager: MemoryManager) :
 /**
  * Base for 3-args create function [Handler]s.
  */
-internal abstract class CreateFunction3ArgsHandler(manager: MemoryManager) :
-    CreateFunctionHandler(manager) {
+internal abstract class CreateFunction3ArgsHandler<ClientData>(manager: MemoryManager) :
+    CreateFunctionHandler<ClientData>(manager) {
 
     final override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -106,10 +106,10 @@ internal abstract class CreateFunction3ArgsHandler(manager: MemoryManager) :
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment,
-        selector: KProperty1<CreateFunction, Sqlite3CreateFunction3Callback?>
-    ) = functionHandler(context) { callbacks, userData, context ->
+        selector: KProperty1<CreateFunction<ClientData>, Sqlite3CreateFunction3Callback<ClientData>?>
+    ) = functionHandler(context) { callbacks, clientData, context ->
         val values = argv.orNull?.toArray(argc) { sqlite3_value(it) } ?: emptyArray()
-        selector(callbacks)!!.invoke(userData, context, values)
+        selector(callbacks)!!.handle(clientData, context, values)
     }
 }
 
@@ -117,39 +117,39 @@ internal abstract class CreateFunction3ArgsHandler(manager: MemoryManager) :
  * Handler for the `func` argument of [ksqlite.capi.sqlite3_create_function] and
  * [ksqlite.capi.sqlite3_create_function_v2].
  */
-internal class CreateFunctionFuncHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager) {
+internal class CreateFunctionFuncHandler<ClientData>(manager: MemoryManager) :
+    CreateFunction3ArgsHandler<ClientData>(manager) {
 
     fun handle(
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, CreateFunction::func)
+    ) = functionHandler(context, argc, argv, CreateFunction<ClientData>::func)
 }
 
 /**
  * Handler for the `step` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class CreateFunctionStepHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager) {
+internal class CreateFunctionStepHandler<ClientData>(manager: MemoryManager) :
+    CreateFunction3ArgsHandler<ClientData>(manager) {
 
     fun handle(
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, CreateFunction::step)
+    ) = functionHandler(context, argc, argv, CreateFunction<ClientData>::step)
 }
 
 /**
  * Handler for the `inverse` argument of [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class CreateFunctionInverseHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager) {
+internal class CreateFunctionInverseHandler<ClientData>(manager: MemoryManager) :
+    CreateFunction3ArgsHandler<ClientData>(manager) {
 
     fun handle(
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, CreateFunction::inverse)
+    ) = functionHandler(context, argc, argv, CreateFunction<ClientData>::inverse)
 }

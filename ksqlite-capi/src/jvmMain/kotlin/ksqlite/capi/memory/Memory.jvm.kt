@@ -1,7 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
@@ -27,14 +26,14 @@ internal val StaticMemoryManager = MemoryManager()
  *
  * If a pointer was previously obtained using [key], it is disposed.
  */
-internal fun MemoryManager.keyedStableRefPointer(
+internal fun <ClientData> MemoryManager.keyedStableRefPointer(
     key: String,
     data: Any?,
-    userData: sqlite3_mutable_pointer? = null,
-    destructor: Sqlite3DestructorCallback? = null,
+    clientData: ClientData,
+    destructor: Sqlite3DestructorCallback<ClientData>? = null,
 ): MemorySegment = stableRefPointer(
     data = data,
-    userData = userData,
+    clientData = clientData,
     destructor = destructor,
     key = key
 )

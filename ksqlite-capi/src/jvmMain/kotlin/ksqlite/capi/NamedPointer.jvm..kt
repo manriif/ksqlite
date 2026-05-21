@@ -1,6 +1,6 @@
 package ksqlite.capi
 
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.memory.allocateUtf8
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment

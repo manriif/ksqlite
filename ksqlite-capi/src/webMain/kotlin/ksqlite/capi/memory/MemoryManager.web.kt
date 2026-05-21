@@ -10,7 +10,7 @@ import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.interop.wasm.sizeofIR
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.wasm
 import kotlin.js.toJsBigInt

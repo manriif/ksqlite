@@ -67,6 +67,9 @@ val SqliteDefinitions = mapOf(
     "SQLITE_USE_URI" to "1",
 )
 
+/**
+ * Linker options for Unix based OS.
+ */
 val SqliteUnixLinkerOptions = listOf(
     "-lpthread",
     "-ldl"

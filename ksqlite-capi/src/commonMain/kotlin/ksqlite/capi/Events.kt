@@ -1,13 +1,12 @@
 package ksqlite.capi
 
-import ksqlite.capi.types.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.types.Sqlite3SqlLogEvent
-import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TraceEvent
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3TraceConstants
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_stmt
 
 // TODO move this file to ksqlite.capi.handler
@@ -19,16 +18,16 @@ import ksqlite.capi.types.sqlite3_stmt
 /**
  * Dispatches [Sqlite3SqlLogEvent] to [callback].
  */
-internal fun dispatchSqlLogEvent(
-    callback: Sqlite3ConfigSqlLogCallback,
-    userData: sqlite3_mutable_pointer?,
+internal fun <ClientData> dispatchSqlLogEvent(
+    callback: Sqlite3ConfigSqlLogCallback<ClientData>,
+    clientData: ClientData,
     type: Int,
     db: sqlite3,
     name: String?
-): Unit = callback(
-    userData,
-    db,
-    when (type) {
+): Unit = callback.handle(
+    clientData = clientData,
+    db = db,
+    event = when (type) {
         0 -> Sqlite3SqlLogEvent.DatabaseOpened(name!!)
         1 -> Sqlite3SqlLogEvent.StatementExecuted(name!!)
         2 -> Sqlite3SqlLogEvent.DatabaseClosed
@@ -48,9 +47,9 @@ private val TraceConstantMap = sqlite3TraceConstants().associateBy(Sqlite3TraceC
 /**
  * Dispatches [Sqlite3TraceEvent] to [callback].
  */
-internal fun <Pointer> dispatchTraceEvent(
-    callback: Sqlite3TraceCallback,
-    userData: sqlite3_mutable_pointer?,
+internal fun <Pointer, ClientData> dispatchTraceEvent(
+    callback: Sqlite3TraceCallback<ClientData>,
+    clientData: ClientData,
     code: Int,
     pointer1: Pointer?,
     pointer2: Pointer?,
@@ -58,9 +57,9 @@ internal fun <Pointer> dispatchTraceEvent(
     toStatement: (Pointer) -> sqlite3_stmt,
     toString: (Pointer) -> String,
     toLong: (Pointer) -> Long
-): Int = callback(
-    userData,
-    when (TraceConstantMap[code]) {
+): Int = callback.handle(
+    clientData = clientData,
+    event = when (TraceConstantMap[code]) {
         Sqlite3TraceCode.STMT -> Sqlite3TraceEvent.Stmt(
             stmt = toStatement(pointer1!!),
             sql = toString(pointer2!!)

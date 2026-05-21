@@ -6,8 +6,8 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.dispatchSqlLogEvent
-import ksqlite.capi.types.Sqlite3ConfigLogCallback
-import ksqlite.capi.types.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
+import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
 
@@ -55,7 +55,7 @@ private fun configSqlLogHandler(
 ) = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback, userData ->
     dispatchSqlLogEvent(
         callback = callback,
-        userData = userData,
+        clientData = userData,
         type = type,
         db = sqlite3(db!!),
         name = name?.toKStringFromUtf8()

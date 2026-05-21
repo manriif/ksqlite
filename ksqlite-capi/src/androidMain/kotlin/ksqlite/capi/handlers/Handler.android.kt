@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
 import ksqlite.DestructorCallback
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 
 /**

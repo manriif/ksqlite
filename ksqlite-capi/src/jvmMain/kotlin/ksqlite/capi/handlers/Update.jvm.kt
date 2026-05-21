@@ -2,8 +2,8 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.convertActionCode
 import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
-import ksqlite.capi.types.Sqlite3UpdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.memory.toKStringFromUtf8
 import java.lang.foreign.FunctionDescriptor
@@ -13,7 +13,8 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_preupdate_hook].
  */
-internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
+internal class PreupdateHookHandler<ClientData>(manager: MemoryManager) :
+    Handler<ClientData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -33,15 +34,15 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
         tableName: MemorySegment,
         oldRowId: Long,
         newRowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback, userData ->
-        callback(
-            userData,
-            sqlite3(db),
-            convertActionCode(action),
-            dbName.toKStringFromUtf8(),
-            tableName.toKStringFromUtf8(),
-            oldRowId,
-            newRowId
+    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<ClientData>, data ->
+        callback.handle(
+            clientData = data,
+            db = sqlite3(db),
+            action = convertActionCode(action),
+            dbName = dbName.toKStringFromUtf8(),
+            tableName = tableName.toKStringFromUtf8(),
+            oldRowId = oldRowId,
+            newRowId = newRowId
         )
     }
 }
@@ -49,7 +50,8 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
 /**
  * Handler for [ksqlite.capi.sqlite3_update_hook].
  */
-internal class UpdateHookHandler(manager: MemoryManager) : Handler(manager) {
+internal class UpdateHookHandler<ClientData>(manager: MemoryManager) :
+    Handler<ClientData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -65,13 +67,13 @@ internal class UpdateHookHandler(manager: MemoryManager) : Handler(manager) {
         dbName: MemorySegment,
         tableName: MemorySegment,
         rowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback, userData ->
-        callback(
-            userData,
-            convertActionCode(action),
-            dbName.toKStringFromUtf8(),
-            tableName.toKStringFromUtf8(),
-            rowId
+    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback<ClientData>, data ->
+        callback.handle(
+            clientData = data,
+            action = convertActionCode(action),
+            dbName = dbName.toKStringFromUtf8(),
+            tableName = tableName.toKStringFromUtf8(),
+            rowId = rowId
         )
     }
 }

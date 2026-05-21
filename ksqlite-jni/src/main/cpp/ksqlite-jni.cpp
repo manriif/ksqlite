@@ -20,11 +20,12 @@ typedef uint8_t jboolean;
 #define JAVA_LONG "java.lang.Long"
 
 #define KSQLITE_JNI_EXCEPTION "KsqliteJniException"
-#define DESTRUCTOR_CALLBACK "DestructorCallback"
 #define AUTO_EXTENSION_CALLBACK "AutoExtensionCallback"
 #define AUTO_VACUUM_PAGES_CALLBACK "AutoVacuumPagesCallback"
 #define BUSY_HANDLER_CALLBACK "BusyHandlerCallback"
 #define COLLATION_NEEDED_CALLBACK "CollationNeededCallback"
+#define COMMIT_HOOK_CALLBACK "CommitHookCallback"
+#define DESTRUCTOR_CALLBACK "DestructorCallback"
 #define OUTPUT_POINTER "OutputPointer"
 
 ///////////////////////////////////////////////////////////////////////////
@@ -483,8 +484,8 @@ struct DbState : MutexGuarded {
         HookDestroyable autoVacuumPages;
         Hook busyHandler;
         Hook collationNeeded;
-        /*S3JniHook commit;
-        S3JniHook progress;
+        Hook commitHook;
+        /*S3JniHook progress;
         S3JniHook rollback;
         S3JniHook trace;
         S3JniHook update;
@@ -1514,6 +1515,27 @@ static void collationNeededCaller(
     LocalRefDestroy(name);
 }
 
+/**
+ * Calls the Java commit_hook hook.
+ */
+static void commitHookCaller(
+    void* pDbStateHook,
+    sqlite3* pDb,
+    int eTextRep,
+    const char* zName
+) {
+    JniEnvDeclare();
+    DbStateDeclare(pDbStateHook);
+
+    const auto db = PtrToLong(pDb);
+    const auto name = Utf8ToJstring(zName);
+
+    HookEnterDbState(collationNeeded);
+    jint result = env->CallInt(instance, call, db, eTextRep, zName);
+    HookLeave();
+    LocalRefDestroy(name);
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Ksqlite + SQLite 1 to 1 mapping
 ///////////////////////////////////////////////////////////////////////////
@@ -2294,4 +2316,39 @@ Java_ksqlite_KsqliteJni_sqlite3_1column_1value(
     jint index
 ) {
     return PtrToLong(sqlite3_column_value(LongTo_s3_stmt(stmt), index));
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1commit_1hook(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jobject user_data,
+    jobject callback
+) {
+    DbHookReplace(
+        commitHook,
+        "()I",
+        COMMIT_HOOK_CALLBACK,
+        sqlite3_commit_hook(pDb, busyHandlerCaller, pDbState)
+    );
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1compileoption_1get(JNIEnv* env, jclass clazz, jint index) {
+    // TODO: implement sqlite3_compileoption_get()
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1compileoption_1used(JNIEnv* env, jclass clazz, jstring name) {
+    // TODO: implement sqlite3_compileoption_used()
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1complete(JNIEnv* env, jclass clazz, jstring sql) {
+    // TODO: implement sqlite3_complete()
 }

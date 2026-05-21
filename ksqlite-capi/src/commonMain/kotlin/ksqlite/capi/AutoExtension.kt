@@ -1,6 +1,9 @@
 package ksqlite.capi
 
-import ksqlite.capi.types.Sqlite3AutoExtensionCallback
+import ksqlite.capi.callbacks.AutoExtensionCallbackScope
+import ksqlite.capi.callbacks.AutoExtensionFailureResult
+import ksqlite.capi.callbacks.AutoExtensionSuccessResult
+import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
@@ -69,13 +72,24 @@ internal fun <Pointer> autoExtensionHandle(
     errorPointer: Pointer?,
     setError: (pointer: Pointer, message: String) -> Unit
 ): Int {
-    var result: Sqlite3Result = Sqlite3Result.OK
     val iterator = AutoExtensions.iterator()
+    var result: Sqlite3Result = Sqlite3Result.OK
+
+    if (!iterator.hasNext()) {
+        return result.code
+    }
+
     var errorMessage: String? = null
 
     while (iterator.hasNext() && result == Sqlite3Result.OK) {
-        result = iterator.next().invoke(db, api) { message ->
-            errorMessage = message
+        result = iterator.next().run {
+            when (val result = AutoExtensionCallbackScope.handle(db, api)) {
+                AutoExtensionSuccessResult -> Sqlite3Result.OK
+
+                is AutoExtensionFailureResult -> result.result.also {
+                    errorMessage = result.message
+                }
+            }
         }
     }
 

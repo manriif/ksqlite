@@ -7,7 +7,7 @@ import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_set_authorizer].

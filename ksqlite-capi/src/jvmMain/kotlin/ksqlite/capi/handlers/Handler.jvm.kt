@@ -2,7 +2,6 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.getReferencedData
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 
@@ -12,7 +11,7 @@ import java.lang.foreign.MemorySegment
  * Must have a method `handle` with a signature matching the [FunctionDescriptor] returned by
  * [createFunctionDescriptor].
  */
-internal abstract class Handler(protected val manager: MemoryManager) {
+internal abstract class Handler<ClientData>(protected val manager: MemoryManager) {
 
     /**
      * Returns the [FunctionDescriptor].
@@ -25,11 +24,11 @@ internal abstract class Handler(protected val manager: MemoryManager) {
      */
     protected inline fun <reified Data : Any, Result> handler(
         refPointer: MemorySegment,
-        block: (data: Data, userData: sqlite3_mutable_pointer?) -> Result
+        block: (data: Data, clientData: ClientData) -> Result
     ): Result {
         val (data, userData) = manager
-            .getStableRef(refPointer)
-            .getReferencedData<Data>()
+            .getStableRef<ClientData>(refPointer)
+            .getReferencedData<Data, ClientData>()
 
         return block(data, userData)
     }

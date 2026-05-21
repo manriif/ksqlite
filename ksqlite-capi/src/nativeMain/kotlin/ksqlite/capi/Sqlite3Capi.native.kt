@@ -7,7 +7,6 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.refTo
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toCStringArray
@@ -45,29 +44,29 @@ import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.useMemoryManager
 import ksqlite.capi.memory.userDataDisposer
-import ksqlite.capi.types.Sqlite3AutoExtensionCallback
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
+import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
-import ksqlite.capi.types.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.types.Sqlite3CheckpointMode
-import ksqlite.capi.types.Sqlite3CollationNeededCallback
-import ksqlite.capi.types.Sqlite3CommitHookCallback
+import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
+import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3ConfigOption
-import ksqlite.capi.types.Sqlite3CreateCollationCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionFinalCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionFuncCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionInverseCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionStepCallback
-import ksqlite.capi.types.Sqlite3CreateFunctionValueCallback
+import ksqlite.capi.callbacks.Sqlite3CreateCollationCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionFinalCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionStepCallback
+import ksqlite.capi.callbacks.Sqlite3CreateFunctionValueCallback
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
-import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.Sqlite3ExecCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
 import ksqlite.capi.types.Sqlite3FileOpenFlag
@@ -75,25 +74,25 @@ import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Sqlite3Limit
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
-import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3RollbackHookCallback
+import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
 import ksqlite.capi.types.Sqlite3SerializeFlag
-import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
 import ksqlite.capi.types.Sqlite3SnapshotOutputParam
 import ksqlite.capi.types.Sqlite3StmtOutputParam
 import ksqlite.capi.types.Sqlite3StatementStatusCounter
 import ksqlite.capi.types.Sqlite3StatusOption
 import ksqlite.capi.types.Sqlite3TextEncoding
-import ksqlite.capi.types.Sqlite3TraceCallback
+import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
-import ksqlite.capi.types.Sqlite3UpdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.Sqlite3ValueOutputParam
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
-import ksqlite.capi.types.Sqlite3WalHookCallback
+import ksqlite.capi.callbacks.Sqlite3WalHookCallback
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
@@ -102,7 +101,6 @@ import ksqlite.capi.types.sqlite3_filename
 import ksqlite.capi.types.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_module
 import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
@@ -357,7 +355,7 @@ private fun variadicArgumentsError(): Nothing {
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): sqlite3_mutable_pointer? = sqlite3_mutable_pointer.from(
+): Any? = sqlite3_mutable_pointer.from(
     pointer = native_sqlite3_aggregate_context(context.pointer, nBytes),
     size = nBytes.toLong()
 )
@@ -494,7 +492,7 @@ public actual fun sqlite3_bind_pointer(
 public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String?,
+    text: String,
     size: Int?
 ): Sqlite3Result = convertResult(memScoped {
     val cText = text?.cstr
@@ -615,7 +613,7 @@ public actual fun sqlite3_changes64(db: sqlite3): Long =
     native_sqlite3_changes64(db.pointer)
 
 public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
-    commonSqlite3ClearBindings(stmt, native_sqlite3_clear_bindings(stmt.pointer))
+    commonClearBindings(stmt, native_sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3?): Sqlite3Result =
     db.deallocateNullable { native_sqlite3_close(it?.pointer) }
@@ -638,7 +636,7 @@ public actual fun sqlite3_collation_needed(
 public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): ByteArray? = commonSqlite3ColumnBlob(
+): ByteArray? = commonColumnBlob(
     stmt = stmt,
     index = index,
     pointer = native_sqlite3_column_blob(stmt.pointer, index),
@@ -739,7 +737,7 @@ public actual fun sqlite3_compileoption_used(optName: String): Int =
 public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
     convertCompleteResult(native_sqlite3_complete(sql))
 
-public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonSqlite3Config(
+public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonConfig(
     option = option,
     logFunctionPointer = ConfigLogHandler::handle,
     sqllogFunctionPointer = ConfigSqlLogHandler::handle,
@@ -857,8 +855,7 @@ public actual fun sqlite3_create_function_v2(
 public actual fun sqlite3_create_module(
     db: sqlite3,
     name: String,
-    module: sqlite3_module?,
-    userData: sqlite3_mutable_pointer?
+    module: sqlite3_module?
 ): Sqlite3Result = convertResult(
     native_sqlite3_create_module(db.pointer, name, module?.pointer, userData?.block?.pointer)
 )
@@ -918,7 +915,7 @@ public actual fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result =
 public actual fun sqlite3_db_config(
     db: sqlite3,
     option: Sqlite3DbConfigOption,
-): Sqlite3Result = commonSqlite3DbConfig(
+): Sqlite3Result = commonDbConfig(
     option = option,
     memoryPointer = { it.block.pointer },
     outParamConfig = {
@@ -1062,8 +1059,7 @@ public actual fun sqlite3_extended_result_codes(
 public actual fun sqlite3_file_control(
     db: sqlite3,
     name: String?,
-    opcode: Sqlite3FileControlOpcode,
-    userData: sqlite3_mutable_pointer?
+    opcode: Sqlite3FileControlOpcode
 ): Sqlite3Result = convertResult(
     native_sqlite3_file_control(db.pointer, name, opcode.code, userData?.block?.pointer)
 )
@@ -1715,7 +1711,7 @@ public actual fun sqlite3_uri_parameter(
 ): String? = native_sqlite3_uri_parameter(fileName, parameter)
     ?.toKStringFromUtf8()
 
-public actual fun sqlite3_user_data(context: sqlite3_context): sqlite3_mutable_pointer? =
+public actual fun sqlite3_user_data(context: sqlite3_context): Any? =
     stableRefData<CreateFunction>(native_sqlite3_user_data(context.pointer) ?: return null).second
 
 public actual fun sqlite3_value_bytes(value: sqlite3_value): Int =
@@ -1787,7 +1783,7 @@ public actual fun sqlite3_vtab_collation(
 public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
-): Sqlite3Result = commonSqlite3VtabConfig(option) { id, values ->
+): Sqlite3Result = commonVtabConfig(option) { id, values ->
     val args = values.toVariadicArguments()
 
     when (args.size) {

@@ -8,7 +8,7 @@ import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.toArray
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import ksqlite.capi.types.Sqlite3ExecCallback
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_exec].

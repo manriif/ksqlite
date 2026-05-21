@@ -6,7 +6,7 @@ import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 
 ///////////////////////////////////////////////////////////////////////////

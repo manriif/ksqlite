@@ -5,8 +5,8 @@ import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3CommitHookCallback
-import ksqlite.capi.types.Sqlite3RollbackHookCallback
+import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
+import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_commit_hook].

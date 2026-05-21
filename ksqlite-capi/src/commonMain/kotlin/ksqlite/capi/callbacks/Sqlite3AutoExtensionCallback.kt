@@ -1,0 +1,47 @@
+package ksqlite.capi.callbacks
+
+import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.sqlite3
+import ksqlite.capi.types.sqlite3_api_routines
+
+/**
+ * Callback to use with [ksqlite.capi.sqlite3_auto_extension].
+ */
+public fun interface Sqlite3AutoExtensionCallback {
+
+    /**
+     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/auto_extension.html).
+     * A [Result] instance can be obtained by invoking one of [Scope.success] or [Scope.failure].
+     *
+     * The `pzErrMsg` output parameter have been replaced with [Scope.failure]'s message parameter
+     * for simplicity.
+     */
+    public fun Scope.handle(
+        db: sqlite3,
+        routines: sqlite3_api_routines
+    ): Result
+
+    /**
+     * Result for [handle].
+     */
+    public sealed interface Result
+
+    /**
+     * Callback scope.
+     */
+    public sealed interface Scope {
+
+        /**
+         * Returns [Sqlite3Result.OK] to SQLite.
+         */
+        public fun success(): Result
+
+        /**
+         * Returns a failure [result] to SQLite and sets the error [message].
+         */
+        public fun failure(
+            result: Sqlite3Result.Failure,
+            message: String
+        ): Result
+    }
+}

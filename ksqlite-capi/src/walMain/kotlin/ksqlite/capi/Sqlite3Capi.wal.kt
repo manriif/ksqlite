@@ -1,12 +1,12 @@
 @file:Suppress("FunctionName", "SpellCheckingInspection")
 
 package ksqlite.capi
-/*
+
+import ksqlite.capi.callbacks.Sqlite3WalHookCallback
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Sqlite3CheckpointMode
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3SnapshotOutputParam
-import ksqlite.capi.types.Sqlite3WalHookCallback
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_snapshot
@@ -136,8 +136,8 @@ public expect fun sqlite3_wal_checkpoint_v2(
  *
  * [sqlite3_wal_hook()](https://sqlite.org/c3ref/wal_hook.html)
  */
-public expect fun sqlite3_wal_hook(
+public expect inline fun <reified ClientData> sqlite3_wal_hook(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
-    callback: Sqlite3WalHookCallback?
-): sqlite3_mutable_pointer?*/
+    clientData: ClientData,
+    callback: Sqlite3WalHookCallback<ClientData>?
+): ClientData?

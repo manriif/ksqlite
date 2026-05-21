@@ -22,7 +22,7 @@ internal val SharedAutoExtensionHandler by lazy {
 /**
  * Handler for [ksqlite.capi.sqlite3_auto_extension].
  */
-internal class AutoExtensionHandler(manager: MemoryManager) : Handler(manager) {
+internal class AutoExtensionHandler(manager: MemoryManager) : Handler<Nothing>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -34,14 +34,18 @@ internal class AutoExtensionHandler(manager: MemoryManager) : Handler(manager) {
     fun handle(
         db: MemorySegment,
         pzErrMsg: MemorySegment,
-        pApi: MemorySegment
+        pThunk: MemorySegment
     ): Int = autoExtensionHandle(
         db = sqlite3(db),
-        api = sqlite3_api_routines(pApi),
+        api = sqlite3_api_routines(pThunk),
         errorPointer = pzErrMsg.takeUnless(MemorySegment::isNull)
     ) { errorPointer, message ->
         Arena.ofConfined().use { arena ->
-            errorPointer.set(ValueLayout.ADDRESS, 0, message.allocateUtf8(arena))
+            val nativePtr = ksqlite.sqlite3.sqlite3_mprintf
+                .makeInvoker()
+                .apply(message.allocateUtf8(arena))
+
+            errorPointer.set(ValueLayout.ADDRESS, 0, nativePtr)
         }
     }
 }

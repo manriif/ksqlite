@@ -9,8 +9,8 @@ import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.toArray
-import ksqlite.capi.types.Sqlite3CreateFunction1Callback
-import ksqlite.capi.types.Sqlite3CreateFunction3Callback
+import ksqlite.capi.callbacks.Sqlite3CreateFunction1Callback
+import ksqlite.capi.callbacks.Sqlite3CreateFunction3Callback
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_value

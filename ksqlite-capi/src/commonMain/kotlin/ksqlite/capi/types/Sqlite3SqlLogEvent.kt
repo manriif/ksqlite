@@ -3,7 +3,7 @@
 package ksqlite.capi.types
 
 /**
- * Event passed as third parameter to [Sqlite3ConfigSqlLogCallback].
+ * Event passed as third parameter to [ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback].
  */
 public sealed interface Sqlite3SqlLogEvent {
 

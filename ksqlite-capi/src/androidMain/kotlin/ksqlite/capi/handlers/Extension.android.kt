@@ -31,9 +31,9 @@ private fun autoExtensionHandler(
         errorMessage = message
     }
 
-    if (errorMessage != null) {
+    errorMessage?.let { message ->
         // Exception is handled on JNI side
-        throw KsqliteJniException(resultCode, errorMessage)
+        throw KsqliteJniException(resultCode, message)
     }
 
     return resultCode

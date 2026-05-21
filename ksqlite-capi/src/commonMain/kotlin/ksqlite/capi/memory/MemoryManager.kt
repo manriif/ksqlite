@@ -1,7 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import kotlin.concurrent.Volatile
 
 /**
@@ -9,7 +8,7 @@ import kotlin.concurrent.Volatile
  */
 internal abstract class MemoryManagerBase : AutoCloseable {
 
-    private val disposables: MutableMap<ULong, AutoDisposable> by lazy(::mutableMapOf)
+    private val disposables: MutableMap<ULong, AutoDisposable<*>> by lazy(::mutableMapOf)
     private val keyedIds: MutableMap<String, ULong> by lazy(::mutableMapOf)
 
     @Volatile
@@ -61,7 +60,9 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      *
      * @throws NullPointerException if no object is associated with [id].
      */
-    protected inline fun <reified D : AutoDisposable> getDisposable(id: ULong): D {
+    protected inline fun <ClientData, reified D : AutoDisposable<ClientData>> getDisposable(
+        id: ULong
+    ): D {
         val disposable = disposables[id]
 
         if (disposable != null) {
@@ -86,7 +87,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * If [key] is not `null` then any previously registered disposable with the same key is
      * disposed.
      */
-    protected fun <D : AutoDisposable> registerDisposable(
+    protected fun <ClientData, D : AutoDisposable<ClientData>> registerDisposable(
         key: String? = null,
         block: (id: ULong) -> D
     ): D {
@@ -108,15 +109,15 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * [Disposable] which can self removes from [disposables].
      * [destroy] should be used to make the actual disposing.
      */
-    protected abstract inner class AutoDisposable(
+    protected abstract inner class AutoDisposable<ClientData>(
         private val id: ULong,
-        private val destructor: Sqlite3DestructorCallback?
+        private val destructor: Sqlite3DestructorCallback<ClientData>?
     ) : Disposable {
 
         /**
-         * The associated user data.
+         * The associated client data.
          * */
-        abstract val userData: sqlite3_mutable_pointer?
+        abstract val clientData: ClientData
 
         /**
          * Releases the resource(s).
@@ -127,7 +128,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
          * Invokes destructor and releases the resource(s).
          */
         fun destroy() {
-            destructor?.invoke(userData)
+            destructor?.handle(clientData)
             release()
         }
 

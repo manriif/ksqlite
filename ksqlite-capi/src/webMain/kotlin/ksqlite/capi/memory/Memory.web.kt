@@ -19,7 +19,7 @@ import ksqlite.capi.interop.wasm.allocPtr
 import ksqlite.capi.interop.wasm.scopedAllocCStringStruct
 import ksqlite.capi.interop.wasm.scopedAllocPtr
 import ksqlite.capi.interop.wasm.sizeofIR
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.wasm
 import kotlin.js.JsAny

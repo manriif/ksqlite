@@ -56,10 +56,12 @@ internal sealed interface VariadicValue<out Pointer : Any> {
 // Functions
 ///////////////////////////////////////////////////////////////////////////
 
+internal fun <Pointer> commonAggregateContext()
+
 /**
  * Handles the [ksqlite.capi.sqlite3_clear_bindings].
  */
-internal fun commonSqlite3ClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite3Result {
+internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite3Result {
     if (result == Sqlite3Result.OK.code) {
         // Release memory allocated for binded values, although destructors have normally already
         // been called by previous call to native_sqlite3_clear_bindings
@@ -72,7 +74,7 @@ internal fun commonSqlite3ClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite
 /**
  * Handles the [ksqlite.capi.sqlite3_column_blob].
  */
-internal fun <Pointer : Any> commonSqlite3ColumnBlob(
+internal fun <Pointer : Any> commonColumnBlob(
     stmt: sqlite3_stmt,
     index:  Int,
     pointer: Pointer?,
@@ -100,7 +102,7 @@ internal fun <Pointer : Any> commonSqlite3ColumnBlob(
  * Handles the [ksqlite.capi.sqlite3_config].
  * The array passed to [nativeConfig] contains at most 3 values.
  */
-internal fun <Pointer : Any> commonSqlite3Config(
+internal fun <Pointer : Any> commonConfig(
     option: Sqlite3ConfigOption,
     memoryPointer: (sqlite3_pointer) -> Pointer?,
     logFunctionPointer: (callback: Any?) -> Pointer?,
@@ -172,7 +174,7 @@ internal fun <Pointer : Any> commonSqlite3Config(
  * Handles the [ksqlite.capi.sqlite3_db_config].
  * The array passed to [nativeConfig] contains at most 3 values.
  */
-internal fun <Pointer : Any> commonSqlite3DbConfig(
+internal fun <Pointer : Any> commonDbConfig(
     option: Sqlite3DbConfigOption,
     memoryPointer: (sqlite3_pointer) -> Pointer?,
     outParamConfig: Sqlite3DbConfigOption.IntOutput.() -> Int,
@@ -205,7 +207,7 @@ internal fun <Pointer : Any> commonSqlite3DbConfig(
  * Handles the [ksqlite.capi.sqlite3_vtab_config].
  * The array passed to [nativeConfig] contains at most 1 value.
  */
-internal fun <Pointer : Any> commonSqlite3VtabConfig(
+internal fun <Pointer : Any> commonVtabConfig(
     option: Sqlite3VirtualTableConfigOption,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
 ): Sqlite3Result {

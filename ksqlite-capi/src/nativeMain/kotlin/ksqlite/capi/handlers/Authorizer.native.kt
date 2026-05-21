@@ -6,7 +6,7 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.convertActionCode
-import ksqlite.capi.types.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
 
 /**
  * Static C function for [setAuthorizerHandler].

@@ -2,8 +2,8 @@ package ksqlite.capi.handlers
 
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.types.Sqlite3CommitHookCallback
-import ksqlite.capi.types.Sqlite3RollbackHookCallback
+import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
+import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
 
 ///////////////////////////////////////////////////////////////////////////
 // Commit

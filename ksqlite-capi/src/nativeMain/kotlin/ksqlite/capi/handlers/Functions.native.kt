@@ -4,8 +4,8 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.staticCFunction
 import ksqlite.capi.CreateFunction
-import ksqlite.capi.types.Sqlite3CreateFunction1Callback
-import ksqlite.capi.types.Sqlite3CreateFunction3Callback
+import ksqlite.capi.callbacks.Sqlite3CreateFunction1Callback
+import ksqlite.capi.callbacks.Sqlite3CreateFunction3Callback
 import ksqlite.capi.types.s3_context
 import ksqlite.capi.types.s3_value
 import ksqlite.capi.types.sqlite3_context

@@ -1,5 +1,5 @@
 @file:JvmName("KsqliteJni")
-@file:Suppress("FunctionName")
+@file:Suppress("FunctionName", "SpellCheckingInspection")
 
 package ksqlite
 
@@ -320,28 +320,22 @@ public external fun sqlite3_column_value(
     index: Int,
 ): Long
 
-/*public external fun sqlite3_commit_hook(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-): Long
+public external fun sqlite3_commit_hook(
+    db: Long,
+    userData: Any?,
+    callback: CommitHookCallback?
+): Any?
 
-public external fun sqlite3_compileoption_get(
-    p0: Int,
-): Long
+public external fun sqlite3_compileoption_get(index: Int): Long
 
-public external fun sqlite3_compileoption_used(
-    p0: Long,
-): Int
+public external fun sqlite3_compileoption_used(name: String): Int
 
-public external fun sqlite3_complete(
-    p0: Long,
-): Int
+public external fun sqlite3_complete(sql: String): Int
 
 /**
  * TODO variadic
  */
-public external fun sqlite3_config(
+/*public external fun sqlite3_config(
     p0: Int,
     p1: Long,
 ): Int

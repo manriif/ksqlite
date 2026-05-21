@@ -3,7 +3,7 @@ package ksqlite.capi
 import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.allocCString
-import ksqlite.capi.types.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 
 /**
  * Wrapper for [sqlite3_bind_pointer] and [sqlite3_result_pointer] userData.
