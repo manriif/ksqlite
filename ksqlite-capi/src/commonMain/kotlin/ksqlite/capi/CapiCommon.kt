@@ -1,5 +1,6 @@
 package ksqlite.capi
 
+import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.memoryOrNull
@@ -10,24 +11,70 @@ import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_mutable_pointer
-import ksqlite.capi.types.sqlite3_pointer
 import ksqlite.capi.types.sqlite3_stmt
 import kotlin.jvm.JvmInline
 
 private val EmptyByteArray = ByteArray(0)
 
 ///////////////////////////////////////////////////////////////////////////
-// Helpers
+// User defined function
 ///////////////////////////////////////////////////////////////////////////
 
 /**
  * Returns the [sqlite3] associated with `this` [sqlite3_context].
  */
 internal val sqlite3_context.db: sqlite3
-    get() = TODO()/*checkNotNull(sqlite3_context_db_handle(this)) {
+    get() = checkNotNull(sqlite3_context_db_handle(this)) {
         "Database pointer not retrieved from context"
-    }*/
+    }
+
+///////////////////////////////////////////////////////////////////////////
+// Statements
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Handles the [ksqlite.capi.sqlite3_clear_bindings].
+ */
+internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite3Result {
+    if (result == Sqlite3Result.OK.code) {
+        // Release memory allocated for binded values, although destructors have normally already
+        // been called by previous call to native_sqlite3_clear_bindings
+        stmt.memoryOrNull?.clear()
+    }
+
+    return convertResult(result)
+}
+
+/**
+ * Handles the [ksqlite.capi.sqlite3_column_blob].
+ */
+internal fun <Pointer : Any> commonColumnBlob(
+    stmt: sqlite3_stmt,
+    index: Int,
+    pointer: Pointer?,
+    toByteArray: (pointer: Pointer, size: Int) -> ByteArray
+): ByteArray? {
+    if (pointer == null) {
+        return null
+    }
+
+    val size = sqlite3_column_bytes(stmt, index)
+    check(size >= 0) { "sqlite3_column_bytes() must returns a non-negative integer" }
+
+    return if (size == 0) {
+        when (sqlite3_column_type(stmt, index)) {
+            Sqlite3DataType.BLOB -> EmptyByteArray
+            Sqlite3DataType.NULL -> null
+            else -> error("Column at index $index is not a blob")
+        }
+    } else {
+        toByteArray(pointer, size)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Configuration
+///////////////////////////////////////////////////////////////////////////
 
 /**
  * Value of a variadic function call.
@@ -52,62 +99,16 @@ internal sealed interface VariadicValue<out Pointer : Any> {
     value class OfString(override val value: String) : VariadicValue<Nothing>
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Functions
-///////////////////////////////////////////////////////////////////////////
-
-internal fun <Pointer> commonAggregateContext()
-
-/**
- * Handles the [ksqlite.capi.sqlite3_clear_bindings].
- */
-internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite3Result {
-    if (result == Sqlite3Result.OK.code) {
-        // Release memory allocated for binded values, although destructors have normally already
-        // been called by previous call to native_sqlite3_clear_bindings
-        stmt.memoryOrNull?.clear()
-    }
-
-    return convertResult(result)
-}
-
-/**
- * Handles the [ksqlite.capi.sqlite3_column_blob].
- */
-internal fun <Pointer : Any> commonColumnBlob(
-    stmt: sqlite3_stmt,
-    index:  Int,
-    pointer: Pointer?,
-    toByteArray: (pointer: Pointer, size: Int) -> ByteArray
-): ByteArray? {
-    if (pointer == null) {
-        return null
-    }
-
-    val size = sqlite3_column_bytes(stmt, index)
-    check(size >= 0) { "sqlite3_column_bytes() must returns a non-negative integer"}
-
-    return if (size == 0) {
-        when (sqlite3_column_type(stmt, index)) {
-            Sqlite3DataType.BLOB -> EmptyByteArray
-            Sqlite3DataType.NULL -> null
-            else -> error("Column at index $index is not a blob")
-        }
-    } else {
-        toByteArray(pointer, size)
-    }
-}
-
 /**
  * Handles the [ksqlite.capi.sqlite3_config].
  * The array passed to [nativeConfig] contains at most 3 values.
  */
 internal fun <Pointer : Any> commonConfig(
     option: Sqlite3ConfigOption,
-    memoryPointer: (sqlite3_pointer) -> Pointer?,
+    bufferPointer: (Buffer) -> Pointer?,
     logFunctionPointer: (callback: Any?) -> Pointer?,
     sqllogFunctionPointer: (callback: Any?) -> Pointer?,
-    keyedStableRefPointer: MemoryManager.(String, Any?, sqlite3_mutable_pointer?) -> Pointer?,
+    keyedStableRefPointer: MemoryManager.(String, Any?, Any?) -> Pointer?,
     rowidInView: Sqlite3ConfigOption.ROWID_IN_VIEW.() -> Int,
     nativeConfig: (id: Int, args: Array<out VariadicValue<Pointer>?>) -> Int,
 ): Sqlite3Result {
@@ -121,14 +122,14 @@ internal fun <Pointer : Any> commonConfig(
             is COVERING_INDEX_SCAN -> arrayOf(VariadicValue.OfInt(enabled))
 
             is HEAP -> arrayOf(
-                pMem?.let(memoryPointer)?.let(VariadicValue<Pointer>::OfPointer),
+                pMem?.let(bufferPointer)?.let(VariadicValue<Pointer>::OfPointer),
                 VariadicValue.OfInt(nBytes),
                 VariadicValue.OfInt(min)
             )
 
-            is LOG -> arrayOf(
+            is LOG<*> -> arrayOf(
                 logFunctionPointer(callback)?.let(VariadicValue<Pointer>::OfPointer),
-                globalMemory.keyedStableRefPointer(KEY_CONFIG_LOG, callback, userData)
+                globalMemory.keyedStableRefPointer(KEY_CONFIG_LOG, callback, clientData)
                     ?.let(VariadicValue<Pointer>::OfPointer)
             )
 
@@ -146,7 +147,7 @@ internal fun <Pointer : Any> commonConfig(
             )
 
             is PAGECACHE -> arrayOf(
-                pMem?.let(memoryPointer)?.let(VariadicValue<Pointer>::OfPointer),
+                pMem?.let(bufferPointer)?.let(VariadicValue<Pointer>::OfPointer),
                 VariadicValue.OfInt(sz),
                 VariadicValue.OfInt(n)
             )
@@ -155,9 +156,9 @@ internal fun <Pointer : Any> commonConfig(
             is SMALL_MALLOC -> arrayOf(VariadicValue.OfInt(enabled))
             is SORTERREF_SIZE -> arrayOf(VariadicValue.OfInt(nByte))
 
-            is SQLLOG -> arrayOf(
+            is SQLLOG<*> -> arrayOf(
                 sqllogFunctionPointer(callback)?.let(VariadicValue<Pointer>::OfPointer),
-                globalMemory.keyedStableRefPointer(KEY_CONFIG_SQLLOG, callback, userData)
+                globalMemory.keyedStableRefPointer(KEY_CONFIG_SQLLOG, callback, clientData)
                     ?.let(VariadicValue<Pointer>::OfPointer)
             )
 
@@ -176,7 +177,7 @@ internal fun <Pointer : Any> commonConfig(
  */
 internal fun <Pointer : Any> commonDbConfig(
     option: Sqlite3DbConfigOption,
-    memoryPointer: (sqlite3_pointer) -> Pointer?,
+    bufferPointer: (Buffer) -> Pointer?,
     outParamConfig: Sqlite3DbConfigOption.IntOutput.() -> Int,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
 ): Sqlite3Result {
@@ -191,7 +192,7 @@ internal fun <Pointer : Any> commonDbConfig(
             }
 
             is LOOKASIDE -> arrayOf(
-                buf?.let(memoryPointer)?.let(VariadicValue<Pointer>::OfPointer),
+                buf?.let(bufferPointer)?.let(VariadicValue<Pointer>::OfPointer),
                 VariadicValue.OfInt(sz),
                 VariadicValue.OfInt(cnt)
             )

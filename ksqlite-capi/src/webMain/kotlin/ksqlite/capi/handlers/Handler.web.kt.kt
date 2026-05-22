@@ -5,7 +5,7 @@ import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.getReferencedData
-import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.memory.Buffer
 
 /**
  * Handler for native callback.
@@ -25,7 +25,7 @@ internal abstract class Handler(protected val manager: MemoryManager) {
      */
     protected inline fun <reified Data : Any, Result> handler(
         refPointer: WasmPointer,
-        block: (data: Data, userData: sqlite3_mutable_pointer?) -> Result
+        block: (data: Data, userData: Buffer?) -> Result
     ): Result {
         val (data, userData) = manager
             .getStableRef(refPointer)

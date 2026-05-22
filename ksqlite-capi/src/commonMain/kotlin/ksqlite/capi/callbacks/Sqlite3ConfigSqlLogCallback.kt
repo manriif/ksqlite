@@ -2,7 +2,6 @@ package ksqlite.capi.callbacks
 
 import ksqlite.capi.types.Sqlite3SqlLogEvent
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_mutable_pointer
 
 /**
  * Callback to use with [ksqlite.capi.types.Sqlite3ConfigOption.SQLLOG].

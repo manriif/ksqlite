@@ -1,6 +1,5 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
@@ -12,31 +11,6 @@ public actual open class GenericPointer internal constructor(internal val pointe
  * Memory manager that is never cleared.
  */
 internal val StaticMemoryManager = MemoryManager()
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns a stable [MemorySegment] to [data] available globally.
- * Returns `null` if [data] is `null`.
- *
- * The resulting reference data can be accessed using [MemoryManager.getStableRef] and it can be
- * disposed using [MemoryManager.stableRefDisposer].
- *
- * If a pointer was previously obtained using [key], it is disposed.
- */
-internal fun <ClientData> MemoryManager.keyedStableRefPointer(
-    key: String,
-    data: Any?,
-    clientData: ClientData,
-    destructor: Sqlite3DestructorCallback<ClientData>? = null,
-): MemorySegment = stableRefPointer(
-    data = data,
-    clientData = clientData,
-    destructor = destructor,
-    key = key
-)
 
 ///////////////////////////////////////////////////////////////////////////
 // Allocator

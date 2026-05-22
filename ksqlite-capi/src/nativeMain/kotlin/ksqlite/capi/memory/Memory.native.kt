@@ -10,7 +10,6 @@ import kotlinx.cinterop.get
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
 import ksqlite.capi.callbacks.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import platform.posix.memcpy
 
 public actual open class GenericPointer internal constructor(
@@ -33,7 +32,7 @@ public actual open class GenericPointer internal constructor(
 internal fun MemoryManager.keyedStableRefPointer(
     key: String,
     data: Any?,
-    userData: sqlite3_mutable_pointer? = null,
+    userData: Buffer? = null,
     destructor: Sqlite3DestructorCallback? = null,
 ): COpaquePointer? = stableRefPointer(
     data = data,

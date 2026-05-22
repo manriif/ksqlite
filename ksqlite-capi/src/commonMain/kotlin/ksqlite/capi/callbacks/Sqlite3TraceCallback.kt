@@ -1,7 +1,6 @@
 package ksqlite.capi.callbacks
 
 import ksqlite.capi.types.Sqlite3TraceEvent
-import ksqlite.capi.types.sqlite3_mutable_pointer
 
 /**
  * Callback to use with [ksqlite.capi.sqlite3_trace_v2].

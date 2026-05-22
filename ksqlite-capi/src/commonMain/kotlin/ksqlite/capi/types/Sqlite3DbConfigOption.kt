@@ -2,6 +2,8 @@
 
 package ksqlite.capi.types
 
+import ksqlite.capi.memory.Buffer
+
 /**
  * These constants are the available integer configuration options that can be passed as the second
  * parameter to the sqlite3_db_config() interface.
@@ -65,7 +67,7 @@ public sealed class Sqlite3DbConfigOption(internal val id: Int) {
      * "sz" and 40 to 100 for "cnt".
      */
     public class LOOKASIDE(
-        internal val buf: sqlite3_mutable_pointer?,
+        internal val buf: Buffer?,
         internal val sz: Int,
         internal val cnt: Int
     ) : Sqlite3DbConfigOption(1001)

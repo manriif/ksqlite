@@ -28,18 +28,19 @@ jvm-toolchain = "25"
 
 androidx-testRunner = "1.7.0"
 cmake = "3.22.1"
+copyWebpackPlugin = "13.0.1"
 dokka = "2.2.0"
 gradle-pluginPublish = "2.1.1"
 #jextract = "6-47"
 jextract = "2-4"
-kotlin = "2.4.0-Beta2"
+kotlin = "2.4.0-RC"
 kotlinTransitiveResources = "0.6.2"
 kotlinx-coroutines = "1.11.0"
 sqlite = "3.53.0"
 sqliteMultipleCiphers = "2.3.3"
 sqliteReleaseYear = "2026"
+stately = "2.1.0"
 vanniktech-mavenPublish = "0.36.0"
-copyWebpackPlugin = "13.0.1"
 
 [plugins]
 
@@ -66,4 +67,5 @@ kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", ve
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+stately-concurrentCollections = { module = "co.touchlab:stately-concurrent-collections", version.ref = "stately" }
 vanniktech-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech-mavenPublish" }

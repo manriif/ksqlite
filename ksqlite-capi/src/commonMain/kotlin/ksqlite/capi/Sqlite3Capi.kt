@@ -54,7 +54,7 @@ import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
 import ksqlite.capi.types.sqlite3_index_info
-import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.memory.Buffer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
@@ -64,11 +64,29 @@ import ksqlite.capi.types.sqlite3_vfs
  * first call. Subsequent calls return the same context that was returned on prior calls.
  *
  * [sqlite3_aggregate_context()](https://sqlite.org/c3ref/aggregate_context.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The [Data] instance is created on the first call and is returned on subsequent calls.
+ * The [Data] instance, if created, is then made eligible for GC after Xfinalize() is getting called
+ * by SQLite.
+ *
+ * If the [Data] instance must not be instantiated, then [factory] must be set to `null`.
  */
-public expect inline fun <reified Data: Any> sqlite3_aggregate_context(
+public inline fun <reified Data: Any> sqlite3_aggregate_context(
     context: sqlite3_context,
     noinline factory: (() -> Data)?
-): Data? // TODO
+): Data? {
+    val udf = nativeUserData(context)
+
+    return if (factory == null) {
+        udf.getOrNull(context, Data::class)
+    } else {
+        udf.getOrCreate(context, Data::class, factory)
+    }
+}
 
 /**
  * Register a statically linked extension that is automatically loaded by every new database
@@ -148,7 +166,7 @@ public expect fun sqlite3_backup_step(
 public expect fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
-    data: ByteArray,
+    bytes: ByteArray,
     size: Int,
     destructor: Sqlite3DestructorCallback<ByteArray>?
 ): Sqlite3Result
@@ -161,9 +179,9 @@ public expect fun sqlite3_bind_blob(
 public expect fun sqlite3_bind_blob64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_mutable_pointer,
+    buffer: Buffer,
     size: Long,
-    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
+    destructor: Sqlite3DestructorCallback<Buffer>?
 ): Sqlite3Result
 
 /**
@@ -273,10 +291,10 @@ public expect fun sqlite3_bind_text(
 public expect fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_mutable_pointer,
+    buffer: Buffer,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
-    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
+    destructor: Sqlite3DestructorCallback<Buffer>?
 ): Sqlite3Result
 
 /**
@@ -890,7 +908,7 @@ public expect fun sqlite3_declare_vtab(
 public expect fun sqlite3_deserialize(
     db: sqlite3,
     schema: String?,
-    data: sqlite3_mutable_pointer?,
+    data: Buffer?,
     dbSize: Long,
     dataSize: Long,
     flags: Sqlite3DeserializeFlag?
@@ -1010,7 +1028,7 @@ public expect fun sqlite3_finalize(stmt: sqlite3_stmt?): Sqlite3Result
  *
  * [sqlite3_free()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_free(data: sqlite3_mutable_pointer?)
+public expect fun sqlite3_free(data: Buffer?)
 
 /**
  * Test to see whether or not the database connection is in autocommit mode. Return TRUE if it is
@@ -1201,7 +1219,7 @@ public expect fun sqlite3_log(
  *
  * [sqlite3_malloc()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_malloc(size: Int): sqlite3_mutable_pointer?
+public expect fun sqlite3_malloc(size: Int): Buffer?
 
 /**
  * This version of the memory allocation is for use by the application.
@@ -1209,7 +1227,7 @@ public expect fun sqlite3_malloc(size: Int): sqlite3_mutable_pointer?
  *
  * [sqlite3_malloc64()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_malloc64(size: Long): sqlite3_mutable_pointer?
+public expect fun sqlite3_malloc64(size: Long): Buffer?
 
 /**
  * Return the amount of memory currently checked out.
@@ -1235,7 +1253,7 @@ public expect fun sqlite3_memory_highwater(resetFlag: Int): Long
  *
  * [sqlite3_msize()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_msize(data: sqlite3_mutable_pointer?): ULong
+public expect fun sqlite3_msize(data: Buffer?): ULong
 
 /**
  * Return a pointer to the next prepared statement after pStmt associated with database connection
@@ -1404,7 +1422,7 @@ public expect fun <ClientData> sqlite3_progress_handler(
  */
 public expect fun sqlite3_randomness(
     size: Int,
-    data: sqlite3_mutable_pointer?
+    data: Buffer?
 )
 
 /**
@@ -1414,9 +1432,9 @@ public expect fun sqlite3_randomness(
  * [sqlite3_realloc()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_realloc(
-    data: sqlite3_mutable_pointer?,
+    data: Buffer?,
     size: Int
-): sqlite3_mutable_pointer?
+): Buffer?
 
 /**
  * The public interface to sqlite3Realloc. Make sure that the memory subsystem is initialized prior
@@ -1425,9 +1443,9 @@ public expect fun sqlite3_realloc(
  * [sqlite3_realloc64()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_realloc64(
-    data: sqlite3_mutable_pointer?,
+    data: Buffer?,
     size: Long
-): sqlite3_mutable_pointer?
+): Buffer?
 
 /**
  * sqlite3_rekey() change the database encryption key.
@@ -1508,9 +1526,9 @@ public expect fun <Data : ByteArray?> sqlite3_result_blob(
  */
 public expect fun sqlite3_result_blob64(
     context: sqlite3_context,
-    data: sqlite3_mutable_pointer,
+    data: Buffer,
     size: Long,
-    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
+    destructor: Sqlite3DestructorCallback<Buffer>?
 )
 
 /**
@@ -1626,10 +1644,10 @@ public expect fun sqlite3_result_text(
  */
 public expect fun sqlite3_result_text64(
     context: sqlite3_context,
-    data: sqlite3_mutable_pointer,
+    data: Buffer,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
-    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
+    destructor: Sqlite3DestructorCallback<Buffer>?
 )
 
 /**
@@ -1683,7 +1701,7 @@ public expect fun sqlite3_serialize(
     db: sqlite3,
     schema: String?,
     flags: Sqlite3SerializeFlag?
-): sqlite3_mutable_pointer?
+): Buffer?
 
 /**
  * Set or clear the access authorization function.
@@ -2010,7 +2028,19 @@ public expect fun sqlite3_uri_parameter(
  *
  * [sqlite3_user_data()](https://sqlite.org/c3ref/user_data.html)
  */
-public expect inline fun <reified Data> sqlite3_user_data(context: sqlite3_context): Data?
+public inline fun <reified ClientData: Any> sqlite3_user_data(context: sqlite3_context): ClientData? {
+    val udf = nativeUserData(context)
+    val clientData = udf.clientData ?: return null
+
+    check(clientData is ClientData) {
+        throw ClassCastException(
+            "Context user_data expected type (${ClientData::class}) differs from actual type " +
+                    "(${clientData::class})"
+        )
+    }
+
+    return clientData
+}
 
 /**
  * Extract information from sqlite3_value structure.

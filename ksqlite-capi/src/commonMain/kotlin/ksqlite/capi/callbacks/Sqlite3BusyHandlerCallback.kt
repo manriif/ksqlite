@@ -1,7 +1,5 @@
 package ksqlite.capi.callbacks
 
-import ksqlite.capi.types.sqlite3_mutable_pointer
-
 /**
  * Callback to use with [ksqlite.capi.sqlite3_busy_handler].
  */

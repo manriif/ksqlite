@@ -1,7 +1,6 @@
 package ksqlite.capi.callbacks
 
 import ksqlite.capi.types.Sqlite3ActionCode
-import ksqlite.capi.types.sqlite3_mutable_pointer
 
 /**
  * Callback to use with [ksqlite.capi.sqlite3_update_hook].

@@ -2,7 +2,6 @@ package ksqlite.capi.memory
 
 import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import ksqlite.capi.handlers.Handler
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
@@ -25,7 +24,7 @@ private val GlobalDisposer: MemorySegment = StaticMemoryManager.functionPointer(
 /**
  * Handler that dispose reference to object to make it available for GC.
  */
-private class DisposerHandler(manager: MemoryManager) : Handler(manager) {
+private class DisposerHandler(manager: MemoryManager) : Handler<Nothing>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor {
         return FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
@@ -70,20 +69,20 @@ internal fun unregisterGlobalDisposable(pointer: MemorySegment) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Client data
+// Buffer
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * [Disposable] invoking [destructor] with [clientData] when disposed.
+ * [Disposable] invoking [destructor] with [buffer] when disposed.
  */
-private class ClientDataDisposable(
-    private val clientData: sqlite3_mutable_pointer,
-    private val destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>
+private class DisposableBuffer(
+    private val buffer: Buffer,
+    private val destructor: Sqlite3DestructorCallback<Buffer>
 ) : Disposable {
 
     override fun dispose() {
-        unregisterGlobalDisposable(clientData.block.pointer)
-        destructor.handle(clientData)
+        unregisterGlobalDisposable(buffer.pointer)
+        destructor.handle(buffer)
     }
 }
 
@@ -91,18 +90,18 @@ private class ClientDataDisposable(
  * Registers a [Disposable] which will invoke [destructor] when disposed.
  * If [destructor] is `null`then [MemorySegment.NULL] is returned.
  */
-internal fun clientDataDisposer(
-    clientData: sqlite3_mutable_pointer,
-    destructor: Sqlite3DestructorCallback<sqlite3_mutable_pointer>?
+internal fun bufferDisposer(
+    clientData: Buffer,
+    destructor: Sqlite3DestructorCallback<Buffer>?
 ): MemorySegment {
     if (destructor == null) {
         return MemorySegment.NULL
     }
 
     registerGlobalDisposable(
-        pointer = clientData.block.pointer,
-        disposable = ClientDataDisposable(
-            clientData = clientData,
+        pointer = clientData.pointer,
+        disposable = DisposableBuffer(
+            buffer = clientData,
             destructor = destructor
         )
     )

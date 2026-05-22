@@ -11,7 +11,6 @@ import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.interop.wasm.sizeofIR
 import ksqlite.capi.callbacks.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.wasm
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
@@ -72,7 +71,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun stableRefPointer(
         data: Any?,
-        userData: sqlite3_mutable_pointer? = null,
+        userData: Buffer? = null,
         destructor: Sqlite3DestructorCallback? = null,
         key: String? = null
     ): WasmPointer = notClosed {
@@ -198,7 +197,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         id: ULong,
         destructor: Sqlite3DestructorCallback?,
         override val data: Any?,
-        override val userData: sqlite3_mutable_pointer?,
+        override val userData: Buffer?,
     ) : PointerDisposable(id, destructor),
         Reference {
 
@@ -222,7 +221,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
             this@MemoryManager.memory.install()
         }
 
-        override val userData: sqlite3_mutable_pointer?
+        override val userData: Buffer?
             get() = null
     }
 
@@ -238,8 +237,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
         private val typedArray = toInt8Array(byteArray)
         override val pointer = memory.allocFromTypedArray(typedArray)
 
-        override val userData: sqlite3_mutable_pointer? by lazy {
-            sqlite3_mutable_pointer.from(pointer, typedArray.byteLength.toLong(), memory)
+        override val userData: Buffer? by lazy {
+            Buffer.from(pointer, typedArray.byteLength.toLong(), memory)
         }
 
         override fun release() {

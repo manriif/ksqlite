@@ -1,21 +1,24 @@
 package ksqlite.capi.memory
 
+import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.callbacks.Sqlite3DestructorCallback
-import kotlin.concurrent.Volatile
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 /**
  * Manages memory.
  */
+@OptIn(ExperimentalAtomicApi::class)
 internal abstract class MemoryManagerBase : AutoCloseable {
 
-    private val disposables: MutableMap<ULong, AutoDisposable<*>> by lazy(::mutableMapOf)
-    private val keyedIds: MutableMap<String, ULong> by lazy(::mutableMapOf)
+    private val disposables: MutableMap<Long, AutoDisposable<*>> by lazy(::mutableMapOf)
+    private val keyedDisposables: MutableMap<String, Long> by lazy(::mutableMapOf)
+    private var nextDisposableId = 0L
 
-    @Volatile
-    private var nextId = 0UL
+    // Lock for all previous variable
+    private val disposableLock = Lock()
 
-    @Volatile
-    private var closed = false
+    private val closed = AtomicBoolean(false)
 
     ///////////////////////////////////////////////////////////////////////////
     // Clearing
@@ -25,13 +28,13 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * Releases all the resources but keep the manager alive.
      * Parent function must be called.
      */
-    open fun clear() {
+    open fun clear() = disposableLock.withLock {
         if (disposables.isNotEmpty()) {
             disposables.onEach { it.value.destroy() }.clear()
         }
 
-        if (keyedIds.isNotEmpty()) {
-            keyedIds.clear()
+        if (keyedDisposables.isNotEmpty()) {
+            keyedDisposables.clear()
         }
     }
 
@@ -40,13 +43,12 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * closed.
      */
     protected inline fun <T> notClosed(block: () -> T): T {
-        check(!closed) { "Manager is closed" }
+        check(!closed.load()) { "Manager is closed" }
         return block()
     }
 
     final override fun close() {
-        if (!closed) {
-            closed = true
+        if (closed.compareAndSet(expectedValue = false, newValue = true)) {
             clear()
         }
     }
@@ -60,10 +62,10 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      *
      * @throws NullPointerException if no object is associated with [id].
      */
-    protected inline fun <ClientData, reified D : AutoDisposable<ClientData>> getDisposable(
-        id: ULong
-    ): D {
-        val disposable = disposables[id]
+    protected inline fun <C, reified D : AutoDisposable<C>> getDisposable(id: Long): D {
+        val disposable = disposableLock.withLock {
+            disposables[id]
+        }
 
         if (disposable != null) {
             if (disposable !is D) {
@@ -82,37 +84,73 @@ internal abstract class MemoryManagerBase : AutoCloseable {
     }
 
     /**
-     * Registers and returns a disposable [D] that should be disposed on [clear].
-     *
-     * If [key] is not `null` then any previously registered disposable with the same key is
-     * disposed.
+     * Returns the next available disposable identifier.
      */
-    protected fun <ClientData, D : AutoDisposable<ClientData>> registerDisposable(
-        key: String? = null,
-        block: (id: ULong) -> D
-    ): D {
-        val disposableId = key?.let(keyedIds::get) ?: (++nextId).also { id ->
-            check(id > 0UL) { "Too many disposable were created (>${ULong.MAX_VALUE})" }
-            key?.let { keyedIds[it] = id }
+    private fun computeNextDisposableId(): Long {
+        val nextId = ++nextDisposableId
+
+        check(nextId > 0L) {
+            "Too many disposables were created (>${Long.MAX_VALUE})"
         }
 
-        val disposable = block(disposableId)
+        return nextId
+    }
+
+    /**
+     * Registers and returns a disposable [D].
+     * The registered disposable is disposed on call to [clear] if it was not manually disposed.
+     */
+    protected fun <C, D : AutoDisposable<C>> registerDisposable(
+        factory: (id: Long) -> D
+    ): D = disposableLock.withLock {
+        val disposableId = computeNextDisposableId()
+        val newDisposable = factory(disposableId)
 
         disposables
-            .put(disposableId, disposable)
+            .put(disposableId, newDisposable)
             ?.destroy() // Dispose previous disposable with the same key
 
-        return disposable
+        return newDisposable
     }
+
+    /**
+     * Registers a disposable [D] identified by [key], disposing any disposable previously
+     * registered with the same [key], and returns both disposables.
+     *
+     * The registered disposable is disposed on call to [clear] if it was not manually disposed.
+     */
+    protected fun <C, D : AutoDisposable<C>> registerKeyedDisposable(
+        key: String,
+        factory: (id: Long) -> D
+    ): KeyedDisposable<D> = disposableLock.withLock {
+        val disposableId = keyedDisposables.getOrPut(key, ::computeNextDisposableId)
+
+        val newDisposable = factory(disposableId).apply {
+            disposableKey = key
+        }
+
+        val oldDisposable = disposables.put(disposableId, newDisposable)?.apply {
+            destroy() // Dispose previous disposable with the same key
+        }
+
+        return KeyedDisposable(newDisposable, oldDisposable?.clientData)
+    }
+
+    /**
+     * Holder for a disposable and oldly registered client data.
+     */
+    protected data class KeyedDisposable<D>(val disposable: D, val oldClientData: Any?)
 
     /**
      * [Disposable] which can self removes from [disposables].
      * [destroy] should be used to make the actual disposing.
      */
     protected abstract inner class AutoDisposable<ClientData>(
-        private val id: ULong,
+        private val id: Long,
         private val destructor: Sqlite3DestructorCallback<ClientData>?
     ) : Disposable {
+
+        var disposableKey: String? = null
 
         /**
          * The associated client data.
@@ -136,7 +174,18 @@ internal abstract class MemoryManagerBase : AutoCloseable {
          * Removes `this` from the [disposables] and [destroy] the instance.
          */
         final override fun dispose() {
-            val instance = checkNotNull(disposables.remove(id)) {
+            val instance = checkNotNull(disposableLock.withLock {
+                disposables.remove(
+                    when (val key = disposableKey) {
+                        null -> id
+                        else -> when (val keyId = keyedDisposables.remove(key)) {
+                            id -> keyId
+                            null -> error("Keyed disposable returned null identifier")
+                            else -> error("Keyed disposable returned wrong identifier")
+                        }
+                    }
+                )
+            }) {
                 "Resource is no longer managed"
             }
 

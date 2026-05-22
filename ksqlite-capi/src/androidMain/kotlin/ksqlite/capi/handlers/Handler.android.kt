@@ -2,7 +2,7 @@ package ksqlite.capi.handlers
 
 import ksqlite.DestructorCallback
 import ksqlite.capi.callbacks.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.memory.Buffer
 
 /**
  * Handler for native callback.
@@ -13,7 +13,7 @@ internal abstract class Handler<Data : Any>(private val holder: Holder<Data>) {
      * Returns [block]'s result, invoked with [Data] and optional userData.
      */
     protected inline fun <Result> handler(
-        block: (data: Data, userData: sqlite3_mutable_pointer?) -> Result
+        block: (data: Data, userData: Buffer?) -> Result
     ): Result {
         return block(holder.data, holder.userData)
     }
@@ -23,7 +23,7 @@ internal abstract class Handler<Data : Any>(private val holder: Holder<Data>) {
      */
     data class Holder<Data : Any>(
         val data: Data,
-        val userData: sqlite3_mutable_pointer?
+        val userData: Buffer?
     )
 }
 
@@ -48,7 +48,7 @@ private class DestructorHandler(holder: Holder<Sqlite3DestructorCallback>) :
  */
 internal fun <Data : Any, H : Handler<Data>> callbackHandler(
     data: Data?,
-    userData: sqlite3_mutable_pointer? = null,
+    userData: Buffer? = null,
     factory: (Handler.Holder<Data>) -> H
 ): H? {
     if (data == null) {
@@ -63,7 +63,7 @@ internal fun <Data : Any, H : Handler<Data>> callbackHandler(
  */
 internal fun destructorHandler(
     destructor: Sqlite3DestructorCallback?,
-    userData: sqlite3_mutable_pointer? = null
+    userData: Buffer? = null
 ): DestructorCallback? {
     if (destructor == null) {
         return null

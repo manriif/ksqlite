@@ -8,7 +8,6 @@ import ksqlite.capi.types.Sqlite3CheckpointMode
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3SnapshotOutputParam
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_snapshot
 
 /**

@@ -4,7 +4,6 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.staticCFunction
 import ksqlite.capi.callbacks.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
 
 /**
  * C-static function disposing a [Reference] from a [kotlinx.cinterop.StableRef].
@@ -43,7 +42,7 @@ internal inline fun <reified Data : Any> stableRefData(pointer: COpaquePointer?)
  * Throws [IllegalStateException] if `this` [COpaquePointer] is `null`.
  */
 @IgnorableReturnValue
-internal fun disposeStableRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? {
+internal fun disposeStableRef(pointer: COpaquePointer?): Buffer? {
     checkNotNull(pointer)
 
     return pointer.asStableRef<Reference>().get().run {

@@ -8,7 +8,6 @@ import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.pin
 import ksqlite.capi.callbacks.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
@@ -25,7 +24,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun stableRefPointer(
         data: Any?,
-        userData: sqlite3_mutable_pointer? = null,
+        userData: Buffer? = null,
         destructor: Sqlite3DestructorCallback? = null,
         key: String? = null
     ): COpaquePointer? = notClosed {
@@ -71,7 +70,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         id: ULong,
         destructor: Sqlite3DestructorCallback?,
         override val data: Any?,
-        override val userData: sqlite3_mutable_pointer?
+        override val userData: Buffer?
     ) : AutoDisposable(id, destructor),
         Reference {
 
@@ -92,8 +91,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
         private val pointer: COpaquePointer,
     ) : AutoDisposable(id, destructor) {
 
-        override val userData: sqlite3_mutable_pointer? by lazy {
-            sqlite3_mutable_pointer.from(pointer, pinned.get().size.toLong())
+        override val userData: Buffer? by lazy {
+            Buffer.from(pointer, pinned.get().size.toLong())
         }
 
         override fun release() {

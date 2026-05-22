@@ -9,23 +9,26 @@ import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.ReadableMemoryBlock
 import ksqlite.capi.memory.WritableMemoryBlock
 import ksqlite.capi.memory.isNull
+import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.sqlite3_pointer
+import ksqlite.capi.memory.BufferBase
 import ksqlite.capi.wasm
 import kotlin.js.toLong
 
 public actual open class sqlite3_pointer internal constructor(internal val block: MemoryBlock) :
-    sqlite3_pointer_base(),
+    BufferBase(),
     ReadableMemoryBlock by block {
 
     actual override val address: Long
         get() = block.pointer.toLong()
 
-    public actual override val size: Long
+    public actual override val byteSize: Long
         get() = block.blockSize
 
     internal companion object {
 
         /**
-         * Returns a [sqlite3_pointer] from [pointer] or `null` if [pointer] is `null`.
+         * Returns a [ksqlite.capi.memory.sqlite3_pointer] from [pointer] or `null` if [pointer] is `null`.
          */
         fun from(
             pointer: WasmPointer,
@@ -36,7 +39,7 @@ public actual open class sqlite3_pointer internal constructor(internal val block
                 return null
             }
 
-            return sqlite3_pointer(MemoryBlock(memory, pointer, size))
+            return ksqlite.capi.memory.sqlite3_pointer(MemoryBlock(memory, pointer, size))
         }
     }
 }
@@ -54,17 +57,17 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryB
             pointer: WasmPointer,
             size: Long,
             memory: WasmMemory = wasm
-        ): sqlite3_mutable_pointer? {
+        ): Buffer? {
             if (pointer.isNull) {
                 return null
             }
 
-            return sqlite3_mutable_pointer(MemoryBlock(memory, pointer, size))
+            return ksqlite.capi.memory.Buffer(MemoryBlock(memory, pointer, size))
         }
 
         /**
-         * Returns a [sqlite3_mutable_pointer] from [pointer] or `null` if [pointer] is `null`.
-         * The returned [sqlite3_mutable_pointer] is obtained from [MemoryManager.getStableRef].
+         * Returns a [ksqlite.capi.memory.Buffer] from [pointer] or `null` if [pointer] is `null`.
+         * The returned [ksqlite.capi.memory.Buffer] is obtained from [MemoryManager.getStableRef].
          *
          * The reference is disposed before being returned if [dispose] is `true`.
          */
@@ -72,7 +75,7 @@ public actual class sqlite3_mutable_pointer internal constructor(region: MemoryB
         fun fromStableRef(
             pointer: WasmPointer,
             dispose: Boolean = true
-        ): sqlite3_mutable_pointer? {
+        ): Buffer? {
             if (pointer.isNull) {
                 return null
             }

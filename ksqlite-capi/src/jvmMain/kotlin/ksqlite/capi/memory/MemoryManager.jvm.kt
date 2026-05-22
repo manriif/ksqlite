@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
-    private val functionPointers: MutableMap<KClass<*>, MemorySegment> by lazy(::ConcurrentHashMap)
+    private val functionPointers by lazy { ConcurrentHashMap<KClass<*>, MemorySegment>() }
     private val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -27,7 +27,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * @throws NullPointerException if there is no object associated with [pointer].
      */
     fun <ClientData> getStableRef(pointer: MemorySegment): Reference<ClientData> = notClosed {
-        val refId = pointer.address().toULong()
+        val refId = pointer.address()
         val reference = getDisposable<ClientData, StableRefReference<ClientData>>(refId)
         return reference
     }
@@ -38,9 +38,9 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if both [data] and [destructor] are `null`
      */
-    fun <ClientData> stableRefDisposer(
+    fun stableRefDisposer(
         data: Any?,
-        destructor: Sqlite3DestructorCallback<ClientData>? = null
+        destructor: Sqlite3DestructorCallback<*>? = null
     ): MemorySegment {
         return stableRefDisposer.takeIf { data != null || destructor != null }
             ?: MemorySegment.NULL
@@ -59,21 +59,51 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a [MemorySegment] referring [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The resulting reference data can be accessed using [getStableRef] and it can be
-     * disposed using [stableRefDisposer].
+     * The resulting reference data can be accessed using [getStableRef] and it can be disposed
+     * using [stableRefDisposer].
      */
     fun <ClientData> stableRefPointer(
         data: Any?,
         clientData: ClientData,
-        destructor: Sqlite3DestructorCallback<ClientData>? = null,
-        key: String? = null
+        destructor: Sqlite3DestructorCallback<ClientData>? = null
     ): MemorySegment = notClosed {
         if (data == null && destructor == null) {
             return MemorySegment.NULL
         }
 
-        val reference = registerDisposable(key) { id ->
+        val reference = registerDisposable { id ->
             StableRefReference(id, destructor, data, clientData)
+        }
+
+        return reference.pointer
+    }
+
+    /**
+     * Returns a [MemorySegment] referring [data] or `null` if both [data] and [destructor] are
+     * `null`.
+     *
+     * The resulting reference data can be accessed using [getStableRef] and it can be
+     * disposed using [stableRefDisposer].
+     * 
+     * If a pointer was previously obtained using [key], it is disposed.
+     */
+    fun <ClientData> keyedStableRefPointer(
+        key: String,
+        data: Any?,
+        clientData: ClientData,
+        destructor: Sqlite3DestructorCallback<ClientData>? = null,
+        old: ((Any?) -> Unit)? = null
+    ): MemorySegment = notClosed {
+        if (data == null && destructor == null) {
+            return MemorySegment.NULL
+        }
+
+        val (reference, oldClientData) = registerKeyedDisposable(key) { id ->
+            StableRefReference(id, destructor, data, clientData)
+        }
+
+        if (oldClientData != null && old != null) {
+            old.invoke(oldClientData)
         }
 
         return reference.pointer
@@ -173,14 +203,14 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Reference to [data].
      */
     private inner class StableRefReference<ClientData>(
-        id: ULong,
+        id: Long,
         destructor: Sqlite3DestructorCallback<ClientData>?,
         override val data: Any?,
         override val clientData: ClientData
     ) : AutoDisposable<ClientData>(id, destructor),
         Reference<ClientData> {
 
-        val pointer: MemorySegment = MemorySegment.ofAddress(id.toLong())
+        val pointer: MemorySegment = MemorySegment.ofAddress(id)
 
         override fun release() = Unit
     }
@@ -189,7 +219,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Reference to an [arena].
      */
     private abstract inner class ArenaDisposable<ClientData>(
-        id: ULong,
+        id: Long,
         destructor: Sqlite3DestructorCallback<ClientData>? = null
     ) : AutoDisposable<ClientData>(id, destructor) {
 
@@ -204,7 +234,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Reference to [Handler].
      */
     private inner class FunctionDisposable(
-        id: ULong,
+        id: Long,
         override val clientData: Handler<*>,
     ) : ArenaDisposable<Handler<*>>(id, null)
 
@@ -212,7 +242,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Reference to [ByteArray].
      */
     private inner class ByteArrayDisposable(
-        id: ULong,
+        id: Long,
         override val clientData: ByteArray,
         destructor: Sqlite3DestructorCallback<ByteArray>?,
     ) : ArenaDisposable<ByteArray>(id, destructor) {

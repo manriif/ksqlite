@@ -27,7 +27,7 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.memory.Buffer
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.useParam
@@ -104,7 +104,7 @@ private val nativeInit = run {
 public actual fun sqlite3_aggregate_context(
     context: sqlite3_context,
     nBytes: Int
-): Any? = sqlite3_mutable_pointer.from(
+): Any? = Buffer.from(
     pointer = native_sqlite3_aggregate_context(context.pointer, nBytes),
     size = nBytes.toLong()
 )
@@ -114,7 +114,7 @@ public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback)
 
 public actual fun sqlite3_autovacuum_pages(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
+    userData: Buffer?,
     destructor: Sqlite3DestructorCallback?,
     callback: Sqlite3AutoVacuumPagesCallback?
 ): Sqlite3Result = convertResult(
@@ -165,7 +165,7 @@ public actual fun sqlite3_bind_blob(
 public actual fun sqlite3_bind_blob64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_mutable_pointer?,
+    data: Buffer?,
     size: Long,
     destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
@@ -217,7 +217,7 @@ public actual fun sqlite3_bind_parameter_name(
 public actual fun sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_mutable_pointer?,
+    data: Buffer?,
     type: String?,
     destructor: Sqlite3DestructorCallback?
 ): Sqlite3Result = convertResult(
@@ -248,7 +248,7 @@ public actual fun sqlite3_bind_text(
 public actual fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
     index: Int,
-    data: sqlite3_mutable_pointer?,
+    data: Buffer?,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
     destructor: Sqlite3DestructorCallback?
@@ -333,7 +333,7 @@ public actual fun sqlite3_blob_write(
 
 public actual fun sqlite3_busy_handler(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
+    userData: Buffer?,
     callback: Sqlite3BusyHandlerCallback?
 ): Sqlite3Result = convertResult(
     native_sqlite3_busy_handler(
@@ -367,7 +367,7 @@ public actual fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result =
 
 public actual fun sqlite3_collation_needed(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
+    userData: Buffer?,
     callback: Sqlite3CollationNeededCallback?,
 ): Sqlite3Result = convertResult(
     native_sqlite3_collation_needed(
@@ -447,10 +447,10 @@ public actual fun sqlite3_column_value(
 
 public actual fun sqlite3_commit_hook(
     db: sqlite3,
-    userData: sqlite3_mutable_pointer?,
+    userData: Buffer?,
     callback: Sqlite3CommitHookCallback?
-): sqlite3_mutable_pointer? = db.withMemoryManager {
-    sqlite3_mutable_pointer.fromStableRef(
+): Buffer? = db.withMemoryManager {
+    Buffer.fromStableRef(
         native_sqlite3_commit_hook(
             db.pointer,
             functionPointer(callback, ::CommitHookHandler),

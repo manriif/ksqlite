@@ -9,6 +9,13 @@ import ksqlite.capi.types.Sqlite3Result
 public expect open class GenericPointer
 
 ///////////////////////////////////////////////////////////////////////////
+// Concurrency
+///////////////////////////////////////////////////////////////////////////
+
+internal typealias ConcurrentMap<K, V> = co.touchlab.stately.collections.ConcurrentMutableMap<K, V>
+internal typealias Lock = co.touchlab.stately.concurrency.Lock
+
+///////////////////////////////////////////////////////////////////////////
 // Disposables
 ///////////////////////////////////////////////////////////////////////////
 
@@ -46,13 +53,13 @@ internal val globalMemory: MemoryManager
 /**
  * Per pointer memory manager.
  */
-private val ScopedMemoryManagers = mutableMapOf<GenericPointer, MemoryManager>()
+private val ScopedMemoryManagers = ConcurrentMap<GenericPointer, MemoryManager>()
 
 /**
  * Returns the [MemoryManager] for `this` [GenericPointer], creating one if necessary.
  */
 internal val GenericPointer.memory: MemoryManager
-    get() = ScopedMemoryManagers.getOrPut(this, ::MemoryManager)
+    get() = ScopedMemoryManagers.computeIfAbsent(this) { MemoryManager() }
 
 /**
  * Returns the [MemoryManager] for `this` [GenericPointer] or `null`.

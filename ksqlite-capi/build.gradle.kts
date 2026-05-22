@@ -13,6 +13,10 @@ kotlin {
     webTargets()
 
     sourceSets {
+        commonMain.dependencies {
+            implementation(libs.stately.concurrentCollections)
+        }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutinesTest)
