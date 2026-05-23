@@ -9,7 +9,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_busy_handler].
  */
-internal class BusyHandlerHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
+internal class BusyHandlerHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -20,7 +20,7 @@ internal class BusyHandlerHandler<AppData>(manager: MemoryManager) : Handler<App
     fun handle(
         refPointer: MemorySegment,
         count: Int,
-    ): Int = handler(refPointer) { callback: Sqlite3BusyHandlerCallback<AppData>, appData ->
+    ): Int = handler(refPointer) { callback: Sqlite3BusyHandlerCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
             count = count

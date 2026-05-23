@@ -134,6 +134,12 @@ public expect fun sqlite3_wal_checkpoint_v2(
  * this database connection.
  *
  * [sqlite3_wal_hook()](https://sqlite.org/c3ref/wal_hook.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
 public expect fun <AppData> sqlite3_wal_hook(
     db: sqlite3,

@@ -27,11 +27,11 @@ private fun configLogHandler(
     refPointer: COpaquePointer?,
     errCode: Int,
     errMsg: CPointer<ByteVar>?
-) = handler(refPointer) { callback: Sqlite3ConfigLogCallback, userData ->
-    callback(
-        userData,
-        errCode,
-        errMsg?.toKStringFromUtf8()
+) = handler(refPointer) { callback: Sqlite3ConfigLogCallback<Any?>, appData ->
+    callback.handle(
+        appData = appData,
+        errorCode = errCode,
+        errorMsg = errMsg?.toKStringFromUtf8()
     )
 }
 
@@ -52,10 +52,10 @@ private fun configSqlLogHandler(
     db: CPointer<s3>?,
     name: CPointer<ByteVar>?,
     type: Int
-) = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback, userData ->
+) = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback<Any?>, appData ->
     dispatchSqlLogEvent(
         callback = callback,
-        clientData = userData,
+        appData = appData,
         type = type,
         db = sqlite3(db!!),
         name = name?.toKStringFromUtf8()

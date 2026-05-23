@@ -14,7 +14,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Base for create function [Handler]s.
  */
-internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler<Nothing>(manager) {
+internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(manager) {
 
     /**
      * Handler for create function callback.

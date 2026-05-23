@@ -75,7 +75,7 @@ internal fun unregisterGlobalDisposable(pointer: MemorySegment) {
 /**
  * [Disposable] invoking [destructor] with [buffer] when disposed.
  */
-private class DisposableBuffer(
+private class BufferDisposer(
     private val buffer: Buffer,
     private val destructor: Sqlite3DestroyCallback<Buffer>
 ) : Disposable {
@@ -88,7 +88,7 @@ private class DisposableBuffer(
 
 /**
  * Registers a [Disposable] which will invoke [destructor] when disposed.
- * If [destructor] is `null`then [MemorySegment.NULL] is returned.
+ * If [destructor] is `null` then [MemorySegment.NULL] is returned.
  */
 internal fun bufferDisposer(
     buffer: Buffer,
@@ -100,7 +100,7 @@ internal fun bufferDisposer(
 
     registerGlobalDisposable(
         pointer = buffer.pointer,
-        disposable = DisposableBuffer(
+        disposable = BufferDisposer(
             buffer = buffer,
             destructor = destructor
         )

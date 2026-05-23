@@ -15,9 +15,9 @@ internal val BusyHandlerHandler = staticCFunction(::busyHandlerHandler)
 private fun busyHandlerHandler(
     refPointer: COpaquePointer?,
     count: Int,
-) = handler(refPointer) { callback: Sqlite3BusyHandlerCallback, userData ->
-    callback(
-        userData,
-        count
+) = handler(refPointer) { callback: Sqlite3BusyHandlerCallback<Any?>, appData ->
+    callback.handle(
+        appData = appData,
+        count = count
     )
 }

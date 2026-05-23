@@ -13,7 +13,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_preupdate_hook].
  */
-internal class PreupdateHookHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
+internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -33,7 +33,7 @@ internal class PreupdateHookHandler<AppData>(manager: MemoryManager) : Handler<A
         tableName: MemorySegment,
         oldRowId: Long,
         newRowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<AppData>, appData ->
+    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
             db = sqlite3(db),
@@ -49,7 +49,7 @@ internal class PreupdateHookHandler<AppData>(manager: MemoryManager) : Handler<A
 /**
  * Handler for [ksqlite.capi.sqlite3_update_hook].
  */
-internal class UpdateHookHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
+internal class UpdateHookHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -65,7 +65,7 @@ internal class UpdateHookHandler<AppData>(manager: MemoryManager) : Handler<AppD
         dbName: MemorySegment,
         tableName: MemorySegment,
         rowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback<AppData>, appData ->
+    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
             action = convertActionCode(action),

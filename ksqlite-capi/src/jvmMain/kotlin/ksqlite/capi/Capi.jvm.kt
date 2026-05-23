@@ -182,15 +182,14 @@ public actual fun <AppData> sqlite3_autovacuum_pages(
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     native.sqlite3_autovacuum_pages(
         db.pointer,
-        functionPointer(callback) { AutoVacuumPagesHandler<AppData>(it) },
+        functionPointer(callback, ::AutoVacuumPagesHandler),
         keyedStableRefPointer(KEY_AUTOVACUUM_PAGES, callback, appData, destroy),
         stableRefDisposer(callback, destroy)
     )
 })
 
-public actual fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result = convertResult(
-    native.sqlite3_backup_finish(backup.pointer)
-)
+public actual fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result =
+    convertResult(native.sqlite3_backup_finish(backup.pointer))
 
 public actual fun sqlite3_backup_init(
     destDb: sqlite3,
@@ -302,7 +301,7 @@ public actual fun <Data> sqlite3_bind_pointer(
             index,
             stableRefPointer(ptr, data, ptrDestroy),
             ptr.name.notNull,
-            stableRefDisposer(this, ptrDestroy)
+            stableRefDisposer(ptr, ptrDestroy)
         )
     }
 })
@@ -411,7 +410,7 @@ public actual fun <AppData> sqlite3_busy_handler(
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     native.sqlite3_busy_handler(
         db.pointer,
-        functionPointer(callback) { BusyHandlerHandler<AppData>(it) },
+        functionPointer(callback, ::BusyHandlerHandler),
         keyedStableRefPointer(KEY_BUSY_HANDLER, callback, appData)
     )
 })
@@ -449,7 +448,7 @@ public actual fun <AppData> sqlite3_collation_needed(
     native.sqlite3_collation_needed(
         db.pointer,
         keyedStableRefPointer(KEY_COLLATION_NEEDED, callback, appData),
-        functionPointer(callback) { CollationNeededHandler<AppData>(it) }
+        functionPointer(callback, ::CollationNeededHandler)
     )
 })
 
@@ -544,7 +543,7 @@ public actual fun <AppData> sqlite3_commit_hook(
 ): Unit = db.withMemoryManager {
     native.sqlite3_commit_hook(
         db.pointer,
-        functionPointer(callback) { CommitHookHandler<AppData>(it) },
+        functionPointer(callback, ::CommitHookHandler),
         keyedStableRefPointer(KEY_COMMIT_HOOK, callback, appData)
     )
 }
@@ -561,12 +560,8 @@ public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
 
 public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonConfig(
     option = option,
-    logFunctionPointer = { callback ->
-        globalMemory.functionPointer(callback) { ConfigLogHandler<Any?>(it) }
-    },
-    sqllogFunctionPointer = { callback ->
-        globalMemory.functionPointer(callback) { ConfigSqlLogHandler<Any?>(it) }
-    },
+    logFunctionPointer = { globalMemory.functionPointer(it, ::ConfigLogHandler) },
+    sqllogFunctionPointer = { globalMemory.functionPointer(it, ::ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
     keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
     rowidInView = {
@@ -601,7 +596,7 @@ public actual fun <AppData> sqlite3_create_collation(
             name.allocateUtf8(),
             encoding.utf8OrThrow().value,
             keyedStableRefPointer(KEY_CREATE_COLLATION, callback, appData),
-            functionPointer(callback) { CreateCollationHandler<AppData>(it) },
+            functionPointer(callback, ::CreateCollationHandler),
         )
     }
 })
@@ -620,7 +615,7 @@ public actual fun <AppData> sqlite3_create_collation_v2(
             name.allocateUtf8(),
             encoding.utf8OrThrow().value,
             keyedStableRefPointer(KEY_CREATE_COLLATION, callback, appData, destroy),
-            functionPointer(callback) { CreateCollationHandler<AppData>(it) },
+            functionPointer(callback, ::CreateCollationHandler),
             stableRefDisposer(callback, destroy)
         )
     }
@@ -653,7 +648,7 @@ public actual fun <AppData> sqlite3_create_function_v2(
                 functionPointer(func, ::CreateFunctionFuncHandler),
                 functionPointer(step, ::CreateFunctionStepHandler),
                 functionPointer(final, ::CreateFunctionFinalHandler),
-                stableRefDisposer(0, fnDestroy)
+                stableRefDisposer(fn, fnDestroy)
             )
         }
     }
@@ -720,7 +715,7 @@ public actual fun <AppData> sqlite3_create_window_function(
                 functionPointer(final, ::CreateFunctionFinalHandler),
                 functionPointer(value, ::CreateFunctionValueHandler),
                 functionPointer(inverse, ::CreateFunctionInverseHandler),
-                stableRefDisposer(0, fnDestroy)
+                stableRefDisposer(fn, fnDestroy)
             )
         }
     }
@@ -856,7 +851,7 @@ public actual fun <AppData> sqlite3_exec(
             native.sqlite3_exec(
                 db.pointer,
                 sql.allocateUtf8(),
-                functionPointer(callback) { ExecHandler<AppData>(it) },
+                functionPointer(callback, ::ExecHandler),
                 stableRefPointer(callback, appData),
                 errorMessagePtr
             )
@@ -1072,7 +1067,7 @@ public actual fun <AppData> sqlite3_preupdate_hook(
 ): Unit = db.withMemoryManager {
     native.sqlite3_preupdate_hook(
         db.pointer,
-        functionPointer(callback) { PreupdateHookHandler<AppData>(it) },
+        functionPointer(callback, ::PreupdateHookHandler),
         keyedStableRefPointer(KEY_PREUPDATE_HOOK, callback, appData)
     )
 }
@@ -1102,7 +1097,7 @@ public actual fun <AppData> sqlite3_progress_handler(
     native.sqlite3_progress_handler(
         db.pointer,
         nOps,
-        functionPointer(callback) { ProgressHandlerHandler<AppData>(it) },
+        functionPointer(callback, ::ProgressHandlerHandler),
         keyedStableRefPointer(KEY_PROGRESS_HANDLER, callback, appData)
     )
 }
@@ -1227,7 +1222,7 @@ public actual fun <Data> sqlite3_result_pointer(
             context.pointer,
             stableRefPointer(ptr, data, ptrDestroy),
             ptr.name.notNull,
-            stableRefDisposer(0, ptrDestroy)
+            stableRefDisposer(ptr, ptrDestroy)
         )
     }
 }
@@ -1283,7 +1278,7 @@ public actual fun <AppData> sqlite3_rollback_hook(
 ): Unit = db.withMemoryManager {
     native.sqlite3_rollback_hook(
         db.pointer,
-        functionPointer(callback) { RollbackHookHandler<AppData>(it) },
+        functionPointer(callback, ::RollbackHookHandler),
         keyedStableRefPointer(KEY_ROLLBACK_HOOK, callback, appData)
     )
 }
@@ -1312,7 +1307,7 @@ public actual fun <AppData> sqlite3_set_authorizer(
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     native.sqlite3_set_authorizer(
         db.pointer,
-        functionPointer(callback) { SetAuthorizerHandler<AppData>(it) },
+        functionPointer(callback, ::SetAuthorizerHandler),
         keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, appData)
     )
 })
@@ -1502,7 +1497,7 @@ public actual fun <AppData> sqlite3_trace_v2(
     native.sqlite3_trace_v2(
         db.pointer,
         mask?.value ?: 0,
-        functionPointer(callback) { TraceHandler<AppData>(it) },
+        functionPointer(callback, ::TraceHandler),
         keyedStableRefPointer(KEY_TRACE, callback, appData)
     )
 })
@@ -1521,7 +1516,7 @@ public actual fun <AppData> sqlite3_update_hook(
 ): Unit = db.withMemoryManager {
     native.sqlite3_update_hook(
         db.pointer,
-        functionPointer(callback) { UpdateHookHandler<AppData>(it) },
+        functionPointer(callback, ::UpdateHookHandler),
         keyedStableRefPointer(KEY_UPDATE_HOOK, callback, appData)
     )
 }
@@ -1698,7 +1693,7 @@ public actual fun <AppData> sqlite3_wal_hook(
 ): Unit = db.withMemoryManager {
     native.sqlite3_wal_hook(
         db.pointer,
-        functionPointer(callback) { WalHookHandler<AppData>(it) },
+        functionPointer(callback, ::WalHookHandler),
         keyedStableRefPointer(KEY_WAL_HOOK, callback, appData)
     )
 }

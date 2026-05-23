@@ -17,9 +17,8 @@ internal typealias Disposer = CPointer<CFunction<(COpaquePointer?) -> Unit>>
 
 /**
  * Holds any [Disposable] that should be reachable by static C function given a pointer.
- * TODO must be thread-safe
  */
-private val GlobalDisposables: MutableMap<COpaquePointer, Disposable> by lazy(::hashMapOf)
+private val GlobalDisposables by lazy { ConcurrentMap<COpaquePointer, Disposable>() }
 
 /**
  * C-static function disposing a [Disposable] registered with [registerGlobalDisposable].
@@ -69,35 +68,35 @@ internal fun unregisterGlobalDisposable(pointer: COpaquePointer) {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * [Disposable] invoking [destructor] with [userData] when disposed.
+ * [Disposable] invoking [destructor] with [buffer] when disposed.
  */
-private class UserDataDisposable(
-    private val userData: Buffer,
-    private val destructor: Sqlite3DestroyCallback
+private class BufferDisposer(
+    private val buffer: Buffer,
+    private val destructor: Sqlite3DestroyCallback<Buffer>
 ) : Disposable {
 
     override fun dispose() {
-        unregisterGlobalDisposable(userData.block.pointer)
-        destructor(userData)
+        unregisterGlobalDisposable(buffer.pointer)
+        destructor.handle(buffer)
     }
 }
 
 /**
  * Registers a [Disposable] which will invoke [destructor] when disposed.
- * Returns [GlobalDisposer] only if [userData] != `null` and [destructor] != `null`.
+ * If [destructor] is `null` then `null` is returned.
  */
-internal fun userDataDisposer(
-    userData: Buffer?,
-    destructor: Sqlite3DestroyCallback?
+internal fun bufferDisposer(
+    buffer: Buffer,
+    destructor: Sqlite3DestroyCallback<Buffer>?
 ): Disposer? {
-    if (userData == null || destructor == null) {
+    if (destructor == null) {
         return null
     }
 
     registerGlobalDisposable(
-        pointer = userData.block.pointer,
-        disposable = UserDataDisposable(
-            userData = userData,
+        pointer = buffer.pointer,
+        disposable = BufferDisposer(
+            buffer = buffer,
             destructor = destructor
         )
     )

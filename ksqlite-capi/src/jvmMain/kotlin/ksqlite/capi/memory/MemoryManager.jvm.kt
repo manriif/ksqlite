@@ -109,8 +109,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * [Handler] returned by [factory].
      */
     private fun getOrCreateFunctionPointer(
-        handlerKlass: KClass<out Handler<*>>,
-        factory: (MemoryManager) -> Handler<*>
+        handlerKlass: KClass<out Handler>,
+        factory: (MemoryManager) -> Handler
     ): MemorySegment = notClosed {
         functionPointers.computeIfAbsent(handlerKlass) {
             val handler = factory(this)
@@ -137,7 +137,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * Returns [MemorySegment.NULL] if [callback] is `null`.
      */
-    inline fun <reified H : Handler<*>> functionPointer(
+    inline fun <reified H : Handler> functionPointer(
         callback: Any?,
         noinline factory: (MemoryManager) -> H
     ): MemorySegment = notClosed {
@@ -152,7 +152,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a pointer to a static function that will invoke the `handle` function of the
      * [Handler] returned by [factory].
      */
-    inline fun <reified H : Handler<*>> functionPointer(
+    inline fun <reified H : Handler> functionPointer(
         noinline factory: (MemoryManager) -> H
     ): MemorySegment {
         return functionPointer(this, factory)
@@ -183,7 +183,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Handler that dispose reference to object to make it available for GC.
      */
-    private class StableRefDisposerHandler(manager: MemoryManager) : Handler<Nothing>(manager) {
+    private class StableRefDisposerHandler(manager: MemoryManager) : Handler(manager) {
 
         override fun createFunctionDescriptor(): FunctionDescriptor {
             return FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
@@ -230,8 +230,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class FunctionDisposable(
         id: Long,
-        override val appData: Handler<*>,
-    ) : ArenaDisposable<Handler<*>>(id, null)
+        override val appData: Handler,
+    ) : ArenaDisposable<Handler>(id, null)
 
     /**
      * Reference to [ByteArray].

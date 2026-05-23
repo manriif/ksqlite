@@ -19,8 +19,8 @@ internal val CommitHookHandler = staticCFunction(::commitHookHandler)
  */
 private fun commitHookHandler(
     refPointer: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3CommitHookCallback, userData ->
-    callback(userData)
+) = handler(refPointer) { callback: Sqlite3CommitHookCallback<Any?>, appData ->
+    callback.handle(appData)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -37,6 +37,6 @@ internal val RollbackHookHandler = staticCFunction(::rollbackHookHandler)
  */
 private fun rollbackHookHandler(
     refPointer: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3RollbackHookCallback, userData ->
-    callback(userData)
+) = handler(refPointer) { callback: Sqlite3RollbackHookCallback<Any?>, appData ->
+    callback.handle(appData)
 }

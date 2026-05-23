@@ -45,8 +45,8 @@ internal actual fun nativeSetAuxdata(
 
 @PublishedApi
 internal actual fun nativeUserData(context: sqlite3_context): ApplicationDefinedFunction<*> {
-    return context.db.memory
-        .stableRefData<ApplicationDefinedFunction<*>, Nothing?>(context.pointer).first
+    val pointer = sqlite3.sqlite3_user_data(context.pointer)
+    return context.db.memory.stableRefData<ApplicationDefinedFunction<*>, Nothing?>(pointer).first
 }
 
 @PublishedApi

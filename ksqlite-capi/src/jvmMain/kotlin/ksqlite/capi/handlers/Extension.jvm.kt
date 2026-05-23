@@ -22,7 +22,7 @@ internal val SharedAutoExtensionHandler by lazy {
 /**
  * Handler for [ksqlite.capi.sqlite3_auto_extension].
  */
-internal class AutoExtensionHandler(manager: MemoryManager) : Handler<Nothing>(manager) {
+internal class AutoExtensionHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,

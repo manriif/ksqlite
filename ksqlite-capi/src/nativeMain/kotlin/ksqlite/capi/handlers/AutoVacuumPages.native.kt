@@ -21,12 +21,12 @@ private fun autoVacuumPagesHandler(
     nDbPage: UInt,
     nFreePage: UInt,
     nBytePerPage: UInt
-) = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback, userData ->
-    callback(
-        userData,
-        zSchema!!.toKStringFromUtf8(),
-        nDbPage,
-        nFreePage,
-        nBytePerPage
+) = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback<Any?>, appData ->
+    callback.handle(
+        appData = appData,
+        schemaName = zSchema!!.toKStringFromUtf8(),
+        dbPage = nDbPage,
+        freePage = nFreePage,
+        bytePerPage = nBytePerPage
     )
 }

@@ -18,13 +18,15 @@ internal fun <Fun : CFunction<*>, Pointer : CPointer<Fun>> Pointer.handle(data: 
 }
 
 /**
- * Returns [block]'s result, invoked with [Data] and optional userData obtained from a previously
- * referenced [refPointer].
+ * Returns [block]'s result, invoked with [Data] and optional application data obtained from a
+ * previously referenced [refPointer].
+ *
+ * App data type is erased for simplicity.
  */
 internal inline fun <reified Data : Any, Result> handler(
     refPointer: COpaquePointer?,
-    block: (data: Data, userData: Buffer?) -> Result
+    block: (data: Data, appData: Any?) -> Result
 ): Result {
-    val (data, userData) = stableRefData<Data>(refPointer)
-    return block(data, userData)
+    val (data, appData) = stableRefData<Data, Any?>(refPointer)
+    return block(data, appData)
 }

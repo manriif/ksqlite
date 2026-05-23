@@ -11,17 +11,17 @@ package ksqlite.capi.memory
  *
  * [Buffer] does not provide any kind of thread-safety and external synchronization is required.
  */
-public abstract class BufferBase internal constructor() {
+public abstract class BufferBase internal constructor(
+    /**
+     * Size of the memory region in bytes.
+     */
+    public val byteSize: Long
+) {
 
     /**
      * Native address of the first byte.
      */
     protected abstract val address: Long
-
-    /**
-     * Size of the memory region in bytes.
-     */
-    public abstract val byteSize: Long
 
     /**
      * Reads from native memory.
@@ -120,7 +120,6 @@ public abstract class BufferBase internal constructor() {
 public expect class Buffer : BufferBase {
 
     override val address: Long
-    override val byteSize: Long
 
     override fun nativeRead(
         destination: ByteArray,
@@ -205,4 +204,32 @@ public fun Buffer.read(
     )
 
     return destination
+}
+
+/**
+ * Reads at most [Int.MAX_VALUE] bytes from `this` buffer.
+ */
+public fun Buffer.readBytes(): ByteArray {
+    val size = byteSize
+        .coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())
+        .toInt()
+
+    return read(size)
+}
+
+/**
+ * Reads all bytes from `this` buffer.
+ *
+ * @throws UnsupportedOperationException if not all bytes in `this` buffer can fit into a
+ * [ByteArray].
+ */
+public fun Buffer.readBytesOrThrow(): ByteArray {
+    if (byteSize > Int.MAX_VALUE.toLong()) {
+        throw UnsupportedOperationException(
+            "Buffer size exceeds the maximum value that can fit into a 4 bytes signed integer " +
+                    "($byteSize > ${Int.MAX_VALUE})"
+        )
+    }
+
+    return read(byteSize.toInt())
 }

@@ -34,15 +34,15 @@ private fun preupdateHookHandler(
     tableName: CPointer<ByteVar>?,
     oldRowId: sqlite3_int64,
     newRowId: sqlite3_int64
-) = handler(refPointer) { callback: Sqlite3PreupdateHookCallback, userData ->
-    callback(
-        userData,
-        sqlite3(db!!),
-        convertActionCode(action),
-        dbName!!.toKStringFromUtf8(),
-        tableName!!.toKStringFromUtf8(),
-        oldRowId,
-        newRowId
+) = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
+    callback.handle(
+        appData = appData,
+        db = sqlite3(db!!),
+        action = convertActionCode(action),
+        dbName = dbName!!.toKStringFromUtf8(),
+        tableName = tableName!!.toKStringFromUtf8(),
+        oldRowId = oldRowId,
+        newRowId = newRowId
     )
 }
 
@@ -64,12 +64,12 @@ private fun updateHookHandler(
     dbName: CPointer<ByteVar>?,
     tableName: CPointer<ByteVar>?,
     rowId: sqlite3_int64
-) = handler(refPointer) { callback: Sqlite3UpdateHookCallback, userData ->
-    callback(
-        userData,
-        convertActionCode(action),
-        dbName!!.toKStringFromUtf8(),
-        tableName!!.toKStringFromUtf8(),
-        rowId
+) = handler(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
+    callback.handle(
+        appData = appData,
+        action = convertActionCode(action),
+        dbName = dbName!!.toKStringFromUtf8(),
+        tableName = tableName!!.toKStringFromUtf8(),
+        rowId = rowId
     )
 }

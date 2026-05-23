@@ -4,8 +4,8 @@ import java.lang.foreign.MemorySegment
 
 public actual class Buffer internal constructor(
     internal val pointer: MemorySegment,
-    actual override val byteSize: Long
-) : BufferBase() {
+    byteSize: Long
+) : BufferBase(byteSize) {
 
     actual override val address: Long
         get() = pointer.address()
@@ -45,12 +45,8 @@ public actual class Buffer internal constructor(
         /**
          * Returns a [Buffer] from [pointer] or `null` if [pointer] is `null`.
          */
-        fun from(pointer: MemorySegment, size: Long): Buffer? {
-            if (pointer.isNull) {
-                return null
-            }
-
-            return Buffer(pointer, size)
+        fun from(pointer: MemorySegment, size: Long): Buffer? = pointer.orNull?.let {
+            Buffer(pointer, size)
         }
     }
 }

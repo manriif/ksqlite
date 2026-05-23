@@ -22,14 +22,14 @@ private fun execHandler(
     columnCount: Int,
     values: CPointer<CPointerVar<ByteVar>>?,
     names: CPointer<CPointerVar<ByteVar>>?
-) = handler(refPointer) { callback: Sqlite3ExecCallback, userData ->
+) = handler(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
     val columnValues = values?.toArray(columnCount) { it?.toKStringFromUtf8() } ?: emptyArray()
     val columnNames = names?.toArray(columnCount) { it!!.toKStringFromUtf8() } ?: emptyArray()
 
-    callback(
-        userData,
-        columnCount,
-        columnValues,
-        columnNames
+    callback.handle(
+        appData = appData,
+        columnCount = columnCount,
+        columnValues = columnValues,
+        columnNames = columnNames
     )
 }

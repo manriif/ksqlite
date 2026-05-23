@@ -642,6 +642,12 @@ public expect fun sqlite3_column_value(
  * non-zero, then the commit becomes a rollback.
  *
  * [sqlite_commit_hook()](https://sqlite.org/c3ref/commit_hook.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
 public expect fun <AppData> sqlite3_commit_hook(
     db: sqlite3,
@@ -754,6 +760,7 @@ public fun <AppData> sqlite3_create_function(
     final = final,
     destroy = null
 )
+
 /**
  * Create new user functions.
  *
@@ -1065,7 +1072,7 @@ public expect fun sqlite3_extended_result_codes(
  *
  * [sqlite3_file_control()](https://sqlite.org/c3ref/file_control.html)
  *
- * TODO client data
+ * TODO app data
  */
 public expect fun sqlite3_file_control(
     db: sqlite3,
@@ -1113,13 +1120,10 @@ public expect fun sqlite3_get_autocommit(db: sqlite3): Int
  *
  * [sqlite3_get_auxdata()](https://sqlite.org/c3ref/get_auxdata.html)
  */
-public inline fun <reified Data: Any> sqlite3_get_auxdata(
+public inline fun <reified Data : Any> sqlite3_get_auxdata(
     context: sqlite3_context,
     index: Int
-): Data? {
-    return nativeUserData(context)
-        .getAuxiliaryDataOrNull(context, index, Data::class)
-}
+): Data? = castOrThrows(nativeUserData(context).getAuxiliaryDataOrNull(context, index))
 
 /**
  * Initialize SQLite.
@@ -1436,6 +1440,12 @@ public expect fun sqlite3_preupdate_depth(db: sqlite3): Int
  * database connection.
  *
  * [sqlite3_preupdate_hook()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
 public expect fun <AppData> sqlite3_preupdate_hook(
     db: sqlite3,
@@ -1750,6 +1760,12 @@ public expect fun sqlite3_result_zeroblob64(
  * connection.
  *
  * [sqlite3_rollback_hook()](https://sqlite.org/c3ref/commit_hook.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
 public expect fun <AppData> sqlite3_rollback_hook(
     db: sqlite3,
@@ -1791,14 +1807,13 @@ public expect fun <AppData> sqlite3_set_authorizer(
  *
  * [sqlite3_set_auxdata()](https://sqlite.org/c3ref/get_auxdata.html)
  */
-public inline fun <reified Data: Any> sqlite3_set_auxdata(
+public inline fun <reified Data : Any> sqlite3_set_auxdata(
     context: sqlite3_context,
     index: Int,
     data: Data,
     destroy: Sqlite3DestroyCallback<Data>?
 ) {
-    nativeUserData(context)
-        .setAuxiliaryData(context, index, data, destroy)
+    nativeUserData(context).setAuxiliaryData(context, index, data, destroy)
 }
 
 /**
@@ -2035,6 +2050,12 @@ public expect fun sqlite3_txn_state(
  * database connection.
  *
  * [sqlite3_update_hook()](https://sqlite.org/c3ref/update_hook.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
 public expect fun <AppData> sqlite3_update_hook(
     db: sqlite3,

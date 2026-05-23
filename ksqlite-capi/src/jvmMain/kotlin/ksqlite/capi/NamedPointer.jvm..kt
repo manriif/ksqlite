@@ -26,7 +26,7 @@ internal class NamedPointer<Data>(
 /**
  * Returns a [NamedPointer] which allocates memory for [name] if not null.
  *
- * The destructor passed to [block] must be used in place of [destroy] in order to clear the
+ * The destructor passed to [block] must be used in place of [destroy] in order to close the
  * associated [Arena].
  */
 internal inline fun <Data, R> allocateNamedPointer(

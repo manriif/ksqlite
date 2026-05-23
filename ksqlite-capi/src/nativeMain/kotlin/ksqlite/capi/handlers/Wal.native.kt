@@ -22,11 +22,11 @@ private fun walHookHandler(
     db: CPointer<s3>?,
     dbName: CPointer<ByteVar>?,
     nPage: Int,
-) = handler(refPointer) { callback: Sqlite3WalHookCallback, userData ->
-    callback(
-        userData,
-        sqlite3(db!!),
-        dbName!!.toKStringFromUtf8(),
-        nPage
+) = handler(refPointer) { callback: Sqlite3WalHookCallback<Any?>, appData ->
+    callback.handle(
+        appData = appData,
+        db = sqlite3(db!!),
+        dbName = dbName!!.toKStringFromUtf8(),
+        nPage = nPage
     ).code
 }

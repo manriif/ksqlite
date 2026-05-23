@@ -5,12 +5,12 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.capi.convertTextEncoding
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CreateCollationCallback
+import ksqlite.capi.convertTextEncoding
+import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.memory.toKStringFromUtf8
 
 ///////////////////////////////////////////////////////////////////////////
 // Needed
@@ -29,12 +29,12 @@ private fun collationNeededHandler(
     db: CPointer<s3>?,
     eTextRep: Int,
     name: CPointer<ByteVar>?
-) = handler(refPointer) { callback: Sqlite3CollationNeededCallback, userData ->
-    callback(
-        userData,
-        sqlite3(db!!),
-        convertTextEncoding(eTextRep),
-        name!!.toKStringFromUtf8()
+) = handler(refPointer) { callback: Sqlite3CollationNeededCallback<Any?>, appData ->
+    callback.handle(
+        appData = appData,
+        db = sqlite3(db!!),
+        eTextRep = convertTextEncoding(eTextRep),
+        name = name!!.toKStringFromUtf8()
     )
 }
 
@@ -57,10 +57,10 @@ private fun createCollationHandler(
     text1: COpaquePointer?,
     size2: Int,
     text2: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3CreateCollationCallback, userData ->
-    callback(
-        userData,
-        text1!!.toKStringFromUtf8(size1),
-        text2!!.toKStringFromUtf8(size2)
+) = handler(refPointer) { callback: Sqlite3CreateCollationCallback<Any?>, appData ->
+    callback.handle(
+        appData = appData,
+        left = text1!!.toKStringFromUtf8(size1),
+        right = text2!!.toKStringFromUtf8(size2)
     )
 }

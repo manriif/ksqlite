@@ -13,7 +13,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for the LOG option of [ksqlite.capi.sqlite3_config].
  */
-internal class ConfigLogHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
+internal class ConfigLogHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -25,7 +25,7 @@ internal class ConfigLogHandler<AppData>(manager: MemoryManager) : Handler<AppDa
         refPointer: MemorySegment,
         errCode: Int,
         errMsg: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback<AppData>, appData ->
+    ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
             errorCode = errCode,
@@ -37,7 +37,7 @@ internal class ConfigLogHandler<AppData>(manager: MemoryManager) : Handler<AppDa
 /**
  * Handler for the SQLLOG option of [ksqlite.capi.sqlite3_config].
  */
-internal class ConfigSqlLogHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
+internal class ConfigSqlLogHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -51,7 +51,7 @@ internal class ConfigSqlLogHandler<AppData>(manager: MemoryManager) : Handler<Ap
         db: MemorySegment,
         name: MemorySegment,
         type: Int
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback<AppData>, appData ->
+    ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback<Any?>, appData ->
         dispatchSqlLogEvent(
             callback = callback,
             appData = appData,

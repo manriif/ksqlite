@@ -13,7 +13,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_collation_needed].
  */
-internal class CollationNeededHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
+internal class CollationNeededHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -27,7 +27,7 @@ internal class CollationNeededHandler<AppData>(manager: MemoryManager) : Handler
         db: MemorySegment,
         eTextRep: Int,
         name: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3CollationNeededCallback<AppData>, appData ->
+    ): Unit = handler(refPointer) { callback: Sqlite3CollationNeededCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
             db = sqlite3(db),
@@ -41,7 +41,7 @@ internal class CollationNeededHandler<AppData>(manager: MemoryManager) : Handler
  * Handler for [ksqlite.capi.sqlite3_create_collation] and
  * [ksqlite.capi.sqlite3_create_collation_v2].
  */
-internal class CreateCollationHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
+internal class CreateCollationHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -58,7 +58,7 @@ internal class CreateCollationHandler<AppData>(manager: MemoryManager) : Handler
         text1: MemorySegment,
         size2: Int,
         text2: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback<AppData>, appData ->
+    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
             left = text1.asSlice(0, size1.toLong()).toKStringFromUtf8(),

@@ -10,7 +10,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_autovacuum_pages].
  */
-internal class AutoVacuumPagesHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
+internal class AutoVacuumPagesHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -27,7 +27,7 @@ internal class AutoVacuumPagesHandler<AppData>(manager: MemoryManager) : Handler
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback<AppData>, appData ->
+    ): Int = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
             schemaName = zSchema.toKStringFromUtf8(),
