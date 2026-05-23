@@ -9,8 +9,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_progress_handler].
  */
-internal class ProgressHandlerHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class ProgressHandlerHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -19,7 +18,7 @@ internal class ProgressHandlerHandler<ClientData>(manager: MemoryManager) :
 
     fun handle(
         refPointer: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3ProgressHandlerCallback<ClientData>, data ->
-        callback.handle(data)
+    ): Int = handler(refPointer) { callback: Sqlite3ProgressHandlerCallback<AppData>, appData ->
+        callback.handle(appData)
     }
 }

@@ -13,7 +13,7 @@ import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionStepCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionValueCallback
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
@@ -21,6 +21,7 @@ import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
 import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
+import ksqlite.capi.memory.Buffer
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
@@ -54,7 +55,7 @@ import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
 import ksqlite.capi.types.sqlite3_index_info
-import ksqlite.capi.memory.Buffer
+import ksqlite.capi.types.sqlite3_module
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
@@ -75,17 +76,19 @@ import ksqlite.capi.types.sqlite3_vfs
  *
  * If the [Data] instance must not be instantiated, then [factory] must be set to `null`.
  */
-public inline fun <reified Data: Any> sqlite3_aggregate_context(
+public inline fun <reified Data : Any> sqlite3_aggregate_context(
     context: sqlite3_context,
     noinline factory: (() -> Data)?
 ): Data? {
-    val udf = nativeUserData(context)
+    val function = nativeUserData(context)
 
-    return if (factory == null) {
-        udf.getOrNull(context, Data::class)
+    val instance = if (factory == null) {
+        function.getAggregateContextOrNull(context)
     } else {
-        udf.getOrCreate(context, Data::class, factory)
+        function.getOrCreateAggregateContext(context, factory)
     }
+
+    return castOrThrows(instance)
 }
 
 /**
@@ -102,11 +105,11 @@ public expect fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback)
  *
  * [sqlite3_autovacuum_pages()](https://sqlite.org/c3ref/autovacuum_pages.html)
  */
-public expect fun <ClientData> sqlite3_autovacuum_pages(
+public expect fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
-    clientData: ClientData,
-    destructor: Sqlite3DestructorCallback<ClientData>?,
-    callback: Sqlite3AutoVacuumPagesCallback<ClientData>?
+    appData: AppData,
+    destroy: Sqlite3DestroyCallback<AppData>?,
+    callback: Sqlite3AutoVacuumPagesCallback<AppData>?
 ): Sqlite3Result
 
 /**
@@ -168,7 +171,7 @@ public expect fun sqlite3_bind_blob(
     index: Int,
     bytes: ByteArray,
     size: Int,
-    destructor: Sqlite3DestructorCallback<ByteArray>?
+    destroy: Sqlite3DestroyCallback<ByteArray>?
 ): Sqlite3Result
 
 /**
@@ -181,7 +184,7 @@ public expect fun sqlite3_bind_blob64(
     index: Int,
     buffer: Buffer,
     size: Long,
-    destructor: Sqlite3DestructorCallback<Buffer>?
+    destroy: Sqlite3DestroyCallback<Buffer>?
 ): Sqlite3Result
 
 /**
@@ -263,12 +266,12 @@ public expect fun sqlite3_bind_parameter_name(
  *
  * [sqlite3_bind_pointer()](https://sqlite.org/c3ref/bind_blob.html)
  */
-public expect fun <ClientData> sqlite3_bind_pointer(
+public expect fun <Data> sqlite3_bind_pointer(
     stmt: sqlite3_stmt,
     index: Int,
-    data: ClientData,
+    data: Data,
     type: String?,
-    destructor: Sqlite3DestructorCallback<ClientData>?
+    destroy: Sqlite3DestroyCallback<Data>?
 ): Sqlite3Result
 
 /**
@@ -294,7 +297,7 @@ public expect fun sqlite3_bind_text64(
     buffer: Buffer,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
-    destructor: Sqlite3DestructorCallback<Buffer>?
+    destroy: Sqlite3DestroyCallback<Buffer>?
 ): Sqlite3Result
 
 /**
@@ -366,7 +369,7 @@ public expect fun sqlite3_blob_open(
  */
 public expect fun sqlite3_blob_read(
     blob: sqlite3_blob,
-    buffer: ByteArray,
+    bytes: ByteArray,
     size: Int,
     offset: Int
 ): Sqlite3Result
@@ -393,7 +396,7 @@ public expect fun sqlite3_blob_reopen(
  */
 public expect fun sqlite3_blob_write(
     blob: sqlite3_blob,
-    buffer: ByteArray,
+    bytes: ByteArray,
     size: Int?,
     offset: Int
 ): Sqlite3Result
@@ -404,10 +407,10 @@ public expect fun sqlite3_blob_write(
  *
  * [sqlite3_busy_handler()](https://sqlite.org/c3ref/busy_handler.html)
  */
-public expect fun <ClientData> sqlite3_busy_handler(
+public expect fun <AppData> sqlite3_busy_handler(
     db: sqlite3,
-    clientData: ClientData,
-    callback: Sqlite3BusyHandlerCallback<ClientData>?
+    appData: AppData,
+    callback: Sqlite3BusyHandlerCallback<AppData>?
 ): Sqlite3Result
 
 /**
@@ -482,10 +485,10 @@ public expect fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result
  *
  * [sqlite3_collation_needed()](https://sqlite.org/c3ref/collation_needed.html)
  */
-public expect fun <ClientData> sqlite3_collation_needed(
+public expect fun <AppData> sqlite3_collation_needed(
     db: sqlite3,
-    clientData: ClientData,
-    callback: Sqlite3CollationNeededCallback<ClientData>?,
+    appData: AppData,
+    callback: Sqlite3CollationNeededCallback<AppData>?,
 ): Sqlite3Result
 
 /**
@@ -640,11 +643,11 @@ public expect fun sqlite3_column_value(
  *
  * [sqlite_commit_hook()](https://sqlite.org/c3ref/commit_hook.html)
  */
-public expect inline fun <reified ClientData> sqlite3_commit_hook(
+public expect fun <AppData> sqlite3_commit_hook(
     db: sqlite3,
-    clientData: ClientData,
-    callback: Sqlite3CommitHookCallback<ClientData>?
-): ClientData?
+    appData: AppData,
+    callback: Sqlite3CommitHookCallback<AppData>?
+)
 
 /**
  * Return the [index]-th compile-time option string. If [index] is out of range, return `null`.
@@ -694,12 +697,12 @@ public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
  *
  * [sqlite3_create_collation()](https://sqlite.org/c3ref/create_collation.html)
  */
-public expect fun <ClientData> sqlite3_create_collation(
+public expect fun <AppData> sqlite3_create_collation(
     db: sqlite3,
     name: String,
     encoding: Sqlite3TextEncoding.Set0,
-    clientData: ClientData,
-    callback: Sqlite3CreateCollationCallback<ClientData>?
+    appData: AppData,
+    callback: Sqlite3CreateCollationCallback<AppData>?
 ): Sqlite3Result
 
 /**
@@ -707,89 +710,145 @@ public expect fun <ClientData> sqlite3_create_collation(
  *
  * [sqlite3_create_collation_v2()](https://sqlite.org/c3ref/create_collation.html)
  */
-public expect fun <ClientData> sqlite3_create_collation_v2(
+public expect fun <AppData> sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
     encoding: Sqlite3TextEncoding.Set0,
-    clientData: ClientData,
-    destructor: Sqlite3DestructorCallback<ClientData>?,
-    callback: Sqlite3CreateCollationCallback<ClientData>?
+    appData: AppData,
+    destroy: Sqlite3DestroyCallback<AppData>?,
+    callback: Sqlite3CreateCollationCallback<AppData>?
 ): Sqlite3Result
 
 /**
  * Create new user functions.
  *
  * [sqlite3_create_function()](https://sqlite.org/c3ref/create_function.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * This function differs from sqlite3_create_function_v2() in the destroy parameter only.
+ * As KSQLite internally associates some resources with the function that need to be clenaed up
+ * once the function is dropped, sqlite3_create_function_v2() is used in place of
+ * sqlite3_create_function(). That being said, the semantic of both functions is the same as stated
+ * by SQLite.
  */
-public expect fun <ClientData> sqlite3_create_function(
+public fun <AppData> sqlite3_create_function(
     db: sqlite3,
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    clientData: ClientData,
-    func: Sqlite3CreateFunctionFuncCallback<ClientData>?,
-    step: Sqlite3CreateFunctionStepCallback<ClientData>?,
-    final: Sqlite3CreateFunctionFinalCallback<ClientData>?
-): Sqlite3Result
-
+    appData: AppData,
+    func: Sqlite3CreateFunctionFuncCallback<AppData>?,
+    step: Sqlite3CreateFunctionStepCallback<AppData>?,
+    final: Sqlite3CreateFunctionFinalCallback<AppData>?
+): Sqlite3Result = sqlite3_create_function_v2(
+    db = db,
+    name = name,
+    nArg = nArg,
+    encoding = encoding,
+    appData = appData,
+    func = func,
+    step = step,
+    final = final,
+    destroy = null
+)
 /**
  * Create new user functions.
  *
  * [sqlite3_create_function_v2()](https://sqlite.org/c3ref/create_function.html)
  */
-public expect fun <ClientData> sqlite3_create_function_v2(
+public expect fun <AppData> sqlite3_create_function_v2(
     db: sqlite3,
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    clientData: ClientData,
-    func: Sqlite3CreateFunctionFuncCallback<ClientData>?,
-    step: Sqlite3CreateFunctionStepCallback<ClientData>?,
-    final: Sqlite3CreateFunctionFinalCallback<ClientData>?,
-    destructor: Sqlite3DestructorCallback<ClientData>?
+    appData: AppData,
+    func: Sqlite3CreateFunctionFuncCallback<AppData>?,
+    step: Sqlite3CreateFunctionStepCallback<AppData>?,
+    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
+    destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result
-/*
+
 /**
  * External API function used to create a new virtual-table module.
  *
  * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
  */
-public expect fun sqlite3_create_module(
+public expect fun <AppData> sqlite3_create_module(
     db: sqlite3,
     name: String,
-    module: sqlite3_module?,
-    clientData: Any?
+    module: sqlite3_module<AppData>?,
+    appData: AppData
 ): Sqlite3Result
+
+/**
+ * External API function used to create a new virtual-table module.
+ *
+ * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * Drop the module previously registered with the same [name].
+ */
+public fun sqlite3_create_module(
+    db: sqlite3,
+    name: String,
+    module: Nothing?
+): Sqlite3Result {
+    return sqlite3_create_module(db, name, null, null)
+}
 
 /**
  * External API function used to create a new virtual-table module.
  *
  * [sqlite3_create_module_v2()](https://sqlite.org/c3ref/create_module.html)
  */
-public expect fun <ClientData> sqlite3_create_module_v2(
+public expect fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
-    module: sqlite3_module?,
-    clientData: ClientData,
-    destructor: Sqlite3DestructorCallback<ClientData>?,
+    module: sqlite3_module<AppData>?,
+    appData: AppData,
+    destroy: Sqlite3DestroyCallback<AppData>?,
 ): Sqlite3Result
-*/
+
+/**
+ * External API function used to create a new virtual-table module.
+ *
+ * [sqlite3_create_module_v2()](https://sqlite.org/c3ref/create_module.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * Drop the module previously registered with the same [name].
+ */
+public fun sqlite3_create_module_v2(
+    db: sqlite3,
+    name: String
+): Sqlite3Result {
+    return sqlite3_create_module_v2(db, name, null, null, null)
+}
+
 /**
  * Create new user functions.
  *
  * [sqlite3_create_window_function()](https://sqlite.org/c3ref/create_function.html)
  */
-public expect fun <ClientData> sqlite3_create_window_function(
+public expect fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
-    clientData: ClientData,
-    step: Sqlite3CreateFunctionStepCallback<ClientData>?,
-    final: Sqlite3CreateFunctionFinalCallback<ClientData>?,
-    value: Sqlite3CreateFunctionValueCallback<ClientData>?,
-    inverse: Sqlite3CreateFunctionInverseCallback<ClientData>?,
-    destructor: Sqlite3DestructorCallback<ClientData>?
+    appData: AppData,
+    step: Sqlite3CreateFunctionStepCallback<AppData>?,
+    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
+    value: Sqlite3CreateFunctionValueCallback<AppData>?,
+    inverse: Sqlite3CreateFunctionInverseCallback<AppData>?,
+    destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result
 
 /**
@@ -908,7 +967,7 @@ public expect fun sqlite3_declare_vtab(
 public expect fun sqlite3_deserialize(
     db: sqlite3,
     schema: String?,
-    data: Buffer?,
+    buffer: Buffer,
     dbSize: Long,
     dataSize: Long,
     flags: Sqlite3DeserializeFlag?
@@ -918,6 +977,8 @@ public expect fun sqlite3_deserialize(
  * External API to drop all virtual-table modules, except those named on the azNames list.
  *
  * [sqlite3_drop_modules()](https://sqlite.org/c3ref/drop_modules.html)
+ *
+ * TODO cleanup references to module from memory manager
  */
 public expect fun sqlite3_drop_modules(
     db: sqlite3,
@@ -962,12 +1023,12 @@ public expect fun sqlite3_error_offset(db: sqlite3): Int
  *
  * [sqlite3_exec()](https://sqlite.org/c3ref/exec.html)
  */
-public expect fun <ClientData> sqlite3_exec(
+public expect fun <AppData> sqlite3_exec(
     db: sqlite3,
     sql: String,
     outErrorMessage: Utf8OutputParam?,
-    clientData: ClientData,
-    callback: Sqlite3ExecCallback<ClientData>?
+    appData: AppData,
+    callback: Sqlite3ExecCallback<AppData>?
 ): Sqlite3Result
 
 /**
@@ -1003,12 +1064,13 @@ public expect fun sqlite3_extended_result_codes(
  *  Invoke the xFileControl method on a particular database.
  *
  * [sqlite3_file_control()](https://sqlite.org/c3ref/file_control.html)
+ *
+ * TODO client data
  */
 public expect fun sqlite3_file_control(
     db: sqlite3,
     name: String?,
     opcode: Sqlite3FileControlOpcode,
-    //clientData: Any?
 ): Sqlite3Result
 
 /**
@@ -1028,7 +1090,7 @@ public expect fun sqlite3_finalize(stmt: sqlite3_stmt?): Sqlite3Result
  *
  * [sqlite3_free()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_free(data: Buffer?)
+public expect fun sqlite3_free(buffer: Buffer?)
 
 /**
  * Test to see whether or not the database connection is in autocommit mode. Return TRUE if it is
@@ -1051,10 +1113,13 @@ public expect fun sqlite3_get_autocommit(db: sqlite3): Int
  *
  * [sqlite3_get_auxdata()](https://sqlite.org/c3ref/get_auxdata.html)
  */
-public expect inline fun <reified ClientData> sqlite3_get_auxdata(
+public inline fun <reified Data: Any> sqlite3_get_auxdata(
     context: sqlite3_context,
     index: Int
-): ClientData?
+): Data? {
+    return nativeUserData(context)
+        .getAuxiliaryDataOrNull(context, index, Data::class)
+}
 
 /**
  * Initialize SQLite.
@@ -1245,15 +1310,15 @@ public expect fun sqlite3_memory_used(): Long
 public expect fun sqlite3_memory_highwater(resetFlag: Int): Long
 
 /**
- * Returns the size of [data] memory allocation in bytes. The value returned by [sqlite3_msize]
- * might be larger than the number of bytes requested when [data] was allocated. If [data] is a NULL
- * pointer then [sqlite3_msize] returns zero. If [data] points to something that is not the
+ * Returns the size of [buffer] memory allocation in bytes. The value returned by [sqlite3_msize]
+ * might be larger than the number of bytes requested when [buffer] was allocated. If [buffer] is a
+ * NULL pointer then [sqlite3_msize] returns zero. If [buffer] points to something that is not the
  * beginning of memory allocation, or if it points to a formerly valid memory allocation that has
  * now been freed, then the behavior of [sqlite3_msize] is undefined and possibly harmful.
  *
  * [sqlite3_msize()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_msize(data: Buffer?): ULong
+public expect fun sqlite3_msize(buffer: Buffer?): ULong
 
 /**
  * Return a pointer to the next prepared statement after pStmt associated with database connection
@@ -1372,11 +1437,11 @@ public expect fun sqlite3_preupdate_depth(db: sqlite3): Int
  *
  * [sqlite3_preupdate_hook()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
  */
-public expect inline fun <reified ClientData> sqlite3_preupdate_hook(
+public expect fun <AppData> sqlite3_preupdate_hook(
     db: sqlite3,
-    clientData: ClientData,
-    callback: Sqlite3PreupdateHookCallback<ClientData>?
-): ClientData?
+    appData: AppData,
+    callback: Sqlite3PreupdateHookCallback<AppData>?
+)
 
 /**
  * This function is called from within a pre-update callback to retrieve a field of the row
@@ -1408,11 +1473,11 @@ public expect fun sqlite3_preupdate_old(
  *
  * [sqlite3_progress_handler()](https://sqlite.org/c3ref/progress_handler.html)
  */
-public expect fun <ClientData> sqlite3_progress_handler(
+public expect fun <AppData> sqlite3_progress_handler(
     db: sqlite3,
     nOps: Int,
-    clientData: ClientData,
-    callback: Sqlite3ProgressHandlerCallback<ClientData>?
+    appData: AppData,
+    callback: Sqlite3ProgressHandlerCallback<AppData>?
 )
 
 /**
@@ -1422,7 +1487,7 @@ public expect fun <ClientData> sqlite3_progress_handler(
  */
 public expect fun sqlite3_randomness(
     size: Int,
-    data: Buffer?
+    buffer: Buffer?
 )
 
 /**
@@ -1432,7 +1497,7 @@ public expect fun sqlite3_randomness(
  * [sqlite3_realloc()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_realloc(
-    data: Buffer?,
+    buffer: Buffer?,
     size: Int
 ): Buffer?
 
@@ -1443,7 +1508,7 @@ public expect fun sqlite3_realloc(
  * [sqlite3_realloc64()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_realloc64(
-    data: Buffer?,
+    buffer: Buffer?,
     size: Long
 ): Buffer?
 
@@ -1512,11 +1577,11 @@ public expect fun sqlite3_reset_auto_extension()
  *
  * [sqlite3_result_blob()](https://sqlite.org/c3ref/result_blob.html)
  */
-public expect fun <Data : ByteArray?> sqlite3_result_blob(
+public expect fun sqlite3_result_blob(
     context: sqlite3_context,
-    data: Data,
+    bytes: ByteArray,
     size: Int,
-    destructor: Sqlite3DestructorCallback<Data>?
+    destroy: Sqlite3DestroyCallback<ByteArray>?
 )
 
 /**
@@ -1526,9 +1591,9 @@ public expect fun <Data : ByteArray?> sqlite3_result_blob(
  */
 public expect fun sqlite3_result_blob64(
     context: sqlite3_context,
-    data: Buffer,
+    buffer: Buffer,
     size: Long,
-    destructor: Sqlite3DestructorCallback<Buffer>?
+    destroy: Sqlite3DestroyCallback<Buffer>?
 )
 
 /**
@@ -1608,11 +1673,11 @@ public expect fun sqlite3_result_null(context: sqlite3_context)
  *
  * [sqlite3_result_pointer()](https://sqlite.org/c3ref/result_blob.html)
  */
-public expect fun <ClientData> sqlite3_result_pointer(
+public expect fun <Data> sqlite3_result_pointer(
     context: sqlite3_context,
-    data: ClientData,
+    data: Data,
     type: String?,
-    destructor: Sqlite3DestructorCallback<ClientData>?
+    destroy: Sqlite3DestroyCallback<Data>?
 )
 
 /**
@@ -1634,7 +1699,7 @@ public expect fun sqlite3_result_subtype(
 public expect fun sqlite3_result_text(
     context: sqlite3_context,
     text: String?,
-    size: Int?
+    size: Int? = null
 )
 
 /**
@@ -1644,10 +1709,10 @@ public expect fun sqlite3_result_text(
  */
 public expect fun sqlite3_result_text64(
     context: sqlite3_context,
-    data: Buffer,
+    buffer: Buffer,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
-    destructor: Sqlite3DestructorCallback<Buffer>?
+    destroy: Sqlite3DestroyCallback<Buffer>?
 )
 
 /**
@@ -1686,11 +1751,11 @@ public expect fun sqlite3_result_zeroblob64(
  *
  * [sqlite3_rollback_hook()](https://sqlite.org/c3ref/commit_hook.html)
  */
-public expect inline fun <reified ClientData> sqlite3_rollback_hook(
+public expect fun <AppData> sqlite3_rollback_hook(
     db: sqlite3,
-    clientData: ClientData,
-    callback: Sqlite3RollbackHookCallback<ClientData>?
-): ClientData?
+    appData: AppData,
+    callback: Sqlite3RollbackHookCallback<AppData>?
+)
 
 /**
  * Return the serialization of a database.
@@ -1708,10 +1773,10 @@ public expect fun sqlite3_serialize(
  *
  * [sqlite3_set_authorizer()](https://sqlite.org/c3ref/set_authorizer.html)
  */
-public expect fun <ClientData> sqlite3_set_authorizer(
+public expect fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
-    clientData: ClientData,
-    callback: Sqlite3SetAuthorizerCallback<ClientData>?
+    appData: AppData,
+    callback: Sqlite3SetAuthorizerCallback<AppData>?
 ): Sqlite3Result
 
 /**
@@ -1726,12 +1791,15 @@ public expect fun <ClientData> sqlite3_set_authorizer(
  *
  * [sqlite3_set_auxdata()](https://sqlite.org/c3ref/get_auxdata.html)
  */
-public expect fun <ClientData> sqlite3_set_auxdata(
+public inline fun <reified Data: Any> sqlite3_set_auxdata(
     context: sqlite3_context,
     index: Int,
-    data: ClientData,
-    destructor: Sqlite3DestructorCallback<ClientData>?
-)
+    data: Data,
+    destroy: Sqlite3DestroyCallback<Data>?
+) {
+    nativeUserData(context)
+        .setAuxiliaryData(context, index, data, destroy)
+}
 
 /**
  * Set the error code and error message associated with the database handle.
@@ -1944,11 +2012,11 @@ public expect fun sqlite3_total_changes64(db: sqlite3): Long
  *
  * [sqlite3_trace_v2()](https://sqlite.org/c3ref/trace_v2.html)
  */
-public expect fun <ClientData> sqlite3_trace_v2(
+public expect fun <AppData> sqlite3_trace_v2(
     db: sqlite3,
     mask: Sqlite3TraceCode?,
-    clientData: ClientData,
-    callback: Sqlite3TraceCallback<ClientData>?
+    appData: AppData,
+    callback: Sqlite3TraceCallback<AppData>?
 ): Sqlite3Result
 
 /**
@@ -1968,11 +2036,11 @@ public expect fun sqlite3_txn_state(
  *
  * [sqlite3_update_hook()](https://sqlite.org/c3ref/update_hook.html)
  */
-public expect inline fun <reified ClientData> sqlite3_update_hook(
+public expect fun <AppData> sqlite3_update_hook(
     db: sqlite3,
-    clientData: ClientData,
-    callback: Sqlite3UpdateHookCallback<ClientData>?
-): ClientData?
+    appData: AppData,
+    callback: Sqlite3UpdateHookCallback<AppData>?
+)
 
 /**
  * Return a boolean value for a query parameter.
@@ -2028,18 +2096,8 @@ public expect fun sqlite3_uri_parameter(
  *
  * [sqlite3_user_data()](https://sqlite.org/c3ref/user_data.html)
  */
-public inline fun <reified ClientData: Any> sqlite3_user_data(context: sqlite3_context): ClientData? {
-    val udf = nativeUserData(context)
-    val clientData = udf.clientData ?: return null
-
-    check(clientData is ClientData) {
-        throw ClassCastException(
-            "Context user_data expected type (${ClientData::class}) differs from actual type " +
-                    "(${clientData::class})"
-        )
-    }
-
-    return clientData
+public inline fun <reified AppData : Any> sqlite3_user_data(context: sqlite3_context): AppData? {
+    return castOrThrows(nativeUserData(context).appData)
 }
 
 /**
@@ -2119,10 +2177,10 @@ public expect fun sqlite3_value_numeric_type(value: sqlite3_value): Sqlite3DataT
  *
  * [sqlite3_value_pointer()](https://sqlite.org/c3ref/value_blob.html)
  */
-public expect inline fun <reified ClientData> sqlite3_value_pointer(
+public inline fun <reified Data> sqlite3_value_pointer(
     value: sqlite3_value,
     type: String?
-): ClientData?
+): Data? = castOrThrows(nativeValuePointer(value, type))
 
 /**
  * Return the subtype for an application-defined SQL function argument [value].

@@ -135,8 +135,8 @@ public expect fun sqlite3_wal_checkpoint_v2(
  *
  * [sqlite3_wal_hook()](https://sqlite.org/c3ref/wal_hook.html)
  */
-public expect inline fun <reified ClientData> sqlite3_wal_hook(
+public expect fun <AppData> sqlite3_wal_hook(
     db: sqlite3,
-    clientData: ClientData,
-    callback: Sqlite3WalHookCallback<ClientData>?
-): ClientData?
+    appData: AppData,
+    callback: Sqlite3WalHookCallback<AppData>?
+)

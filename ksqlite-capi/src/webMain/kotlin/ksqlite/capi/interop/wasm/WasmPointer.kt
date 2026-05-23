@@ -1,7 +1,6 @@
 package ksqlite.capi.interop.wasm
 
 import ksqlite.capi.sqlite3
-import kotlin.js.JsAny
 import kotlin.js.JsBigInt
 import kotlin.js.JsName
 

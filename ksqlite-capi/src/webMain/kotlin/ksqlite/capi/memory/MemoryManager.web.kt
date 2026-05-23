@@ -10,7 +10,7 @@ import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.interop.wasm.sizeofIR
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.wasm
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
@@ -48,7 +48,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun stableRefDisposer(
         data: Any?,
-        destructor: Sqlite3DestructorCallback? = null
+        destructor: Sqlite3DestroyCallback? = null
     ): WasmPointer {
         return stableRefDisposer.takeIf { data != null || destructor != null } ?: NullPtr
     }
@@ -72,7 +72,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     fun stableRefPointer(
         data: Any?,
         userData: Buffer? = null,
-        destructor: Sqlite3DestructorCallback? = null,
+        destructor: Sqlite3DestroyCallback? = null,
         key: String? = null
     ): WasmPointer = notClosed {
         if (data == null && destructor == null) {
@@ -144,7 +144,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun byteArrayPointer(
         value: ByteArray?,
-        destructor: Sqlite3DestructorCallback? = null
+        destructor: Sqlite3DestroyCallback? = null
     ): WasmPointer = notClosed {
         if (value == null) {
             return NullPtr
@@ -180,7 +180,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private abstract inner class PointerDisposable(
         id: ULong,
-        destructor: Sqlite3DestructorCallback?,
+        destructor: Sqlite3DestroyCallback?,
     ) : AutoDisposable(id, destructor) {
 
         abstract val pointer: WasmPointer
@@ -195,7 +195,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class StableRefReference(
         id: ULong,
-        destructor: Sqlite3DestructorCallback?,
+        destructor: Sqlite3DestroyCallback?,
         override val data: Any?,
         override val userData: Buffer?,
     ) : PointerDisposable(id, destructor),
@@ -214,7 +214,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     private inner class FunctionDisposable(
         id: ULong,
         handler: Handler,
-        destructor: Sqlite3DestructorCallback? = null
+        destructor: Sqlite3DestroyCallback? = null
     ) : PointerDisposable(id, destructor) {
 
         override val pointer = with(handler) {
@@ -231,7 +231,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     private inner class ByteArrayDisposable(
         id: ULong,
         byteArray: ByteArray,
-        destructor: Sqlite3DestructorCallback?,
+        destructor: Sqlite3DestroyCallback?,
     ) : PointerDisposable(id, destructor) {
 
         private val typedArray = toInt8Array(byteArray)

@@ -1,6 +1,22 @@
 package ksqlite.capi.memory
 
-public actual open class GenericPointer internal constructor(internal val pointer: Long)
+public actual open class StructPointer internal constructor(internal val pointer: Long) :
+    StructPointerBase() {
+
+    actual override val address: Long
+        get() = pointer
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is StructPointer) return false
+
+        return pointer == other.pointer
+    }
+
+    override fun hashCode(): Int {
+        return pointer.hashCode()
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Pointer
@@ -15,7 +31,7 @@ internal val Long.isNullPointer: Boolean
 /**
  * Returns [Pointer] instantiated after [factory] which is passed `this` non-null pointing [Long].
  */
-internal fun <Pointer: GenericPointer> Long.wrapOrNull(factory: (Long) -> Pointer): Pointer? {
+internal fun <Pointer : StructPointer> Long.wrapOrNull(factory: (Long) -> Pointer): Pointer? {
     if (isNullPointer) {
         return null
     }

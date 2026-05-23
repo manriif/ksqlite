@@ -6,7 +6,7 @@ import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 ///////////////////////////////////////////////////////////////////////////
 // Global
@@ -77,7 +77,7 @@ internal fun unregisterGlobalDisposable(pointer: WasmPointer) {
  */
 private class UserDataDisposable(
     private val userData: Buffer,
-    private val destructor: Sqlite3DestructorCallback
+    private val destructor: Sqlite3DestroyCallback
 ) : Disposable {
 
     override fun dispose() {
@@ -92,7 +92,7 @@ private class UserDataDisposable(
  */
 internal fun userDataDisposer(
     userData: Buffer?,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestroyCallback?
 ): WasmPointer {
     if (userData == null || destructor == null) {
         return NullPtr

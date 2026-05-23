@@ -7,7 +7,7 @@ import kotlinx.cinterop.Pinned
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.pin
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
@@ -25,7 +25,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     fun stableRefPointer(
         data: Any?,
         userData: Buffer? = null,
-        destructor: Sqlite3DestructorCallback? = null,
+        destructor: Sqlite3DestroyCallback? = null,
         key: String? = null
     ): COpaquePointer? = notClosed {
         if (data == null && destructor == null) {
@@ -46,7 +46,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     internal fun byteArrayPointer(
         value: ByteArray?,
-        destructor: Sqlite3DestructorCallback? = null
+        destructor: Sqlite3DestroyCallback? = null
     ): CPointer<ByteVar>? = notClosed {
         val pinned = value?.pin() ?: return null
         val pointer = pinned.addressOf(0)
@@ -68,7 +68,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class StableRefReference(
         id: ULong,
-        destructor: Sqlite3DestructorCallback?,
+        destructor: Sqlite3DestroyCallback?,
         override val data: Any?,
         override val userData: Buffer?
     ) : AutoDisposable(id, destructor),
@@ -86,7 +86,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class ByteArrayDisposable(
         id: ULong,
-        destructor: Sqlite3DestructorCallback?,
+        destructor: Sqlite3DestroyCallback?,
         private val pinned: Pinned<ByteArray>,
         private val pointer: COpaquePointer,
     ) : AutoDisposable(id, destructor) {

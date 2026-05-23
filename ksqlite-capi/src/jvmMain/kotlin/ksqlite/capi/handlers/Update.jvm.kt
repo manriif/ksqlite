@@ -13,8 +13,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_preupdate_hook].
  */
-internal class PreupdateHookHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class PreupdateHookHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -34,9 +33,9 @@ internal class PreupdateHookHandler<ClientData>(manager: MemoryManager) :
         tableName: MemorySegment,
         oldRowId: Long,
         newRowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<ClientData>, data ->
+    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<AppData>, appData ->
         callback.handle(
-            clientData = data,
+            appData = appData,
             db = sqlite3(db),
             action = convertActionCode(action),
             dbName = dbName.toKStringFromUtf8(),
@@ -50,8 +49,7 @@ internal class PreupdateHookHandler<ClientData>(manager: MemoryManager) :
 /**
  * Handler for [ksqlite.capi.sqlite3_update_hook].
  */
-internal class UpdateHookHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class UpdateHookHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -67,9 +65,9 @@ internal class UpdateHookHandler<ClientData>(manager: MemoryManager) :
         dbName: MemorySegment,
         tableName: MemorySegment,
         rowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback<ClientData>, data ->
+    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback<AppData>, appData ->
         callback.handle(
-            clientData = data,
+            appData = appData,
             action = convertActionCode(action),
             dbName = dbName.toKStringFromUtf8(),
             tableName = tableName.toKStringFromUtf8(),

@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.Udf
+import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.exports
 import ksqlite.capi.interop.wasm.FunctionSignature
 import ksqlite.capi.interop.wasm.WasmFunctions
@@ -27,7 +27,7 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(
     protected inline fun functionHandler(
         context: WasmPointer,
         block: (
-            callbacks: Udf,
+            callbacks: ApplicationDefinedFunction,
             userData: Buffer?,
             context: sqlite3_context
         ) -> Unit
@@ -35,7 +35,7 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(
         val refPointer = exports.sqlite3_user_data(context)
         val context = sqlite3_context(context)
 
-        handler(refPointer) { callbacks: Udf, userData ->
+        handler(refPointer) { callbacks: ApplicationDefinedFunction, userData ->
             block(callbacks, userData, context)
         }
     }
@@ -50,7 +50,7 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(
  */
 internal abstract class CreateFunction1ArgHandler(
     manager: MemoryManager,
-    private val selector: KProperty1<Udf, Sqlite3CreateFunction1Callback?>
+    private val selector: KProperty1<ApplicationDefinedFunction, Sqlite3CreateFunction1Callback?>
 ) : CreateFunctionHandler(manager) {
 
     final override fun WasmFunctions.install(): WasmPointer = installFunction(
@@ -73,13 +73,13 @@ internal abstract class CreateFunction1ArgHandler(
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
 internal class CreateFunctionFinalHandler(manager: MemoryManager) :
-    CreateFunction1ArgHandler(manager, Udf::final)
+    CreateFunction1ArgHandler(manager, ApplicationDefinedFunction::final)
 
 /**
  * Handler for the `value` argument of  [ksqlite.capi.sqlite3_create_window_function].
  */
 internal class CreateFunctionValueHandler(manager: MemoryManager) :
-    CreateFunction1ArgHandler(manager, Udf::value)
+    CreateFunction1ArgHandler(manager, ApplicationDefinedFunction::value)
 
 ///////////////////////////////////////////////////////////////////////////
 // 3 args
@@ -91,7 +91,7 @@ internal class CreateFunctionValueHandler(manager: MemoryManager) :
 internal abstract class CreateFunction3ArgsHandler(
     manager: MemoryManager,
     private val
-    selector: KProperty1<Udf, Sqlite3CreateFunction3Callback?>
+    selector: KProperty1<ApplicationDefinedFunction, Sqlite3CreateFunction3Callback?>
 ) : CreateFunctionHandler(manager) {
 
     final override fun WasmFunctions.install(): WasmPointer = installFunction(
@@ -110,7 +110,7 @@ internal abstract class CreateFunction3ArgsHandler(
         context: WasmPointer,
         argc: Int,
         argv: WasmPointer,
-        selector: KProperty1<Udf, Sqlite3CreateFunction3Callback?>
+        selector: KProperty1<ApplicationDefinedFunction, Sqlite3CreateFunction3Callback?>
     ) = functionHandler(context) { callbacks, userData, context ->
         val values = argv.orNull?.toArray(argc) { sqlite3_value(it) } ?: emptyArray()
         selector(callbacks)!!.invoke(userData, context, values)
@@ -122,17 +122,17 @@ internal abstract class CreateFunction3ArgsHandler(
  * [ksqlite.capi.sqlite3_create_function_v2].
  */
 internal class CreateFunctionFuncHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager, Udf::func)
+    CreateFunction3ArgsHandler(manager, ApplicationDefinedFunction::func)
 
 /**
  * Handler for the `step` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
 internal class CreateFunctionStepHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager, Udf::step)
+    CreateFunction3ArgsHandler(manager, ApplicationDefinedFunction::step)
 
 /**
  * Handler for the `inverse` argument of [ksqlite.capi.sqlite3_create_window_function].
  */
 internal class CreateFunctionInverseHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager, Udf::inverse)
+    CreateFunction3ArgsHandler(manager, ApplicationDefinedFunction::inverse)

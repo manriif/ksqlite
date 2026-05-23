@@ -9,13 +9,13 @@ import ksqlite.capi.types.sqlite3_value
  * Callback with one parameter to use with [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public fun interface Sqlite3CreateFunction1Callback<ClientData> {
+public fun interface Sqlite3CreateFunction1Callback<AppData> {
 
     /**
      * Details on parameters can be found [here](https://sqlite.org/c3ref/create_function.html).
      */
     public fun handle(
-        clientData: ClientData,
+        appData: AppData,
         context: sqlite3_context
     )
 }
@@ -24,13 +24,13 @@ public fun interface Sqlite3CreateFunction1Callback<ClientData> {
  * Callback with two parameters of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public fun interface Sqlite3CreateFunction3Callback<ClientData> {
+public fun interface Sqlite3CreateFunction3Callback<AppData> {
 
     /**
      * Details on parameters can be found [here](https://sqlite.org/c3ref/create_function.html).
      */
     public fun handle(
-        clientData: ClientData,
+        appData: AppData,
         context: sqlite3_context,
         values: Array<sqlite3_value>
     )
@@ -40,32 +40,32 @@ public fun interface Sqlite3CreateFunction3Callback<ClientData> {
  * Callback to use with the `func` parameter of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunctionFuncCallback<ClientData> =
-        Sqlite3CreateFunction3Callback<ClientData>
+public fun interface Sqlite3CreateFunctionFuncCallback<AppData> :
+    Sqlite3CreateFunction3Callback<AppData>
 
 /**
  * Callback to use with the `step` parameter of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunctionStepCallback<ClientData> =
-        Sqlite3CreateFunction3Callback<ClientData>
+public fun interface Sqlite3CreateFunctionStepCallback<AppData> :
+    Sqlite3CreateFunction3Callback<AppData>
 
 /**
  * Callback to use with the `inverse` parameter of [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunctionInverseCallback<ClientData> =
-        Sqlite3CreateFunction3Callback<ClientData>
+public fun interface Sqlite3CreateFunctionInverseCallback<AppData> :
+    Sqlite3CreateFunction3Callback<AppData>
 
 /**
  * Callback to use with the `final` parameter of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunctionFinalCallback<ClientData> =
-        Sqlite3CreateFunction1Callback<ClientData>
+public fun interface Sqlite3CreateFunctionFinalCallback<AppData> :
+    Sqlite3CreateFunction1Callback<AppData>
 
 /**
  * Callback to use with the `value` parameter of [ksqlite.capi.sqlite3_create_window_function].
  */
-public typealias Sqlite3CreateFunctionValueCallback<ClientData> =
-        Sqlite3CreateFunction1Callback<ClientData>
+public fun interface Sqlite3CreateFunctionValueCallback<AppData> :
+    Sqlite3CreateFunction1Callback<AppData>
 

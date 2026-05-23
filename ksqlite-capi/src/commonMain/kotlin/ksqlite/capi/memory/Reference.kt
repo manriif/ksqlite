@@ -3,7 +3,7 @@ package ksqlite.capi.memory
 /**
  * Reference to an object preventing GC from collecting or moving it.
  */
-internal interface Reference<ClientData> : Disposable {
+internal interface Reference<AppData> : Disposable {
 
     /**
      * Internally referenced data.
@@ -11,9 +11,9 @@ internal interface Reference<ClientData> : Disposable {
     val data: Any?
 
     /**
-     * The associated client data.
+     * The associated application data.
      * */
-    val clientData: ClientData
+    val appData: AppData
 
     /**
      * Disposes the reference, making referenced object(s) eligible to GC.
@@ -21,7 +21,11 @@ internal interface Reference<ClientData> : Disposable {
     override fun dispose()
 }
 
-internal typealias ReferencedData<Data, ClientData> = Pair<Data, ClientData>
+///////////////////////////////////////////////////////////////////////////
+// Helpers
+///////////////////////////////////////////////////////////////////////////
+
+internal typealias ReferencedData<Data, AppData> = Pair<Data, AppData>
 
 /**
  * Returns `this` [Reference]'s referenced data as [D] paired with the user data.
@@ -35,5 +39,5 @@ internal inline fun <reified D : Any, C> Reference<C>.getReferencedData(): Refer
         "Data is not of expected type (${data::class} vs ${D::class})"
     }
 
-    return data to clientData
+    return data to appData
 }

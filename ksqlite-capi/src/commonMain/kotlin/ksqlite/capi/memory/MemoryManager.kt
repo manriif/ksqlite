@@ -1,7 +1,8 @@
 package ksqlite.capi.memory
 
+import co.touchlab.stately.concurrency.close
 import co.touchlab.stately.concurrency.withLock
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -50,6 +51,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
     final override fun close() {
         if (closed.compareAndSet(expectedValue = false, newValue = true)) {
             clear()
+            disposableLock.close()
         }
     }
 
@@ -87,6 +89,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * Returns the next available disposable identifier.
      */
     private fun computeNextDisposableId(): Long {
+        disposableLock.lock()
         val nextId = ++nextDisposableId
 
         check(nextId > 0L) {
@@ -98,12 +101,12 @@ internal abstract class MemoryManagerBase : AutoCloseable {
 
     /**
      * Registers and returns a disposable [D].
-     * The registered disposable is disposed on call to [clear] if it was not manually disposed.
      */
-    protected fun <C, D : AutoDisposable<C>> registerDisposable(
-        factory: (id: Long) -> D
+    private inline fun <C, D : AutoDisposable<C>> commonRegisterDisposable(
+        factory: (id: Long) -> D,
+        computeId: () -> Long
     ): D = disposableLock.withLock {
-        val disposableId = computeNextDisposableId()
+        val disposableId = computeId()
         val newDisposable = factory(disposableId)
 
         disposables
@@ -114,40 +117,34 @@ internal abstract class MemoryManagerBase : AutoCloseable {
     }
 
     /**
-     * Registers a disposable [D] identified by [key], disposing any disposable previously
-     * registered with the same [key], and returns both disposables.
+     * Registers and returns a disposable [D].
+     *
+     * The registered disposable is disposed on call to [clear] if it was not manually disposed.
+     */
+    protected fun <C, D : AutoDisposable<C>> registerDisposable(
+        factory: (id: Long) -> D
+    ): D = commonRegisterDisposable(factory, ::computeNextDisposableId)
+
+    /**
+     * Registers and returns a disposable [D] identified by [key], disposing any disposable
+     * previously registered with the same [key].
      *
      * The registered disposable is disposed on call to [clear] if it was not manually disposed.
      */
     protected fun <C, D : AutoDisposable<C>> registerKeyedDisposable(
         key: String,
         factory: (id: Long) -> D
-    ): KeyedDisposable<D> = disposableLock.withLock {
-        val disposableId = keyedDisposables.getOrPut(key, ::computeNextDisposableId)
-
-        val newDisposable = factory(disposableId).apply {
-            disposableKey = key
-        }
-
-        val oldDisposable = disposables.put(disposableId, newDisposable)?.apply {
-            destroy() // Dispose previous disposable with the same key
-        }
-
-        return KeyedDisposable(newDisposable, oldDisposable?.clientData)
+    ): D = commonRegisterDisposable(factory) {
+        keyedDisposables.getOrPut(key, ::computeNextDisposableId)
     }
-
-    /**
-     * Holder for a disposable and oldly registered client data.
-     */
-    protected data class KeyedDisposable<D>(val disposable: D, val oldClientData: Any?)
 
     /**
      * [Disposable] which can self removes from [disposables].
      * [destroy] should be used to make the actual disposing.
      */
-    protected abstract inner class AutoDisposable<ClientData>(
+    protected abstract inner class AutoDisposable<AppData>(
         private val id: Long,
-        private val destructor: Sqlite3DestructorCallback<ClientData>?
+        private val destructor: Sqlite3DestroyCallback<AppData>?
     ) : Disposable {
 
         var disposableKey: String? = null
@@ -155,7 +152,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
         /**
          * The associated client data.
          * */
-        abstract val clientData: ClientData
+        abstract val appData: AppData
 
         /**
          * Releases the resource(s).
@@ -166,7 +163,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
          * Invokes destructor and releases the resource(s).
          */
         fun destroy() {
-            destructor?.handle(clientData)
+            destructor?.handle(appData)
             release()
         }
 

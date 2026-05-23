@@ -13,8 +13,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_trace_v2].
  */
-internal class TraceHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class TraceHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -29,10 +28,10 @@ internal class TraceHandler<ClientData>(manager: MemoryManager) :
         refPointer: MemorySegment,
         pointer1: MemorySegment,
         pointer2: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3TraceCallback<ClientData>, data ->
+    ): Int = handler(refPointer) { callback: Sqlite3TraceCallback<AppData>, appData ->
         dispatchTraceEvent(
             callback = callback,
-            clientData = data,
+            appData = appData,
             code = code,
             pointer1 = pointer1,
             pointer2 = pointer2,

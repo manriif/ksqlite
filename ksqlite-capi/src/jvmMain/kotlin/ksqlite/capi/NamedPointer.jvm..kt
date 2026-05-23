@@ -1,46 +1,50 @@
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.memory.allocateUtf8
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
 /**
- * Wrapper for [sqlite3_bind_pointer] and [sqlite3_result_pointer] userData.
+ * Wrapper for [sqlite3_bind_pointer] and [sqlite3_result_pointer] data.
  */
-internal class NamedPointer(
-    val typePointer: MemorySegment?,
+internal class NamedPointer<Data>(
+    val name: MemorySegment?,
     private val arena: Arena?,
-    private val destructor: Sqlite3DestructorCallback?
+    private val destroy: Sqlite3DestroyCallback<Data>?
 ) {
+
     /**
-     * Destructor replacing original user provided destructor.
+     * Invokes application [destroy] and closes the associated [arena].
      */
-    val disposer: Sqlite3DestructorCallback = { userData ->
-        destructor?.invoke(userData)
+    fun destroy(data: Data) {
+        destroy?.handle(data)
         arena?.close()
     }
 }
 
 /**
- * Returns a [NamedPointer] which allocates memory for [type] if not null.
+ * Returns a [NamedPointer] which allocates memory for [name] if not null.
  *
- * The returned [NamedPointer.disposer] must be used in place of [destructor] in order to clear
- * the associated [Arena].
+ * The destructor passed to [block] must be used in place of [destroy] in order to clear the
+ * associated [Arena].
  */
-internal inline fun <R> allocateNamedPointer(
-    type: String?,
-    noinline destructor: Sqlite3DestructorCallback?,
-    block: NamedPointer.() -> R
+internal inline fun <Data, R> allocateNamedPointer(
+    name: String?,
+    destroy: Sqlite3DestroyCallback<Data>?,
+    block: (
+        ptr: NamedPointer<Data>,
+        ptrDestroy: Sqlite3DestroyCallback<Data>
+    ) -> R
 ): R {
-    val arena = type?.let { Arena.ofShared() }
-    val typePointer = arena?.run { type.allocateUtf8() }
+    val arena = name?.let { Arena.ofShared() }
+    val typePointer = arena?.run { name.allocateUtf8() }
 
-    return block(
-        NamedPointer(
-            typePointer = typePointer,
-            arena = arena,
-            destructor = destructor
-        )
+    val pointer = NamedPointer(
+        name = typePointer,
+        arena = arena,
+        destroy = destroy
     )
+
+    return block(pointer) { pointer.destroy(it) }
 }

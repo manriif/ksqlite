@@ -13,8 +13,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_collation_needed].
  */
-internal class CollationNeededHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class CollationNeededHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -28,9 +27,9 @@ internal class CollationNeededHandler<ClientData>(manager: MemoryManager) :
         db: MemorySegment,
         eTextRep: Int,
         name: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3CollationNeededCallback<ClientData>, data ->
+    ): Unit = handler(refPointer) { callback: Sqlite3CollationNeededCallback<AppData>, appData ->
         callback.handle(
-            clientData = data,
+            appData = appData,
             db = sqlite3(db),
             eTextRep = convertTextEncoding(eTextRep),
             name = name.toKStringFromUtf8()
@@ -42,8 +41,7 @@ internal class CollationNeededHandler<ClientData>(manager: MemoryManager) :
  * Handler for [ksqlite.capi.sqlite3_create_collation] and
  * [ksqlite.capi.sqlite3_create_collation_v2].
  */
-internal class CreateCollationHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class CreateCollationHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -60,9 +58,9 @@ internal class CreateCollationHandler<ClientData>(manager: MemoryManager) :
         text1: MemorySegment,
         size2: Int,
         text2: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback<ClientData>, data ->
+    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback<AppData>, appData ->
         callback.handle(
-            clientData = data,
+            appData = appData,
             left = text1.asSlice(0, size1.toLong()).toKStringFromUtf8(),
             right = text2.asSlice(0, size2.toLong()).toKStringFromUtf8()
         )

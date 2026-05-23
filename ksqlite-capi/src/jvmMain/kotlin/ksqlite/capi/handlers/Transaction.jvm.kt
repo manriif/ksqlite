@@ -10,8 +10,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_commit_hook].
  */
-internal class CommitHookHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class CommitHookHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -20,16 +19,15 @@ internal class CommitHookHandler<ClientData>(manager: MemoryManager) :
 
     fun handle(
         refPointer: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3CommitHookCallback<ClientData>, data ->
-        callback.handle(data)
+    ): Int = handler(refPointer) { callback: Sqlite3CommitHookCallback<AppData>, appData ->
+        callback.handle(appData)
     }
 }
 
 /**
  * Handler for [ksqlite.capi.sqlite3_rollback_hook].
  */
-internal class RollbackHookHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class RollbackHookHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS
@@ -37,7 +35,7 @@ internal class RollbackHookHandler<ClientData>(manager: MemoryManager) :
 
     fun handle(
         refPointer: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3RollbackHookCallback<ClientData>, data ->
-        callback.handle(data)
+    ): Unit = handler(refPointer) { callback: Sqlite3RollbackHookCallback<AppData>, appData ->
+        callback.handle(appData)
     }
 }

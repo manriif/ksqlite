@@ -11,8 +11,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_wal_hook].
  */
-internal class WalHookHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class WalHookHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -27,9 +26,9 @@ internal class WalHookHandler<ClientData>(manager: MemoryManager) :
         db: MemorySegment,
         dbName: MemorySegment,
         nPage: Int,
-    ): Int = handler(refPointer) { callback: Sqlite3WalHookCallback<ClientData>, data ->
+    ): Int = handler(refPointer) { callback: Sqlite3WalHookCallback<AppData>, appData ->
         callback.handle(
-            clientData = data,
+            appData = appData,
             db = sqlite3(db),
             dbName = dbName.toKStringFromUtf8(),
             nPage = nPage

@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.Handler
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
@@ -77,7 +77,7 @@ internal fun unregisterGlobalDisposable(pointer: MemorySegment) {
  */
 private class DisposableBuffer(
     private val buffer: Buffer,
-    private val destructor: Sqlite3DestructorCallback<Buffer>
+    private val destructor: Sqlite3DestroyCallback<Buffer>
 ) : Disposable {
 
     override fun dispose() {
@@ -91,17 +91,17 @@ private class DisposableBuffer(
  * If [destructor] is `null`then [MemorySegment.NULL] is returned.
  */
 internal fun bufferDisposer(
-    clientData: Buffer,
-    destructor: Sqlite3DestructorCallback<Buffer>?
+    buffer: Buffer,
+    destructor: Sqlite3DestroyCallback<Buffer>?
 ): MemorySegment {
     if (destructor == null) {
         return MemorySegment.NULL
     }
 
     registerGlobalDisposable(
-        pointer = clientData.pointer,
+        pointer = buffer.pointer,
         disposable = DisposableBuffer(
-            buffer = clientData,
+            buffer = buffer,
             destructor = destructor
         )
     )

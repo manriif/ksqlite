@@ -9,8 +9,6 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3TraceConstants
 import ksqlite.capi.types.sqlite3_stmt
 
-// TODO move this file to ksqlite.capi.handler
-
 ///////////////////////////////////////////////////////////////////////////
 // SqlLog
 ///////////////////////////////////////////////////////////////////////////
@@ -18,14 +16,14 @@ import ksqlite.capi.types.sqlite3_stmt
 /**
  * Dispatches [Sqlite3SqlLogEvent] to [callback].
  */
-internal fun <ClientData> dispatchSqlLogEvent(
-    callback: Sqlite3ConfigSqlLogCallback<ClientData>,
-    clientData: ClientData,
+internal fun <AppData> dispatchSqlLogEvent(
+    callback: Sqlite3ConfigSqlLogCallback<AppData>,
+    appData: AppData,
     type: Int,
     db: sqlite3,
     name: String?
 ): Unit = callback.handle(
-    clientData = clientData,
+    appData = appData,
     db = db,
     event = when (type) {
         0 -> Sqlite3SqlLogEvent.DatabaseOpened(name!!)
@@ -47,9 +45,9 @@ private val TraceConstantMap = sqlite3TraceConstants().associateBy(Sqlite3TraceC
 /**
  * Dispatches [Sqlite3TraceEvent] to [callback].
  */
-internal fun <Pointer, ClientData> dispatchTraceEvent(
-    callback: Sqlite3TraceCallback<ClientData>,
-    clientData: ClientData,
+internal fun <Pointer, AppData> dispatchTraceEvent(
+    callback: Sqlite3TraceCallback<AppData>,
+    appData: AppData,
     code: Int,
     pointer1: Pointer?,
     pointer2: Pointer?,
@@ -58,7 +56,7 @@ internal fun <Pointer, ClientData> dispatchTraceEvent(
     toString: (Pointer) -> String,
     toLong: (Pointer) -> Long
 ): Int = callback.handle(
-    clientData = clientData,
+    appData = appData,
     event = when (TraceConstantMap[code]) {
         Sqlite3TraceCode.STMT -> Sqlite3TraceEvent.Stmt(
             stmt = toStatement(pointer1!!),

@@ -4,7 +4,7 @@ import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 /**
  * Destructor signature.
@@ -73,7 +73,7 @@ internal fun unregisterGlobalDisposable(pointer: COpaquePointer) {
  */
 private class UserDataDisposable(
     private val userData: Buffer,
-    private val destructor: Sqlite3DestructorCallback
+    private val destructor: Sqlite3DestroyCallback
 ) : Disposable {
 
     override fun dispose() {
@@ -88,7 +88,7 @@ private class UserDataDisposable(
  */
 internal fun userDataDisposer(
     userData: Buffer?,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestroyCallback?
 ): Disposer? {
     if (userData == null || destructor == null) {
         return null

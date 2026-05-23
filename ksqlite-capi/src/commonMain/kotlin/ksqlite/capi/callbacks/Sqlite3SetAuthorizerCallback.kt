@@ -6,13 +6,13 @@ import ksqlite.capi.types.Sqlite3AuthorizerCode
 /**
  * Callback to use with [ksqlite.capi.sqlite3_set_authorizer].
  */
-public fun interface Sqlite3SetAuthorizerCallback <ClientData> {
+public fun interface Sqlite3SetAuthorizerCallback<AppData> {
 
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/set_authorizer.html).
      */
     public fun handle(
-        clientData: ClientData,
+        appData: AppData,
         action: Sqlite3ActionCode,
         param3: String?,
         param4: String?,

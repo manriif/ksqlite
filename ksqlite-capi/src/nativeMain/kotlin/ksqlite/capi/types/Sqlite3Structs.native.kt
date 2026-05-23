@@ -3,7 +3,8 @@
 package ksqlite.capi.types
 
 import kotlinx.cinterop.CPointer
-import ksqlite.capi.memory.GenericPointer
+import ksqlite.capi.memory.MemoryScope
+import ksqlite.capi.memory.StructPointer
 
 ///////////////////////////////////////////////////////////////////////////
 // Aliases
@@ -26,34 +27,36 @@ internal typealias s3_vfs = ksqlite.sqlite3_vfs
 ///////////////////////////////////////////////////////////////////////////
 
 public actual class sqlite3 internal constructor(override val pointer: CPointer<s3>) :
-    GenericPointer(pointer)
+    StructPointer(pointer),
+    MemoryScope
 
 public actual class sqlite3_backup internal constructor(override val pointer: CPointer<s3_backup>) :
-    GenericPointer(pointer)
+    StructPointer(pointer)
 
 public actual class sqlite3_blob internal constructor(override val pointer: CPointer<s3_blob>) :
-    GenericPointer(pointer)
+    StructPointer(pointer)
 
 public actual class sqlite3_api_routines internal constructor(override val pointer: CPointer<s3_api>) :
-    GenericPointer(pointer)
+    StructPointer(pointer)
 
 public actual class sqlite3_context internal constructor(override val pointer: CPointer<s3_context>) :
-    GenericPointer(pointer)
+    StructPointer(pointer)
 
 public actual class sqlite3_index_info internal constructor(override val pointer: CPointer<s3_index_info>) :
-    GenericPointer(pointer)
+    StructPointer(pointer)
 
-public actual class sqlite3_module internal constructor(override val pointer: CPointer<s3_module>) :
-    GenericPointer(pointer)
+public actual class sqlite3_module<ClientData> internal constructor(override val pointer: CPointer<s3_module>) :
+    StructPointer(pointer)
 
 public actual class sqlite3_snapshot internal constructor(override val pointer: CPointer<s3_snapshot>) :
-    GenericPointer(pointer)
+    StructPointer(pointer)
 
 public actual class sqlite3_stmt internal constructor(override val pointer: CPointer<s3_stmt>) :
-    GenericPointer(pointer)
+    StructPointer(pointer),
+    MemoryScope
 
 public actual class sqlite3_value internal constructor(override val pointer: CPointer<s3_value>) :
-    GenericPointer(pointer)
+    StructPointer(pointer)
 
 public actual class sqlite3_vfs internal constructor(override val pointer: CPointer<s3_vfs>) :
-    GenericPointer(pointer)
+    StructPointer(pointer)

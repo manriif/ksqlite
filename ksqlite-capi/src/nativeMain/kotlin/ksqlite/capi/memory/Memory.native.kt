@@ -9,37 +9,26 @@ import kotlinx.cinterop.convert
 import kotlinx.cinterop.get
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
 import platform.posix.memcpy
 
-public actual open class GenericPointer internal constructor(
+public actual open class StructPointer internal constructor(
     internal open val pointer: COpaquePointer
-)
+) : StructPointerBase() {
 
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
+    actual override val address: Long
+        get() = pointer.rawValue.toLong()
 
-/**
- * Returns a stable [COpaquePointer] to [data] available globally.
- * Returns `null` if [data] is `null`.
- *
- * [data] can later be accessed within a callback using [stableRefData] and disposed using
- * [stableRefDisposer].
- *
- * If a pointer was previously obtained using [key], it is disposed.
- */
-internal fun MemoryManager.keyedStableRefPointer(
-    key: String,
-    data: Any?,
-    userData: Buffer? = null,
-    destructor: Sqlite3DestructorCallback? = null,
-): COpaquePointer? = stableRefPointer(
-    data = data,
-    userData = userData,
-    destructor = destructor,
-    key = key
-)
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is StructPointer) return false
+
+        return pointer == other.pointer
+    }
+
+    override fun hashCode(): Int {
+        return pointer.hashCode()
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Arrays

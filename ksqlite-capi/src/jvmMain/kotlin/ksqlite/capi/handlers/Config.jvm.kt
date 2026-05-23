@@ -13,8 +13,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for the LOG option of [ksqlite.capi.sqlite3_config].
  */
-internal class ConfigLogHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class ConfigLogHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -26,9 +25,9 @@ internal class ConfigLogHandler<ClientData>(manager: MemoryManager) :
         refPointer: MemorySegment,
         errCode: Int,
         errMsg: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback<ClientData>, data ->
+    ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback<AppData>, appData ->
         callback.handle(
-            clientData = data,
+            appData = appData,
             errorCode = errCode,
             errorMsg = errMsg.toKStringFromUtf8OrNull()
         )
@@ -38,8 +37,7 @@ internal class ConfigLogHandler<ClientData>(manager: MemoryManager) :
 /**
  * Handler for the SQLLOG option of [ksqlite.capi.sqlite3_config].
  */
-internal class ConfigSqlLogHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class ConfigSqlLogHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
         ValueLayout.ADDRESS,
@@ -53,10 +51,10 @@ internal class ConfigSqlLogHandler<ClientData>(manager: MemoryManager) :
         db: MemorySegment,
         name: MemorySegment,
         type: Int
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback<ClientData>, data ->
+    ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback<AppData>, appData ->
         dispatchSqlLogEvent(
             callback = callback,
-            clientData = data,
+            appData = appData,
             type = type,
             db = sqlite3(db),
             name = name.toKStringFromUtf8OrNull()

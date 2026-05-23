@@ -5,7 +5,24 @@ import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
 
-public actual open class GenericPointer internal constructor(internal val pointer: MemorySegment)
+public actual open class StructPointer internal constructor(internal val pointer: MemorySegment) :
+    StructPointerBase() {
+
+    actual override val address: Long
+        get() = pointer.address()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is StructPointer) return false
+
+        return pointer == other.pointer
+
+    }
+
+    override fun hashCode(): Int {
+        return pointer.hashCode()
+    }
+}
 
 /**
  * Memory manager that is never cleared.

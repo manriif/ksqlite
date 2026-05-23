@@ -20,7 +20,7 @@ import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3
@@ -115,7 +115,7 @@ public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback)
 public actual fun sqlite3_autovacuum_pages(
     db: sqlite3,
     userData: Buffer?,
-    destructor: Sqlite3DestructorCallback?,
+    destructor: Sqlite3DestroyCallback?,
     callback: Sqlite3AutoVacuumPagesCallback?
 ): Sqlite3Result = convertResult(
     native_sqlite3_autovacuum_pages(
@@ -157,7 +157,7 @@ public actual fun sqlite3_bind_blob(
     index: Int,
     data: ByteArray?,
     size: Int,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestroyCallback?
 ): Sqlite3Result = convertResult(
     native_sqlite3_bind_blob(stmt.pointer, index, data, size, destructorHandler(destructor))
 )
@@ -167,7 +167,7 @@ public actual fun sqlite3_bind_blob64(
     index: Int,
     data: Buffer?,
     size: Long,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestroyCallback?
 ): Sqlite3Result = convertResult(
     native_sqlite3_bind_blob64(
         stmt.pointer,
@@ -219,7 +219,7 @@ public actual fun sqlite3_bind_pointer(
     index: Int,
     data: Buffer?,
     type: String?,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestroyCallback?
 ): Sqlite3Result = convertResult(
     native_sqlite3_bind_pointer(
         stmt.pointer,
@@ -251,7 +251,7 @@ public actual fun sqlite3_bind_text64(
     data: Buffer?,
     size: Long,
     encoding: Sqlite3TextEncoding.Set1,
-    destructor: Sqlite3DestructorCallback?
+    destructor: Sqlite3DestroyCallback?
 ): Sqlite3Result = convertResult(
     native_sqlite3_bind_text64(
         stmt.pointer,
@@ -311,11 +311,11 @@ public actual fun sqlite3_blob_open(
 
 public actual fun sqlite3_blob_read(
     blob: sqlite3_blob,
-    buffer: ByteArray,
+    bytes: ByteArray,
     size: Int,
     offset: Int
 ): Sqlite3Result =
-    convertResult(native_sqlite3_blob_read(blob.pointer, buffer, size, offset))
+    convertResult(native_sqlite3_blob_read(blob.pointer, bytes, size, offset))
 
 public actual fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
@@ -324,11 +324,11 @@ public actual fun sqlite3_blob_reopen(
 
 public actual fun sqlite3_blob_write(
     blob: sqlite3_blob,
-    buffer: ByteArray,
+    bytes: ByteArray,
     size: Int?,
     offset: Int
 ): Sqlite3Result = convertResult(
-    native_sqlite3_blob_write(blob.pointer, buffer, size ?: buffer.size, offset)
+    native_sqlite3_blob_write(blob.pointer, bytes, size ?: bytes.size, offset)
 )
 
 public actual fun sqlite3_busy_handler(

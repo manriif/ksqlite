@@ -12,8 +12,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_exec].
  */
-internal class ExecHandler<ClientData>(manager: MemoryManager) :
-    Handler<ClientData>(manager) {
+internal class ExecHandler<AppData>(manager: MemoryManager) : Handler<AppData>(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -28,12 +27,12 @@ internal class ExecHandler<ClientData>(manager: MemoryManager) :
         columnCount: Int,
         values: MemorySegment,
         names: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3ExecCallback<ClientData>, data ->
+    ): Int = handler(refPointer) { callback: Sqlite3ExecCallback<AppData>, appData ->
         val columnValues = values.toArray(columnCount) { it.toKStringFromUtf8OrNull() }
         val columnNames = names.toArray(columnCount) { it.toKStringFromUtf8() }
 
         callback.handle(
-            clientData = data,
+            appData = appData,
             columnCount = columnCount,
             columnValues = columnValues,
             columnNames = columnNames

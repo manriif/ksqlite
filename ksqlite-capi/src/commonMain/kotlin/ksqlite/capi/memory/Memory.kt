@@ -3,10 +3,66 @@ package ksqlite.capi.memory
 import ksqlite.capi.convertResult
 import ksqlite.capi.types.Sqlite3Result
 
+///////////////////////////////////////////////////////////////////////////
+// Struct
+///////////////////////////////////////////////////////////////////////////
+
 /**
- * Pointer pointing to anything.
+ * Base for [StructPointer].
  */
-public expect open class GenericPointer
+public abstract class StructPointerBase internal constructor() {
+
+    protected abstract val address: Long
+
+    override fun toString(): String {
+        return "${this::class.simpleName}(address=0x${address.toHexString()})"
+    }
+}
+
+/**
+ * Pointer to an sqlite3 struct.
+ */
+public expect open class StructPointer: StructPointerBase {
+    override val address: Long
+}
+
+/**
+ * Invokes [block] which is expected to be the SQLite function that will deallocate [Scope] and
+ * returns [block]'s result.
+ *
+ * If the deallocation succeeds, which is the case if [block] returns [Sqlite3Result.OK], then
+ * all the resources associated with [Scope] through [memory] are disposed and [memory] is
+ * closed before the function returns.
+ */
+internal inline fun <Scope : MemoryScope> Scope.deallocate(
+    block: (Scope) -> Int
+): Sqlite3Result {
+    val result = convertResult(block(this))
+
+    if (result == Sqlite3Result.OK) {
+        destroyMemory()
+    }
+
+    return result
+}
+
+/**
+ * Invokes [block] which is expected to be the SQLite function that will deallocate [Scope] and
+ * returns [block]'s result.
+ *
+ * If the deallocation succeeds, which is the case if [block] returns [Sqlite3Result.OK], then
+ * all the resources associated with [Scope] through [memory] are disposed and [memory] is
+ * closed before the function returns.
+ */
+internal inline fun <Scope : MemoryScope> Scope?.deallocateNullable(
+    block: (Scope?) -> Int
+): Sqlite3Result {
+    if (this == null) {
+        return convertResult(block(null))
+    }
+
+    return this.deallocate(block)
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Concurrency
@@ -16,24 +72,14 @@ internal typealias ConcurrentMap<K, V> = co.touchlab.stately.collections.Concurr
 internal typealias Lock = co.touchlab.stately.concurrency.Lock
 
 ///////////////////////////////////////////////////////////////////////////
-// Disposables
+// Managers
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Clears all the resources owned by ksqlite.
- * It is recommended that all sqlite databases connection are closed before calling that function.
+ * Marker for object having a clearly defined lifecycle and that can be associated with a
+ * [MemoryManager].
  */
-public fun ksqliteCleanup() {
-    ScopedMemoryManagers
-        .onEach { it.key.memory.close() }
-        .clear()
-
-    GlobalMemoryManager.clear()
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Global
-///////////////////////////////////////////////////////////////////////////
+public interface MemoryScope
 
 /**
  * Memory manager for top level objects.
@@ -46,44 +92,36 @@ private val GlobalMemoryManager: MemoryManager by lazy(::MemoryManager)
 internal val globalMemory: MemoryManager
     get() = GlobalMemoryManager
 
-///////////////////////////////////////////////////////////////////////////
-// Scoped
-///////////////////////////////////////////////////////////////////////////
-
 /**
  * Per pointer memory manager.
  */
-private val ScopedMemoryManagers = ConcurrentMap<GenericPointer, MemoryManager>()
+private val ScopedMemoryManagers = ConcurrentMap<MemoryScope, MemoryManager>()
 
 /**
- * Returns the [MemoryManager] for `this` [GenericPointer], creating one if necessary.
+ * Returns the [MemoryManager] for `this` [StructPointer], creating one if necessary.
  */
-internal val GenericPointer.memory: MemoryManager
+internal val MemoryScope.memory: MemoryManager
     get() = ScopedMemoryManagers.computeIfAbsent(this) { MemoryManager() }
 
 /**
- * Returns the [MemoryManager] for `this` [GenericPointer] or `null`.
+ * Returns the [MemoryManager] for `this` [StructPointer] or `null`.
  */
-internal val GenericPointer.memoryOrNull: MemoryManager?
+internal val MemoryScope.memoryOrNull: MemoryManager?
     get() = ScopedMemoryManagers[this]
 
 /**
  * Invokes [block] with the [MemoryManager] associated to this pointer as receiver.
  */
-internal inline fun <R> GenericPointer.withMemoryManager(block: MemoryManager.() -> R): R {
+internal inline fun <R> MemoryScope.withMemoryManager(block: MemoryManager.() -> R): R {
     return memory.block()
 }
 
 /**
- * Releases the [MemoryManager] associated with `this` [GenericPointer].
+ * Releases the [MemoryManager] associated with `this` [StructPointer].
  */
-internal fun GenericPointer.destroyMemory() {
+internal fun MemoryScope.destroyMemory() {
     ScopedMemoryManagers.remove(this)?.close()
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
 
 /**
  * Invokes and returns [block]'s result with a [MemoryManager] receiver that is closed before
@@ -96,39 +134,17 @@ internal inline fun <R> useMemoryManager(block: MemoryManager.() -> R): R {
 }
 
 /**
- * Invokes [block] which is expected to be the SQLite function that will deallocate [Pointer] and
- * returns [block]'s result.
- *
- * If the deallocation succeeds, which is the case if [block] returns [Sqlite3Result.OK], then
- * all the resources associated with [Pointer] through [memory] are disposed and [memory] is
- * closed before the function returns.
+ * Clears all the resources owned by ksqlite.
+ * It is recommended to close all opened sqlite database connections before calling that function.
  */
-internal inline fun <Pointer : GenericPointer> Pointer.deallocate(
-    block: (Pointer) -> Int
-): Sqlite3Result {
-    val result = convertResult(block(this))
+public fun ksqliteCleanup() {
+    val keys = ScopedMemoryManagers.keys
 
-    if (result == Sqlite3Result.OK) {
-        destroyMemory()
+    for (key in keys) {
+        ScopedMemoryManagers
+            .remove(key)
+            ?.close()
     }
 
-    return result
-}
-
-/**
- * Invokes [block] which is expected to be the SQLite function that will deallocate [Pointer] and
- * returns [block]'s result.
- *
- * If the deallocation succeeds, which is the case if [block] returns [Sqlite3Result.OK], then
- * all the resources associated with [Pointer] through [memory] are disposed and [memory] is
- * closed before the function returns.
- */
-internal inline fun <Pointer : GenericPointer> Pointer?.deallocateNullable(
-    block: (Pointer?) -> Int
-): Sqlite3Result {
-    if (this == null) {
-        return convertResult(block(null))
-    }
-
-    return this.deallocate(block)
+    GlobalMemoryManager.clear()
 }

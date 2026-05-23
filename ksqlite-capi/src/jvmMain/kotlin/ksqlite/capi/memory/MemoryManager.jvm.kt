@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.Handler
 import java.lang.foreign.Arena
 import java.lang.foreign.FunctionDescriptor
@@ -26,9 +26,9 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * @throws NullPointerException if there is no object associated with [pointer].
      */
-    fun <ClientData> getStableRef(pointer: MemorySegment): Reference<ClientData> = notClosed {
+    fun <AppData> getStableRef(pointer: MemorySegment): Reference<AppData> = notClosed {
         val refId = pointer.address()
-        val reference = getDisposable<ClientData, StableRefReference<ClientData>>(refId)
+        val reference = getDisposable<AppData, StableRefReference<AppData>>(refId)
         return reference
     }
 
@@ -40,7 +40,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun stableRefDisposer(
         data: Any?,
-        destructor: Sqlite3DestructorCallback<*>? = null
+        destructor: Sqlite3DestroyCallback<*>? = null
     ): MemorySegment {
         return stableRefDisposer.takeIf { data != null || destructor != null }
             ?: MemorySegment.NULL
@@ -62,17 +62,17 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * The resulting reference data can be accessed using [getStableRef] and it can be disposed
      * using [stableRefDisposer].
      */
-    fun <ClientData> stableRefPointer(
+    fun <AppData> stableRefPointer(
         data: Any?,
-        clientData: ClientData,
-        destructor: Sqlite3DestructorCallback<ClientData>? = null
+        appData: AppData,
+        destructor: Sqlite3DestroyCallback<AppData>? = null
     ): MemorySegment = notClosed {
         if (data == null && destructor == null) {
             return MemorySegment.NULL
         }
 
         val reference = registerDisposable { id ->
-            StableRefReference(id, destructor, data, clientData)
+            StableRefReference(id, destructor, data, appData)
         }
 
         return reference.pointer
@@ -84,26 +84,21 @@ internal actual class MemoryManager : MemoryManagerBase() {
      *
      * The resulting reference data can be accessed using [getStableRef] and it can be
      * disposed using [stableRefDisposer].
-     * 
+     *
      * If a pointer was previously obtained using [key], it is disposed.
      */
-    fun <ClientData> keyedStableRefPointer(
+    fun <AppData> keyedStableRefPointer(
         key: String,
         data: Any?,
-        clientData: ClientData,
-        destructor: Sqlite3DestructorCallback<ClientData>? = null,
-        old: ((Any?) -> Unit)? = null
+        appData: AppData,
+        destructor: Sqlite3DestroyCallback<AppData>? = null
     ): MemorySegment = notClosed {
         if (data == null && destructor == null) {
             return MemorySegment.NULL
         }
 
-        val (reference, oldClientData) = registerKeyedDisposable(key) { id ->
-            StableRefReference(id, destructor, data, clientData)
-        }
-
-        if (oldClientData != null && old != null) {
-            old.invoke(oldClientData)
+        val reference = registerKeyedDisposable(key) { id ->
+            StableRefReference(id, destructor, data, appData)
         }
 
         return reference.pointer
@@ -171,7 +166,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun byteArrayPointer(
         value: ByteArray,
-        destructor: Sqlite3DestructorCallback<ByteArray>?
+        destructor: Sqlite3DestroyCallback<ByteArray>?
     ): MemorySegment = notClosed {
         val disposable = registerDisposable { id ->
             ByteArrayDisposable(id, value, destructor)
@@ -202,13 +197,13 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Reference to [data].
      */
-    private inner class StableRefReference<ClientData>(
+    private inner class StableRefReference<AppData>(
         id: Long,
-        destructor: Sqlite3DestructorCallback<ClientData>?,
+        destructor: Sqlite3DestroyCallback<AppData>?,
         override val data: Any?,
-        override val clientData: ClientData
-    ) : AutoDisposable<ClientData>(id, destructor),
-        Reference<ClientData> {
+        override val appData: AppData
+    ) : AutoDisposable<AppData>(id, destructor),
+        Reference<AppData> {
 
         val pointer: MemorySegment = MemorySegment.ofAddress(id)
 
@@ -218,10 +213,10 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Reference to an [arena].
      */
-    private abstract inner class ArenaDisposable<ClientData>(
+    private abstract inner class ArenaDisposable<AppData>(
         id: Long,
-        destructor: Sqlite3DestructorCallback<ClientData>? = null
-    ) : AutoDisposable<ClientData>(id, destructor) {
+        destructor: Sqlite3DestroyCallback<AppData>? = null
+    ) : AutoDisposable<AppData>(id, destructor) {
 
         val arena: Arena = Arena.ofShared()
 
@@ -235,7 +230,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class FunctionDisposable(
         id: Long,
-        override val clientData: Handler<*>,
+        override val appData: Handler<*>,
     ) : ArenaDisposable<Handler<*>>(id, null)
 
     /**
@@ -243,13 +238,13 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class ByteArrayDisposable(
         id: Long,
-        override val clientData: ByteArray,
-        destructor: Sqlite3DestructorCallback<ByteArray>?,
+        override val appData: ByteArray,
+        destructor: Sqlite3DestroyCallback<ByteArray>?,
     ) : ArenaDisposable<ByteArray>(id, destructor) {
 
         // TODO see of copy is necessary
-        val pointer: MemorySegment = arena.allocate(clientData.size.toLong()).apply {
-            copyFrom(MemorySegment.ofArray(clientData))
+        val pointer: MemorySegment = arena.allocate(appData.size.toLong()).apply {
+            copyFrom(MemorySegment.ofArray(appData))
         }
 
         override fun release() {

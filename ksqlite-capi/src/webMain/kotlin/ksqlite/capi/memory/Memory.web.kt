@@ -19,12 +19,29 @@ import ksqlite.capi.interop.wasm.allocPtr
 import ksqlite.capi.interop.wasm.scopedAllocCStringStruct
 import ksqlite.capi.interop.wasm.scopedAllocPtr
 import ksqlite.capi.interop.wasm.sizeofIR
-import ksqlite.capi.callbacks.Sqlite3DestructorCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.wasm
 import kotlin.js.JsAny
 import kotlin.js.toLong
 
-public actual open class GenericPointer internal constructor(internal val pointer: WasmPointer)
+public actual open class StructPointer internal constructor(internal val pointer: WasmPointer) :
+    StructPointerBase() {
+
+    actual override val address: Long
+        get() = pointer.toLong()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is StructPointer) return false
+
+        return pointer == other.pointer
+
+    }
+
+    override fun hashCode(): Int {
+        return pointer.hashCode()
+    }
+}
 
 /**
  * Memory manager that is never cleared.
@@ -48,7 +65,7 @@ internal fun MemoryManager.keyedStableRefPointer(
     key: String,
     data: Any?,
     userData: Buffer? = null,
-    destructor: Sqlite3DestructorCallback? = null,
+    destructor: Sqlite3DestroyCallback? = null,
 ): WasmPointer = stableRefPointer(
     data = data,
     userData = userData,

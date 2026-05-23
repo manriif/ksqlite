@@ -24,17 +24,28 @@ internal const val KEY_WAL_HOOK = "wal_hook"
 /**
  * Returns a unique name for a function handler given theses distinctive arguments.
  */
-internal fun uniqueFunctionKey(
+internal fun appFunctionKey(
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding
 ): String {
-    return "$name$nArg${encoding.value}"
+    return "create_function_$name$nArg${encoding.value}"
 }
 
 /**
- * Returns the name of the auxiliary data key at [index].
+ * Returns a unique name for a window function handler given theses distinctive arguments.
  */
-internal fun auxDataKey(index: Int): String {
-    return "set_auxdata_$index"
+internal fun appWindowFunctionKey(
+    name: String,
+    nArg: Int,
+    encoding: Sqlite3TextEncoding
+): String {
+    return "create_window_function_$name$nArg${encoding.value}"
+}
+
+/**
+ * Returns a unique name for a module.
+ */
+internal fun moduleKey(name: String): String {
+    return "create_module_$name"
 }

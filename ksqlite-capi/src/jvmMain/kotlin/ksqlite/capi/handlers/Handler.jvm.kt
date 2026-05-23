@@ -11,7 +11,7 @@ import java.lang.foreign.MemorySegment
  * Must have a method `handle` with a signature matching the [FunctionDescriptor] returned by
  * [createFunctionDescriptor].
  */
-internal abstract class Handler<ClientData>(protected val manager: MemoryManager) {
+internal abstract class Handler<AppData>(protected val manager: MemoryManager) {
 
     /**
      * Returns the [FunctionDescriptor].
@@ -24,9 +24,9 @@ internal abstract class Handler<ClientData>(protected val manager: MemoryManager
      */
     protected inline fun <reified Data : Any, Result> handler(
         refPointer: MemorySegment,
-        block: (data: Data, clientData: ClientData) -> Result
+        block: (data: Data, appData: AppData) -> Result
     ): Result {
-        val (data, userData) = manager.stableRefData<Data, ClientData>(refPointer)
-        return block(data, userData)
+        val (data, appData) = manager.stableRefData<Data, AppData>(refPointer)
+        return block(data, appData)
     }
 }

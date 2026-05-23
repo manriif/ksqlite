@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.Udf
+import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.toArray
@@ -21,10 +21,10 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler<
      */
     protected inline fun functionHandler(
         context: MemorySegment,
-        block: (udf: Udf<*>, context: sqlite3_context) -> Unit
+        block: (appFunction: ApplicationDefinedFunction<*>, context: sqlite3_context) -> Unit
     ) {
-        handler(sqlite3_user_data(context)) { udf: Udf<*>, _ ->
-            block(udf, sqlite3_context(context))
+        handler(sqlite3_user_data(context)) { appFunction: ApplicationDefinedFunction<*>, _ ->
+            block(appFunction, sqlite3_context(context))
         }
     }
 }
@@ -50,7 +50,7 @@ internal abstract class CreateFunction1ArgHandler(manager: MemoryManager) :
 internal class CreateFunctionFinalHandler(manager: MemoryManager) :
     CreateFunction1ArgHandler(manager) {
 
-    fun handle(context: MemorySegment) = functionHandler(context, Udf<*>::callFinal)
+    fun handle(context: MemorySegment) = functionHandler(context, ApplicationDefinedFunction<*>::callFinal)
 }
 
 /**
@@ -59,7 +59,7 @@ internal class CreateFunctionFinalHandler(manager: MemoryManager) :
 internal class CreateFunctionValueHandler(manager: MemoryManager) :
     CreateFunction1ArgHandler(manager) {
 
-    fun handle(context: MemorySegment) = functionHandler(context, Udf<*>::callValue)
+    fun handle(context: MemorySegment) = functionHandler(context, ApplicationDefinedFunction<*>::callValue)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -85,7 +85,7 @@ internal abstract class CreateFunction3ArgsHandler(manager: MemoryManager) :
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment,
-        call: Udf<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
+        call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
     ) = functionHandler(context) { udf, context ->
         udf.call(context, argv.orNull?.toArray(argc) { sqlite3_value(it) } ?: emptyArray())
     }
@@ -102,7 +102,7 @@ internal class CreateFunctionFuncHandler(manager: MemoryManager) :
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, Udf<*>::callFunc)
+    ) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callFunc)
 }
 
 /**
@@ -116,7 +116,7 @@ internal class CreateFunctionStepHandler(manager: MemoryManager) :
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, Udf<*>::callStep)
+    ) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callStep)
 }
 
 /**
@@ -129,5 +129,5 @@ internal class CreateFunctionInverseHandler(manager: MemoryManager) :
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, Udf<*>::callInverse)
+    ) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callInverse)
 }
