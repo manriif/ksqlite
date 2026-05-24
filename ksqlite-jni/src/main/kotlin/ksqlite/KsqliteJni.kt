@@ -336,39 +336,17 @@ public external fun sqlite3_config(
     args: Array<*>
 ): Int
 
-/*public external fun sqlite3_context_db_handle(
-    p0: Long,
-): Long
-
-public external fun sqlite3_create_collation(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
-    p4: Long,
-): Int
+public external fun sqlite3_context_db_handle(context: Long): Long
 
 public external fun sqlite3_create_collation_v2(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
-    p4: Long,
-    p5: Long,
+    db: Long,
+    name: String,
+    eTextRep: Int,
+    destructor: DestructorCallback?,
+    callback: CollationCompareCallback?
 ): Int
 
-public external fun sqlite3_create_function(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
-    p4: Long,
-    p5: Long,
-    p6: Long,
-    p7: Long,
-): Int
-
-public external fun sqlite3_create_function_v2(
+/*public external fun sqlite3_create_function_v2(
     p0: Long,
     p1: Long,
     p2: Int,
@@ -408,7 +386,7 @@ public external fun sqlite3_create_window_function(
     p9: Long,
 ): Int
 
-public external fun sqlite3_data_count(
+/*public external fun sqlite3_data_count(
     p0: Long,
 ): Int
 

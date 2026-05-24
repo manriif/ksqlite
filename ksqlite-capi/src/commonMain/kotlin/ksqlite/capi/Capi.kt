@@ -7,7 +7,7 @@ import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3CreateCollationCallback
+import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionFinalCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
@@ -702,14 +702,29 @@ public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
  * Register a new collation sequence with the database handle [db].
  *
  * [sqlite3_create_collation()](https://sqlite.org/c3ref/create_collation.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * This function differs from sqlite3_create_collation_v2() in the destroy parameter only.
+ * sqlite3_create_collation_v2() is used in place of sqlite3_create_collation(). That being said,
+ * the semantic of both functions is the same as stated by SQLite.
  */
-public expect fun <AppData> sqlite3_create_collation(
+public fun <AppData> sqlite3_create_collation(
     db: sqlite3,
     name: String,
     encoding: Sqlite3TextEncoding.Set0,
     appData: AppData,
-    callback: Sqlite3CreateCollationCallback<AppData>?
-): Sqlite3Result
+    callback: Sqlite3CollationCompareCallback<AppData>?
+): Sqlite3Result = sqlite3_create_collation_v2(
+    db = db,
+    name = name,
+    encoding = encoding,
+    appData = appData,
+    destroy = null,
+    callback = callback
+)
 
 /**
  * Register a new collation sequence with the database handle [db].
@@ -722,7 +737,7 @@ public expect fun <AppData> sqlite3_create_collation_v2(
     encoding: Sqlite3TextEncoding.Set0,
     appData: AppData,
     destroy: Sqlite3DestroyCallback<AppData>?,
-    callback: Sqlite3CreateCollationCallback<AppData>?
+    callback: Sqlite3CollationCompareCallback<AppData>?
 ): Sqlite3Result
 
 /**

@@ -8,8 +8,41 @@ import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
-import ksqlite.capi.callbacks.Sqlite3CreateCollationCallback
+import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
+import ksqlite.capi.memory.readByteArray
 import ksqlite.capi.types.sqlite3
+
+/**
+ * Handler for [ksqlite.capi.sqlite3_create_collation] and
+ * [ksqlite.capi.sqlite3_create_collation_v2].
+ */
+internal class CollationCompareHandler(manager: MemoryManager) : Handler(manager) {
+
+    override fun WasmFunctions.install(): WasmPointer = installFunction(
+        signature = FunctionSignature.Int32(
+            FunctionSignature.Pointer,
+            FunctionSignature.Int32,
+            FunctionSignature.Pointer,
+            FunctionSignature.Int32,
+            FunctionSignature.Pointer,
+        ),
+        function = ::handle
+    )
+
+    private fun handle(
+        refPointer: WasmPointer,
+        size1: Int,
+        text1: WasmPointer,
+        size2: Int,
+        text2: WasmPointer
+    ): Int = handler(refPointer) { callback: Sqlite3CollationCompareCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            lhs = text1.readByteArray(size1),
+            rhs = text2.readByteArray(size2)
+        )
+    }
+}
 
 /**
  * Handler for [ksqlite.capi.sqlite3_collation_needed].
@@ -37,38 +70,6 @@ internal class CollationNeededHandler(manager: MemoryManager) : Handler(manager)
             db = sqlite3(db),
             eTextRep = convertTextEncoding(eTextRep),
             name = name.toKStringFromUtf8()
-        )
-    }
-}
-
-/**
- * Handler for [ksqlite.capi.sqlite3_create_collation] and
- * [ksqlite.capi.sqlite3_create_collation_v2].
- */
-internal class CreateCollationHandler(manager: MemoryManager) : Handler(manager) {
-
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
-        signature = FunctionSignature.Int32(
-            FunctionSignature.Pointer,
-            FunctionSignature.Int32,
-            FunctionSignature.Pointer,
-            FunctionSignature.Int32,
-            FunctionSignature.Pointer,
-        ),
-        function = ::handle
-    )
-
-    private fun handle(
-        refPointer: WasmPointer,
-        size1: Int,
-        text1: WasmPointer,
-        size2: Int,
-        text2: WasmPointer
-    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback<Any?>, appData ->
-        callback.handle(
-            appData = appData,
-            left = text1.toKStringFromUtf8(size1),
-            right = text2.toKStringFromUtf8(size2)
         )
     }
 }

@@ -23,6 +23,7 @@ typedef uint8_t jboolean;
 #define AUTO_EXTENSION_CALLBACK "AutoExtensionCallback"
 #define AUTO_VACUUM_PAGES_CALLBACK "AutoVacuumPagesCallback"
 #define BUSY_HANDLER_CALLBACK "BusyHandlerCallback"
+#define COLLATION_COMPARE_CALLBACK "CollationCompareCallback"
 #define COLLATION_NEEDED_CALLBACK "CollationNeededCallback"
 #define COMMIT_HOOK_CALLBACK "CommitHookCallback"
 #define CONFIG_LOG_CALLBACK "ConfigLogCallback"
@@ -313,6 +314,7 @@ typedef void(* DestructorFunction)(void*);
  */
 struct Destroyable {
     jobject destructor;
+    jmethodID destroy;
 };
 
 /**
@@ -324,9 +326,10 @@ static inline void clearDestroyable(
 ) {
     GlobalRefDestroy(destroyable->destructor);
     destroyable->destructor = nullptr;
+    destroyable->destroy = nullptr;
 }
 
-#define DestroyableClear(destroyable) clearHook(env, &destroyable)
+#define DestroyableClear(destroyable) clearDestroyable(env, &destroyable)
 
 ///////////////////////////////////////////////////////////////////////////
 // Hooks
@@ -344,6 +347,8 @@ struct Hook {
  * Holder for a Java object with a call method and a java object that can be destroyed.
  */
 struct HookDestroyable : Hook, Destroyable {
+     // Mutex to hold while reading hook variables
+     MutexGuarded* pGuard;
 };
 
 /**
@@ -358,8 +363,9 @@ struct HookDestroyable : Hook, Destroyable {
 /**
  * Configures a hook and the associated destructor.
  */
-#define HookDestroyableConfigure(hook, destructor, instance, signature, className) \
-    if (destructor != nullptr) hook.destructor = GlobalRefCreate(destructor); \
+#define HookDestroyableConfigure(hook, jDestructor, instance, signature, className) \
+    if (destructor != nullptr) hook.destructor = GlobalRefCreate(jDestructor); \
+    hook.destroy = KKDC.destroy; \
     HookConfigure(hook, instance, signature, className)
 
 /**
@@ -390,6 +396,46 @@ static inline void clearHook(
 
 #define HookClear(hook) clearHook(env, &hook)
 
+/**
+ * Clears a hook and returns its destructor if any.
+ */
+static void destroyHook(
+    JNIEnv* env,
+    void* pHook
+) {
+    const auto hookPtr = reinterpret_cast<HookDestroyable*>(pHook);
+    auto hook = *hookPtr;
+    const auto pGuard = hook.pGuard;
+
+    if (pGuard != nullptr) {
+        sqlite3_mutex_enter(pGuard->mutex);
+    }
+
+    // Instance is optional
+    if (hook.instance != nullptr) {
+        HookClear(hook);
+    }
+
+    jobject destructor = nullptr;
+    jmethodID destroy = nullptr;
+
+    // Destructor is also optional but required for callback
+    if (hook.destructor != nullptr) {
+        destructor = LocalRefCreate(RequireNonNullJobject(hook.destructor));
+        destroy = hook.destroy;
+        DestroyableClear(hook);
+    }
+
+    if (pGuard != nullptr) {
+        sqlite3_mutex_leave(pGuard->mutex);
+    }
+
+    if (destructor != nullptr) {
+        env->CallVoidMethod(destructor, destroy);
+        LocalRefDestroy(destructor);
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Freeable
 ///////////////////////////////////////////////////////////////////////////
@@ -413,7 +459,8 @@ static Freeable* allocateFreeable(
     JNIEnv* env,
     void* pointer,
     jobject target,
-    jobject destructor
+    jobject destructor,
+    jmethodID destroy
 ) {
     if (pointer == nullptr && target == nullptr && destructor == nullptr) {
         return nullptr;
@@ -430,7 +477,7 @@ static Freeable* allocateFreeable(
         globalDestructor = GlobalRefCreate(destructor);
     }
 
-    return new Freeable { { globalDestructor }, pointer, globalTarget };
+    return new Freeable { { globalDestructor, destroy }, pointer, globalTarget };
 }
 
 /**
@@ -439,17 +486,16 @@ static Freeable* allocateFreeable(
  */
 static void destroyFreeable(
     JNIEnv* env,
-    void* ptrToFreeable,
-    jmethodID destroy
+    void* pFreeable
 ) {
-    const auto freeablePtr = reinterpret_cast<Freeable*>(RequireNonNull(ptrToFreeable));
+    const auto freeablePtr = reinterpret_cast<Freeable*>(RequireNonNull(pFreeable));
     auto freeable = *freeablePtr;
 
     jobject destructor = LocalRefCreate(freeable.destructor);
 
     if (destructor != nullptr) {
         GlobalRefDestroy(freeable.destructor);
-        env->CallVoidMethod(destructor, destroy);
+        env->CallVoidMethod(destructor, freeable.destroy);
         LocalRefDestroy(destructor);
     }
 
@@ -465,7 +511,7 @@ static void destroyFreeable(
 }
 
 #define AllocateFreeable(pointer, target, destructor) \
-    allocateFreeable(env, pointer, target, destructor)
+    allocateFreeable(env, pointer, target, destructor, KKDC.destroy)
 
 #define AllocateFreeablePointer(pointer, destructor) \
     AllocateFreeable(pointer, nullptr, destructor)
@@ -485,6 +531,7 @@ struct DbState : MutexGuarded {
     struct {
         HookDestroyable autoVacuumPages;
         Hook busyHandler;
+        HookDestroyable collationCompare;
         Hook collationNeeded;
         Hook commitHook;
         /*S3JniHook progress;
@@ -775,6 +822,13 @@ JNI_OnUnload(
 #define GlobalHookReplaceRC(H, S, N, F) \
     GlobalHookReplace(H, F, SQLITE_OK, if (R == SQLITE_OK) { HookConfigure(hook, callback, S, N); }, R)
 
+/**
+ * Calls the Java destructor for the given Hook pointer and releases associated resources.
+ */
+static void hookDestroyer(void* pHook) {
+    destroyHook(retrieveJniEnv(), pHook);
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Database connection operations
 ///////////////////////////////////////////////////////////////////////////
@@ -856,11 +910,20 @@ static DbState* getDbState(
 #define DbStateGet(db) getDbState(env, db)
 
 /**
- * Declares the variables to the database state in a hook caller function.
+ * Declares the variables to the database state in a hook caller function with P as direct pointer
+ * to DbState.
  */
-#define DbStateDeclare(P) \
+#define DbStateDeclareDirect(P) \
     const auto pDbState = reinterpret_cast<DbState*>(P); \
     auto dbState = *pDbState \
+
+/**
+ * Declares the variables to the database state in a hook caller function with P a pointer to
+ * HookDestroyable.
+ */
+#define DbStateDeclareHook(P) \
+    const auto pHookDestroyable = reinterpret_cast<HookDestroyable*>(P); \
+    DbStateDeclareDirect(pHookDestroyable->pGuard)
 
 /**
  * Returns the state of the supplied database and enter its mutex.
@@ -874,6 +937,37 @@ static DbState* getDbState(
  * Leave the mutex from a previous call to DbStateMutexEnter().
  */
 #define DbStateMutexLeave() MutexLeave(dbState)
+
+/**
+ * Declares the code needed to replace a database connection hook with a destructor.
+ * For now it is forbidden to set a destructor if there is no associated callback.
+ *
+ * The hook's mutex is disabled during the function call to prevent dead lock as the function call
+ * may invoke the destructor.
+ */
+#define DbHookDestructorReplace(H, S, N, F, C)                          \
+    const auto pDb = LongTo_s3(db);                                     \
+    auto rc = SQLITE_OK;                                                \
+                                                                        \
+    DbStateMutexEnter(pDb);                                             \
+    const auto pHook = &dbState.hooks.H;                                \
+    auto& hook = *pHook;                                                \
+    hook.pGuard = nullptr;                                              \
+                                                                        \
+    if (callback != nullptr) {                                          \
+        rc = F;                                                         \
+                                                                        \
+        if (rc == SQLITE_OK) {                                          \
+            HookDestroyableConfigure(hook, destructor, callback, S, N); \
+        }                                                               \
+    } else {                                                            \
+        RequireNull(destructor);                                        \
+    }                                                                   \
+                                                                        \
+    hook.pGuard = pDbState;                                             \
+    DbStateMutexLeave();                                                \
+    C;                                                                  \
+    return rc
 
 /**
  * Declares the code needed to replace a database connection hook without destructor.
@@ -966,8 +1060,8 @@ static Freeable* popFreeable(
  * Calls the Java destructor for the given Freeable pointer and releases associated resources.
  * The pointer must have been allocated with `new`.
  */
-static void freeableDestroyer(void* ptrToFreeable) {
-    destroyFreeable(retrieveJniEnv(), ptrToFreeable, KKDC.destroy);
+static void freeableDestroyer(void* pFreeable) {
+    destroyFreeable(retrieveJniEnv(), pFreeable);
 }
 
 /**
@@ -976,8 +1070,8 @@ static void freeableDestroyer(void* ptrToFreeable) {
  */
 static void freeableDestroyerPop(void* pointer) {
     const auto env = retrieveJniEnv();
-    const auto ptrToFreeable = FreeablePop(pointer);
-    destroyFreeable(env, ptrToFreeable, KKDC.destroy);
+    const auto pFreeable = FreeablePop(pointer);
+    destroyFreeable(env, pFreeable);
 }
 
 /**
@@ -1002,46 +1096,6 @@ static inline DestructorFunction freeableDestroyerPush(
  */
 #define FreeableDestroyer(P) (P) == nullptr ? nullptr : freeableDestroyer
 #define FreeableDestroyerPush(K, F) freeableDestroyerPush(env, K, F)
-
-///////////////////////////////////////////////////////////////////////////
-// Hook destruction
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Calls the Java destructor for the given hook and releases associated resources.
- */
-static void hookDestroyer(void* ptrToHook) {
-    JniEnvDeclare();
-    const auto hookPtr = reinterpret_cast<HookDestroyable*>(ptrToHook);
-    auto hook = *hookPtr;
-
-    MutexEnter(KHS);
-
-    // Instance is optional
-    if (hook.instance != nullptr) {
-        HookClear(hook);
-    }
-
-    jobject destructor = nullptr;
-
-    // Destructor is also optional but required for callback
-    if (hook.destructor != nullptr) {
-        destructor = LocalRefCreate(RequireNonNullJobject(hook.destructor));
-        DestroyableClear(hook);
-    }
-
-    MutexLeave(KHS);
-
-    if (destructor != nullptr) {
-        env->CallVoidMethod(destructor, KKDC.destroy);
-        LocalRefDestroy(destructor);
-    }
-}
-
-/**
- * Returns hookDestroy() callback if given pointer P is not null.
- */
-#define HookDestroyer(P) if ((P) == nullptr) nullptr else hookDestroy
 
 ///////////////////////////////////////////////////////////////////////////
 // Casting
@@ -1604,14 +1658,14 @@ Java_ksqlite_KsqliteJni_sqlite3_1aggregate_1context(
  * Calls the Java auto_vacuum_pages hook.
  */
 static unsigned int autoVacuumPagesCaller(
-    void* pDbStateHook,
+    void* pHook,
     const char* zSchema,
     unsigned int nDbPage,
     unsigned int nFreePage,
     unsigned int nBytePerPage
 ) {
     JniEnvDeclare();
-    DbStateDeclare(pDbStateHook);
+    DbStateDeclareHook(pHook);
 
     const auto schema = Utf8ToJstring(zSchema);
 
@@ -1636,42 +1690,12 @@ Java_ksqlite_KsqliteJni_sqlite3_1autovacuum_1pages(
     jobject callback,
     jobject destructor
 ) {
-    const auto pDb = LongTo_s3(db);
-
-    // Force previous callback destructor invocation
-    auto rc = sqlite3_autovacuum_pages(pDb, nullptr, nullptr, nullptr);
-
-    if (rc != SQLITE_OK) {
-        return rc;
-    }
-
-    DbStateMutexEnter(pDb);
-    const auto pHook = &dbState.hooks.autoVacuumPages;
-    auto& hook = *pHook;
-
-    // Ensure that destructor, if any, has been called
-    RequireNull(hook.instance);
-    RequireNull(hook.destructor);
-
-    if (callback != nullptr) {
-        rc = sqlite3_autovacuum_pages(pDb, autoVacuumPagesCaller, pDbState, hookDestroyer);
-
-        if (rc == SQLITE_OK) {
-            HookDestroyableConfigure(
-                hook,
-                destructor,
-                callback,
-                "(Ljava/lang/String;III)I",
-                AUTO_VACUUM_PAGES_CALLBACK
-            );
-        }
-    } else {
-        // For now, forbid setting a destructor without a callback
-        RequireNull(destructor);
-    }
-
-    DbStateMutexLeave();
-    return rc;
+    DbHookDestructorReplace(
+        autoVacuumPages,
+        "(Ljava/lang/String;III)I",
+        AUTO_VACUUM_PAGES_CALLBACK,
+        sqlite3_autovacuum_pages(pDb, autoVacuumPagesCaller, pHook, hookDestroyer),
+    );
 }
 
 extern "C"
@@ -2070,8 +2094,7 @@ static int busyHandlerCaller(
     int n
 ) {
     JniEnvDeclare();
-    DbStateDeclare(pDbStateHook);
-
+    DbStateDeclareDirect(pDbStateHook);
     HookEnterDbState(busyHandler);
     jint result = env->CallIntMethod(instance, call, n);
     HookLeave();
@@ -2170,7 +2193,7 @@ static void collationNeededCaller(
     const char* zName
 ) {
     JniEnvDeclare();
-    DbStateDeclare(pDbStateHook);
+    DbStateDeclareDirect(pDbStateHook);
 
     const auto db = PtrToLong(pDb);
     const auto name = Utf8ToJstring(zName);
@@ -2378,7 +2401,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1column_1value(
  */
 static int commitHookCaller(void* pDbStateHook) {
     JniEnvDeclare();
-    DbStateDeclare(pDbStateHook);
+    DbStateDeclareDirect(pDbStateHook);
     HookEnterDbState(collationNeeded);
     jint result = env->CallIntMethod(instance, call);
     HookLeave();
@@ -2444,7 +2467,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1complete(
 static void configLogCaller(
     void*,
     int errCode,
-    const char *z
+    const char* z
 ) {
     JniEnvDeclare();
     HookEnter(K.hooks, K.hooks.log);
@@ -2457,8 +2480,8 @@ static void configLogCaller(
  */
 static void configSqlLogCaller(
     void*,
-    sqlite3 *pDb,
-    const char *z,
+    sqlite3* pDb,
+    const char* z,
     int op
 ) {
     JniEnvDeclare();
@@ -2568,4 +2591,66 @@ Java_ksqlite_KsqliteJni_sqlite3_1config(
         default:
             return SQLITE_MISUSE;
     }
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1context_1db_1handle(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context
+) {
+    return PtrToLong(sqlite3_context_db_handle(LongTo_s3_context(context)));
+}
+
+/**
+ * Calls the Java collation_compare hook.
+ */
+static int collationCompareCaller(
+    void* pHook,
+    int nLhs,
+    const void *lhs,
+    int nRhs,
+    const void *rhs
+) {
+    JniEnvDeclare();
+    DbStateDeclareHook(pHook);
+
+    const auto lhsByteArray = BufferToByteArray(lhs, nLhs);
+    const auto rhsByteArray = BufferToByteArray(rhs, nRhs);
+
+    HookEnterDbState(collationCompare);
+    jint result = env->CallIntMethod(instance, call, lhsByteArray, rhsByteArray);
+    HookLeave();
+    LocalRefDestroy(lhsByteArray);
+    LocalRefDestroy(rhsByteArray);
+
+    IfExceptionThrown {
+        result = 0;
+    }
+
+    return result;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1create_1collation_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring name,
+    jint eTextRep,
+    jobject destructor,
+    jobject callback
+) {
+    const auto zName = JstringToUtf8(name);
+    // TOTO destroy name
+
+    DbHookDestructorReplace(
+        autoVacuumPages,
+        "([B[B)I",
+        COLLATION_COMPARE_CALLBACK,
+        sqlite3_create_collation_v2(pDb, zName, eTextRep, pHook, collationCompareCaller, hookDestroyer),
+        sqlite3_free(zName)
+    );
 }

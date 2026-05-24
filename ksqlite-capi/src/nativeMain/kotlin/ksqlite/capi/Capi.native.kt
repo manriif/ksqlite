@@ -17,7 +17,7 @@ import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3CreateCollationCallback
+import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionFinalCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
 import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
@@ -38,7 +38,7 @@ import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
 import ksqlite.capi.handlers.ConfigSqlLogHandler
-import ksqlite.capi.handlers.CreateCollationHandler
+import ksqlite.capi.handlers.CollationCompareHandler
 import ksqlite.capi.handlers.CreateFunctionFinalHandler
 import ksqlite.capi.handlers.CreateFunctionFuncHandler
 import ksqlite.capi.handlers.CreateFunctionInverseHandler
@@ -164,7 +164,6 @@ import ksqlite.sqlite3_compileoption_used as native_sqlite3_compileoption_used
 import ksqlite.sqlite3_complete as native_sqlite3_complete
 import ksqlite.sqlite3_config as native_sqlite3_config
 import ksqlite.sqlite3_context_db_handle as native_sqlite3_context_db_handle
-import ksqlite.sqlite3_create_collation as native_sqlite3_create_collation
 import ksqlite.sqlite3_create_collation_v2 as native_sqlite3_create_collation_v2
 import ksqlite.sqlite3_create_function_v2 as native_sqlite3_create_function_v2
 import ksqlite.sqlite3_create_module as native_sqlite3_create_module
@@ -747,36 +746,20 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
 public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3? =
     native_sqlite3_context_db_handle(context.pointer)?.let(::sqlite3)
 
-public actual fun <AppData> sqlite3_create_collation(
-    db: sqlite3,
-    name: String,
-    encoding: Sqlite3TextEncoding.Set0,
-    appData: AppData,
-    callback: Sqlite3CreateCollationCallback<AppData>?
-): Sqlite3Result = convertResult(
-    native_sqlite3_create_collation(
-        db.pointer,
-        name,
-        encoding.utf8OrThrow().value,
-        db.memory.keyedStableRefPointer(KEY_CREATE_COLLATION, callback, appData),
-        CreateCollationHandler.handle(callback)
-    )
-)
-
 public actual fun <AppData> sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
     encoding: Sqlite3TextEncoding.Set0,
     appData: AppData,
     destroy: Sqlite3DestroyCallback<AppData>?,
-    callback: Sqlite3CreateCollationCallback<AppData>?
+    callback: Sqlite3CollationCompareCallback<AppData>?
 ): Sqlite3Result = convertResult(
     native_sqlite3_create_collation_v2(
         db.pointer,
         name,
         encoding.utf8OrThrow().value,
-        db.memory.keyedStableRefPointer(KEY_CREATE_COLLATION, callback, appData, destroy),
-        CreateCollationHandler.handle(callback),
+        db.memory.keyedStableRefPointer(collationKey(name, encoding), callback, appData, destroy),
+        CollationCompareHandler.handle(callback),
         stableRefDisposer(callback, destroy)
     )
 )
