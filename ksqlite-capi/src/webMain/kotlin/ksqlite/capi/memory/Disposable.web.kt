@@ -1,12 +1,12 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.Handler
 import ksqlite.capi.interop.wasm.FunctionSignature
 import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 ///////////////////////////////////////////////////////////////////////////
 // Global
@@ -15,7 +15,7 @@ import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 /**
  * Holds any [Disposable] that should be reachable by static C function given a pointer.
  */
-private val GlobalDisposables: MutableMap<WasmPointer, Disposable> by lazy(::mutableMapOf)
+private val GlobalDisposables by lazy { mutableMapOf<WasmPointer, Disposable>() }
 
 /**
  * Pointer to a static function disposing a [Disposable] registered with [registerGlobalDisposable].
@@ -69,39 +69,39 @@ internal fun unregisterGlobalDisposable(pointer: WasmPointer) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// User data
+// Buffer
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * [Disposable] invoking [destructor] with [userData] when disposed.
+ * [Disposable] invoking [destructor] with [buffer] when disposed.
  */
-private class UserDataDisposable(
-    private val userData: Buffer,
-    private val destructor: Sqlite3DestroyCallback
+private class BufferDisposer(
+    private val buffer: Buffer,
+    private val destructor: Sqlite3DestroyCallback<Buffer>
 ) : Disposable {
 
     override fun dispose() {
-        unregisterGlobalDisposable(userData.block.pointer)
-        destructor(userData)
+        unregisterGlobalDisposable(buffer.pointer)
+        destructor.handle(buffer)
     }
 }
 
 /**
  * Registers a [Disposable] which will invoke [destructor] when disposed.
- * Returns [GlobalDisposer] only if [userData] != `null` and [destructor] != `null`.
+ * If [destructor] is `null` then [NullPtr] is returned.
  */
-internal fun userDataDisposer(
-    userData: Buffer?,
-    destructor: Sqlite3DestroyCallback?
+internal fun bufferDisposer(
+    buffer: Buffer,
+    destructor: Sqlite3DestroyCallback<Buffer>?
 ): WasmPointer {
-    if (userData == null || destructor == null) {
+    if (destructor == null) {
         return NullPtr
     }
 
     registerGlobalDisposable(
-        pointer = userData.block.pointer,
-        disposable = UserDataDisposable(
-            userData = userData,
+        pointer = buffer.pointer,
+        disposable = BufferDisposer(
+            buffer = buffer,
             destructor = destructor
         )
     )

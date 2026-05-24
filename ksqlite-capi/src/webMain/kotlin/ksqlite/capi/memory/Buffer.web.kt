@@ -1,0 +1,61 @@
+package ksqlite.capi.memory
+
+import ksqlite.capi.interop.js.copyFrom
+import ksqlite.capi.interop.js.copyTo
+import ksqlite.capi.interop.js.plus
+import ksqlite.capi.interop.wasm.WasmMemory
+import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.capi.wasm
+import kotlin.js.toLong
+
+public actual open class Buffer internal constructor(
+    internal val memory: WasmMemory,
+    internal val pointer: WasmPointer,
+    byteSize: Long
+) : BufferBase(byteSize) {
+
+    actual override val address: Long
+        get() = pointer.toLong()
+
+    actual override fun nativeRead(
+        destination: ByteArray,
+        size: Int,
+        sourceOffset: Long,
+        destinationOffset: Int
+    ) {
+        val begin = (pointer + sourceOffset).toLong().toInt()
+        val end = begin + size
+
+        memory.heap8()
+            .subarray(begin, end)
+            .copyTo(destination, destinationOffset)
+    }
+
+    actual override fun nativeWrite(
+        source: ByteArray,
+        size: Int,
+        sourceOffset: Int,
+        destinationOffset: Long
+    ) {
+        val begin = (pointer + destinationOffset).toLong().toInt()
+        val end = begin + size
+
+        memory.heap8()
+            .subarray(begin, end)
+            .copyFrom(source, sourceOffset)
+    }
+
+    internal companion object {
+
+        /**
+         * Returns a [Buffer] from [pointer] or `null` if [pointer] is `null`.
+         */
+        fun from(
+            pointer: WasmPointer,
+            size: Long,
+            memory: WasmMemory = wasm
+        ): Buffer? = pointer.orNull?.let {
+            Buffer(memory, pointer, size)
+        }
+    }
+}

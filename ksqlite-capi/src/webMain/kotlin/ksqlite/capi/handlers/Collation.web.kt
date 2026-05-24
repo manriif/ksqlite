@@ -31,12 +31,12 @@ internal class CollationNeededHandler(manager: MemoryManager) : Handler(manager)
         db: WasmPointer,
         eTextRep: Int,
         name: WasmPointer
-    ): Unit = handler(refPointer) { callback: Sqlite3CollationNeededCallback, userData ->
-        callback(
-            userData,
-            sqlite3(db),
-            convertTextEncoding(eTextRep),
-            name.toKStringFromUtf8()
+    ): Unit = handler(refPointer) { callback: Sqlite3CollationNeededCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            db = sqlite3(db),
+            eTextRep = convertTextEncoding(eTextRep),
+            name = name.toKStringFromUtf8()
         )
     }
 }
@@ -64,11 +64,11 @@ internal class CreateCollationHandler(manager: MemoryManager) : Handler(manager)
         text1: WasmPointer,
         size2: Int,
         text2: WasmPointer
-    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback, userData ->
-        callback(
-            userData,
-            text1.toKStringFromUtf8(size1),
-            text2.toKStringFromUtf8(size2)
+    ): Int = handler(refPointer) { callback: Sqlite3CreateCollationCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            left = text1.toKStringFromUtf8(size1),
+            right = text2.toKStringFromUtf8(size2)
         )
     }
 }

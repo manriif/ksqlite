@@ -190,7 +190,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         }
 
         fun handle(userPtr: MemorySegment) {
-            manager.getStableRef<Nothing>(userPtr).dispose()
+            manager.getStableRef<Nothing?>(userPtr).dispose()
         }
     }
 

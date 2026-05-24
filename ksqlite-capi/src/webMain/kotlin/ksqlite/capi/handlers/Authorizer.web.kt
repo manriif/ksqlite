@@ -33,14 +33,14 @@ internal class SetAuthorizerHandler(manager: MemoryManager) : Handler(manager) {
         param4: WasmPointer,
         param5: WasmPointer,
         param6: WasmPointer
-    ): Int = handler(refPointer) { callback: Sqlite3SetAuthorizerCallback, userData ->
-        callback(
-            userData,
-            convertActionCode(action),
-            param3.toKStringFromUtf8OrNull(),
-            param4.toKStringFromUtf8OrNull(),
-            param5.toKStringFromUtf8OrNull(),
-            param6.toKStringFromUtf8OrNull()
+    ): Int = handler(refPointer) { callback: Sqlite3SetAuthorizerCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            action = convertActionCode(action),
+            param3 = param3.toKStringFromUtf8OrNull(),
+            param4 = param4.toKStringFromUtf8OrNull(),
+            param5 = param5.toKStringFromUtf8OrNull(),
+            param6 = param6.toKStringFromUtf8OrNull()
         ).code
     }
 }

@@ -80,7 +80,7 @@ public inline fun <reified Data : Any> sqlite3_aggregate_context(
     context: sqlite3_context,
     noinline factory: (() -> Data)?
 ): Data? {
-    val function = nativeUserData(context)
+    val function = nativeUserData(context) ?: return null
 
     val instance = if (factory == null) {
         function.getAggregateContextOrNull(context)
@@ -1123,7 +1123,7 @@ public expect fun sqlite3_get_autocommit(db: sqlite3): Int
 public inline fun <reified Data : Any> sqlite3_get_auxdata(
     context: sqlite3_context,
     index: Int
-): Data? = castOrThrows(nativeUserData(context).getAuxiliaryDataOrNull(context, index))
+): Data? = castOrThrows(nativeUserData(context)?.getAuxiliaryDataOrNull(context, index))
 
 /**
  * Initialize SQLite.
@@ -1813,7 +1813,7 @@ public inline fun <reified Data : Any> sqlite3_set_auxdata(
     data: Data,
     destroy: Sqlite3DestroyCallback<Data>?
 ) {
-    nativeUserData(context).setAuxiliaryData(context, index, data, destroy)
+    nativeUserData(context)?.setAuxiliaryData(context, index, data, destroy)
 }
 
 /**
@@ -2118,7 +2118,7 @@ public expect fun sqlite3_uri_parameter(
  * [sqlite3_user_data()](https://sqlite.org/c3ref/user_data.html)
  */
 public inline fun <reified AppData : Any> sqlite3_user_data(context: sqlite3_context): AppData? {
-    return castOrThrows(nativeUserData(context).appData)
+    return castOrThrows(nativeUserData(context)?.appData)
 }
 
 /**

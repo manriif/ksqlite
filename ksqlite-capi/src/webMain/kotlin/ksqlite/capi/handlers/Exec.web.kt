@@ -30,15 +30,15 @@ internal class ExecHandler(manager: MemoryManager) : Handler(manager) {
         columnCount: Int,
         values: WasmPointer,
         names: WasmPointer
-    ): Int = handler(refPointer) { callback: Sqlite3ExecCallback, userData ->
+    ): Int = handler(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
         val columnValues = values.toArray(columnCount) { it.toKStringFromUtf8OrNull() }
         val columnNames = names.toArray(columnCount) { it.toKStringFromUtf8() }
 
-        callback(
-            userData,
-            columnCount,
-            columnValues,
-            columnNames
+        callback.handle(
+            appData = appData,
+            columnCount = columnCount,
+            columnValues = columnValues,
+            columnNames = columnNames
         )
     }
 }

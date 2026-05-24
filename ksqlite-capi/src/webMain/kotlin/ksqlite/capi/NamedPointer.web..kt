@@ -1,46 +1,50 @@
 package ksqlite.capi
 
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.allocCString
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 /**
  * Wrapper for [sqlite3_bind_pointer] and [sqlite3_result_pointer] userData.
  */
-internal class NamedPointer(
-    val typePointer: WasmPointer?,
+internal class NamedPointer<Data>(
+    val name: WasmPointer?,
     private val memory: WasmMemory,
-    private val destructor: Sqlite3DestroyCallback?
+    private val destroy: Sqlite3DestroyCallback<Data>?
 ) {
+
     /**
-     * Destructor replacing original user provided destructor.
+     * Invokes application [destroy] and free [name] allocated memory.
      */
-    val disposer: Sqlite3DestroyCallback = { userData ->
-        destructor?.invoke(userData)
-        typePointer?.let(memory::dealloc)
+    fun destroy(data: Data) {
+        destroy?.handle(data)
+        name?.let(memory::dealloc)
     }
 }
 
 /**
- * Returns a [NamedPointer] which allocates memory for [type] if not null.
+ * Returns a [NamedPointer] which allocates memory for [name] if not null.
  *
- * The returned [NamedPointer.disposer] must be used in place of [destructor] in order to clear
- * the allocated memory.
+ * The destructor passed to [block] must be used in place of [destroy] in order to free the
+ * allocated memory.
  */
-internal inline fun <R> allocateNamedPointer(
-    type: String?,
-    noinline destructor: Sqlite3DestroyCallback?,
-    block: NamedPointer.() -> R
+internal inline fun <Data, R> allocateNamedPointer(
+    name: String?,
+    destroy: Sqlite3DestroyCallback<Data>?,
+    block: (
+        ptr: NamedPointer<Data>,
+        ptrDestroy: Sqlite3DestroyCallback<Data>
+    ) -> R
 ): R {
     val memory = wasm
-    val typePointer = type?.let(memory::allocCString)
+    val typePointer = name?.let(memory::allocCString)
 
-    return block(
-        NamedPointer(
-            typePointer = typePointer,
-            memory = memory,
-            destructor = destructor
-        )
+    val pointer = NamedPointer(
+        name = typePointer,
+        memory = memory,
+        destroy = destroy
     )
+
+    return block(pointer) { pointer.destroy(it) }
 }

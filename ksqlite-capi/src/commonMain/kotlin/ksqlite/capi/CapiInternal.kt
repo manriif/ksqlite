@@ -44,7 +44,7 @@ internal expect fun nativeSetAuxdata(
  * Returns the [ApplicationDefinedFunction] instance from [context] user data.
  */
 @PublishedApi
-internal expect fun nativeUserData(context: sqlite3_context): ApplicationDefinedFunction<*>
+internal expect fun nativeUserData(context: sqlite3_context): ApplicationDefinedFunction<*>?
 
 /**
  * Returns the pointer value

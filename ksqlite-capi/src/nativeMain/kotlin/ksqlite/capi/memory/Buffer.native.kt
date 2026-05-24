@@ -12,7 +12,7 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
 import platform.posix.memcpy
 
-public actual open class Buffer internal constructor(
+public actual class Buffer internal constructor(
     internal val pointer: CPointer<ByteVar>,
     byteSize: Long
 ) : BufferBase(byteSize) {

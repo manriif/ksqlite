@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Holds any [Disposable] that should be reachable by static C function given a pointer.
  */
-private val GlobalDisposables: MutableMap<Long, Disposable> by lazy(::ConcurrentHashMap)
+private val GlobalDisposables by lazy { ConcurrentHashMap<Long, Disposable>() }
 
 /**
  * Pointer to a static function disposing a [Disposable] registered with [registerGlobalDisposable].
@@ -24,7 +24,7 @@ private val GlobalDisposer: MemorySegment = StaticMemoryManager.functionPointer(
 /**
  * Handler that dispose reference to object to make it available for GC.
  */
-private class DisposerHandler(manager: MemoryManager) : Handler<Nothing>(manager) {
+private class DisposerHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor {
         return FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)

@@ -29,11 +29,11 @@ internal class ConfigLogHandler(manager: MemoryManager) : Handler(manager) {
         refPointer: WasmPointer,
         errCode: Int,
         errMsg: WasmPointer
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback, userData ->
-        callback(
-            userData,
-            errCode,
-            errMsg.toKStringFromUtf8OrNull()
+    ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            errorCode = errCode,
+            errorMsg = errMsg.toKStringFromUtf8OrNull()
         )
     }
 }
@@ -58,10 +58,10 @@ internal class ConfigSqlLogHandler(manager: MemoryManager) : Handler(manager) {
         db: WasmPointer,
         name: WasmPointer,
         type: Int
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback, userData ->
+    ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback<Any?>, appData ->
         dispatchSqlLogEvent(
             callback = callback,
-            clientData = userData,
+            appData = appData,
             type = type,
             db = sqlite3(db),
             name = name.toKStringFromUtf8OrNull()

@@ -23,10 +23,10 @@ internal class BusyHandlerHandler(manager: MemoryManager) : Handler(manager) {
     private fun handle(
         refPointer: WasmPointer,
         count: Int,
-    ): Int = handler(refPointer) { callback: Sqlite3BusyHandlerCallback, userData ->
-        callback(
-            userData,
-            count
+    ): Int = handler(refPointer) { callback: Sqlite3BusyHandlerCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            count = count
         )
     }
 }

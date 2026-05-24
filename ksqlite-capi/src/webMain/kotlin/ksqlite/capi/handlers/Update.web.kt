@@ -37,15 +37,15 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
         tableName: WasmPointer,
         oldRowId: Long,
         newRowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback, userData ->
-        callback(
-            userData,
-            sqlite3(db),
-            convertActionCode(action),
-            dbName.toKStringFromUtf8(),
-            tableName.toKStringFromUtf8(),
-            oldRowId,
-            newRowId
+    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            db = sqlite3(db),
+            action = convertActionCode(action),
+            dbName = dbName.toKStringFromUtf8(),
+            tableName = tableName.toKStringFromUtf8(),
+            oldRowId = oldRowId,
+            newRowId = newRowId
         )
     }
 }
@@ -72,13 +72,13 @@ internal class UpdateHookHandler(manager: MemoryManager) : Handler(manager) {
         dbName: WasmPointer,
         tableName: WasmPointer,
         rowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback, userData ->
-        callback(
-            userData,
-            convertActionCode(action),
-            dbName.toKStringFromUtf8(),
-            tableName.toKStringFromUtf8(),
-            rowId
+    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            action = convertActionCode(action),
+            dbName = dbName.toKStringFromUtf8(),
+            tableName = tableName.toKStringFromUtf8(),
+            rowId = rowId
         )
     }
 }

@@ -32,10 +32,10 @@ internal class TraceHandler(manager: MemoryManager) : Handler(manager) {
         refPointer: WasmPointer,
         pointer1: WasmPointer,
         pointer2: WasmPointer
-    ): Int = handler(refPointer) { callback: Sqlite3TraceCallback, userData ->
+    ): Int = handler(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
         dispatchTraceEvent(
             callback = callback,
-            clientData = userData,
+            appData = appData,
             code = code,
             pointer1 = pointer1,
             pointer2 = pointer2,

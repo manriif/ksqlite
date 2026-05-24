@@ -21,10 +21,10 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(
      */
     protected inline fun functionHandler(
         context: MemorySegment,
-        block: (appFunction: ApplicationDefinedFunction<*>, context: sqlite3_context) -> Unit
+        call: ApplicationDefinedFunction<*>.(sqlite3_context) -> Unit
     ) {
-        handler(sqlite3_user_data(context)) { appFunction: ApplicationDefinedFunction<*>, _ ->
-            block(appFunction, sqlite3_context(context))
+        handler(sqlite3_user_data(context)) { function: ApplicationDefinedFunction<*>, _ ->
+            function.call(sqlite3_context(context))
         }
     }
 }
@@ -50,7 +50,8 @@ internal abstract class CreateFunction1ArgHandler(manager: MemoryManager) :
 internal class CreateFunctionFinalHandler(manager: MemoryManager) :
     CreateFunction1ArgHandler(manager) {
 
-    fun handle(context: MemorySegment) = functionHandler(context, ApplicationDefinedFunction<*>::callFinal)
+    fun handle(context: MemorySegment) =
+        functionHandler(context, ApplicationDefinedFunction<*>::callFinal)
 }
 
 /**
@@ -59,7 +60,8 @@ internal class CreateFunctionFinalHandler(manager: MemoryManager) :
 internal class CreateFunctionValueHandler(manager: MemoryManager) :
     CreateFunction1ArgHandler(manager) {
 
-    fun handle(context: MemorySegment) = functionHandler(context, ApplicationDefinedFunction<*>::callValue)
+    fun handle(context: MemorySegment) =
+        functionHandler(context, ApplicationDefinedFunction<*>::callValue)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -86,8 +88,8 @@ internal abstract class CreateFunction3ArgsHandler(manager: MemoryManager) :
         argc: Int,
         argv: MemorySegment,
         call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
-    ) = functionHandler(context) { udf, context ->
-        udf.call(context, argv.orNull?.toArray(argc) { sqlite3_value(it) } ?: emptyArray())
+    ) = functionHandler(context) {context ->
+        call(context, argv.orNull?.toArray(argc) { sqlite3_value(it) } ?: emptyArray())
     }
 }
 

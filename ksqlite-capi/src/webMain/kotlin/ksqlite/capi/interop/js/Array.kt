@@ -57,7 +57,7 @@ internal fun arraySize(array: ByteArray): Int {
 internal fun <T> arrayForEachIndexed(
     array: Array<T>,
     block: (index: Int, value: T) -> Unit
-): Unit {
+) {
     array.forEachIndexed(block)
 }
 

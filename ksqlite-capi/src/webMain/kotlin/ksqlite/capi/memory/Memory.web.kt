@@ -19,7 +19,6 @@ import ksqlite.capi.interop.wasm.allocPtr
 import ksqlite.capi.interop.wasm.scopedAllocCStringStruct
 import ksqlite.capi.interop.wasm.scopedAllocPtr
 import ksqlite.capi.interop.wasm.sizeofIR
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.wasm
 import kotlin.js.JsAny
 import kotlin.js.toLong
@@ -47,31 +46,6 @@ public actual open class StructPointer internal constructor(internal val pointer
  * Memory manager that is never cleared.
  */
 internal val StaticMemoryManager = MemoryManager()
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns a stable [WasmPointer] to [data] available globally.
- * Returns `null` if [data] is `null`.
- *
- * The resulting reference data can be accessed using [MemoryManager.getStableRef] and it can be
- * disposed using [MemoryManager.stableRefDisposer].
- *
- * If a pointer was previously obtained using [key], it is disposed.
- */
-internal fun MemoryManager.keyedStableRefPointer(
-    key: String,
-    data: Any?,
-    userData: Buffer? = null,
-    destructor: Sqlite3DestroyCallback? = null,
-): WasmPointer = stableRefPointer(
-    data = data,
-    userData = userData,
-    destructor = destructor,
-    key = key
-)
 
 ///////////////////////////////////////////////////////////////////////////
 // Allocators

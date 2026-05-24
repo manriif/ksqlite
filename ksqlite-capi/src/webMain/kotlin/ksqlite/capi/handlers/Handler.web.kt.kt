@@ -4,8 +4,7 @@ import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.memory.getReferencedData
-import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.stableRefData
 
 /**
  * Handler for native callback.
@@ -20,17 +19,14 @@ internal abstract class Handler(protected val manager: MemoryManager) {
     abstract fun WasmFunctions.install(): WasmPointer
 
     /**
-     * Returns [block]'s result, invoked with [Data] and optional userData obtained from a
+     * Returns [block]'s result, invoked with [Data] and optional appData obtained from a
      * previously referenced [refPointer].
      */
     protected inline fun <reified Data : Any, Result> handler(
         refPointer: WasmPointer,
-        block: (data: Data, userData: Buffer?) -> Result
+        block: (data: Data, appData: Any?) -> Result
     ): Result {
-        val (data, userData) = manager
-            .getStableRef(refPointer)
-            .getReferencedData<Data>()
-
-        return block(data, userData)
+        val (data, appData) = manager.stableRefData<Data, Any?>(refPointer)
+        return block(data, appData)
     }
 }

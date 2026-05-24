@@ -30,13 +30,13 @@ internal class AutoVacuumPagesHandler(manager: MemoryManager) : Handler(manager)
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback, userData ->
-        callback(
-            userData,
-            zSchema.toKStringFromUtf8(),
-            nDbPage.toUInt(),
-            nFreePage.toUInt(),
-            nBytePerPage.toUInt()
+    ): Int = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback<Any?>, appData ->
+        callback.handle(
+            appData = appData,
+            schemaName = zSchema.toKStringFromUtf8(),
+            dbPage = nDbPage.toUInt(),
+            freePage = nFreePage.toUInt(),
+            bytePerPage = nBytePerPage.toUInt()
         ).toInt()
     }
 }
