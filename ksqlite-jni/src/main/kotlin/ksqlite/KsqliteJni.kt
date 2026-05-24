@@ -41,10 +41,10 @@ public fun requireBuffer(
 
 public external fun nativeBufferRead(
     buffer: ByteBuffer,
+    destination: ByteArray,
     size: Int,
     sourceOffset: Long,
-    destinationOffset: Int,
-    destination: ByteArray
+    destinationOffset: Int
 )
 
 public external fun nativeBufferWrite(
@@ -68,7 +68,7 @@ public external fun ksqlite_cancel_auto_extension(callback: AutoExtensionCallbac
 
 public external fun sqlite3_aggregate_context(
     context: Long,
-    nBytes: Int,
+    create: Boolean
 ): Long
 
 /**
@@ -102,7 +102,7 @@ public external fun sqlite3_backup_step(
 public external fun sqlite3_bind_blob(
     stmt: Long,
     index: Int,
-    data: ByteArray?,
+    bytes: ByteArray,
     size: Int,
     destructor: DestructorCallback?
 ): Int
@@ -110,7 +110,7 @@ public external fun sqlite3_bind_blob(
 public external fun sqlite3_bind_blob64(
     stmt: Long,
     index: Int,
-    data: ByteBuffer?,
+    buffer: ByteBuffer,
     size: Long,
     destructor: DestructorCallback?
 ): Int
@@ -171,7 +171,7 @@ public external fun sqlite3_bind_text(
 public external fun sqlite3_bind_text64(
     stmt: Long,
     index: Int,
-    data: ByteBuffer?,
+    buffer: ByteBuffer,
     size: Long,
     destructor: DestructorCallback?,
     encoding: Int
@@ -322,25 +322,21 @@ public external fun sqlite3_column_value(
 
 public external fun sqlite3_commit_hook(
     db: Long,
-    userData: Any?,
     callback: CommitHookCallback?
-): Any?
+): CommitHookCallback?
 
-public external fun sqlite3_compileoption_get(index: Int): Long
+public external fun sqlite3_compileoption_get(index: Int): String?
 
-public external fun sqlite3_compileoption_used(name: String): Int
+public external fun sqlite3_compileoption_used(optName: String): Int
 
 public external fun sqlite3_complete(sql: String): Int
 
-/**
- * TODO variadic
- */
-/*public external fun sqlite3_config(
-    p0: Int,
-    p1: Long,
+public external fun sqlite3_config(
+    id: Int,
+    args: Array<*>
 ): Int
 
-public external fun sqlite3_context_db_handle(
+/*public external fun sqlite3_context_db_handle(
     p0: Long,
 ): Long
 

@@ -2,40 +2,41 @@ package ksqlite.capi.handlers
 
 import ksqlite.DestructorCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.memory.Buffer
 
 /**
  * Handler for native callback.
  */
-internal abstract class Handler<Data : Any>(private val holder: Holder<Data>) {
+internal abstract class Handler<Data : Any, AppData> {
+
+    lateinit var holder: Holder<Data, AppData>
 
     /**
-     * Returns [block]'s result, invoked with [Data] and optional userData.
+     * Returns [block]'s result, invoked with [Data] and optional appData.
      */
     protected inline fun <Result> handler(
-        block: (data: Data, userData: Buffer?) -> Result
+        block: (data: Data, appData: AppData) -> Result
     ): Result {
-        return block(holder.data, holder.userData)
+        return block(holder.data, holder.appData)
     }
 
     /**
      * Object to be passed as `user_data` on native side.
      */
-    data class Holder<Data : Any>(
+    data class Holder<Data : Any, AppData>(
         val data: Data,
-        val userData: Buffer?
+        val appData: AppData
     )
 }
 
 /**
  * Handler for [Sqlite3DestroyCallback].
  */
-private class DestructorHandler(holder: Holder<Sqlite3DestroyCallback>) :
-    Handler<Sqlite3DestroyCallback>(holder),
+private class DestructorHandler<AppData> :
+    Handler<Sqlite3DestroyCallback<AppData>, AppData>(),
     DestructorCallback {
 
-    override fun destroy() = handler { callback, userData ->
-        callback(userData)
+    override fun destroy() = handler { callback, appData ->
+        callback.handle(appData)
     }
 }
 
@@ -46,24 +47,26 @@ private class DestructorHandler(holder: Holder<Sqlite3DestroyCallback>) :
 /**
  * Returns a [Handler] instance supplied by [factory] only if [data] is not `null`.
  */
-internal fun <Data : Any, H : Handler<Data>> callbackHandler(
+internal fun <Data : Any, AppData, H : Handler<Data, AppData>> callbackHandler(
     data: Data?,
-    userData: Buffer? = null,
-    factory: (Handler.Holder<Data>) -> H
+    appData: AppData,
+    factory: () -> H
 ): H? {
     if (data == null) {
         return null
     }
 
-    return factory(Handler.Holder(data, userData))
+    return factory().apply {
+        holder = Handler.Holder(data, appData)
+    }
 }
 
 /**
  * Returns a [DestructorCallback] if [destructor] is not `null`.
  */
-internal fun destructorHandler(
-    destructor: Sqlite3DestroyCallback?,
-    userData: Buffer? = null
+internal fun <AppData> destructorHandler(
+    appData: AppData,
+    destructor: Sqlite3DestroyCallback<AppData>?
 ): DestructorCallback? {
     if (destructor == null) {
         return null
@@ -71,7 +74,7 @@ internal fun destructorHandler(
 
     return callbackHandler(
         data = destructor,
-        userData = userData,
+        appData = appData,
         factory = ::DestructorHandler
     )
 }

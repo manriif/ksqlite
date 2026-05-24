@@ -722,8 +722,8 @@ public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
 
 public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonConfig(
     option = option,
-    logFunctionPointer = ConfigLogHandler::handle,
-    sqllogFunctionPointer = ConfigSqlLogHandler::handle,
+    logFunctionPointer = { cb, _ -> ConfigLogHandler.handle(cb) },
+    sqllogFunctionPointer = { cb, _ -> ConfigSqlLogHandler.handle(cb) },
     bufferPointer = Buffer::pointer,
     keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
     rowidInView = {

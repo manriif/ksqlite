@@ -2,7 +2,6 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.VariadicValue.OfPointer
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
@@ -67,7 +66,6 @@ import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.readByteArray
-import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
@@ -580,8 +578,8 @@ public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
 
 public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonConfig(
     option = option,
-    logFunctionPointer = { globalMemory.functionPointer(it, ::ConfigLogHandler) },
-    sqllogFunctionPointer = { globalMemory.functionPointer(it, ::ConfigSqlLogHandler) },
+    logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
+    sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
     keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
     rowidInView = {
@@ -1345,7 +1343,7 @@ public actual fun sqlite3_serialize(
     return Buffer.from(pointer, size.value)
 }
 
-public actual fun <AppData>sqlite3_set_authorizer(
+public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
     callback: Sqlite3SetAuthorizerCallback<AppData>?
@@ -1501,7 +1499,7 @@ public actual fun sqlite3_total_changes(db: sqlite3): Int =
 public actual fun sqlite3_total_changes64(db: sqlite3): Long =
     exports.sqlite3_total_changes64(db.pointer).toLong()
 
-public actual fun <AppData>sqlite3_trace_v2(
+public actual fun <AppData> sqlite3_trace_v2(
     db: sqlite3,
     mask: Sqlite3TraceCode?,
     appData: AppData,
@@ -1522,7 +1520,7 @@ public actual fun sqlite3_txn_state(
     exports.sqlite3_txn_state(db.pointer, schema.allocateUtf8Pointer())
 })
 
-public actual fun <AppData>sqlite3_update_hook(
+public actual fun <AppData> sqlite3_update_hook(
     db: sqlite3,
     appData: AppData,
     callback: Sqlite3UpdateHookCallback<AppData>?

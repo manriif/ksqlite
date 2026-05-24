@@ -11,6 +11,6 @@ public fun interface Sqlite3ConfigLogCallback<AppData> {
     public fun handle(
         appData: AppData,
         errorCode: Int,
-        errorMsg: String?
+        message: String?
     )
 }

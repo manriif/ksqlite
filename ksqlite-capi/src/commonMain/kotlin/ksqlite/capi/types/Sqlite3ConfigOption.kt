@@ -139,9 +139,9 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * invoke any SQLite interface. In a multi-threaded application, the application-defined logger
      * function must be threadsafe.
      */
-    public class LOG<ClientData>(
-        internal val clientData: ClientData,
-        internal val callback: Sqlite3ConfigLogCallback<ClientData>?
+    public class LOG<AppData>(
+        internal val appData: AppData,
+        internal val callback: Sqlite3ConfigLogCallback<AppData>?
     ) : Sqlite3ConfigOption(16)
 
     /**
@@ -182,9 +182,9 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * is passed NULL In this case. An example of using this configuration option can be seen in the
      * "test_sqllog.c" source file in the canonical SQLite source tree.
      */
-    public class SQLLOG<ClientData>(
-        internal val clientData: ClientData,
-        internal val callback: Sqlite3ConfigSqlLogCallback<ClientData>?
+    public class SQLLOG<AppData>(
+        internal val appData: AppData,
+        internal val callback: Sqlite3ConfigSqlLogCallback<AppData>?
     ) : Sqlite3ConfigOption(21)
 
     /**

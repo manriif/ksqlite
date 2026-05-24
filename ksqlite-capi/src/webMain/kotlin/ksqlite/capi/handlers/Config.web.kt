@@ -33,7 +33,7 @@ internal class ConfigLogHandler(manager: MemoryManager) : Handler(manager) {
         callback.handle(
             appData = appData,
             errorCode = errCode,
-            errorMsg = errMsg.toKStringFromUtf8OrNull()
+            message = errMsg.toKStringFromUtf8OrNull()
         )
     }
 }

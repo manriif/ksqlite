@@ -6,8 +6,8 @@ import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 /**
  * Handler for [ksqlite.capi.sqlite3_autovacuum_pages].
  */
-internal class AutoVacuumPagesHandler(holder: Holder<Sqlite3AutoVacuumPagesCallback>) :
-    Handler<Sqlite3AutoVacuumPagesCallback>(holder),
+internal class AutoVacuumPagesHandler<AppData> :
+    Handler<Sqlite3AutoVacuumPagesCallback<AppData>, AppData>(),
     AutoVacuumPagesCallback {
 
     override fun call(
@@ -15,13 +15,13 @@ internal class AutoVacuumPagesHandler(holder: Holder<Sqlite3AutoVacuumPagesCallb
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = handler { callback, userData ->
-        callback(
-            userData,
-            zSchema,
-            nDbPage.toUInt(),
-            nFreePage.toUInt(),
-            nBytePerPage.toUInt()
+    ): Int = handler { callback, appData ->
+        callback.handle(
+            appData = appData,
+            schemaName = zSchema,
+            dbPage = nDbPage.toUInt(),
+            freePage = nFreePage.toUInt(),
+            bytePerPage = nBytePerPage.toUInt()
         ).toInt()
     }
 }

@@ -8,20 +8,20 @@ import ksqlite.capi.types.sqlite3
 /**
  * Handler for [ksqlite.capi.sqlite3_collation_needed].
  */
-internal class CollationNeededHandler(holder: Holder<Sqlite3CollationNeededCallback>) :
-    Handler<Sqlite3CollationNeededCallback>(holder),
+internal class CollationNeededHandler<AppData> :
+    Handler<Sqlite3CollationNeededCallback<AppData>, AppData>(),
     CollationNeededCallback {
 
     override fun call(
         db: Long,
         eTextRep: Int,
         name: String
-    ) = handler { callback, userData ->
-        callback(
-            userData,
-            sqlite3(db),
-            convertTextEncoding(eTextRep),
-            name
+    ) = handler { callback, appData ->
+        callback.handle(
+            appData = appData,
+            db = sqlite3(db),
+            eTextRep = convertTextEncoding(eTextRep),
+            name = name
         )
     }
 }

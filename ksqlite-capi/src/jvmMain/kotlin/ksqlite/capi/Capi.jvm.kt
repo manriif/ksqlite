@@ -560,8 +560,8 @@ public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
 
 public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonConfig(
     option = option,
-    logFunctionPointer = { globalMemory.functionPointer(it, ::ConfigLogHandler) },
-    sqllogFunctionPointer = { globalMemory.functionPointer(it, ::ConfigSqlLogHandler) },
+    logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
+    sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
     keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
     rowidInView = {

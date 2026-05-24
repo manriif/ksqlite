@@ -1,5 +1,7 @@
 package ksqlite.capi
 
+import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
+import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.globalMemory
@@ -103,12 +105,13 @@ internal sealed interface VariadicValue<out Pointer : Any> {
  * Handles the [ksqlite.capi.sqlite3_config].
  * The array passed to [nativeConfig] contains at most 3 values.
  */
+@Suppress("UNCHECKED_CAST")
 internal fun <Pointer : Any> commonConfig(
     option: Sqlite3ConfigOption,
     bufferPointer: (Buffer) -> Pointer?,
-    logFunctionPointer: (callback: Any?) -> Pointer?,
-    sqllogFunctionPointer: (callback: Any?) -> Pointer?,
-    keyedStableRefPointer: MemoryManager.(String, Any?, Any?) -> Pointer?,
+    logFunctionPointer: (callback: Sqlite3ConfigLogCallback<Any?>?, appData: Any?) -> Pointer?,
+    sqllogFunctionPointer: (callback: Sqlite3ConfigSqlLogCallback<Any?>?, appData: Any?) -> Pointer?,
+    keyedStableRefPointer: (MemoryManager.(String, Any?, Any?) -> Pointer?)?,
     rowidInView: Sqlite3ConfigOption.ROWID_IN_VIEW.() -> Int,
     nativeConfig: (id: Int, args: Array<out VariadicValue<Pointer>?>) -> Int,
 ): Sqlite3Result {
@@ -128,8 +131,10 @@ internal fun <Pointer : Any> commonConfig(
             )
 
             is LOG<*> -> arrayOf(
-                logFunctionPointer(callback)?.let(VariadicValue<Pointer>::OfPointer),
-                globalMemory.keyedStableRefPointer(KEY_CONFIG_LOG, callback, clientData)
+                logFunctionPointer(callback as Sqlite3ConfigLogCallback<Any?>?, appData)
+                    ?.let(VariadicValue<Pointer>::OfPointer),
+                keyedStableRefPointer
+                    ?.invoke(globalMemory, KEY_CONFIG_LOG, callback, appData)
                     ?.let(VariadicValue<Pointer>::OfPointer)
             )
 
@@ -157,8 +162,10 @@ internal fun <Pointer : Any> commonConfig(
             is SORTERREF_SIZE -> arrayOf(VariadicValue.OfInt(nByte))
 
             is SQLLOG<*> -> arrayOf(
-                sqllogFunctionPointer(callback)?.let(VariadicValue<Pointer>::OfPointer),
-                globalMemory.keyedStableRefPointer(KEY_CONFIG_SQLLOG, callback, clientData)
+                sqllogFunctionPointer(callback as Sqlite3ConfigSqlLogCallback<Any?>?, appData)
+                    ?.let(VariadicValue<Pointer>::OfPointer),
+                keyedStableRefPointer
+                    ?.invoke(globalMemory, KEY_CONFIG_SQLLOG, callback, appData)
                     ?.let(VariadicValue<Pointer>::OfPointer)
             )
 

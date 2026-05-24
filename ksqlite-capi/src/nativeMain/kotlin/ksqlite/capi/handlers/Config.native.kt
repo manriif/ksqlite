@@ -31,7 +31,7 @@ private fun configLogHandler(
     callback.handle(
         appData = appData,
         errorCode = errCode,
-        errorMsg = errMsg?.toKStringFromUtf8()
+        message = errMsg?.toKStringFromUtf8()
     )
 }
 

@@ -23,16 +23,27 @@ public actual open class StructPointer internal constructor(internal val pointer
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Alias to hte pointer type returned by JNI.
+ */
+internal typealias JniPointer = Long
+
+/**
  * Whether this long represents a null pointer.
  */
-internal val Long.isNullPointer: Boolean
+internal val JniPointer.isNull: Boolean
     get() = this == 0L
+
+/**
+ * Returns `null` if `this` [Long] points to a null pointer.
+ */
+internal val JniPointer.orNull: JniPointer?
+    get() = takeUnless { isNull }
 
 /**
  * Returns [Pointer] instantiated after [factory] which is passed `this` non-null pointing [Long].
  */
-internal fun <Pointer : StructPointer> Long.wrapOrNull(factory: (Long) -> Pointer): Pointer? {
-    if (isNullPointer) {
+internal fun <Pointer : StructPointer> JniPointer.wrapOrNull(factory: (Long) -> Pointer): Pointer? {
+    if (isNull) {
         return null
     }
 
