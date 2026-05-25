@@ -31,7 +31,6 @@ import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.deallocateNullable
-import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
@@ -45,7 +44,6 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_module
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.useParam
@@ -109,7 +107,7 @@ import ksqlite.sqlite3_config as jni_sqlite3_config
 import ksqlite.sqlite3_context_db_handle as jni_sqlite3_context_db_handle
 import ksqlite.sqlite3_create_collation_v2 as jni_sqlite3_create_collation_v2
 import ksqlite.sqlite3_create_function_v2 as jni_sqlite3_create_function_v2
-import ksqlite.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
+//import ksqlite.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
 import ksqlite.sqlite3_create_window_function as jni_sqlite3_create_window_function
 
 ///////////////////////////////////////////////////////////////////////////
@@ -548,7 +546,7 @@ public actual fun <AppData> sqlite3_create_function_v2(
         )
     }
 )
-
+/*
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
@@ -564,7 +562,7 @@ public actual fun <AppData> sqlite3_create_module_v2(
         destructorHandler(appData, destroy)
     )
 )
-
+*/
 public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,

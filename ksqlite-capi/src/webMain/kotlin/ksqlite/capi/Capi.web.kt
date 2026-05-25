@@ -5,16 +5,16 @@ package ksqlite.capi
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
@@ -23,17 +23,17 @@ import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
+import ksqlite.capi.handlers.CollationCompareHandler
 import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
 import ksqlite.capi.handlers.ConfigSqlLogHandler
-import ksqlite.capi.handlers.CollationCompareHandler
+import ksqlite.capi.handlers.ExecHandler
 import ksqlite.capi.handlers.FunctionFinalHandler
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.handlers.FunctionInverseHandler
 import ksqlite.capi.handlers.FunctionStepHandler
 import ksqlite.capi.handlers.FunctionValueHandler
-import ksqlite.capi.handlers.ExecHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
@@ -104,7 +104,6 @@ import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
 import ksqlite.capi.types.sqlite3_index_info
-import ksqlite.capi.types.sqlite3_module
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
@@ -654,6 +653,7 @@ public actual fun <AppData> sqlite3_create_function_v2(
     }
 })
 
+/*
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
@@ -671,7 +671,7 @@ public actual fun <AppData> sqlite3_create_module_v2(
         )
     }
 })
-
+*/
 public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,

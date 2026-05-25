@@ -356,7 +356,7 @@ public external fun sqlite3_create_function_v2(
     final: FunctionCallback.Final?,
     destroy: DestructorCallback?,
 ): Int
-
+/*
 public external fun sqlite3_create_module_v2(
     db: Long,
     name: String,
@@ -364,7 +364,7 @@ public external fun sqlite3_create_module_v2(
     appData: Any?,
     destroy: DestructorCallback?,
 ): Int
-
+*/
 public external fun sqlite3_create_window_function(
     db: Long,
     name: String,

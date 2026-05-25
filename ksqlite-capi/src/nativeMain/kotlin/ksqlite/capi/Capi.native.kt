@@ -98,7 +98,6 @@ import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
 import ksqlite.capi.types.sqlite3_index_info
-import ksqlite.capi.types.sqlite3_module
 import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
@@ -166,7 +165,7 @@ import ksqlite.sqlite3_config as native_sqlite3_config
 import ksqlite.sqlite3_context_db_handle as native_sqlite3_context_db_handle
 import ksqlite.sqlite3_create_collation_v2 as native_sqlite3_create_collation_v2
 import ksqlite.sqlite3_create_function_v2 as native_sqlite3_create_function_v2
-import ksqlite.sqlite3_create_module_v2 as native_sqlite3_create_module_v2
+//import ksqlite.sqlite3_create_module_v2 as native_sqlite3_create_module_v2
 import ksqlite.sqlite3_create_window_function as native_sqlite3_create_window_function
 import ksqlite.sqlite3_data_count as native_sqlite3_data_count
 import ksqlite.sqlite3_db_cacheflush as native_sqlite3_db_cacheflush
@@ -793,7 +792,7 @@ public actual fun <AppData> sqlite3_create_function_v2(
         )
     }
 )
-
+/*
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
@@ -809,7 +808,7 @@ public actual fun <AppData> sqlite3_create_module_v2(
         stableRefDisposer(appData, destroy)
     )
 )
-
+*/
 public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,

@@ -382,7 +382,7 @@ internal external interface Sqlite3WasmExports : JsAny {
         p1: JsBigInt,
         p2: JsBigInt,
         p3: JsBigInt,
-    ): Int*/
+    ): Int
 
     fun sqlite3_create_module_v2(
         p0: JsBigInt,
@@ -390,7 +390,7 @@ internal external interface Sqlite3WasmExports : JsAny {
         p2: JsBigInt,
         p3: JsBigInt,
         p4: JsBigInt,
-    ): Int
+    ): Int*/
 
     fun sqlite3_create_window_function(
         p0: JsBigInt,

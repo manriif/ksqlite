@@ -68,7 +68,7 @@ public typealias sqlite3_filename = String
  * [sqlite3_index_info](https://sqlite.org/c3ref/index_info.html)
  */
 public expect class sqlite3_index_info : StructPointer
-
+/*
 /**
  * This structure, sometimes called a "virtual table module", defines the implementation of a
  * virtual table. This structure consists mostly of methods for the module.
@@ -78,7 +78,7 @@ public expect class sqlite3_index_info : StructPointer
  * TODO implement the structure
  */
 public expect class sqlite3_module<ClientData> : StructPointer
-
+*/
 /**
  * An instance of this object represents a single SQL statement that has been compiled into binary
  * form and is ready to be evaluated.

@@ -792,7 +792,7 @@ public expect fun <AppData> sqlite3_create_function_v2(
     final: Sqlite3FunctionFinalCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result
-
+/*
 /**
  * External API function used to create a new virtual-table module.
  *
@@ -876,7 +876,7 @@ public fun sqlite3_create_module_v2(
     appData = null,
     destroy = null
 )
-
+*/
 /**
  * Create new user functions.
  *

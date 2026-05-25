@@ -24,10 +24,10 @@ public actual class sqlite3_context internal constructor(pointer: MemorySegment)
 
 public actual class sqlite3_index_info internal constructor(pointer: MemorySegment) :
     StructPointer(pointer)
-
+/*
 public actual class sqlite3_module<ClientData> internal constructor(pointer: MemorySegment) :
     StructPointer(pointer)
-
+*/
 public actual class sqlite3_snapshot internal constructor(pointer: MemorySegment) :
     StructPointer(pointer)
 

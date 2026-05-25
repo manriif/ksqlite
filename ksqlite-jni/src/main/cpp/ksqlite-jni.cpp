@@ -516,25 +516,10 @@ struct Function : Destroyable {
 /**
  * Holder for window function hooks.
  */
-struct WindowFunction : Function {
+struct FunctionWindow : Function {
     Hook inverse;
     Hook value;
 };
-
-#define FunctionHookConfigure(hook, object, signature, className) \
-    { HookConfigure(function.hook, object, signature, "FunctionCallback." className); }
-
-#define Function1HookConfigure(hook, object, className) \
-    FunctionHookConfigure(hook, object, "(J)V", className)
-
-#define Function2HookConfigure(hook, object, className) \
-    FunctionHookConfigure(hook, object, "(J[J)V", className)
-
-#define FunctionFuncHookConfigure(object) Function2HookConfigure(func, object, "Func")
-#define FunctionStepHookConfigure(object) Function2HookConfigure(step, object, "Step")
-#define FunctionFinalHookConfigure(object) Function1HookConfigure(final, object, "Final")
-#define FunctionInverseHookConfigure(object) Function2HookConfigure(inverse, object, "Inverse")
-#define FunctionValueHookConfigure(object) Function1HookConfigure(value, object, "Value")
 
 ///////////////////////////////////////////////////////////////////////////
 // Database
@@ -815,6 +800,21 @@ JNI_OnUnload(
 }
 
 ///////////////////////////////////////////////////////////////////////////
+// Casting
+///////////////////////////////////////////////////////////////////////////
+
+#define PtrToLong(P) reinterpret_cast<jlong>(P)
+#define LongToPtr(L) reinterpret_cast<void*>(L)
+
+#define LongCast(T, L) reinterpret_cast<T*>(L)
+#define LongTo_s3(L) LongCast(sqlite3, (L))
+#define LongTo_s3_backup(L) LongCast(sqlite3_backup, (L))
+#define LongTo_s3_blob(L) LongCast(sqlite3_blob, (L))
+#define LongTo_s3_context(L) LongCast(sqlite3_context, (L))
+#define LongTo_s3_stmt(L) LongCast(sqlite3_stmt, (L))
+#define LongTo_s3_value(L) LongCast(sqlite3_value, (L))
+
+///////////////////////////////////////////////////////////////////////////
 // Hook operations
 ///////////////////////////////////////////////////////////////////////////
 
@@ -852,6 +852,152 @@ JNI_OnUnload(
  */
 static void hookDestroyer(void* pHook) {
     destroyHook(retrieveJniEnv(), pHook);
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Function operations
+///////////////////////////////////////////////////////////////////////////
+
+#define FunctionHookConfigure(hook, object, signature, className) \
+    { HookConfigure(function.hook, object, signature, "FunctionCallback." className); }
+
+#define Function1HookConfigure(hook, object, className) \
+    FunctionHookConfigure(hook, object, "(J)V", className)
+
+#define Function2HookConfigure(hook, object, className) \
+    FunctionHookConfigure(hook, object, "(J[J)V", className)
+
+#define FunctionFuncHookConfigure(object) Function2HookConfigure(func, object, "Func")
+#define FunctionStepHookConfigure(object) Function2HookConfigure(step, object, "Step")
+#define FunctionFinalHookConfigure(object) Function1HookConfigure(final, object, "Final")
+#define FunctionInverseHookConfigure(object) Function2HookConfigure(inverse, object, "Inverse")
+#define FunctionValueHookConfigure(object) Function1HookConfigure(value, object, "Value")
+
+/**
+ * Declares the variables for a function in a callback.
+ */
+#define FunctionDeclare(T, P) \
+    const auto pFunction = reinterpret_cast<T*>(P); \
+    auto& function = *pFunction
+
+/**
+ * Declares the variables for a function in a callback from the pContext parameter.
+ */
+#define FunctionDeclareFromContext(T) FunctionDeclare(T, sqlite3_user_data(pContext))
+
+/**
+ * Declares the variables for a function and a hook in a callback.
+ */
+#define FunctionDeclareHook(T, H) \
+    FunctionDeclareFromContext(T); \
+    auto hook = function.H
+
+#define FunctionHookEnter() \
+    const auto instance = LocalRefCreate(RequireNonNullJobject(hook.instance)); \
+    const auto call = hook.call
+
+#define FunctionHookLeave() LocalRefDestroy(instance)
+
+/**
+ * Calls an instance of FunctionCallback.Func1 hook.
+ */
+static void callFunctionFunc1(
+    Hook& hook,
+    sqlite3_context* pContext
+) {
+    JniEnvDeclare();
+    FunctionHookEnter();
+    env->CallVoidMethod(instance, call, PtrToLong(pContext));
+    FunctionHookLeave();
+}
+
+/**
+ * Calls an instance of FunctionCallback.Func2 hook.
+ */
+static void callFunctionFunc2(
+    Hook& hook,
+    sqlite3_context* pContext,
+    int argc,
+    sqlite3_value** argv
+) {
+    JniEnvDeclare();
+
+    const auto longArray = env->NewLongArray(argc);
+    OutOfMemoryCheck(longArray != nullptr);
+
+    constexpr auto maxStackArgs = 32;
+    jlong stackBuffer[maxStackArgs];
+    jlong* buffer = stackBuffer;
+
+    if (argc > maxStackArgs) {
+        buffer = new jlong[argc];
+    }
+
+    for (int i = 0; i < argc; ++i) {
+        buffer[i] = reinterpret_cast<jlong>(argv[i]);
+    }
+
+    FunctionHookEnter();
+    env->CallVoidMethod(instance, call, PtrToLong(pContext), longArray);
+    FunctionHookLeave();
+
+    if (buffer != stackBuffer) {
+        delete[] buffer;
+    }
+}
+
+/**
+ * Clears the given function and invokes the destructor if any.
+ */
+static void clearFunction(
+    JNIEnv* env,
+    Function& function
+) {
+    if (function.func.instance != nullptr) {
+        HookClear(function.func);
+    }
+
+    if (function.step.instance != nullptr) {
+        HookClear(function.step);
+    }
+
+    if (function.final.instance != nullptr) {
+        HookClear(function.final);
+    }
+
+    if (function.destructor != nullptr) {
+        env->CallVoidMethod(function.destructor, function.destroy);
+        DestroyableClear(function);
+    }
+}
+
+/**
+ * Destroys an aggregate or scalar function.
+ */
+static void functionDestroyer(void* pAppData) {
+    JniEnvDeclare();
+    FunctionDeclare(Function, pAppData);
+    clearFunction(env, function);
+    delete pFunction;
+}
+
+/**
+ * Destroys a window function.
+ */
+static void functionWindowDestroyer(void* pAppData) {
+    JniEnvDeclare();
+    FunctionDeclare(FunctionWindow, pAppData);
+
+    if (function.inverse.instance != nullptr) {
+        HookClear(function.inverse);
+    }
+
+    if (function.value.instance != nullptr) {
+        HookClear(function.value);
+    }
+
+    clearFunction(env, function);
+    delete pFunction;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1123,21 +1269,6 @@ static inline DestructorFunction freeableDestroyerPush(
  */
 #define FreeableDestroyer(P) (P) == nullptr ? nullptr : freeableDestroyer
 #define FreeableDestroyerPush(K, F) freeableDestroyerPush(env, K, F)
-
-///////////////////////////////////////////////////////////////////////////
-// Casting
-///////////////////////////////////////////////////////////////////////////
-
-#define PtrToLong(P) reinterpret_cast<jlong>(P)
-#define LongToPtr(L) reinterpret_cast<void*>(L)
-
-#define LongCast(T, L) reinterpret_cast<T*>(L)
-#define LongTo_s3(L) LongCast(sqlite3, (L))
-#define LongTo_s3_backup(L) LongCast(sqlite3_backup, (L))
-#define LongTo_s3_blob(L) LongCast(sqlite3_blob, (L))
-#define LongTo_s3_context(L) LongCast(sqlite3_context, (L))
-#define LongTo_s3_stmt(L) LongCast(sqlite3_stmt, (L))
-#define LongTo_s3_value(L) LongCast(sqlite3_value, (L))
 
 ///////////////////////////////////////////////////////////////////////////
 // Buffer helpers
@@ -1682,7 +1813,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1aggregate_1context(
 }
 
 /**
- * Calls the Java auto_vacuum_pages hook.
+ * Calls the AutoVacuumPagesCallback hook.
  */
 static unsigned int autoVacuumPagesCaller(
     void* pHook,
@@ -2114,7 +2245,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1blob_1write(
 }
 
 /**
- * Calls the Java busy_handler hook.
+ * Calls the BusyHandlerCallback hook.
  */
 static int busyHandlerCaller(
     void* pDbStateHook,
@@ -2211,7 +2342,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1close_1v2(
 }
 
 /**
- * Calls the Java collation_needed hook.
+ * Calls the CollationNeededCallback hook.
  */
 static void collationNeededCaller(
     void* pDbStateHook,
@@ -2424,7 +2555,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1column_1value(
 }
 
 /**
- * Calls the Java commit_hook hook.
+ * Calls the CommitHookCallback hook.
  */
 static int commitHookCaller(void* pDbStateHook) {
     JniEnvDeclare();
@@ -2489,7 +2620,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1complete(
 }
 
 /**
- * Calls the Java config_log hook.
+ * Calls the ConfigLogCallback hook.
  */
 static void configLogCaller(
     void*,
@@ -2503,7 +2634,7 @@ static void configLogCaller(
 }
 
 /**
- * Calls the Java config_sqllog hook.
+ * Calls the ConfigSqlLogCallback hook.
  */
 static void configSqlLogCaller(
     void*,
@@ -2631,7 +2762,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1context_1db_1handle(
 }
 
 /**
- * Calls the Java collation_compare hook.
+ * Calls the CollationCompareCallback hook.
  */
 static int collationCompareCaller(
     void* pHook,
@@ -2689,32 +2820,35 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1collation_1v2(
 }
 
 /**
- * Calls the Java collation_compare hook.
+ * Calls the FunctionCallback.Func hook.
  */
-static int functionCaller(
-    void* pHook,
-    int nLhs,
-    const void* lhs,
-    int nRhs,
-    const void* rhs
+static void functionFuncCaller(
+    sqlite3_context* pContext,
+    int argc,
+    sqlite3_value** argv
 ) {
-    JniEnvDeclare();
-    DbStateDeclareHook(pHook);
+    FunctionDeclareHook(Function, func);
+    callFunctionFunc2(hook, pContext, argc, argv);
+}
 
-    const auto lhsByteArray = BufferToByteArray(lhs, nLhs);
-    const auto rhsByteArray = BufferToByteArray(rhs, nRhs);
+/**
+ * Calls the FunctionCallback.Step hook.
+ */
+static void functionStepCaller(
+    sqlite3_context* pContext,
+    int argc,
+    sqlite3_value** argv
+) {
+    FunctionDeclareHook(Function, step);
+    callFunctionFunc2(hook, pContext, argc, argv);
+}
 
-    HookEnterDbState(collationCompare);
-    jint result = env->CallIntMethod(instance, call, lhsByteArray, rhsByteArray);
-    HookLeave();
-    LocalRefDestroy(lhsByteArray);
-    LocalRefDestroy(rhsByteArray);
-
-    IfExceptionThrown {
-        result = 0;
-    }
-
-    return result;
+/**
+ * Calls the FunctionCallback.Final hook.
+ */
+static void functionFinalCaller(sqlite3_context* pContext) {
+    FunctionDeclareHook(Function, final);
+    callFunctionFunc1(hook, pContext);
 }
 
 extern "C"
@@ -2731,7 +2865,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1function_1v2(
     jobject final,
     jobject destroy
 ) {
-    // Short paths
+    // True for aggregate, false for scalar.
+    bool isAggregate = false;
+
     if (func != nullptr) { // Scalar function
         if (step != nullptr || final != nullptr) {
             return SQLITE_MISUSE; // Invalid scalar function
@@ -2760,33 +2896,66 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1function_1v2(
             return rc;
         } else if (step == nullptr || final == nullptr) {
             return SQLITE_MISUSE; // Invalid aggregate function
+        } else {
+            isAggregate = true;
         }
     }
 
     const auto pDb = LongTo_s3(db);
     const auto zName = JstringToUtf8(name);
-    const Destroyable destroyable = { destroy, KKDC.destroy };
+    Function function {};
 
-    auto function = Function { };
+    if (destroy != nullptr) {
+        function.destructor = GlobalRefCreate(destroy);
+        function.destroy = KKDC.destroy;
+    }
 
-
-
-    FunctionFuncHookConfigure(func)
-    FunctionStepHookConfigure(step)
-    FunctionFinalHookConfigure(final)
-
-
+    auto pFunction = new Function(function);
     auto rc = SQLITE_OK;
 
+    if (isAggregate) {
+        FunctionStepHookConfigure(step)
+        FunctionFinalHookConfigure(final)
 
+        rc = sqlite3_create_function_v2(
+            pDb,
+            zName,
+            nArg,
+            eTextRep,
+            pFunction,
+            nullptr,
+            functionStepCaller,
+            functionFinalCaller,
+            functionDestroyer
+        );
+    } else {
+        FunctionFuncHookConfigure(func)
 
+        rc = sqlite3_create_function_v2(
+            pDb,
+            zName,
+            nArg,
+            eTextRep,
+            pFunction,
+            functionFuncCaller,
+            nullptr,
+            nullptr,
+            functionDestroyer
+        );
+    }
 
-    // TODO: implement sqlite3_create_function_v2()
+    if (rc == SQLITE_MISUSE) {
+        // The destructor is not called by sqlite after a misuse
+        // Cleanup the function but do not call application destructor
+        DestroyableClear(function);
+        functionDestroyer(pFunction);
+    }
 
     sqlite3_free(zName);
     return rc;
 }
 
+/*
 extern "C"
 JNIEXPORT jint JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
@@ -2799,6 +2968,26 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
     jobject destroy
 ) {
     // TODO: implement sqlite3_create_module_v2()
+}*/
+
+/**
+ * Calls the FunctionCallback.Inverse hook.
+ */
+static void functionInverseCaller(
+    sqlite3_context* pContext,
+    int argc,
+    sqlite3_value** argv
+) {
+    FunctionDeclareHook(FunctionWindow, inverse);
+    callFunctionFunc2(hook, pContext, argc, argv);
+}
+
+/**
+ * Calls the FunctionCallback.Value hook.
+ */
+static void functionValueCaller(sqlite3_context* pContext) {
+    FunctionDeclareHook(FunctionWindow, value);
+    callFunctionFunc1(hook, pContext);
 }
 
 extern "C"
@@ -2816,5 +3005,68 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1window_1function(
     jobject inverse,
     jobject destroy
 ) {
-    // TODO: implement sqlite3_create_window_function()
+    if (step == nullptr && final == nullptr && value == nullptr && inverse == nullptr) {
+        // Function deletion
+        if (destroy != nullptr) {
+            return SQLITE_MISUSE; // No destructor is allowed here
+        }
+
+        const auto zName = JstringToUtf8(name);
+
+        const auto rc = sqlite3_create_window_function(
+            LongTo_s3(db),
+            zName,
+            nArg,
+            eTextRep,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        );
+
+        sqlite3_free(zName);
+        return rc;
+    } else if (step == nullptr || final == nullptr || value == nullptr || inverse == nullptr) {
+        return SQLITE_MISUSE; // All parameters are required
+    }
+
+    FunctionWindow function {};
+
+    if (destroy != nullptr) {
+        function.destructor = GlobalRefCreate(destroy);
+        function.destroy = KKDC.destroy;
+    }
+
+    auto pFunction = new FunctionWindow(function);
+    const auto zName = JstringToUtf8(name);
+
+    FunctionStepHookConfigure(step)
+    FunctionFinalHookConfigure(final)
+    FunctionValueHookConfigure(value)
+    FunctionInverseHookConfigure(inverse)
+
+    auto rc = sqlite3_create_window_function(
+        LongTo_s3(db),
+        zName,
+        nArg,
+        eTextRep,
+        pFunction,
+        functionStepCaller,
+        functionFinalCaller,
+        functionValueCaller,
+        functionInverseCaller,
+        functionWindowDestroyer
+    );
+
+    if (rc == SQLITE_MISUSE) {
+        // The destructor is not called by sqlite after a misuse
+        // Cleanup the function but do not call application destructor
+        DestroyableClear(function);
+        functionWindowDestroyer(pFunction);
+    }
+
+    sqlite3_free(zName);
+    return rc;
 }
