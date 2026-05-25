@@ -181,7 +181,7 @@ private val Sqlite3Functions = mapOf(
     "deserialize" to true,
 
     // Custom Functions & Aggregates
-    "create_function" to true,
+    "create_function" to false,
     "create_function_v2" to true,
     "create_function16" to false,
     "create_window_function" to true,
@@ -232,7 +232,7 @@ private val Sqlite3Functions = mapOf(
     "value_type" to true,
 
     // Collations
-    "create_collation" to true,
+    "create_collation" to false,
     "create_collation_v2" to true,
     "create_collation16" to false,
     "collation_needed" to true,
@@ -370,7 +370,7 @@ private val Sqlite3Functions = mapOf(
     "free_filename" to false,
 
     // Virtual Tables
-    "create_module" to true,
+    "create_module" to false,
     "create_module_v2" to true,
     "declare_vtab" to true,
     "drop_modules" to true,

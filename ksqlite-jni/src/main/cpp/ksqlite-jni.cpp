@@ -13,25 +13,6 @@
 typedef uint8_t jboolean;
 
 ///////////////////////////////////////////////////////////////////////////
-// Classes
-///////////////////////////////////////////////////////////////////////////
-
-#define JAVA_INT "java.lang.Integer"
-#define JAVA_LONG "java.lang.Long"
-
-#define KSQLITE_JNI_EXCEPTION "KsqliteJniException"
-#define AUTO_EXTENSION_CALLBACK "AutoExtensionCallback"
-#define AUTO_VACUUM_PAGES_CALLBACK "AutoVacuumPagesCallback"
-#define BUSY_HANDLER_CALLBACK "BusyHandlerCallback"
-#define COLLATION_COMPARE_CALLBACK "CollationCompareCallback"
-#define COLLATION_NEEDED_CALLBACK "CollationNeededCallback"
-#define COMMIT_HOOK_CALLBACK "CommitHookCallback"
-#define CONFIG_LOG_CALLBACK "ConfigLogCallback"
-#define CONFIG_SQLLOG_CALLBACK "ConfigSqlLogCallback"
-#define DESTRUCTOR_CALLBACK "DestructorCallback"
-#define OUTPUT_POINTER "OutputPointer"
-
-///////////////////////////////////////////////////////////////////////////
 // Exceptions
 ///////////////////////////////////////////////////////////////////////////
 
@@ -220,10 +201,10 @@ static inline jclass getClassOrDie(
     return reinterpret_cast<jclass>(klass);
 }
 
-#define RequireClass(klassName) \
-    getClassOrDie(env, klassName, "Error getting reference to " klassName " class")
+#define RequireClass(className) \
+    getClassOrDie(env, className, "Error getting reference to " className " class")
 
-#define RequireKsqliteClass(klassName) RequireClass("ksqlite/" klassName)
+#define RequireKsqliteClass(className) RequireClass("ksqlite/" className)
 
 /**
  * Raises a fatal error when a method was not found on a given class.
@@ -347,8 +328,8 @@ struct Hook {
  * Holder for a Java object with a call method and a java object that can be destroyed.
  */
 struct HookDestroyable : Hook, Destroyable {
-     // Mutex to hold while reading hook variables
-     MutexGuarded* pGuard;
+    // Mutex to hold while reading hook variables
+    MutexGuarded* pGuard;
 };
 
 /**
@@ -397,7 +378,7 @@ static inline void clearHook(
 #define HookClear(hook) clearHook(env, &hook)
 
 /**
- * Clears a hook and returns its destructor if any.
+ * Clears a hook and invokes its Java destructor.
  */
 static void destroyHook(
     JNIEnv* env,
@@ -520,6 +501,42 @@ static void destroyFreeable(
     AllocateFreeable(nullptr, target, destructor)
 
 ///////////////////////////////////////////////////////////////////////////
+// Functions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Holder for scalar and aggregate function hooks.
+ */
+struct Function : Destroyable {
+    Hook func;
+    Hook step;
+    Hook final;
+};
+
+/**
+ * Holder for window function hooks.
+ */
+struct WindowFunction : Function {
+    Hook inverse;
+    Hook value;
+};
+
+#define FunctionHookConfigure(hook, object, signature, className) \
+    { HookConfigure(function.hook, object, signature, "FunctionCallback." className); }
+
+#define Function1HookConfigure(hook, object, className) \
+    FunctionHookConfigure(hook, object, "(J)V", className)
+
+#define Function2HookConfigure(hook, object, className) \
+    FunctionHookConfigure(hook, object, "(J[J)V", className)
+
+#define FunctionFuncHookConfigure(object) Function2HookConfigure(func, object, "Func")
+#define FunctionStepHookConfigure(object) Function2HookConfigure(step, object, "Step")
+#define FunctionFinalHookConfigure(object) Function1HookConfigure(final, object, "Final")
+#define FunctionInverseHookConfigure(object) Function2HookConfigure(inverse, object, "Inverse")
+#define FunctionValueHookConfigure(object) Function1HookConfigure(value, object, "Value")
+
+///////////////////////////////////////////////////////////////////////////
 // Database
 ///////////////////////////////////////////////////////////////////////////
 
@@ -564,6 +581,7 @@ static struct {
         FreeableMap* map;
     } freeables;
 
+    // Java classes
     struct {
         jclass illegalArgumentException;
         jclass illegalStateException;
@@ -652,6 +670,9 @@ static JNIEnv* retrieveJniEnv() {
 // Lifecycle
 ///////////////////////////////////////////////////////////////////////////
 
+#define JAVA_INT "java.lang.Integer"
+#define JAVA_LONG "java.lang.Long"
+
 /**
  * Initializes and caches the Java related classes and objects.
  */
@@ -686,6 +707,10 @@ static void deinitializeJavaJniCache(JNIEnv* env) {
     GlobalRefDestroy(KJV.illegalStateException);
     GlobalRefDestroy(KJV.illegalArgumentException);
 }
+
+#define KSQLITE_JNI_EXCEPTION "KsqliteJniException"
+#define DESTRUCTOR_CALLBACK "DestructorCallback"
+#define OUTPUT_POINTER "OutputPointer"
 
 /**
  * Initializes and caches the Ksqlite related classes and objects.
@@ -940,12 +965,16 @@ static DbState* getDbState(
 
 /**
  * Declares the code needed to replace a database connection hook with a destructor.
- * For now it is forbidden to set a destructor if there is no associated callback.
+ * For now setting a destructor with no callback returns SQLITE_MISUSE.
  *
  * The hook's mutex is disabled during the function call to prevent dead lock as the function call
  * may invoke the destructor.
  */
 #define DbHookDestructorReplace(H, S, N, F, C)                          \
+    if (callback == nullptr && destructor != nullptr) {                 \
+        return SQLITE_MISUSE;                                           \
+    }                                                                   \
+                                                                        \
     const auto pDb = LongTo_s3(db);                                     \
     auto rc = SQLITE_OK;                                                \
                                                                         \
@@ -960,8 +989,6 @@ static DbState* getDbState(
         if (rc == SQLITE_OK) {                                          \
             HookDestroyableConfigure(hook, destructor, callback, S, N); \
         }                                                               \
-    } else {                                                            \
-        RequireNull(destructor);                                        \
     }                                                                   \
                                                                         \
     hook.pGuard = pDbState;                                             \
@@ -1602,7 +1629,7 @@ Java_ksqlite_KsqliteJni_ksqlite_1auto_1extension(
         rc = ksqlite_auto_extension(autoExtensionCaller);
 
         if (rc == SQLITE_OK) {
-            HookConfigure(hook, callback, "(JJ)I", AUTO_EXTENSION_CALLBACK);
+            HookConfigure(hook, callback, "(JJ)I", "AutoExtensionCallback");
         }
     }
 
@@ -1693,7 +1720,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1autovacuum_1pages(
     DbHookDestructorReplace(
         autoVacuumPages,
         "(Ljava/lang/String;III)I",
-        AUTO_VACUUM_PAGES_CALLBACK,
+        "AutoVacuumPagesCallback",
         sqlite3_autovacuum_pages(pDb, autoVacuumPagesCaller, pHook, hookDestroyer),
     );
 }
@@ -2117,7 +2144,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1busy_1handler(
     DbHookReplaceRC(
         busyHandler,
         "(I)I",
-        BUSY_HANDLER_CALLBACK,
+        "BusyHandlerCallback",
         sqlite3_busy_handler(pDb, busyHandlerCaller, pDbState)
     );
 }
@@ -2215,7 +2242,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1collation_1needed(
     DbHookReplaceRC(
         busyHandler,
         "(JILjava/lang/String;)V",
-        COLLATION_NEEDED_CALLBACK,
+        "CollationNeededCallback",
         sqlite3_collation_needed(pDb, pDbState, collationNeededCaller)
     );
 }
@@ -2420,7 +2447,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1commit_1hook(
     DbHookReplaceInstance(
         commitHook,
         "()I",
-        COMMIT_HOOK_CALLBACK,
+        "CommitHookCallback",
         sqlite3_commit_hook(pDb, commitHookCaller, pDbState)
     );
 }
@@ -2571,7 +2598,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1config(
             GlobalHookReplaceRC(
                 log,
                 "(ILjava/lang/String;)V",
-                CONFIG_LOG_CALLBACK,
+                "ConfigLogCallback",
                 sqlite3_config(id, configLogCaller, nullptr);
             );
         }
@@ -2583,7 +2610,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1config(
             GlobalHookReplaceRC(
                 log,
                 "(JLjava/lang/String;I)V",
-                CONFIG_SQLLOG_CALLBACK,
+                "ConfigSqlLogCallback",
                 sqlite3_config(id, configSqlLogCaller, nullptr);
             );
         }
@@ -2609,9 +2636,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1context_1db_1handle(
 static int collationCompareCaller(
     void* pHook,
     int nLhs,
-    const void *lhs,
+    const void* lhs,
     int nRhs,
-    const void *rhs
+    const void* rhs
 ) {
     JniEnvDeclare();
     DbStateDeclareHook(pHook);
@@ -2644,13 +2671,150 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1collation_1v2(
     jobject callback
 ) {
     const auto zName = JstringToUtf8(name);
-    // TOTO destroy name
 
     DbHookDestructorReplace(
         autoVacuumPages,
         "([B[B)I",
-        COLLATION_COMPARE_CALLBACK,
-        sqlite3_create_collation_v2(pDb, zName, eTextRep, pHook, collationCompareCaller, hookDestroyer),
+        "CollationCompareCallback",
+        sqlite3_create_collation_v2(
+            pDb,
+            zName,
+            eTextRep,
+            pHook,
+            collationCompareCaller,
+            hookDestroyer
+        ),
         sqlite3_free(zName)
     );
+}
+
+/**
+ * Calls the Java collation_compare hook.
+ */
+static int functionCaller(
+    void* pHook,
+    int nLhs,
+    const void* lhs,
+    int nRhs,
+    const void* rhs
+) {
+    JniEnvDeclare();
+    DbStateDeclareHook(pHook);
+
+    const auto lhsByteArray = BufferToByteArray(lhs, nLhs);
+    const auto rhsByteArray = BufferToByteArray(rhs, nRhs);
+
+    HookEnterDbState(collationCompare);
+    jint result = env->CallIntMethod(instance, call, lhsByteArray, rhsByteArray);
+    HookLeave();
+    LocalRefDestroy(lhsByteArray);
+    LocalRefDestroy(rhsByteArray);
+
+    IfExceptionThrown {
+        result = 0;
+    }
+
+    return result;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1create_1function_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring name,
+    jint nArg,
+    jint eTextRep,
+    jobject func,
+    jobject step,
+    jobject final,
+    jobject destroy
+) {
+    // Short paths
+    if (func != nullptr) { // Scalar function
+        if (step != nullptr || final != nullptr) {
+            return SQLITE_MISUSE; // Invalid scalar function
+        }
+    } else {
+        if (step == nullptr && final == nullptr) { // Function deletion
+            if (destroy != nullptr) {
+                return SQLITE_MISUSE; // No destructor is allowed here
+            }
+
+            const auto zName = JstringToUtf8(name);
+
+            const auto rc = sqlite3_create_function_v2(
+                LongTo_s3(db),
+                zName,
+                nArg,
+                eTextRep,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            );
+
+            sqlite3_free(zName);
+            return rc;
+        } else if (step == nullptr || final == nullptr) {
+            return SQLITE_MISUSE; // Invalid aggregate function
+        }
+    }
+
+    const auto pDb = LongTo_s3(db);
+    const auto zName = JstringToUtf8(name);
+    const Destroyable destroyable = { destroy, KKDC.destroy };
+
+    auto function = Function { };
+
+
+
+    FunctionFuncHookConfigure(func)
+    FunctionStepHookConfigure(step)
+    FunctionFinalHookConfigure(final)
+
+
+    auto rc = SQLITE_OK;
+
+
+
+
+    // TODO: implement sqlite3_create_function_v2()
+
+    sqlite3_free(zName);
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring name,
+    jlong module,
+    jobject appData,
+    jobject destroy
+) {
+    // TODO: implement sqlite3_create_module_v2()
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1create_1window_1function(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring name,
+    jint nArg,
+    jint eTextRep,
+    jobject step,
+    jobject final,
+    jobject value,
+    jobject inverse,
+    jobject destroy
+) {
+    // TODO: implement sqlite3_create_window_function()
 }

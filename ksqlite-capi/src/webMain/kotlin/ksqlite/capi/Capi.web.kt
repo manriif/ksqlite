@@ -8,11 +8,11 @@ import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionFinalCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionStepCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionValueCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
@@ -28,11 +28,11 @@ import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
 import ksqlite.capi.handlers.ConfigSqlLogHandler
 import ksqlite.capi.handlers.CollationCompareHandler
-import ksqlite.capi.handlers.CreateFunctionFinalHandler
-import ksqlite.capi.handlers.CreateFunctionFuncHandler
-import ksqlite.capi.handlers.CreateFunctionInverseHandler
-import ksqlite.capi.handlers.CreateFunctionStepHandler
-import ksqlite.capi.handlers.CreateFunctionValueHandler
+import ksqlite.capi.handlers.FunctionFinalHandler
+import ksqlite.capi.handlers.FunctionFuncHandler
+import ksqlite.capi.handlers.FunctionInverseHandler
+import ksqlite.capi.handlers.FunctionStepHandler
+import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.ExecHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
@@ -627,9 +627,9 @@ public actual fun <AppData> sqlite3_create_function_v2(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    func: Sqlite3CreateFunctionFuncCallback<AppData>?,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
+    func: Sqlite3FunctionFuncCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
@@ -645,27 +645,13 @@ public actual fun <AppData> sqlite3_create_function_v2(
                     appData = appData,
                     destructor = fnDestroy
                 ),
-                functionPointer(func, ::CreateFunctionFuncHandler),
-                functionPointer(step, ::CreateFunctionStepHandler),
-                functionPointer(final, ::CreateFunctionFinalHandler),
+                functionPointer(func, ::FunctionFuncHandler),
+                functionPointer(step, ::FunctionStepHandler),
+                functionPointer(final, ::FunctionFinalHandler),
                 stableRefDisposer(fn, fnDestroy)
             )
         }
     }
-})
-
-public actual fun <AppData> sqlite3_create_module(
-    db: sqlite3,
-    name: String,
-    module: sqlite3_module<AppData>?,
-    appData: AppData
-): Sqlite3Result = convertResult(heapScoped {
-    exports.sqlite3_create_module(
-        db.pointer,
-        name.allocateUtf8Pointer(),
-        module?.pointer.notNull,
-        db.memory.keyedStableRefPointer(moduleKey(name), appData, appData)
-    )
 })
 
 public actual fun <AppData> sqlite3_create_module_v2(
@@ -692,10 +678,10 @@ public actual fun <AppData> sqlite3_create_window_function(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
-    value: Sqlite3CreateFunctionValueCallback<AppData>?,
-    inverse: Sqlite3CreateFunctionInverseCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
+    value: Sqlite3FunctionValueCallback<AppData>?,
+    inverse: Sqlite3FunctionInverseCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
@@ -711,10 +697,10 @@ public actual fun <AppData> sqlite3_create_window_function(
                     appData = appData,
                     destructor = fnDestroy
                 ),
-                functionPointer(step, ::CreateFunctionStepHandler),
-                functionPointer(final, ::CreateFunctionFinalHandler),
-                functionPointer(value, ::CreateFunctionValueHandler),
-                functionPointer(inverse, ::CreateFunctionInverseHandler),
+                functionPointer(step, ::FunctionStepHandler),
+                functionPointer(final, ::FunctionFinalHandler),
+                functionPointer(value, ::FunctionValueHandler),
+                functionPointer(inverse, ::FunctionInverseHandler),
                 stableRefDisposer(fn, fnDestroy)
             )
         }

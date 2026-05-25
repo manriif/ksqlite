@@ -8,11 +8,11 @@ import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionFinalCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionStepCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionValueCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
@@ -761,9 +761,9 @@ public fun <AppData> sqlite3_create_function(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    func: Sqlite3CreateFunctionFuncCallback<AppData>?,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?
+    func: Sqlite3FunctionFuncCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?
 ): Sqlite3Result = sqlite3_create_function_v2(
     db = db,
     name = name,
@@ -787,22 +787,10 @@ public expect fun <AppData> sqlite3_create_function_v2(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    func: Sqlite3CreateFunctionFuncCallback<AppData>?,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
+    func: Sqlite3FunctionFuncCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result
-
-/**
- * External API function used to create a new virtual-table module.
- *
- * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
- */
-public expect fun <AppData> sqlite3_create_module(
-    db: sqlite3,
-    name: String,
-    module: sqlite3_module<AppData>?,
-    appData: AppData
 ): Sqlite3Result
 
 /**
@@ -814,15 +802,44 @@ public expect fun <AppData> sqlite3_create_module(
  *                                              Ksqlite
  * -------------------------------------------------------------------------------------------------
  *
- * Drop the module previously registered with the same [name].
+ * This function differs from sqlite3_create_module_v2() in the destroy parameter only.
+ * sqlite3_create_module_v2() is used in place of sqlite3_create_module(). That being said, the
+ * semantic of both functions is the same as (maybe ?) stated by SQLite.
+ */
+public fun <AppData> sqlite3_create_module(
+    db: sqlite3,
+    name: String,
+    module: sqlite3_module<AppData>?,
+    appData: AppData
+): Sqlite3Result = sqlite3_create_module_v2(
+    db = db,
+    name = name,
+    module = module,
+    appData = appData,
+    destroy = null
+)
+
+/**
+ * External API function used to create a new virtual-table module.
+ *
+ * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * Drop the module previously registered with [name].
  */
 public fun sqlite3_create_module(
     db: sqlite3,
     name: String,
     module: Nothing?
-): Sqlite3Result {
-    return sqlite3_create_module(db, name, null, null)
-}
+): Sqlite3Result = sqlite3_create_module(
+    db = db,
+    name = name,
+    module = module,
+    appData = null
+)
 
 /**
  * External API function used to create a new virtual-table module.
@@ -846,14 +863,19 @@ public expect fun <AppData> sqlite3_create_module_v2(
  *                                              Ksqlite
  * -------------------------------------------------------------------------------------------------
  *
- * Drop the module previously registered with the same [name].
+ * Drop the module previously registered with [name].
  */
 public fun sqlite3_create_module_v2(
     db: sqlite3,
-    name: String
-): Sqlite3Result {
-    return sqlite3_create_module_v2(db, name, null, null, null)
-}
+    name: String,
+    module: Nothing?
+): Sqlite3Result = sqlite3_create_module_v2(
+    db = db,
+    name = name,
+    module = module,
+    appData = null,
+    destroy = null
+)
 
 /**
  * Create new user functions.
@@ -866,10 +888,10 @@ public expect fun <AppData> sqlite3_create_window_function(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
-    value: Sqlite3CreateFunctionValueCallback<AppData>?,
-    inverse: Sqlite3CreateFunctionInverseCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
+    value: Sqlite3FunctionValueCallback<AppData>?,
+    inverse: Sqlite3FunctionInverseCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result
 

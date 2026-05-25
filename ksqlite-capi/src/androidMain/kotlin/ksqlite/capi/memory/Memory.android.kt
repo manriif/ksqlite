@@ -40,6 +40,12 @@ internal val JniPointer.orNull: JniPointer?
     get() = takeUnless { isNull }
 
 /**
+ * Returns `null` if `this` [Long] points to a null pointer.
+ */
+internal val JniPointer?.notNull: JniPointer
+    get() = this ?: 0L
+
+/**
  * Returns [Pointer] instantiated after [factory] which is passed `this` non-null pointing [Long].
  */
 internal fun <Pointer : StructPointer> JniPointer.wrapOrNull(factory: (Long) -> Pointer): Pointer? {

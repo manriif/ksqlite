@@ -2,11 +2,11 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionFinalCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionStepCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionValueCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.memory.ConcurrentMap
 import ksqlite.capi.types.sqlite3_context
@@ -20,11 +20,11 @@ import ksqlite.capi.types.sqlite3_value
 internal class ApplicationDefinedFunction<AppData>(
     val appData: AppData,
     private val destroy: Sqlite3DestroyCallback<AppData>?,
-    private val func: Sqlite3CreateFunctionFuncCallback<AppData>?,
-    private val step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    private val final: Sqlite3CreateFunctionFinalCallback<AppData>?,
-    private val value: Sqlite3CreateFunctionValueCallback<AppData>?,
-    private val inverse: Sqlite3CreateFunctionInverseCallback<AppData>?
+    private val func: Sqlite3FunctionFuncCallback<AppData>?,
+    private val step: Sqlite3FunctionStepCallback<AppData>?,
+    private val final: Sqlite3FunctionFinalCallback<AppData>?,
+    private val value: Sqlite3FunctionValueCallback<AppData>?,
+    private val inverse: Sqlite3FunctionInverseCallback<AppData>?
 ) {
 
     /**
@@ -212,13 +212,13 @@ private inline fun <AppData, R> appFunction(
  */
 internal inline fun <AppData, R> appFunction(
     appData: AppData,
-    func: Sqlite3CreateFunctionFuncCallback<AppData>?,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
+    func: Sqlite3FunctionFuncCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?,
     block: (
-        fn: ApplicationDefinedFunction<AppData>,
-        funDestroy: Sqlite3DestroyCallback<AppData>
+        fn: ApplicationDefinedFunction<Any?>,
+        funDestroy: Sqlite3DestroyCallback<Any?>
     ) -> R
 ): R = appFunction(
     function = ApplicationDefinedFunction(
@@ -239,14 +239,14 @@ internal inline fun <AppData, R> appFunction(
  */
 internal inline fun <AppData, R> appWindowFunction(
     appData: AppData,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
-    value: Sqlite3CreateFunctionValueCallback<AppData>?,
-    inverse: Sqlite3CreateFunctionInverseCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
+    value: Sqlite3FunctionValueCallback<AppData>?,
+    inverse: Sqlite3FunctionInverseCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?,
     block: (
-        fn: ApplicationDefinedFunction<AppData>,
-        fnDestroy: Sqlite3DestroyCallback<AppData>
+        fn: ApplicationDefinedFunction<Any?>,
+        fnDestroy: Sqlite3DestroyCallback<Any?>
     ) -> R
 ): R = appFunction(
     function = ApplicationDefinedFunction(

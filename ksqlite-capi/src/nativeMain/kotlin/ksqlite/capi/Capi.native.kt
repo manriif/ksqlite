@@ -15,14 +15,14 @@ import ksqlite.SQLITE_TRANSIENT
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionFinalCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionFuncCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionInverseCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionStepCallback
-import ksqlite.capi.callbacks.Sqlite3CreateFunctionValueCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
@@ -34,16 +34,16 @@ import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3WalHookCallback
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
+import ksqlite.capi.handlers.CollationCompareHandler
 import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
 import ksqlite.capi.handlers.ConfigSqlLogHandler
-import ksqlite.capi.handlers.CollationCompareHandler
-import ksqlite.capi.handlers.CreateFunctionFinalHandler
-import ksqlite.capi.handlers.CreateFunctionFuncHandler
-import ksqlite.capi.handlers.CreateFunctionInverseHandler
-import ksqlite.capi.handlers.CreateFunctionStepHandler
-import ksqlite.capi.handlers.CreateFunctionValueHandler
+import ksqlite.capi.handlers.FunctionFinalHandler
+import ksqlite.capi.handlers.FunctionFuncHandler
+import ksqlite.capi.handlers.FunctionInverseHandler
+import ksqlite.capi.handlers.FunctionStepHandler
+import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.ExecHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
@@ -166,7 +166,6 @@ import ksqlite.sqlite3_config as native_sqlite3_config
 import ksqlite.sqlite3_context_db_handle as native_sqlite3_context_db_handle
 import ksqlite.sqlite3_create_collation_v2 as native_sqlite3_create_collation_v2
 import ksqlite.sqlite3_create_function_v2 as native_sqlite3_create_function_v2
-import ksqlite.sqlite3_create_module as native_sqlite3_create_module
 import ksqlite.sqlite3_create_module_v2 as native_sqlite3_create_module_v2
 import ksqlite.sqlite3_create_window_function as native_sqlite3_create_window_function
 import ksqlite.sqlite3_data_count as native_sqlite3_data_count
@@ -770,9 +769,9 @@ public actual fun <AppData> sqlite3_create_function_v2(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    func: Sqlite3CreateFunctionFuncCallback<AppData>?,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
+    func: Sqlite3FunctionFuncCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(
     appFunction(appData, func, step, final, destroy) { fn, fnDestroy ->
@@ -787,26 +786,12 @@ public actual fun <AppData> sqlite3_create_function_v2(
                 appData = appData,
                 destructor = fnDestroy
             ),
-            CreateFunctionFuncHandler.handle(func),
-            CreateFunctionStepHandler.handle(step),
-            CreateFunctionFinalHandler.handle(final),
+            FunctionFuncHandler.handle(func),
+            FunctionStepHandler.handle(step),
+            FunctionFinalHandler.handle(final),
             stableRefDisposer(fn, destroy)
         )
     }
-)
-
-public actual fun <AppData> sqlite3_create_module(
-    db: sqlite3,
-    name: String,
-    module: sqlite3_module<AppData>?,
-    appData: AppData
-): Sqlite3Result = convertResult(
-    native_sqlite3_create_module(
-        db.pointer,
-        name,
-        module?.pointer,
-        db.memory.keyedStableRefPointer(moduleKey(name), appData, appData)
-    )
 )
 
 public actual fun <AppData> sqlite3_create_module_v2(
@@ -831,10 +816,10 @@ public actual fun <AppData> sqlite3_create_window_function(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
-    value: Sqlite3CreateFunctionValueCallback<AppData>?,
-    inverse: Sqlite3CreateFunctionInverseCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
+    value: Sqlite3FunctionValueCallback<AppData>?,
+    inverse: Sqlite3FunctionInverseCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(
     appWindowFunction(appData, step, final, value, inverse, destroy) { fn, fnDestroy ->
@@ -849,10 +834,10 @@ public actual fun <AppData> sqlite3_create_window_function(
                 appData = appData,
                 destructor = fnDestroy
             ),
-            CreateFunctionStepHandler.handle(step),
-            CreateFunctionFinalHandler.handle(final),
-            CreateFunctionValueHandler.handle(value),
-            CreateFunctionInverseHandler.handle(inverse),
+            FunctionStepHandler.handle(step),
+            FunctionFinalHandler.handle(final),
+            FunctionValueHandler.handle(value),
+            FunctionInverseHandler.handle(inverse),
             stableRefDisposer(fn, destroy)
         )
     }

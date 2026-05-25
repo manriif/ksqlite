@@ -337,13 +337,13 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
     ): JsBigInt
 
-    fun sqlite3_create_collation(
+    /*fun sqlite3_create_collation(
         p0: JsBigInt,
         p1: JsBigInt,
         p2: Int,
         p3: JsBigInt,
         p4: JsBigInt,
-    ): Int
+    ): Int*/
 
     fun sqlite3_create_collation_v2(
         p0: JsBigInt,
@@ -354,7 +354,7 @@ internal external interface Sqlite3WasmExports : JsAny {
         p5: JsBigInt,
     ): Int
 
-    fun sqlite3_create_function(
+    /*fun sqlite3_create_function(
         p0: JsBigInt,
         p1: JsBigInt,
         p2: Int,
@@ -363,7 +363,7 @@ internal external interface Sqlite3WasmExports : JsAny {
         p5: JsBigInt,
         p6: JsBigInt,
         p7: JsBigInt,
-    ): Int
+    ): Int*/
 
     fun sqlite3_create_function_v2(
         p0: JsBigInt,
@@ -377,12 +377,12 @@ internal external interface Sqlite3WasmExports : JsAny {
         p8: JsBigInt,
     ): Int
 
-    fun sqlite3_create_module(
+    /*fun sqlite3_create_module(
         p0: JsBigInt,
         p1: JsBigInt,
         p2: JsBigInt,
         p3: JsBigInt,
-    ): Int
+    ): Int*/
 
     fun sqlite3_create_module_v2(
         p0: JsBigInt,

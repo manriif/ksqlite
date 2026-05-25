@@ -346,44 +346,35 @@ public external fun sqlite3_create_collation_v2(
     callback: CollationCompareCallback?
 ): Int
 
-/*public external fun sqlite3_create_function_v2(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
-    p4: Long,
-    p5: Long,
-    p6: Long,
-    p7: Long,
-    p8: Long,
-): Int
-
-public external fun sqlite3_create_module(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
+public external fun sqlite3_create_function_v2(
+    db: Long,
+    name: String,
+    nArg: Int,
+    eTextRep: Int,
+    func: FunctionCallback.Func?,
+    step: FunctionCallback.Step?,
+    final: FunctionCallback.Final?,
+    destroy: DestructorCallback?,
 ): Int
 
 public external fun sqlite3_create_module_v2(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
+    db: Long,
+    name: String,
+    module: Long,
+    appData: Any?,
+    destroy: DestructorCallback?,
 ): Int
 
 public external fun sqlite3_create_window_function(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
-    p4: Long,
-    p5: Long,
-    p6: Long,
-    p7: Long,
-    p8: Long,
-    p9: Long,
+    db: Long,
+    name: String,
+    nArg: Int,
+    eTextRep: Int,
+    step: FunctionCallback.Step?,
+    final: FunctionCallback.Final?,
+    value: FunctionCallback.Value?,
+    inverse: FunctionCallback.Inverse?,
+    destroy: DestructorCallback?,
 ): Int
 
 /*public external fun sqlite3_data_count(
@@ -976,13 +967,11 @@ public external fun sqlite3_uri_key(
 public external fun sqlite3_uri_parameter(
     p0: Long,
     p1: Long,
-): Long
+): Long*/
 
-public external fun sqlite3_user_data(
-    p0: Long,
-): Long
+//public external fun sqlite3_user_data(context: Long): Long
 
-public external fun Long_blob(
+/*public external fun Long_blob(
     p0: Long,
 ): Long
 

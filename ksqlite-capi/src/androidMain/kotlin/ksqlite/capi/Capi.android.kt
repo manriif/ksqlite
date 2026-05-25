@@ -8,6 +8,11 @@ import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
+import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
@@ -16,11 +21,17 @@ import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
 import ksqlite.capi.handlers.ConfigSqlLogHandler
 import ksqlite.capi.handlers.CollationCompareHandler
+import ksqlite.capi.handlers.FunctionFinalHandler
+import ksqlite.capi.handlers.FunctionFuncHandler
+import ksqlite.capi.handlers.FunctionInverseHandler
+import ksqlite.capi.handlers.FunctionStepHandler
+import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.deallocateNullable
+import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
@@ -34,6 +45,7 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.types.sqlite3_module
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.useParam
@@ -96,6 +108,9 @@ import ksqlite.sqlite3_complete as jni_sqlite3_complete
 import ksqlite.sqlite3_config as jni_sqlite3_config
 import ksqlite.sqlite3_context_db_handle as jni_sqlite3_context_db_handle
 import ksqlite.sqlite3_create_collation_v2 as jni_sqlite3_create_collation_v2
+import ksqlite.sqlite3_create_function_v2 as jni_sqlite3_create_function_v2
+import ksqlite.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
+import ksqlite.sqlite3_create_window_function as jni_sqlite3_create_window_function
 
 ///////////////////////////////////////////////////////////////////////////
 // Library
@@ -509,52 +524,30 @@ public actual fun <AppData> sqlite3_create_collation_v2(
     )
 )
 
-/*public actual fun <AppData> sqlite3_create_function_v2(
+public actual fun <AppData> sqlite3_create_function_v2(
     db: sqlite3,
     name: String,
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    func: Sqlite3CreateFunctionFuncCallback<AppData>?,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
+    func: Sqlite3FunctionFuncCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
-    memScoped {
-        appFunction(appData, func, step, final, destroy) { fn, fnDestroy ->
-            jni_sqlite3_create_function_v2(
-                db.pointer,
-                name.allocateUtf8(),
-                nArg,
-                encoding.utf8OrThrow().value,
-                keyedStableRefPointer(
-                    key = appFunctionKey(name, nArg, encoding),
-                    data = fn,
-                    appData = appData,
-                    destructor = fnDestroy
-                ),
-                functionPointer(func, ::CreateFunctionFuncHandler),
-                functionPointer(step, ::CreateFunctionStepHandler),
-                functionPointer(final, ::CreateFunctionFinalHandler),
-                stableRefDisposer(fn, fnDestroy)
-            )
-        }
+): Sqlite3Result = convertResult(
+    appFunction(appData, func, step, final, destroy) { fn, fnDestroy ->
+        jni_sqlite3_create_function_v2(
+            db.pointer,
+            name,
+            nArg,
+            encoding.utf8OrThrow().value,
+            callbackHandler(fn, null, ::FunctionFuncHandler),
+            callbackHandler(fn, null, ::FunctionStepHandler),
+            callbackHandler(fn, null, ::FunctionFinalHandler),
+            destructorHandler(fn, fnDestroy)
+        )
     }
-})
-
-public actual fun <AppData> sqlite3_create_module(
-    db: sqlite3,
-    name: String,
-    module: sqlite3_module<AppData>?,
-    appData: AppData
-): Sqlite3Result = convertResult(memScoped {
-    jni_sqlite3_create_module(
-        db.pointer,
-        name.allocateUtf8(),
-        module?.pointer.notNull,
-        db.memory.keyedStableRefPointer(moduleKey(name), appData, appData)
-    )
-})
+)
 
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
@@ -562,17 +555,15 @@ public actual fun <AppData> sqlite3_create_module_v2(
     module: sqlite3_module<AppData>?,
     appData: AppData,
     destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
-    memScoped {
-        jni_sqlite3_create_module_v2(
-            db.pointer,
-            name.allocateUtf8(),
-            module?.pointer.notNull,
-            keyedStableRefPointer(moduleKey(name), appData, appData, destroy),
-            stableRefDisposer(appData, destroy)
-        )
-    }
-})
+): Sqlite3Result = convertResult(
+    jni_sqlite3_create_module_v2(
+        db.pointer,
+        name,
+        module?.pointer.notNull,
+        appData,
+        destructorHandler(appData, destroy)
+    )
+)
 
 public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
@@ -580,36 +571,28 @@ public actual fun <AppData> sqlite3_create_window_function(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    step: Sqlite3CreateFunctionStepCallback<AppData>?,
-    final: Sqlite3CreateFunctionFinalCallback<AppData>?,
-    value: Sqlite3CreateFunctionValueCallback<AppData>?,
-    inverse: Sqlite3CreateFunctionInverseCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<AppData>?,
+    final: Sqlite3FunctionFinalCallback<AppData>?,
+    value: Sqlite3FunctionValueCallback<AppData>?,
+    inverse: Sqlite3FunctionInverseCallback<AppData>?,
     destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
-    memScoped {
-        appWindowFunction(appData, step, final, value, inverse, destroy) { fn, fnDestroy ->
-            jni_sqlite3_create_window_function(
-                db.pointer,
-                name.allocateUtf8(),
-                nArg,
-                encoding.utf8OrThrow().value,
-                keyedStableRefPointer(
-                    key = appWindowFunctionKey(name, nArg, encoding),
-                    data = fn,
-                    appData = appData,
-                    destructor = fnDestroy
-                ),
-                functionPointer(step, ::CreateFunctionStepHandler),
-                functionPointer(final, ::CreateFunctionFinalHandler),
-                functionPointer(value, ::CreateFunctionValueHandler),
-                functionPointer(inverse, ::CreateFunctionInverseHandler),
-                stableRefDisposer(fn, fnDestroy)
-            )
-        }
+): Sqlite3Result = convertResult(
+    appWindowFunction(appData, step, final, value, inverse, destroy) { fn, fnDestroy ->
+        jni_sqlite3_create_window_function(
+            db.pointer,
+            name,
+            nArg,
+            encoding.utf8OrThrow().value,
+            callbackHandler(fn, null, ::FunctionStepHandler),
+            callbackHandler(fn, null, ::FunctionFinalHandler),
+            callbackHandler(fn, null, ::FunctionValueHandler),
+            callbackHandler(fn, null, ::FunctionInverseHandler),
+            destructorHandler(fn, fnDestroy)
+        )
     }
-})
+)
 
-public actual fun sqlite3_data_count(stmt: sqlite3_stmt): Int =
+/*public actual fun sqlite3_data_count(stmt: sqlite3_stmt): Int =
     jni_sqlite3_data_count(stmt.pointer)
 
 public actual fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result =
@@ -739,7 +722,7 @@ public actual fun <AppData> sqlite3_exec(
             jni_sqlite3_exec(
                 db.pointer,
                 sql.allocateUtf8(),
-                functionPointer(callback, ::ExecHandler),
+                callbackHandler(callback, appData, ::ExecHandler),
                 stableRefPointer(callback, appData),
                 errorMessagePtr
             )
@@ -955,7 +938,7 @@ public actual fun <AppData> sqlite3_preupdate_hook(
 ): Unit = db.withMemoryManager {
     jni_sqlite3_preupdate_hook(
         db.pointer,
-        functionPointer(callback, ::PreupdateHookHandler),
+        callbackHandler(callback, appData, ::PreupdateHookHandler),
         keyedStableRefPointer(KEY_PREUPDATE_HOOK, callback, appData)
     )
 }
@@ -985,7 +968,7 @@ public actual fun <AppData> sqlite3_progress_handler(
     jni_sqlite3_progress_handler(
         db.pointer,
         nOps,
-        functionPointer(callback, ::ProgressHandlerHandler),
+        callbackHandler(callback, appData, ::ProgressHandlerHandler),
         keyedStableRefPointer(KEY_PROGRESS_HANDLER, callback, appData)
     )
 }
@@ -1110,7 +1093,7 @@ public actual fun <Data> sqlite3_result_pointer(
             context.pointer,
             stableRefPointer(ptr, data, ptrDestroy),
             ptr.name.notNull,
-            stableRefDisposer(ptr, ptrDestroy)
+            destructorHandler(ptr, ptrDestroy)
         )
     }
 }
@@ -1166,7 +1149,7 @@ public actual fun <AppData> sqlite3_rollback_hook(
 ): Unit = db.withMemoryManager {
     jni_sqlite3_rollback_hook(
         db.pointer,
-        functionPointer(callback, ::RollbackHookHandler),
+        callbackHandler(callback, appData, ::RollbackHookHandler),
         keyedStableRefPointer(KEY_ROLLBACK_HOOK, callback, appData)
     )
 }
@@ -1195,7 +1178,7 @@ public actual fun <AppData> sqlite3_set_authorizer(
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     jni_sqlite3_set_authorizer(
         db.pointer,
-        functionPointer(callback, ::SetAuthorizerHandler),
+        callbackHandler(callback, appData, ::SetAuthorizerHandler),
         keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, appData)
     )
 })
@@ -1385,7 +1368,7 @@ public actual fun <AppData> sqlite3_trace_v2(
     jni_sqlite3_trace_v2(
         db.pointer,
         mask?.value ?: 0,
-        functionPointer(callback, ::TraceHandler),
+        callbackHandler(callback, appData, ::TraceHandler),
         keyedStableRefPointer(KEY_TRACE, callback, appData)
     )
 })
@@ -1404,7 +1387,7 @@ public actual fun <AppData> sqlite3_update_hook(
 ): Unit = db.withMemoryManager {
     jni_sqlite3_update_hook(
         db.pointer,
-        functionPointer(callback, ::UpdateHookHandler),
+        callbackHandler(callback, appData, ::UpdateHookHandler),
         keyedStableRefPointer(KEY_UPDATE_HOOK, callback, appData)
     )
 }
@@ -1581,7 +1564,7 @@ public actual fun <AppData> sqlite3_wal_hook(
 ): Unit = db.withMemoryManager {
     jni_sqlite3_wal_hook(
         db.pointer,
-        functionPointer(callback, ::WalHookHandler),
+        callbackHandler(callback, appData, ::WalHookHandler),
         keyedStableRefPointer(KEY_WAL_HOOK, callback, appData)
     )
 }*/
