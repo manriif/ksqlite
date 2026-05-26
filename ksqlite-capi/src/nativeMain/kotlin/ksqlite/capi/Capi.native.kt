@@ -60,6 +60,7 @@ import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.copyBytes
 import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
+import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.useMemoryManager
@@ -323,11 +324,18 @@ import ksqlite.sqlite3_wal_hook as native_sqlite3_wal_hook
 /**
  * Returns the raw values of `this` [VariadicValue] array.
  *
- * FIXME due to Kotlin interop limitation, spreading on the returned array is not supported so all
+ * TODO: due to Kotlin interop limitation, spreading on the returned array is not supported so all
  *  the aruments must be passed in the form of `the_function(args[0], args[1], ...)`.
  */
-private fun Array<out VariadicValue<COpaquePointer>?>.toVariadicArguments(): Array<Any?> {
-    return map { it?.value }.toTypedArray()
+private fun Array<out VariadicValue<COpaquePointer>?>.toVariadicArguments(
+    manager: () -> MemoryManager
+): Array<Any?> {
+    return map { value ->
+        when (value) {
+            is OfString -> manager().keyedStringPointer(value.key, value.value)
+            else -> value?.value
+        }
+    }.toTypedArray()
 }
 
 /**
@@ -729,7 +737,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
         }
     },
     nativeConfig = { id, values ->
-        val args = values.toVariadicArguments()
+        val args = values.toVariadicArguments(::globalMemory)
 
         when (args.size) {
             0 -> native_sqlite3_config(id)
@@ -860,7 +868,7 @@ public actual fun sqlite3_db_config(
         }
     },
     nativeConfig = { id, values ->
-        val args = values.toVariadicArguments()
+        val args = values.toVariadicArguments(db::memory)
 
         when (args.size) {
             0 -> native_sqlite3_db_config(db.pointer, id)
@@ -1692,7 +1700,7 @@ public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
 ): Sqlite3Result = commonVtabConfig(option) { id, values ->
-    val args = values.toVariadicArguments()
+    val args = values.toVariadicArguments(db::memory)
 
     when (args.size) {
         0 -> native_sqlite3_vtab_config(db.pointer, id)

@@ -101,41 +101,29 @@ internal abstract class MemoryManagerBase : AutoCloseable {
 
     /**
      * Registers and returns a disposable [D].
-     */
-    private inline fun <C, D : AutoDisposable<C>> commonRegisterDisposable(
-        factory: (id: Long) -> D,
-        computeId: () -> Long
-    ): D = disposableLock.withLock {
-        val disposableId = computeId()
-        val newDisposable = factory(disposableId)
-
-        disposables
-            .put(disposableId, newDisposable)
-            ?.destroy() // Dispose previous disposable with the same key
-
-        return newDisposable
-    }
-
-    /**
-     * Registers and returns a disposable [D].
+     *
+     * If [key] is supplied, then any disposable previously identified with the same key is
+     * disposed.
      *
      * The registered disposable is disposed on call to [clear] if it was not manually disposed.
      */
     protected fun <C, D : AutoDisposable<C>> registerDisposable(
+        key: String? = null,
         factory: (id: Long) -> D
-    ): D = commonRegisterDisposable(factory, ::computeNextDisposableId)
+    ): D = disposableLock.withLock {
+        val disposableId = key
+            ?.let { keyedDisposables.getOrPut(it, ::computeNextDisposableId) }
+            ?: computeNextDisposableId()
 
-    /**
-     * Registers and returns a disposable [D] identified by [key], disposing any disposable
-     * previously registered with the same [key].
-     *
-     * The registered disposable is disposed on call to [clear] if it was not manually disposed.
-     */
-    protected fun <C, D : AutoDisposable<C>> registerKeyedDisposable(
-        key: String,
-        factory: (id: Long) -> D
-    ): D = commonRegisterDisposable(factory) {
-        keyedDisposables.getOrPut(key, ::computeNextDisposableId)
+        val disposable = factory(disposableId).apply {
+            disposableKey = key
+        }
+
+        disposables
+            .put(disposableId, disposable)
+            ?.destroy() // Dispose previous disposable with the same key
+
+        return disposable
     }
 
     /**

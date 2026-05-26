@@ -377,24 +377,17 @@ public external fun sqlite3_create_window_function(
     destroy: DestructorCallback?,
 ): Int
 
-/*public external fun sqlite3_data_count(
-    p0: Long,
-): Int
+public external fun sqlite3_data_count(stmt: Long): Int
 
-public external fun sqlite3_db_cacheflush(
-    p0: Long,
-): Int
+public external fun sqlite3_db_cacheflush(db: Long): Int
 
-/**
- * TODO variadic
- */
 public external fun sqlite3_db_config(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    option: Int,
+    args: Array<*>
 ): Int
 
-public external fun sqlite3_db_filename(
+/*public external fun sqlite3_db_filename(
     p0: Long,
     p1: Long,
 ): Long

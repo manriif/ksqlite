@@ -2,6 +2,7 @@
 
 package ksqlite.capi
 
+import ksqlite.capi.VariadicValue.OfPointer
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
@@ -123,6 +124,7 @@ import kotlin.js.toLong
  */
 private inline fun <Result> HeapAllocatorScope.invokeVariadic(
     values: Array<out VariadicValue<WasmPointer>?>,
+    noinline manager: () -> MemoryManager,
     invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
 ): Result {
     val pointerSize = memory.sizeofIR(IR.Ptr)
@@ -134,12 +136,21 @@ private inline fun <Result> HeapAllocatorScope.invokeVariadic(
         val vaArgPointer = vaListPointer + (index * pointerSize)
 
         when (value) {
+            null -> memory.pokePtr(vaArgPointer, NullPtr)
             is OfInt -> memory.poke32(vaArgPointer, value.value)
             is OfUInt -> memory.poke32(vaArgPointer, value.value.toInt())
             is OfLong -> memory.poke64(vaArgPointer, value.value.toJsBigInt())
             is OfPointer -> memory.pokePtr(vaArgPointer, value.value)
-            is OfString -> memory.pokePtr(vaArgPointer, value.value.allocateUtf8Pointer())
-            null -> memory.pokePtr(vaArgPointer, NullPtr)
+
+            // String value is allocated on MemoryManager rather than current scope as the String is
+            // tied to the lifecycle of the caller MemoryScope
+            is OfString -> memory.pokePtr(
+                address = vaArgPointer,
+                value = manager().keyedStringPointer(
+                    key = value.key,
+                    value = value.value
+                )
+            )
         }
     }
 
@@ -151,9 +162,10 @@ private inline fun <Result> HeapAllocatorScope.invokeVariadic(
  */
 private inline fun <Result> invokeVariadic(
     values: Array<out VariadicValue<WasmPointer>?>,
+    noinline manager: () -> MemoryManager,
     invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
 ): Result = heapScoped {
-    invokeVariadic(values, invoke)
+    invokeVariadic(values, manager, invoke)
 }
 
 /**
@@ -161,9 +173,10 @@ private inline fun <Result> invokeVariadic(
  */
 context(scope: HeapAllocatorScope)
 private inline fun <Result> invokeVariadic(
+    noinline manager: () -> MemoryManager,
     vararg values: VariadicValue<WasmPointer>?,
     invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
-): Result = scope.invokeVariadic(values, invoke)
+): Result = scope.invokeVariadic(values, manager, invoke)
 
 ///////////////////////////////////////////////////////////////////////////
 // Functions
@@ -584,14 +597,14 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
     rowidInView = {
         heapScoped {
             useParam(param) { paramPtr ->
-                invokeVariadic(VariadicValue.OfPointer(paramPtr)) { vaListPtr ->
+                invokeVariadic(::globalMemory, VariadicValue.OfPointer(paramPtr)) { vaListPtr ->
                     exports.sqlite3_config(id, vaListPtr)
                 }
             }
         }
     },
     nativeConfig = { id, values ->
-        invokeVariadic(values) { vaListPtr ->
+        invokeVariadic(values, ::globalMemory) { vaListPtr ->
             exports.sqlite3_config(id, vaListPtr)
         }
     }
@@ -723,6 +736,7 @@ public actual fun sqlite3_db_config(
         heapScoped {
             useParam(state) { statePtr ->
                 invokeVariadic(
+                    db::memory,
                     VariadicValue.OfInt(value),
                     VariadicValue.OfPointer(statePtr)
                 ) { vaListPtr ->
@@ -732,7 +746,7 @@ public actual fun sqlite3_db_config(
         }
     },
     nativeConfig = { id, values ->
-        invokeVariadic(values) { vaListPtr ->
+        invokeVariadic(values, db::memory) { vaListPtr ->
             exports.sqlite3_db_config(db.pointer, id, vaListPtr)
         }
     }
@@ -1600,7 +1614,7 @@ public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
 ): Sqlite3Result = commonVtabConfig(option) { id, values ->
-    invokeVariadic(values) { vaListPtr ->
+    invokeVariadic(values, db::memory) { vaListPtr ->
         exports.sqlite3_vtab_config(db.pointer, id, vaListPtr)
     }
 }

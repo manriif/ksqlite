@@ -3,6 +3,12 @@ package ksqlite.capi
 import ksqlite.capi.types.Sqlite3TextEncoding
 
 ///////////////////////////////////////////////////////////////////////////
+// Keys used to store buffers that are not copied by SQLite and are then managed by the application
+///////////////////////////////////////////////////////////////////////////
+
+internal const val KEY_DB_CONFIG_MAINDBNAME = "db_config_maindbname"
+
+///////////////////////////////////////////////////////////////////////////
 // Keys used to replace callbacks in memory manager
 ///////////////////////////////////////////////////////////////////////////
 
@@ -51,10 +57,11 @@ internal fun collationKey(
 ): String {
     return "create_collation_${name}_${encoding.value}"
 }
-
+/*
 /**
  * Returns a unique name for a module.
  */
 internal fun moduleKey(name: String): String {
     return "create_module_$name"
 }
+*/

@@ -59,30 +59,40 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a [MemorySegment] referring [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The resulting reference data can be accessed using [getStableRef] and it can be disposed
+     * The returned reference data can later be accessed using [getStableRef] and it can be disposed
      * using [stableRefDisposer].
      */
-    fun <AppData> stableRefPointer(
+    private fun <AppData> commonStableRefPointer(
+        key: String?,
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>? = null
+        destructor: Sqlite3DestroyCallback<AppData>?
     ): MemorySegment = notClosed {
         if (data == null && destructor == null) {
-            return MemorySegment.NULL
+            MemorySegment.NULL
+        } else {
+            registerDisposable(key) { StableRefReference(it, destructor, data, appData) }.pointer
         }
-
-        val reference = registerDisposable { id ->
-            StableRefReference(id, destructor, data, appData)
-        }
-
-        return reference.pointer
     }
 
     /**
      * Returns a [MemorySegment] referring [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The resulting reference data can be accessed using [getStableRef] and it can be
+     * The returned reference data can be accessed using [getStableRef] and it can be disposed
+     * using [stableRefDisposer].
+     */
+    fun <AppData> stableRefPointer(
+        data: Any?,
+        appData: AppData,
+        destructor: Sqlite3DestroyCallback<AppData>? = null
+    ): MemorySegment = commonStableRefPointer(null, data, appData, destructor)
+
+    /**
+     * Returns a [MemorySegment] referring [data] or `null` if both [data] and [destructor] are
+     * `null`.
+     *
+     * The returned reference data can be accessed using [getStableRef] and it can be
      * disposed using [stableRefDisposer].
      *
      * If a pointer was previously obtained using [key], it is disposed.
@@ -92,17 +102,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         data: Any?,
         appData: AppData,
         destructor: Sqlite3DestroyCallback<AppData>? = null
-    ): MemorySegment = notClosed {
-        if (data == null && destructor == null) {
-            return MemorySegment.NULL
-        }
-
-        val reference = registerKeyedDisposable(key) { id ->
-            StableRefReference(id, destructor, data, appData)
-        }
-
-        return reference.pointer
-    }
+    ): MemorySegment = commonStableRefPointer(key, data, appData, destructor)
 
     /**
      * Returns a pointer to a static function that will invoke the `handle` function of the
@@ -161,19 +161,23 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
      *
-     * This should preferably be used if there is no option to copy [value]'s content on native
-     * side.
+     * The resulting disposable can be disposed using [globalDisposer].
      */
     fun byteArrayPointer(
         value: ByteArray,
         destructor: Sqlite3DestroyCallback<ByteArray>?
     ): MemorySegment = notClosed {
-        val disposable = registerDisposable { id ->
-            ByteArrayDisposable(id, value, destructor)
-        }
+        registerDisposable { ByteArrayDisposable(it, destructor, value) }.pointer
+    }
 
-        registerGlobalDisposable(disposable.pointer, disposable)
-        return disposable.pointer
+    /**
+     * Allocates a C-string with [value]'s content and returns a [MemorySegment] to the content.
+     */
+    fun keyedStringPointer(
+        key: String,
+        value: String
+    ): MemorySegment = notClosed {
+        registerDisposable(key) { StringDisposable(it, value) }.pointer
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -238,8 +242,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class ByteArrayDisposable(
         id: Long,
-        override val appData: ByteArray,
         destructor: Sqlite3DestroyCallback<ByteArray>?,
+        override val appData: ByteArray,
     ) : ArenaDisposable<ByteArray>(id, destructor) {
 
         // TODO see of copy is necessary
@@ -247,9 +251,24 @@ internal actual class MemoryManager : MemoryManagerBase() {
             copyFrom(MemorySegment.ofArray(appData))
         }
 
+        init {
+            registerGlobalDisposable(pointer, this)
+        }
+
         override fun release() {
             super.release()
             unregisterGlobalDisposable(pointer)
         }
+    }
+
+    /**
+     * Reference to [String].
+     */
+    private inner class StringDisposable(
+        id: Long,
+        override val appData: String
+    ) : ArenaDisposable<String>(id, null) {
+
+        val pointer: MemorySegment = arena.allocateFrom(appData, Charsets.UTF_8)
     }
 }

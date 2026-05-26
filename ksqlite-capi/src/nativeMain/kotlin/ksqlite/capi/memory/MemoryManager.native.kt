@@ -1,11 +1,12 @@
 package ksqlite.capi.memory
 
+import kotlinx.cinterop.Arena
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.Pinned
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
@@ -19,30 +20,42 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The resulting reference data can be accessed using [stableRefData] and it can be disposed
-     * using [stableRefDisposer].
+     * The returned reference data can later be accessed using [stableRefData] and it can be
+     * disposed using [stableRefDisposer].
      */
-    fun <AppData> stableRefPointer(
+    private fun <AppData> commonStableRefPointer(
+        key: String?,
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>? = null,
+        destructor: Sqlite3DestroyCallback<AppData>?
     ): COpaquePointer? = notClosed {
         if (data == null && destructor == null) {
-            return null
+            null
+        } else {
+            registerDisposable(key) { StableRefReference(it, destructor, data, appData) }
+                .stableRef
+                .asCPointer()
         }
-
-        val reference = registerDisposable { id ->
-            StableRefReference(id, destructor, data, appData)
-        }
-
-        return reference.stableRef.asCPointer()
     }
 
     /**
      * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The resulting reference data can be accessed using [stableRefData] and it can be disposed
+     * The returned reference data can be accessed using [stableRefData] and it can be disposed
+     * using [stableRefDisposer].
+     */
+    fun <AppData> stableRefPointer(
+        data: Any?,
+        appData: AppData,
+        destructor: Sqlite3DestroyCallback<AppData>? = null,
+    ): COpaquePointer? = commonStableRefPointer(null, data, appData, destructor)
+
+    /**
+     * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
+     * `null`.
+     *
+     * The returned reference data can be accessed using [stableRefData] and it can be disposed
      * using [stableRefDisposer].
      *
      * If a pointer was previously obtained using [key], it is disposed.
@@ -52,17 +65,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         data: Any?,
         appData: AppData,
         destructor: Sqlite3DestroyCallback<AppData>? = null
-    ): COpaquePointer? = notClosed {
-        if (data == null && destructor == null) {
-            return null
-        }
-
-        val reference = registerKeyedDisposable(key) { id ->
-            StableRefReference(id, destructor, data, appData)
-        }
-
-        return reference.stableRef.asCPointer()
-    }
+    ): COpaquePointer? = commonStableRefPointer(key, data, appData, destructor)
 
     /**
      * Returns a [CPointer] to [value]'s content or `null` if [value] is `null`.
@@ -73,15 +76,17 @@ internal actual class MemoryManager : MemoryManagerBase() {
         value: ByteArray,
         destructor: Sqlite3DestroyCallback<ByteArray>? = null
     ): CPointer<ByteVar> = notClosed {
-        val pinned = value.pin()
-        val pointer = pinned.addressOf(0)
+        registerDisposable { ByteArrayDisposable(it, destructor, value) }.pointer
+    }
 
-        val disposable = registerDisposable { id ->
-            ByteArrayDisposable(id, destructor, pinned, pointer)
-        }
-
-        registerGlobalDisposable(pointer, disposable)
-        return pointer
+    /**
+     * Allocates a C-string with [value]'s content and returns a [CPointer] to the content.
+     */
+    fun keyedStringPointer(
+        key: String,
+        value: String
+    ): CPointer<ByteVar> = notClosed {
+        registerDisposable(key) { StringDisposable(it, value) }.pointer
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -112,16 +117,35 @@ internal actual class MemoryManager : MemoryManagerBase() {
     private inner class ByteArrayDisposable(
         id: Long,
         destructor: Sqlite3DestroyCallback<ByteArray>?,
-        private val pinned: Pinned<ByteArray>,
-        private val pointer: COpaquePointer,
+        override val appData: ByteArray
     ) : AutoDisposable<ByteArray>(id, destructor) {
 
-        override val appData: ByteArray
-            get() = pinned.get()
+        private val pinned = appData.pin()
+        val pointer = pinned.addressOf(0)
+
+        init {
+            registerGlobalDisposable(pointer, this)
+        }
 
         override fun release() {
             unregisterGlobalDisposable(pointer)
             pinned.unpin()
+        }
+    }
+
+    /**
+     * Reference to [String].
+     */
+    private inner class StringDisposable(
+        id: Long,
+        override val appData: String,
+    ) : AutoDisposable<String>(id, null) {
+
+        private val arena = Arena()
+        val pointer = appData.cstr.getPointer(arena)
+
+        override fun release() {
+            arena.clear()
         }
     }
 }

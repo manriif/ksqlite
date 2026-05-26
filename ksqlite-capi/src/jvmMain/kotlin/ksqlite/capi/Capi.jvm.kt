@@ -106,7 +106,6 @@ import ksqlite.capi.types.useParamMemScoped
 import ksqlite.capi.types.useParams
 import ksqlite.capi.types.useParamsMemScoped
 import ksqlite.ksqliteLoadLibrary
-import java.lang.foreign.Arena
 import java.lang.foreign.MemoryLayout
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
@@ -130,9 +129,11 @@ private val nativeInit = run {
 
 /**
  * Invokes a function accepting a variadic parameter.
+ * String parameter are allocated within [manager].
  */
 private inline fun <Result> invokeVariadic(
     values: Array<out VariadicValue<MemorySegment>?>,
+    manager: () -> MemoryManager,
     invoke: (layouts: Array<out MemoryLayout>, arguments: Array<out Any>) -> Result
 ): Result {
     val layouts = Array(values.size) { index ->
@@ -143,27 +144,15 @@ private inline fun <Result> invokeVariadic(
         }
     }
 
-    var arena: Arena? = null
-
     val arguments = Array(values.size) { index ->
         when (val value = values[index]) {
             null -> MemorySegment.NULL
             !is OfString -> value.value
-
-            else -> {
-                if (arena == null) {
-                    arena = Arena.ofConfined()
-                }
-
-                arena.allocateFrom(value.value, Charsets.UTF_8)
-            }
+            else -> manager().keyedStringPointer(value.key, value.value)
         }
     }
 
-    val result = invoke(layouts, arguments)
-    arena?.close()
-
-    return result
+    return invoke(layouts, arguments)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -571,7 +560,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
         }
     },
     nativeConfig = { id, values ->
-        invokeVariadic(values) { layouts, arguments ->
+        invokeVariadic(values, ::globalMemory) { layouts, arguments ->
             native.sqlite3_config
                 .makeInvoker(*layouts)
                 .apply(id, *arguments)
@@ -704,12 +693,12 @@ public actual fun sqlite3_db_config(
     outParamConfig = {
         useParamMemScoped(state) { statePtr ->
             native.sqlite3_db_config
-                .makeInvoker(ValueLayout.ADDRESS)
+                .makeInvoker(ValueLayout.JAVA_INT, ValueLayout.ADDRESS)
                 .apply(db.pointer, id, value, statePtr)
         }
     },
     nativeConfig = { id, values ->
-        invokeVariadic(values) { layouts, arguments ->
+        invokeVariadic(values, db::memory) { layouts, arguments ->
             native.sqlite3_db_config
                 .makeInvoker(*layouts)
                 .apply(db.pointer, id, *arguments)
@@ -1580,7 +1569,7 @@ public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
 ): Sqlite3Result = commonVtabConfig(option) { id, values ->
-    invokeVariadic(values) { layouts, arguments ->
+    invokeVariadic(values, db::memory) { layouts, arguments ->
         native.sqlite3_vtab_config
             .makeInvoker(*layouts)
             .apply(db.pointer, id, *arguments)
