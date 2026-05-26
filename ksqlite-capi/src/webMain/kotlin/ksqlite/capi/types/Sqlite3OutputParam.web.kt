@@ -1,5 +1,6 @@
 package ksqlite.capi.types
 
+import ksqlite.capi.exports
 import ksqlite.capi.interop.wasm.IR
 import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmMemory
@@ -124,8 +125,19 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
      */
     internal var size: Int? = null
 
+    /**
+     * Whether to free the C-string after read.
+     */
+    internal var free: Boolean = true
+
     override fun WasmMemory.create(pointer: WasmPointer): String {
-        return size?.let { pointer.toKStringFromUtf8(it) } ?: pointer.toKStringFromUtf8()
+        val string = size?.let { pointer.toKStringFromUtf8(it) } ?: pointer.toKStringFromUtf8()
+
+        if (free) {
+            exports.sqlite3_free(pointer)
+        }
+
+        return string
     }
 }
 

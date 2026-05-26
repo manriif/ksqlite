@@ -387,93 +387,80 @@ public external fun sqlite3_db_config(
     args: Array<*>
 ): Int
 
-/*public external fun sqlite3_db_filename(
-    p0: Long,
-    p1: Long,
-): Long
+public external fun sqlite3_db_filename(
+    db: Long,
+    name: String
+): String?
 
-public external fun sqlite3_db_handle(
-    p0: Long,
-): Long
+public external fun sqlite3_db_handle(stmt: Long): Long
 
 public external fun sqlite3_db_name(
-    p0: Long,
-    p1: Int,
-): Long
+    db: Long,
+    index: Int
+): String?
 
 public external fun sqlite3_db_readonly(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    name: String
 ): Int
 
 public external fun sqlite3_db_release_memory(
-    p0: Long,
+    db: Long,
 ): Int
 
 public external fun sqlite3_db_status(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-    p4: Int,
+    db: Long,
+    option: Int,
+    outCurrent: OutputPointer.OfInt32?,
+    outHighwater: OutputPointer.OfInt32?,
+    resetFlag: Int,
 ): Int
 
 public external fun sqlite3_db_status64(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-    p4: Int,
+    db: Long,
+    option: Int,
+    outCurrent: OutputPointer.OfInt64?,
+    outHighwater: OutputPointer.OfInt64?,
+    resetFlag: Int,
 ): Int
 
 public external fun sqlite3_declare_vtab(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    sql: String
 ): Int
 
 public external fun sqlite3_deserialize(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
-    p5: Int,
+    db: Long,
+    schema: String?,
+    buffer: ByteBuffer,
+    dbSize: Long,
+    bufferSize: Long,
+    flags: Int,
 ): Int
-
+/*
 public external fun sqlite3_drop_modules(
     p0: Long,
     p1: Long,
 ): Int
+*/
+public external fun sqlite3_errcode(db: Long): Int
 
-public external fun sqlite3_errcode(
-    p0: Long,
-): Int
+public external fun sqlite3_errmsg(db: Long): String?
 
-public external fun sqlite3_errmsg(
-    p0: Long,
-): Long
+public external fun sqlite3_error_offset(db: Long): Int
 
-public external fun sqlite3_error_offset(
-    p0: Long,
-): Int
-
-public external fun sqlite3_errstr(
-    p0: Int,
-): Long
+public external fun sqlite3_errstr(resultCode: Int): String?
 
 public external fun sqlite3_exec(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
+    db: Long,
+    sql: String,
+    callback: ExecCallback?,
+    errorMessage: OutputPointer.OfString?
 ): Int
 
-public external fun sqlite3_expanded_sql(
-    p0: Long,
-): Long
+public external fun sqlite3_expanded_sql(stmt: Long): String?
 
-public external fun sqlite3_extended_errcode(
+/*public external fun sqlite3_extended_errcode(
     p0: Long,
 ): Int
 

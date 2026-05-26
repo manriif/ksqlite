@@ -2,7 +2,6 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.VariadicValue.OfPointer
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
@@ -55,7 +54,6 @@ import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.HeapAllocatorScope
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.allocateUtf8
-import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.bufferScoped
@@ -129,11 +127,11 @@ private inline fun <Result> HeapAllocatorScope.invokeVariadic(
 ): Result {
     val pointerSize = memory.sizeofIR(IR.Ptr)
     val argCount = arraySize(values)
-    val vaListSize = pointerSize * argCount
-    val vaListPointer = allocate(vaListSize)
+    val vaArgsSize = pointerSize * argCount
+    val vaArgsPointer = allocate(vaArgsSize)
 
     arrayForEachIndexed(values) { index, value ->
-        val vaArgPointer = vaListPointer + (index * pointerSize)
+        val vaArgPointer = vaArgsPointer + (index * pointerSize)
 
         when (value) {
             null -> memory.pokePtr(vaArgPointer, NullPtr)
@@ -154,7 +152,7 @@ private inline fun <Result> HeapAllocatorScope.invokeVariadic(
         }
     }
 
-    return invoke(vaListPointer)
+    return invoke(vaArgsPointer)
 }
 
 /**
@@ -810,7 +808,7 @@ public actual fun sqlite3_deserialize(
     schema: String?,
     buffer: Buffer,
     dbSize: Long,
-    dataSize: Long,
+    bufferSize: Long,
     flags: Sqlite3DeserializeFlag?
 ): Sqlite3Result = convertResult(heapScoped {
     exports.sqlite3_deserialize(
@@ -818,29 +816,29 @@ public actual fun sqlite3_deserialize(
         schema.allocateUtf8Pointer(),
         buffer.pointer,
         dbSize.toJsBigInt(),
-        dataSize.toJsBigInt(),
+        bufferSize.toJsBigInt(),
         flags?.value ?: 0
     )
 })
-
+/*
 public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): Sqlite3Result = convertResult(heapScoped {
     exports.sqlite3_drop_modules(db.pointer, allocateUtf8Array(keep))
 })
-
+*/
 public actual fun sqlite3_errcode(db: sqlite3): Int =
     exports.sqlite3_errcode(db.pointer)
 
 public actual fun sqlite3_errmsg(db: sqlite3): String? =
     exports.sqlite3_errmsg(db.pointer).toKStringFromUtf8OrNull()
 
-public actual fun sqlite3_errstr(resultCode: Int): String? =
-    exports.sqlite3_errstr(resultCode).toKStringFromUtf8OrNull()
-
 public actual fun sqlite3_error_offset(db: sqlite3): Int =
     exports.sqlite3_error_offset(db.pointer)
+
+public actual fun sqlite3_errstr(resultCode: Int): String? =
+    exports.sqlite3_errstr(resultCode).toKStringFromUtf8OrNull()
 
 public actual fun <AppData> sqlite3_exec(
     db: sqlite3,

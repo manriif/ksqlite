@@ -14,6 +14,7 @@ import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationNeededHandler
@@ -21,6 +22,7 @@ import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
 import ksqlite.capi.handlers.ConfigSqlLogHandler
 import ksqlite.capi.handlers.CollationCompareHandler
+import ksqlite.capi.handlers.ExecHandler
 import ksqlite.capi.handlers.FunctionFinalHandler
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.handlers.FunctionInverseHandler
@@ -33,21 +35,28 @@ import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.wrapOrNull
+import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3DbConfigOption
+import ksqlite.capi.types.Sqlite3DbStatusOption
+import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
+import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.types.sqlite3_filename
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.useParam
+import ksqlite.capi.types.useParams
 import ksqlite.ksqliteLoadLibrary
 import ksqlite.ksqlite_cancel_auto_extension
 import ksqlite.ksqlite_auto_extension as jni_ksqlite_auto_extension
@@ -122,7 +131,7 @@ import ksqlite.sqlite3_db_status as jni_sqlite3_db_status
 import ksqlite.sqlite3_db_status64 as jni_sqlite3_db_status64
 import ksqlite.sqlite3_declare_vtab as jni_sqlite3_declare_vtab
 import ksqlite.sqlite3_deserialize as jni_sqlite3_deserialize
-import ksqlite.sqlite3_drop_modules as jni_sqlite3_drop_modules
+//import ksqlite.sqlite3_drop_modules as jni_sqlite3_drop_modules
 import ksqlite.sqlite3_errcode as jni_sqlite3_errcode
 import ksqlite.sqlite3_errmsg as jni_sqlite3_errmsg
 import ksqlite.sqlite3_error_offset as jni_sqlite3_error_offset
@@ -750,7 +759,7 @@ public actual fun sqlite3_db_config(
     option: Sqlite3DbConfigOption,
 ): Sqlite3Result = commonDbConfig(
     option = option,
-    bufferPointer = Buffer::pointer,
+    bufferPointer = Buffer::buffer,
     outParamConfig = {
         useParam(state) { statePtr ->
             jni_sqlite3_db_config(db.pointer, id, arrayOf(value, statePtr))
@@ -761,12 +770,10 @@ public actual fun sqlite3_db_config(
     }
 )
 
-/*public actual fun sqlite3_db_filename(
+public actual fun sqlite3_db_filename(
     db: sqlite3,
     name: String
-): sqlite3_filename? = memScoped {
-    jni_sqlite3_db_filename(db.pointer, name.allocateUtf8())
-}.toKStringFromUtf8OrNull()
+): sqlite3_filename? = jni_sqlite3_db_filename(db.pointer, name)
 
 public actual fun sqlite3_db_handle(stmt: sqlite3_stmt): sqlite3? =
     jni_sqlite3_db_handle(stmt.pointer).orNull?.let(::sqlite3)
@@ -775,14 +782,11 @@ public actual fun sqlite3_db_name(
     db: sqlite3,
     index: Int
 ): String? = jni_sqlite3_db_name(db.pointer, index)
-    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_db_readonly(
     db: sqlite3,
     name: String
-): Int = memScoped {
-    jni_sqlite3_db_readonly(db.pointer, name.allocateUtf8())
-}
+): Int = jni_sqlite3_db_readonly(db.pointer, name)
 
 public actual fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result =
     convertResult(jni_sqlite3_db_release_memory(db.pointer))
@@ -793,7 +797,7 @@ public actual fun sqlite3_db_status(
     outCurrent: Int32OutputParam?,
     outHighwater: Int32OutputParam?,
     resetFlag: Int
-): Sqlite3Result = convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+): Sqlite3Result = convertResult(useParams(outCurrent, outHighwater) { curPtr, highPtr ->
     jni_sqlite3_db_status(db.pointer, option.id, curPtr, highPtr, resetFlag)
 })
 
@@ -803,53 +807,47 @@ public actual fun sqlite3_db_status64(
     outCurrent: Int64OutputParam?,
     outHighwater: Int64OutputParam?,
     resetFlag: Int
-): Sqlite3Result = convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+): Sqlite3Result = convertResult(useParams(outCurrent, outHighwater) { curPtr, highPtr ->
     jni_sqlite3_db_status64(db.pointer, option.id, curPtr, highPtr, resetFlag)
 })
 
 public actual fun sqlite3_declare_vtab(
     db: sqlite3,
     sql: String
-): Sqlite3Result = convertResult(memScoped {
-    jni_sqlite3_declare_vtab(db.pointer, sql.allocateUtf8())
-})
+): Sqlite3Result = convertResult(jni_sqlite3_declare_vtab(db.pointer, sql))
 
 public actual fun sqlite3_deserialize(
     db: sqlite3,
     schema: String?,
     buffer: Buffer,
     dbSize: Long,
-    dataSize: Long,
+    bufferSize: Long,
     flags: Sqlite3DeserializeFlag?
-): Sqlite3Result = convertResult(memScoped {
+): Sqlite3Result = convertResult(
     jni_sqlite3_deserialize(
         db.pointer,
-        schema.allocateUtf8(),
-        buffer.pointer,
+        schema,
+        buffer.buffer,
         dbSize,
-        dataSize,
+        bufferSize,
         flags?.value ?: 0
     )
-})
+)
 
-public actual fun sqlite3_drop_modules(
+/*public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): Sqlite3Result = convertResult(memScoped {
     jni_sqlite3_drop_modules(db.pointer, keep.allocateUtf8Array())
-})
+})*/
 
-public actual fun sqlite3_errcode(db: sqlite3): Int =
-    jni_sqlite3_errcode(db.pointer)
+public actual fun sqlite3_errcode(db: sqlite3): Int = jni_sqlite3_errcode(db.pointer)
 
-public actual fun sqlite3_errmsg(db: sqlite3): String? =
-    jni_sqlite3_errmsg(db.pointer).toKStringFromUtf8OrNull()
+public actual fun sqlite3_errmsg(db: sqlite3): String? = jni_sqlite3_errmsg(db.pointer)
 
-public actual fun sqlite3_errstr(resultCode: Int): String? =
-    jni_sqlite3_errstr(resultCode).toKStringFromUtf8OrNull()
+public actual fun sqlite3_error_offset(db: sqlite3): Int = jni_sqlite3_error_offset(db.pointer)
 
-public actual fun sqlite3_error_offset(db: sqlite3): Int =
-    jni_sqlite3_error_offset(db.pointer)
+public actual fun sqlite3_errstr(resultCode: Int): String? = jni_sqlite3_errstr(resultCode)
 
 public actual fun <AppData> sqlite3_exec(
     db: sqlite3,
@@ -857,28 +855,21 @@ public actual fun <AppData> sqlite3_exec(
     outErrorMessage: Utf8OutputParam?,
     appData: AppData,
     callback: Sqlite3ExecCallback<AppData>?
-): Sqlite3Result = convertResult(useMemoryManager {
-    memScoped {
-        useParam(outErrorMessage) { errorMessagePtr ->
-            jni_sqlite3_exec(
-                db.pointer,
-                sql.allocateUtf8(),
-                callbackHandler(callback, appData, ::ExecHandler),
-                stableRefPointer(callback, appData),
-                errorMessagePtr
-            )
-        }
+): Sqlite3Result = convertResult(
+    useParam(outErrorMessage) { errorMessagePtr ->
+        jni_sqlite3_exec(
+            db.pointer,
+            sql,
+            callbackHandler(callback, appData, ::ExecHandler),
+            errorMessagePtr
+        )
     }
-})
+)
 
-public actual fun sqlite3_expanded_sql(stmt: sqlite3_stmt): String? {
-    val pointer = jni_sqlite3_expanded_sql(stmt.pointer).orNull ?: return null
-    val expandedSql = pointer.toKStringFromUtf8()
-    jni_sqlite3_free(pointer)
-    return expandedSql
-}
+public actual fun sqlite3_expanded_sql(stmt: sqlite3_stmt): String? =
+    jni_sqlite3_expanded_sql(stmt.pointer)
 
-public actual fun sqlite3_extended_errcode(db: sqlite3): Int =
+/*public actual fun sqlite3_extended_errcode(db: sqlite3): Int =
     jni_sqlite3_extended_errcode(db.pointer)
 
 public actual fun sqlite3_extended_result_codes(

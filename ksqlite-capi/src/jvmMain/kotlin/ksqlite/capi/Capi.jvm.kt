@@ -48,7 +48,6 @@ import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.allocateUtf8
-import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.backing
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.deallocateNullable
@@ -764,7 +763,7 @@ public actual fun sqlite3_deserialize(
     schema: String?,
     buffer: Buffer,
     dbSize: Long,
-    dataSize: Long,
+    bufferSize: Long,
     flags: Sqlite3DeserializeFlag?
 ): Sqlite3Result = convertResult(memScoped {
     native.sqlite3_deserialize(
@@ -772,29 +771,29 @@ public actual fun sqlite3_deserialize(
         schema.allocateUtf8(),
         buffer.pointer,
         dbSize,
-        dataSize,
+        bufferSize,
         flags?.value ?: 0
     )
 })
-
+/*
 public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): Sqlite3Result = convertResult(memScoped {
     native.sqlite3_drop_modules(db.pointer, keep.allocateUtf8Array())
 })
-
+*/
 public actual fun sqlite3_errcode(db: sqlite3): Int =
     native.sqlite3_errcode(db.pointer)
 
 public actual fun sqlite3_errmsg(db: sqlite3): String? =
     native.sqlite3_errmsg(db.pointer).toKStringFromUtf8OrNull()
 
-public actual fun sqlite3_errstr(resultCode: Int): String? =
-    native.sqlite3_errstr(resultCode).toKStringFromUtf8OrNull()
-
 public actual fun sqlite3_error_offset(db: sqlite3): Int =
     native.sqlite3_error_offset(db.pointer)
+
+public actual fun sqlite3_errstr(resultCode: Int): String? =
+    native.sqlite3_errstr(resultCode).toKStringFromUtf8OrNull()
 
 public actual fun <AppData> sqlite3_exec(
     db: sqlite3,

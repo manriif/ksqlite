@@ -5,7 +5,7 @@ import ksqlite.nativeBufferWrite
 import ksqlite.requireBuffer
 
 public actual class Buffer internal constructor(
-    internal val pointer: JniPointer,
+    private val pointer: JniPointer,
     byteSize: Long
 ) : BufferBase(byteSize) {
 

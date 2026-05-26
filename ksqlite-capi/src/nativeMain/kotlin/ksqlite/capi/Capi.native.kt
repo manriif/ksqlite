@@ -9,7 +9,6 @@ import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.refTo
 import kotlinx.cinterop.reinterpret
-import kotlinx.cinterop.toCStringArray
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.SQLITE_TRANSIENT
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
@@ -180,7 +179,7 @@ import ksqlite.sqlite3_db_status as native_sqlite3_db_status
 import ksqlite.sqlite3_db_status64 as native_sqlite3_db_status64
 import ksqlite.sqlite3_declare_vtab as native_sqlite3_declare_vtab
 import ksqlite.sqlite3_deserialize as native_sqlite3_deserialize
-import ksqlite.sqlite3_drop_modules as native_sqlite3_drop_modules
+//import ksqlite.sqlite3_drop_modules as native_sqlite3_drop_modules
 import ksqlite.sqlite3_errcode as native_sqlite3_errcode
 import ksqlite.sqlite3_errmsg as native_sqlite3_errmsg
 import ksqlite.sqlite3_error_offset as native_sqlite3_error_offset
@@ -933,7 +932,7 @@ public actual fun sqlite3_deserialize(
     schema: String?,
     buffer: Buffer,
     dbSize: Long,
-    dataSize: Long,
+    bufferSize: Long,
     flags: Sqlite3DeserializeFlag?
 ): Sqlite3Result = convertResult(
     native_sqlite3_deserialize(
@@ -941,29 +940,29 @@ public actual fun sqlite3_deserialize(
         schema,
         buffer.pointer.reinterpret(),
         dbSize,
-        dataSize,
+        bufferSize,
         flags?.value?.convert() ?: 0u
     )
 )
-
+/*
 public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): Sqlite3Result = convertResult(memScoped {
     native_sqlite3_drop_modules(db.pointer, keep?.toCStringArray(this))
 })
-
+*/
 public actual fun sqlite3_errcode(db: sqlite3): Int =
     native_sqlite3_errcode(db.pointer)
 
 public actual fun sqlite3_errmsg(db: sqlite3): String? =
     native_sqlite3_errmsg(db.pointer)?.toKStringFromUtf8()
 
-public actual fun sqlite3_errstr(resultCode: Int): String? =
-    native_sqlite3_errstr(resultCode)?.toKStringFromUtf8()
-
 public actual fun sqlite3_error_offset(db: sqlite3): Int =
     native_sqlite3_error_offset(db.pointer)
+
+public actual fun sqlite3_errstr(resultCode: Int): String? =
+    native_sqlite3_errstr(resultCode)?.toKStringFromUtf8()
 
 public actual fun <AppData> sqlite3_exec(
     db: sqlite3,
