@@ -6,6 +6,7 @@ import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.sqlite3_aggregate_context as jni_sqlite3_aggregate_context
+import ksqlite.sqlite3_get_auxdata as jni_sqlite3_get_auxdata
 
 internal actual fun nativeAggregateContext(
     context: sqlite3_context,
@@ -15,7 +16,7 @@ internal actual fun nativeAggregateContext(
 }
 
 internal actual fun nativeGetAuxdata(context: sqlite3_context, index: Int): Long? {
-    return sqlite3.sqlite3_get_auxdata(context.pointer, index).orNull?.address()
+    return jni_sqlite3_get_auxdata(context.pointer, index).orNull
 }
 
 internal actual fun nativeSetAuxdata(

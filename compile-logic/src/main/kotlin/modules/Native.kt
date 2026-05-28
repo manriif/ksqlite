@@ -1,11 +1,15 @@
 package modules
 
+import ksqlitePrefixed
 import sqlitePrefixed
 
 /**
  * Definition file noStringConversions.
  */
 val KsqliteNoStringConversions = listOf(
+    "prepare_v2",
+    "prepare_v3"
+).ksqlitePrefixed() + listOf(
     "bind_pointer",
     "bind_text",
     "bind_text64",

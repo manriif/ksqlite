@@ -27,6 +27,23 @@ internal external interface Sqlite3WasmExports : JsAny {
         p0: JsBigInt,
     ): Int
 
+    fun ksqlite_prepare_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+        p4: JsBigInt,
+    ): Int
+
+    fun ksqlite_prepare_v3(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: Int,
+        p4: JsBigInt,
+        p5: JsBigInt,
+    ): Int
+
     fun sqlite3_aggregate_context(
         p0: JsBigInt,
         p1: Int,

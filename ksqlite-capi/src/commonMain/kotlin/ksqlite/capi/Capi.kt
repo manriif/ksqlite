@@ -34,7 +34,7 @@ import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3FileOpenFlag
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
@@ -1386,7 +1386,7 @@ public expect fun sqlite3_open(
 public expect fun sqlite3_open_v2(
     fileName: String,
     outDb: Sqlite3OutputParam,
-    flags: Sqlite3FileOpenFlag.Valid,
+    flags: Sqlite3OpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result
 
@@ -1420,7 +1420,7 @@ public expect fun sqlite3_prepare_v2(
     sql: ByteArray,
     maxBytes: Int,
     outStmt: Sqlite3StmtOutputParam,
-    outTailOffset: Int32OutputParam?
+    outOffset: Int32OutputParam?
 ): Sqlite3Result
 
 /**
@@ -1449,7 +1449,7 @@ public expect fun sqlite3_prepare_v3(
     maxBytes: Int,
     flags: Sqlite3PrepareFlag?,
     outStmt: Sqlite3StmtOutputParam,
-    outTailOffset: Int32OutputParam?
+    outOffset: Int32OutputParam?
 ): Sqlite3Result
 
 /**

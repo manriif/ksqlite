@@ -91,3 +91,10 @@ internal fun CPointer<ByteVar>.toKStringFromUtf8(size: Int): String {
 internal fun COpaquePointer.toKStringFromUtf8(size: Int): String {
     return reinterpret<ByteVar>().toKStringFromUtf8(size)
 }
+
+/**
+ * Reads bytes from this pointer as [ByteArray] and then convert to string.
+ */
+internal fun COpaquePointer.toKStringFromUtf8(): String {
+    return reinterpret<ByteVar>().toKStringFromUtf8()
+}

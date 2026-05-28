@@ -482,7 +482,11 @@ static void destroyFreeable(
     JNIEnv* env,
     void* pFreeable
 ) {
-    const auto freeablePtr = reinterpret_cast<Freeable*>(RequireNonNull(pFreeable));
+    if (pFreeable == nullptr) {
+        return;
+    }
+
+    const auto freeablePtr = reinterpret_cast<Freeable*>(pFreeable);
     auto& freeable = *freeablePtr;
 
     jobject destructor = LocalRefCreate(freeable.destructor);
@@ -1441,59 +1445,18 @@ static inline DestructorFunction freeableDestroyerPush(
 // Buffer helpers
 ///////////////////////////////////////////////////////////////////////////
 
-/**
- * Returns the direct buffer address of the given buffer or raises an exception if the address
- * cannot be obtained.
- */
-static inline void* bufferDirectAddress(
-    JNIEnv* env,
-    jobject buffer
-) {
-    if (buffer == nullptr) {
-        return nullptr;
-    }
-
-    const auto address = env->GetDirectBufferAddress(buffer);
-
-    if (address == nullptr) {
-        // TODO ensure java NIO is supported
-        FatalError("Failed to get direct buffer address");
-    }
-
-    return address;
-}
-
-#define BufferDirectAddress(buffer) bufferDirectAddress(env, buffer)
-
-extern "C"
-JNIEXPORT jobject JNICALL
-Java_ksqlite_KsqliteJni_createByteBuffer(
-    JNIEnv* env,
-    jclass clazz,
-    jlong pointer,
-    jlong size
-) {
-    const auto address = LongToPtr(pointer);
-
-    if (address == nullptr) {
-        return nullptr;
-    }
-
-    return env->NewDirectByteBuffer(address, size);
-}
-
 extern "C"
 JNIEXPORT void JNICALL
 Java_ksqlite_KsqliteJni_nativeBufferRead(
     JNIEnv* env,
     jclass clazz,
-    jobject buffer,
+    jlong buffer,
     jbyteArray destination,
     jint size,
     jlong sourceOffset,
     jint destinationOffset
 ) {
-    const auto sourceAddress = BufferDirectAddress(buffer);
+    const auto sourceAddress = LongToPtr(buffer);
 
     if (sourceAddress == nullptr) {
         return;
@@ -1520,13 +1483,13 @@ JNIEXPORT void JNICALL
 Java_ksqlite_KsqliteJni_nativeBufferWrite(
     JNIEnv* env,
     jclass clazz,
-    jobject buffer,
+    jlong buffer,
     jbyteArray source,
     jint size,
     jint sourceOffset,
     jlong destinationOffset
 ) {
-    const auto destinationAddress = BufferDirectAddress(buffer);
+    const auto destinationAddress = LongToPtr(buffer);
 
     if (destinationAddress == nullptr) {
         return;
@@ -1617,7 +1580,7 @@ static jbyte* byteArrayToBuffer(
 static char* jstringToUtf8(
     JNIEnv* env,
     jstring string,
-    size_t* outLength
+    int* outLength
 ) {
     if (string == nullptr) {
         if (outLength != nullptr) {
@@ -1720,7 +1683,8 @@ static jstring utf8ToJstring(
  * Declares the function body for simple function call requiring jstring conversion.
  */
 #define ReturnWithString(string, function) \
-    const auto UNDERSCORED(string) = JstringToUtf8(string); \
+    int CONCAT(string, _size) = 0; \
+    const auto UNDERSCORED(string) = JstringToUtf8Out(string, &CONCAT(string, _size)); \
     const auto result = function;          \
     sqlite3_free(UNDERSCORED(string)); \
     return result
@@ -1830,8 +1794,8 @@ static void outputPointerSetValue(
 #define OutputPointerGetStringValue(pointer) \
     JstringToUtf8(JstringCast(OutputPointerGetValue(pointer)))
 
-#define OutputPointerSetStringValue(pointer, value) \
-    OutputPointerSetValue(pointer, Utf8ToJstring(value))
+#define OutputPointerSetStringValue(pointer, value, length) \
+    OutputPointerSetValue(pointer, Utf8ToJstringLength(value, length))
 
 /**
  * Gets the value of a 32bits integer OutputPointer.
@@ -1910,8 +1874,13 @@ static void outputPointerSetInt64Value(
 #define OutputPointerEnterString(jPointer) \
     OutputPointerEnter(char*, jPointer, OutputPointerGetStringValue,)
 
-#define OutputPointerLeave(jPointer, condition, setValue, transform) \
-    if (condition && jPointer != nullptr) setValue(jPointer, transform(*UNDERSCORED(jPointer)))
+// String must be freed
+#define OutputPointerEnterStringConst(jPointer) \
+    OutputPointerEnter(const char*, jPointer, OutputPointerGetStringValue,)
+
+#define OutputPointerLeave(jPointer, condition, setValue, transform, ...) \
+    if (condition && jPointer != nullptr)                                 \
+        setValue(jPointer, transform(*UNDERSCORED(jPointer)) __VA_OPT__(,) __VA_ARGS__)
 
 #define OutputPointerLeaveInt32(jPointer, condition) \
     OutputPointerLeave(jPointer, condition, OutputPointerSetInt32Value,)
@@ -1920,13 +1889,13 @@ static void outputPointerSetInt64Value(
     OutputPointerLeave(jPointer, condition, OutputPointerSetInt64Value,)
 
 #define OutputPointerLeavePointer(jPointer, condition) \
-    OutputPointerLeave(jPointer, condition, OutputPointerSetInt64Value, PtrToLong)
+    OutputPointerLeave(jPointer, condition, OutputPointerSetInt64Value, PtrToLong,)
 
-#define OutputPointerLeaveString(jPointer, condition) \
-    OutputPointerLeave(jPointer, condition, OutputPointerSetStringValue,)
+#define OutputPointerLeaveString(jPointer, length, condition) \
+    OutputPointerLeave(jPointer, condition, OutputPointerSetStringValue,,length)
 
 ///////////////////////////////////////////////////////////////////////////
-// Ksqlite + SQLite 1 to 1 mapping
+// Ksqlite 1 to 1 mapping
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -2035,6 +2004,72 @@ Java_ksqlite_KsqliteJni_ksqlite_1cancel_1auto_1extension(
     MutexLeave(KHS);
     return rc;
 }
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_ksqlite_1prepare_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jbyteArray sql,
+    jint maxBytes,
+    jobject outStmt,
+    jobject outOffset
+) {
+    const auto zSql = ByteArrayToBuffer(sql, maxBytes);
+    OutputPointerEnterPointer(sqlite3_stmt*, outStmt);
+    OutputPointerEnterInt32(outOffset);
+
+    const auto rc = ksqlite_prepare_v2(
+        LongTo_s3(db),
+        reinterpret_cast<const char*>(zSql),
+        maxBytes,
+        outStmt_,
+        outOffset_
+    );
+
+    OutputPointerLeaveInt32(outOffset, rc == SQLITE_OK);
+    OutputPointerLeavePointer(outStmt, rc == SQLITE_OK);
+    sqlite3_free(zSql);
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_ksqlite_1prepare_1v3(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jbyteArray sql,
+    jint maxBytes,
+    jint flags,
+    jobject outStmt,
+    jobject outOffset
+) {
+    const auto zSql = ByteArrayToBuffer(sql, maxBytes);
+    OutputPointerEnterPointer(sqlite3_stmt*, outStmt);
+    OutputPointerEnterInt32(outOffset);
+
+    const auto rc = ksqlite_prepare_v3(
+        LongTo_s3(db),
+        reinterpret_cast<const char*>(zSql),
+        maxBytes,
+        flags,
+        outStmt_,
+        outOffset_
+    );
+
+    OutputPointerLeaveInt32(outOffset, rc == SQLITE_OK);
+    OutputPointerLeavePointer(outStmt, rc == SQLITE_OK);
+    sqlite3_free(zSql);
+
+    return rc;
+}
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite 1 to 1 mapping
+///////////////////////////////////////////////////////////////////////////
 
 extern "C"
 JNIEXPORT jlong JNICALL
@@ -2189,13 +2224,13 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1blob64(
     jclass clazz,
     jlong stmt,
     jint index,
-    jobject buffer,
+    jlong buffer,
     jlong size,
     jobject destructor
 ) {
     const auto pStmt = LongTo_s3_stmt(stmt);
-    const auto pBuffer = BufferDirectAddress(buffer);
-    const auto freeable = AllocateFreeableTarget(buffer, destructor);
+    const auto pBuffer = LongToPtr(buffer);
+    const auto freeable = AllocateFreeableTarget(nullptr, destructor);
     const auto destroyer = FreeableDestroyerPush(pBuffer, freeable);
 
     return sqlite3_bind_blob64(pStmt, index, pBuffer, size, destroyer);
@@ -2306,21 +2341,15 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text(
     jclass clazz,
     jlong stmt,
     jint index,
-    jstring text,
-    jint size,
-    jboolean computeSize
+    jstring text
 ) {
     const auto pStmt = LongTo_s3_stmt(stmt);
-    size_t textSize = 0;
-    const auto buffer = JstringToUtf8Out(text, &textSize);
+    int bufferSize = 0;
+    const auto buffer = JstringToUtf8Out(text, &bufferSize);
     const auto freeable = AllocateFreeablePointer(buffer, nullptr);
     const auto pDestructor = FreeableDestroyerPush(buffer, freeable);
 
-    if (computeSize == JNI_TRUE) {
-        size = static_cast<jint>(textSize);
-    }
-
-    return sqlite3_bind_text(pStmt, index, buffer, size, pDestructor);
+    return sqlite3_bind_text(pStmt, index, buffer, bufferSize, pDestructor);
 }
 
 extern "C"
@@ -2330,14 +2359,14 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text64(
     jclass clazz,
     jlong stmt,
     jint index,
-    jobject buffer,
+    jlong buffer,
     jlong size,
     jobject destructor,
     jint encoding
 ) {
     const auto pStmt = LongTo_s3_stmt(stmt);
-    const auto pBuffer = reinterpret_cast<char*>(BufferDirectAddress(buffer));
-    const auto freeable = AllocateFreeableTarget(buffer, destructor);
+    const auto pBuffer = reinterpret_cast<char*>(LongToPtr(buffer));
+    const auto freeable = AllocateFreeableTarget(nullptr, destructor);
     const auto destroyer = FreeableDestroyerPush(pBuffer, freeable);
 
     return sqlite3_bind_text64(pStmt, index, pBuffer, size, destroyer, encoding);
@@ -2909,13 +2938,13 @@ Java_ksqlite_KsqliteJni_sqlite3_1config(
             return sqlite3_config(id);
         }
 
-            // [ByteBuffer, Int, Int]
+            // [Long, Int, Int]
         case SQLITE_CONFIG_PAGECACHE:
         case SQLITE_CONFIG_HEAP: {
             ArrayLengthEnsure(args, 3);
             return sqlite3_config(
                 id,
-                BufferDirectAddress(ArrayObjectGet(args, 0, KJV.byteBuffer)),
+                LongToPtr(ArrayLongGet(args, 0)),
                 ArrayIntGet(args, 1),
                 ArrayIntGet(args, 2)
             );
@@ -3345,13 +3374,13 @@ Java_ksqlite_KsqliteJni_sqlite3_1db_1config(
             return rc;
         }
 
-            // [ByteBuffer, Int, Int]
+            // [Long, Int, Int]
         case SQLITE_CONFIG_LOOKASIDE: {
             ArrayLengthEnsure(args, 3);
             return sqlite3_db_config(
                 pDb,
                 option,
-                BufferDirectAddress(ArrayObjectGet(args, 0, KJV.byteBuffer)),
+                LongToPtr(ArrayLongGet(args, 0)),
                 ArrayIntGet(args, 1),
                 ArrayIntGet(args, 2)
             );
@@ -3411,6 +3440,17 @@ Java_ksqlite_KsqliteJni_sqlite3_1db_1handle(
     jlong stmt
 ) {
     return PtrToLong(sqlite3_db_handle(LongTo_s3_stmt(stmt)));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1db_1name(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jint index
+) {
+    return Utf8ToJstring(sqlite3_db_name(LongTo_s3(db), index));
 }
 
 extern "C"
@@ -3492,7 +3532,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1deserialize(
     jclass clazz,
     jlong db,
     jstring schema,
-    jobject buffer,
+    jlong buffer,
     jlong dbSize,
     jlong bufferSize,
     jint flags
@@ -3500,7 +3540,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1deserialize(
     ReturnWithString(schema, sqlite3_deserialize(
         LongTo_s3(db),
         schema_,
-        static_cast<unsigned char*>(BufferDirectAddress(buffer)),
+        static_cast<unsigned char*>(LongToPtr(buffer)),
         dbSize,
         bufferSize,
         flags
@@ -3600,7 +3640,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1exec(
 
     OutputPointerEnterString(errorMessage);
     const auto rc = sqlite3_exec(pDb, zSql, execCaller, callback, errorMessage_);
-    OutputPointerLeaveString(errorMessage, rc == SQLITE_OK);
+    OutputPointerLeaveString(errorMessage, -1, rc == SQLITE_OK);
 
     sqlite3_free(*errorMessage_);
     sqlite3_free(zSql);
@@ -3669,9 +3709,9 @@ JNIEXPORT void JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1free(
     JNIEnv* env,
     jclass clazz,
-    jobject buffer
+    jlong buffer
 ) {
-    sqlite3_free(BufferDirectAddress(buffer));
+    sqlite3_free(LongToPtr(buffer));
 }
 
 extern "C"
@@ -3702,7 +3742,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1get_1auxdata(
     jlong context,
     jint index
 ) {
-    // TODO: implement sqlite3_get_auxdata()
+    return PtrToLong(sqlite3_get_auxdata(LongTo_s3_context(context), index));
 }
 
 extern "C"
@@ -3772,10 +3812,9 @@ JNIEXPORT jint JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1keyword_1check(
     JNIEnv* env,
     jclass clazz,
-    jstring word,
-    jint size
+    jstring word
 ) {
-    ReturnWithString(word, sqlite3_keyword_check())
+    ReturnWithString(word, sqlite3_keyword_check(word_, word_size));
 }
 
 extern "C"
@@ -3784,7 +3823,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1keyword_1count(
     JNIEnv* env,
     jclass clazz
 ) {
-    // TODO: implement sqlite3_keyword_count()
+    return sqlite3_keyword_count();
 }
 
 extern "C"
@@ -3795,7 +3834,12 @@ Java_ksqlite_KsqliteJni_sqlite3_1keyword_1name(
     jint index,
     jobject name
 ) {
-    // TODO: implement sqlite3_keyword_name()
+    OutputPointerEnterStringConst(name);
+    int length = 0;
+    const auto rc = sqlite3_keyword_name(index, name_, &length);
+    OutputPointerLeaveString(name, length, rc == SQLITE_OK);
+
+    return rc;
 }
 
 extern "C"
@@ -3805,7 +3849,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1last_1insert_1rowid(
     jclass clazz,
     jlong db
 ) {
-    // TODO: implement sqlite3_last_insert_rowid()
+    return sqlite3_last_insert_rowid(LongTo_s3(db));
 }
 
 extern "C"
@@ -3814,7 +3858,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1libversion(
     JNIEnv* env,
     jclass clazz
 ) {
-    // TODO: implement sqlite3_libversion()
+    return Utf8ToJstring(sqlite3_libversion());
 }
 
 extern "C"
@@ -3823,7 +3867,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1libversion_1number(
     JNIEnv* env,
     jclass clazz
 ) {
-    // TODO: implement sqlite3_libversion_number()
+    return sqlite3_libversion_number();
 }
 
 extern "C"
@@ -3833,9 +3877,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1limit(
     jclass clazz,
     jlong db,
     jint id,
-    jint new_val
+    jint newVal
 ) {
-    // TODO: implement sqlite3_limit()
+    return sqlite3_limit(LongTo_s3(db), id, newVal);
 }
 
 extern "C"
@@ -3843,10 +3887,12 @@ JNIEXPORT void JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1log(
     JNIEnv* env,
     jclass clazz,
-    jint error_code,
+    jint errorCode,
     jstring message
 ) {
-    // TODO: implement sqlite3_log()
+    const auto pMessage = JstringToUtf8(message);
+    sqlite3_log(errorCode, pMessage);
+    sqlite3_free(pMessage);
 }
 
 extern "C"
@@ -3856,7 +3902,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1malloc(
     jclass clazz,
     jint size
 ) {
-    // TODO: implement sqlite3_malloc()
+    return PtrToLong(sqlite3_malloc(size));
 }
 
 extern "C"
@@ -3866,7 +3912,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1malloc64(
     jclass clazz,
     jlong size
 ) {
-    // TODO: implement sqlite3_malloc64()
+    return PtrToLong(sqlite3_malloc64(size));
 }
 
 extern "C"
@@ -3875,7 +3921,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1memory_1used(
     JNIEnv* env,
     jclass clazz
 ) {
-    // TODO: implement sqlite3_memory_used()
+    return sqlite3_memory_used();
 }
 
 extern "C"
@@ -3883,9 +3929,9 @@ JNIEXPORT jlong JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1memory_1highwater(
     JNIEnv* env,
     jclass clazz,
-    jint reset_flag
+    jint resetFlag
 ) {
-    // TODO: implement sqlite3_memory_highwater()
+    return sqlite3_memory_highwater(resetFlag);
 }
 
 extern "C"
@@ -3893,9 +3939,9 @@ JNIEXPORT jlong JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1msize(
     JNIEnv* env,
     jclass clazz,
-    jobject buffer
+    jlong buffer
 ) {
-    // TODO: implement sqlite3_msize()
+    return static_cast<jlong>(sqlite3_msize(LongToPtr(buffer)));
 }
 
 extern "C"
@@ -3906,5 +3952,110 @@ Java_ksqlite_KsqliteJni_sqlite3_1next_1stmt(
     jlong db,
     jlong stmt
 ) {
-    // TODO: implement sqlite3_next_stmt()
+    return PtrToLong(sqlite3_next_stmt(LongTo_s3(db), LongTo_s3_stmt(stmt)));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1open(
+    JNIEnv* env,
+    jclass clazz,
+    jstring fileName,
+    jobject outDb
+) {
+    const auto zFileName = JstringToUtf8(fileName);
+
+    OutputPointerEnterPointer(sqlite3*, outDb);
+    const auto rc = sqlite3_open(zFileName, outDb_);
+    OutputPointerLeavePointer(outDb, rc == SQLITE_OK);
+
+    sqlite3_free(zFileName);
+
+    if (rc == SQLITE_OK) {
+        pushDbState(env, *outDb_);
+    }
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1open_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jstring fileName,
+    jobject outDb,
+    jint flags,
+    jstring vfs
+) {
+    const auto zFileName = JstringToUtf8(fileName);
+    const auto zVfs = JstringToUtf8(vfs);
+
+    OutputPointerEnterPointer(sqlite3*, outDb);
+    const auto rc = sqlite3_open_v2(zFileName, outDb_, flags, zVfs);
+    OutputPointerLeavePointer(outDb, rc == SQLITE_OK);
+
+    sqlite3_free(zVfs);
+    sqlite3_free(zFileName);
+
+    if (rc == SQLITE_OK) {
+        pushDbState(env, *outDb_);
+    }
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1overload_1function(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring name,
+    jint nArg
+) {
+    ReturnWithString(name, sqlite3_overload_function(LongTo_s3(db), name_, nArg));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1prepare_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring sql,
+    jobject outStmt
+) {
+    const auto pDb = LongTo_s3(db);
+    int nByte = 0;
+    const auto zSql = JstringToUtf8Out(sql, &nByte);
+
+    OutputPointerEnterPointer(sqlite3_stmt*, outStmt);
+    const auto rc = sqlite3_prepare_v2(pDb, zSql, nByte, outStmt_, nullptr);
+    OutputPointerLeavePointer(outStmt, rc == SQLITE_OK);
+    sqlite3_free(zSql);
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1prepare_1v3(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring sql,
+    jint flags,
+    jobject outStmt
+) {
+    const auto pDb = LongTo_s3(db);
+    int nByte = 0;
+    const auto zSql = JstringToUtf8Out(sql, &nByte);
+
+    OutputPointerEnterPointer(sqlite3_stmt*, outStmt);
+    const auto rc = sqlite3_prepare_v3(pDb, zSql, nByte, flags, outStmt_, nullptr);
+    OutputPointerLeavePointer(outStmt, rc == SQLITE_OK);
+    sqlite3_free(zSql);
+
+    return rc;
 }

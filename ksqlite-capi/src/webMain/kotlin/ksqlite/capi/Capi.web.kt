@@ -82,7 +82,7 @@ import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3FileOpenFlag
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
@@ -108,7 +108,6 @@ import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParamStackScoped
-import ksqlite.capi.types.useParams
 import ksqlite.capi.types.useParamsStackScoped
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
@@ -1009,7 +1008,7 @@ public actual fun sqlite3_open(
 public actual fun sqlite3_open_v2(
     fileName: String,
     outDb: Sqlite3OutputParam,
-    flags: Sqlite3FileOpenFlag.Valid,
+    flags: Sqlite3OpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result = convertResult(heapScoped {
     useParam(outDb) { dbPtr ->
@@ -1030,45 +1029,17 @@ public actual fun sqlite3_overload_function(
     exports.sqlite3_overload_function(db.pointer, name.allocateUtf8Pointer(), nArg)
 })
 
-/**
- * Common code for [sqlite3_prepare_v2] and [sqlite3_prepare_v3] overloads with [ByteArray].
- */
-private inline fun prepare(
-    sql: ByteArray,
-    maxBytes: Int,
-    outStmt: Sqlite3StmtOutputParam,
-    outTailOffset: Int32OutputParam?,
-    call: (
-        sqlPtr: WasmPointer,
-        stmtPtr: WasmPointer,
-        tailPtr: WasmPointer
-    ) -> Int
-): Sqlite3Result = convertResult(heapScoped {
-    useParams(outStmt, outTailOffset) { stmtPtr, offsetPtr ->
-        bufferScoped(sql, memory, maxBytes) { begin ->
-            val endPointer = offsetPtr.orNull?.let { allocatePointer() }
-            val resultCode = call(begin, stmtPtr, endPointer.notNull)
-
-            endPointer?.let { end ->
-                val startAddress = end.toLong()
-                val endAddress = memory.peekPtr(begin).toLong()
-                memory.poke32(offsetPtr, (endAddress - startAddress).toInt())
-            }
-
-            resultCode
-        }
-    }
-})
-
 public actual fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: ByteArray,
     maxBytes: Int,
     outStmt: Sqlite3StmtOutputParam,
-    outTailOffset: Int32OutputParam?
-): Sqlite3Result = prepare(sql, maxBytes, outStmt, outTailOffset) { sqlPtr, stmtPtr, tailPtr ->
-    exports.sqlite3_prepare_v2(db.pointer, sqlPtr, maxBytes, stmtPtr, tailPtr)
-}
+    outOffset: Int32OutputParam?
+): Sqlite3Result = convertResult(useParamsStackScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
+    bufferScoped(sql, size = maxBytes) { sqlPtr ->
+        exports.ksqlite_prepare_v2(db.pointer, sqlPtr, maxBytes, stmtPtr, offsetPtr)
+    }
+})
 
 public actual fun sqlite3_prepare_v2(
     db: sqlite3,
@@ -1087,11 +1058,13 @@ public actual fun sqlite3_prepare_v3(
     maxBytes: Int,
     flags: Sqlite3PrepareFlag?,
     outStmt: Sqlite3StmtOutputParam,
-    outTailOffset: Int32OutputParam?
-): Sqlite3Result = prepare(sql, maxBytes, outStmt, outTailOffset) { sqlPtr, stmtPtr, tailPtr ->
-    val prepFlags = flags?.value ?: 0
-    exports.sqlite3_prepare_v3(db.pointer, sqlPtr, maxBytes, prepFlags, stmtPtr, tailPtr)
-}
+    outOffset: Int32OutputParam?
+): Sqlite3Result = convertResult(useParamsStackScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
+    bufferScoped(sql, size = maxBytes) { sqlPtr ->
+        val prepFlags = flags?.value ?: 0
+        exports.ksqlite_prepare_v3(db.pointer, sqlPtr, maxBytes, prepFlags, stmtPtr, offsetPtr)
+    }
+})
 
 public actual fun sqlite3_prepare_v3(
     db: sqlite3,

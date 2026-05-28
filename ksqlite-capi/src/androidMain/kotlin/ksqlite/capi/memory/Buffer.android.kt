@@ -2,16 +2,11 @@ package ksqlite.capi.memory
 
 import ksqlite.nativeBufferRead
 import ksqlite.nativeBufferWrite
-import ksqlite.requireBuffer
 
 public actual class Buffer internal constructor(
-    private val pointer: JniPointer,
+    internal val pointer: JniPointer,
     byteSize: Long
 ) : BufferBase(byteSize) {
-
-    internal val buffer by lazy {
-        requireBuffer(pointer, byteSize)
-    }
 
     actual override val address: Long
         get() = pointer
@@ -23,7 +18,7 @@ public actual class Buffer internal constructor(
         destinationOffset: Int
     ) {
         nativeBufferRead(
-            buffer = buffer,
+            buffer = pointer,
             destination = destination,
             size = size,
             sourceOffset = sourceOffset,
@@ -38,7 +33,7 @@ public actual class Buffer internal constructor(
         destinationOffset: Long
     ) {
         nativeBufferWrite(
-            buffer = buffer,
+            buffer = pointer,
             source = source,
             size = size,
             sourceOffset = sourceOffset,

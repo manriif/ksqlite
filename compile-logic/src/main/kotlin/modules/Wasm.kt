@@ -42,7 +42,7 @@ private val WasmExtraResourceFileNames = listOf(
  * Some aren't that meaningful to use in web platforms but are exported to align at maximum with
  * other platforms.
  */
-private val WasmExtraExportedFunctions = listOf(
+private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "autovacuum_pages",
     "backup_finish",
     "backup_init",
@@ -95,7 +95,7 @@ fun configureSqliteWasmTrunk(
     val defaultExportedFunctions = exportedFunctionFile.readText()
 
     sqliteDirectory.resolve(EXPORTED_FUNCTIONS).outputStream().bufferedWriter().use { output ->
-        (KsqliteFunctions + WasmExtraExportedFunctions).forEach { name ->
+        WasmExtraExportedFunctions.forEach { name ->
             output.appendLine("_$name")
         }
 

@@ -47,8 +47,12 @@ import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3FileControlOpcode
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
+import ksqlite.capi.types.Sqlite3OutputParam
+import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.Sqlite3StmtOutputParam
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
@@ -62,6 +66,8 @@ import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParams
 import ksqlite.ksqliteLoadLibrary
 import ksqlite.ksqlite_cancel_auto_extension
+import ksqlite.ksqlite_prepare_v2
+import ksqlite.ksqlite_prepare_v3
 import ksqlite.ksqlite_auto_extension as jni_ksqlite_auto_extension
 import ksqlite.sqlite3_autovacuum_pages as jni_sqlite3_autovacuum_pages
 import ksqlite.sqlite3_backup_finish as jni_sqlite3_backup_finish
@@ -167,6 +173,11 @@ import ksqlite.sqlite3_memory_highwater as jni_sqlite3_memory_highwater
 import ksqlite.sqlite3_memory_used as jni_sqlite3_memory_used
 import ksqlite.sqlite3_msize as jni_sqlite3_msize
 import ksqlite.sqlite3_next_stmt as jni_sqlite3_next_stmt
+import ksqlite.sqlite3_open as jni_sqlite3_open
+import ksqlite.sqlite3_open_v2 as jni_sqlite3_open_v2
+import ksqlite.sqlite3_overload_function as jni_sqlite3_overload_function
+import ksqlite.sqlite3_prepare_v2 as jni_sqlite3_prepare_v2
+import ksqlite.sqlite3_prepare_v3 as jni_sqlite3_prepare_v3
 
 ///////////////////////////////////////////////////////////////////////////
 // Library
@@ -257,7 +268,7 @@ public actual fun sqlite3_bind_blob64(
     jni_sqlite3_bind_blob64(
         stmt.pointer,
         index,
-        buffer.buffer,
+        buffer.pointer,
         size,
         destructorHandler(buffer, destroy)
     )
@@ -326,7 +337,7 @@ public actual fun sqlite3_bind_text64(
     jni_sqlite3_bind_text64(
         stmt.pointer,
         index,
-        buffer.buffer,
+        buffer.pointer,
         size,
         destructorHandler(buffer, destroy),
         encoding.utf8OrThrow().value
@@ -537,7 +548,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
     option = option,
     logFunctionPointer = { cb, appData -> callbackHandler(cb, appData, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, appData -> callbackHandler(cb, appData, ::ConfigSqlLogHandler) },
-    bufferPointer = Buffer::buffer,
+    bufferPointer = Buffer::pointer,
     keyedStableRefPointer = null,
     rowidInView = {
         useParam(param) { paramPtr ->
@@ -649,7 +660,7 @@ public actual fun sqlite3_db_config(
     option: Sqlite3DbConfigOption,
 ): Sqlite3Result = commonDbConfig(
     option = option,
-    bufferPointer = Buffer::buffer,
+    bufferPointer = Buffer::pointer,
     outParamConfig = {
         useParam(state) { statePtr ->
             jni_sqlite3_db_config(db.pointer, id, arrayOf(value, statePtr))
@@ -718,7 +729,7 @@ public actual fun sqlite3_deserialize(
     jni_sqlite3_deserialize(
         db.pointer,
         schema,
-        buffer.buffer,
+        buffer.pointer,
         dbSize,
         bufferSize,
         flags?.value ?: 0
@@ -778,7 +789,7 @@ public actual fun sqlite3_finalize(stmt: sqlite3_stmt?): Sqlite3Result =
     stmt.deallocateNullable { jni_sqlite3_finalize(stmt?.pointer.notNull) }
 
 public actual fun sqlite3_free(buffer: Buffer?): Unit =
-    jni_sqlite3_free(buffer?.buffer)
+    jni_sqlite3_free(buffer?.pointer.notNull)
 
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     jni_sqlite3_get_autocommit(db.pointer)
@@ -853,7 +864,7 @@ public actual fun sqlite3_memory_highwater(resetFlag: Int): Long =
     jni_sqlite3_memory_highwater(resetFlag)
 
 public actual fun sqlite3_msize(buffer: Buffer?): ULong =
-    jni_sqlite3_msize(buffer?.buffer).toULong()
+    jni_sqlite3_msize(buffer?.pointer.notNull).toULong()
 
 public actual fun sqlite3_next_stmt(
     db: sqlite3,
@@ -861,65 +872,70 @@ public actual fun sqlite3_next_stmt(
 ): sqlite3_stmt? = jni_sqlite3_next_stmt(db.pointer, stmt?.pointer.notNull)
     .wrapOrNull(::sqlite3_stmt)
 
-/*public actual fun sqlite3_open(
+public actual fun sqlite3_open(
     fileName: String,
     outDb: Sqlite3OutputParam
-): Sqlite3Result = convertResult(memScoped {
-    useParam(outDb) { dbPtr ->
-        jni_sqlite3_open(fileName.allocateUtf8(), dbPtr)
-    }
+): Sqlite3Result = convertResult(useParam(outDb) { dbPtr ->
+    sqlite3_open_v2(fileName, outDb, Sqlite3OpenFlag.READWRITE or Sqlite3OpenFlag.CREATE, null)
+    jni_sqlite3_open(fileName, dbPtr!!)
 })
 
 public actual fun sqlite3_open_v2(
     fileName: String,
     outDb: Sqlite3OutputParam,
-    flags: Sqlite3FileOpenFlag.Valid,
+    flags: Sqlite3OpenFlag.Valid,
     vfs: String?
-): Sqlite3Result = convertResult(memScoped {
-    useParam(outDb) { dbPtr ->
-        jni_sqlite3_open_v2(fileName.allocateUtf8(), dbPtr, flags.value, vfs.allocateUtf8())
-    }
+): Sqlite3Result = convertResult(useParam(outDb) { dbPtr ->
+    jni_sqlite3_open_v2(fileName, dbPtr!!, flags.value, vfs)
 })
 
 public actual fun sqlite3_overload_function(
     db: sqlite3,
     name: String,
     nArg: Int
-): Sqlite3Result = convertResult(memScoped {
-    jni_sqlite3_overload_function(db.pointer, name.allocateUtf8(), nArg)
+): Sqlite3Result = convertResult(jni_sqlite3_overload_function(db.pointer, name, nArg))
+
+public actual fun sqlite3_prepare_v2(
+    db: sqlite3,
+    sql: ByteArray,
+    maxBytes: Int,
+    outStmt: Sqlite3StmtOutputParam,
+    outOffset: Int32OutputParam?
+): Sqlite3Result = convertResult(useParams(outStmt, outOffset) { stmtPtr, offsetPtr ->
+    ksqlite_prepare_v2(db.pointer, sql, maxBytes, stmtPtr!!, offsetPtr)
 })
 
 public actual fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
-    size: Int?,
+    outStmt: Sqlite3StmtOutputParam
+): Sqlite3Result = convertResult(useParam(outStmt) { stmtPtr ->
+    jni_sqlite3_prepare_v2(db.pointer, sql, stmtPtr!!)
+})
+
+public actual fun sqlite3_prepare_v3(
+    db: sqlite3,
+    sql: ByteArray,
+    maxBytes: Int,
+    flags: Sqlite3PrepareFlag?,
     outStmt: Sqlite3StmtOutputParam,
-    outTail: Utf8OutputParam?
-): Sqlite3Result = convertResult(memScoped {
-    useParams(outStmt, outTail) { stmtPtr, tailPtr ->
-        val cSql = sql.allocateUtf8()
-        val nByte = size ?: cSql.byteSize().toInt()
-        jni_sqlite3_prepare_v2(db.pointer, cSql, nByte, stmtPtr, tailPtr)
-    }
+    outOffset: Int32OutputParam?
+): Sqlite3Result = convertResult(useParams(outStmt, outOffset) { stmtPtr, offsetPtr ->
+    val prepFlags = flags?.value ?: 0
+    ksqlite_prepare_v3(db.pointer, sql, maxBytes, prepFlags, stmtPtr!!, offsetPtr)
 })
 
 public actual fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: String,
-    size: Int?,
     flags: Sqlite3PrepareFlag?,
-    outStmt: Sqlite3StmtOutputParam,
-    outTail: Utf8OutputParam?
-): Sqlite3Result = convertResult(memScoped {
-    useParams(outStmt, outTail) { stmtPtr, tailPtr ->
-        val cSql = sql.allocateUtf8()
-        val nByte = size ?: cSql.byteSize().toInt()
-        val prepFlags = flags?.value ?: 0
-        jni_sqlite3_prepare_v3(db.pointer, cSql, nByte, prepFlags, stmtPtr, tailPtr)
-    }
+    outStmt: Sqlite3StmtOutputParam
+): Sqlite3Result = convertResult(useParam(outStmt) { stmtPtr ->
+    val prepFlags = flags?.value ?: 0
+    jni_sqlite3_prepare_v3(db.pointer, sql, prepFlags, stmtPtr!!)
 })
 
-public actual fun sqlite3_preupdate_blobwrite(db: sqlite3): Int =
+/*public actual fun sqlite3_preupdate_blobwrite(db: sqlite3): Int =
     jni_sqlite3_preupdate_blobwrite(db.pointer)
 
 public actual fun sqlite3_preupdate_count(db: sqlite3): Int =

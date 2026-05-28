@@ -4,22 +4,13 @@ package ksqlite.capi
 
 //import ksqlite.sqlite3_create_module_v2 as native_sqlite3_create_module_v2
 //import ksqlite.sqlite3_drop_modules as native_sqlite3_drop_modules
-import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.CPointerVar
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.allocPointerTo
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.pointed
-import kotlinx.cinterop.ptr
 import kotlinx.cinterop.refTo
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKStringFromUtf8
-import kotlinx.cinterop.usePinned
-import kotlinx.cinterop.value
 import ksqlite.SQLITE_TRANSIENT
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
@@ -72,6 +63,7 @@ import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.stableRefDisposer
+import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.useMemoryManager
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
@@ -86,7 +78,7 @@ import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3FileOpenFlag
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
@@ -102,7 +94,6 @@ import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
 import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.Utf8OutputParam
-import ksqlite.capi.types.s3_stmt
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
@@ -119,6 +110,8 @@ import ksqlite.capi.types.useParams
 import ksqlite.capi.types.useParamsMemScoped
 import ksqlite.ksqlite_auto_extension
 import ksqlite.ksqlite_cancel_auto_extension
+import ksqlite.ksqlite_prepare_v2
+import ksqlite.ksqlite_prepare_v3
 import ksqlite.sqlite3_autovacuum_pages as native_sqlite3_autovacuum_pages
 import ksqlite.sqlite3_backup_finish as native_sqlite3_backup_finish
 import ksqlite.sqlite3_backup_init as native_sqlite3_backup_init
@@ -695,7 +688,6 @@ public actual fun sqlite3_column_text(
     stmt: sqlite3_stmt,
     index: Int
 ): String? = native_sqlite3_column_text(stmt.pointer, index)
-    ?.reinterpret<ByteVar>()
     ?.toKStringFromUtf8()
 
 public actual fun sqlite3_column_type(
@@ -1126,7 +1118,7 @@ public actual fun sqlite3_open(
 public actual fun sqlite3_open_v2(
     fileName: String,
     outDb: Sqlite3OutputParam,
-    flags: Sqlite3FileOpenFlag.Valid,
+    flags: Sqlite3OpenFlag.Valid,
     vfs: String?
 ): Sqlite3Result = convertResult(memScoped {
     useParam(outDb) { dbPtr ->
@@ -1140,45 +1132,15 @@ public actual fun sqlite3_overload_function(
     nArg: Int
 ): Sqlite3Result = convertResult(native_sqlite3_overload_function(db.pointer, name, nArg))
 
-/**
- * Common code for [sqlite3_prepare_v2] and [sqlite3_prepare_v3] overloads with [ByteArray].
- */
-private inline fun prepare(
-    sql: ByteArray,
-    outStmt: Sqlite3StmtOutputParam,
-    outTailOffset: Int32OutputParam?,
-    call: (
-        sqlPtr: CPointer<ByteVar>,
-        stmtPtr: CPointer<CPointerVar<s3_stmt>>?,
-        tailPtr: CPointer<CPointerVar<ByteVar>>?
-    ) -> Int
-): Sqlite3Result = convertResult(memScoped {
-    useParams(outStmt, outTailOffset) { stmtPtr, offsetPtr ->
-        sql.usePinned { pinned ->
-            val begin = pinned.addressOf(0)
-            val endPointer = offsetPtr?.let { allocPointerTo<ByteVar>() }
-            val resultCode = call(begin, stmtPtr, endPointer?.ptr)
-
-            endPointer?.value?.let { end ->
-                val startAddress = end.rawValue.toLong()
-                val endAddress = begin.rawValue.toLong()
-                offsetPtr.pointed.value = (endAddress - startAddress).toInt()
-            }
-
-            resultCode
-        }
-    }
-})
-
 public actual fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: ByteArray,
     maxBytes: Int,
     outStmt: Sqlite3StmtOutputParam,
-    outTailOffset: Int32OutputParam?
-): Sqlite3Result = prepare(sql, outStmt, outTailOffset) { sqlPtr, stmtPtr, tailPtr ->
-    native_sqlite3_prepare_v2(db.pointer, sqlPtr, maxBytes, stmtPtr, tailPtr)
-}
+    outOffset: Int32OutputParam?
+): Sqlite3Result = convertResult(useParamsMemScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
+    ksqlite_prepare_v2(db.pointer, sql.refTo(0), maxBytes, stmtPtr, offsetPtr)
+})
 
 public actual fun sqlite3_prepare_v2(
     db: sqlite3,
@@ -1197,11 +1159,11 @@ public actual fun sqlite3_prepare_v3(
     maxBytes: Int,
     flags: Sqlite3PrepareFlag?,
     outStmt: Sqlite3StmtOutputParam,
-    outTailOffset: Int32OutputParam?
-): Sqlite3Result = prepare(sql, outStmt, outTailOffset) { sqlPtr, stmtPtr, tailPtr ->
-    val prepFlags = flags?.value?.convert() ?: 0U
-    native_sqlite3_prepare_v3(db.pointer, sqlPtr, maxBytes, prepFlags, stmtPtr, tailPtr)
-}
+    outOffset: Int32OutputParam?
+): Sqlite3Result = convertResult(useParamsMemScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
+    val prepFlags = flags?.value?.convert() ?: 0u
+    ksqlite_prepare_v3(db.pointer, sql.refTo(0), maxBytes, prepFlags, stmtPtr, offsetPtr)
+})
 
 public actual fun sqlite3_prepare_v3(
     db: sqlite3,
@@ -1211,7 +1173,7 @@ public actual fun sqlite3_prepare_v3(
 ): Sqlite3Result = convertResult(memScoped {
     useParam(outStmt) { stmtPtr ->
         val csql = sql.cstr
-        val prepFlags = flags?.value?.convert() ?: 0U
+        val prepFlags = flags?.value?.convert() ?: 0u
         native_sqlite3_prepare_v3(db.pointer, csql.ptr, csql.size, prepFlags, stmtPtr, null)
     }
 })
@@ -1717,7 +1679,7 @@ public actual fun sqlite3_value_subtype(value: sqlite3_value): UInt =
     native_sqlite3_value_subtype(value.pointer)
 
 public actual fun sqlite3_value_text(value: sqlite3_value): String? =
-    native_sqlite3_value_text(value.pointer)?.reinterpret<ByteVar>()?.toKStringFromUtf8()
+    native_sqlite3_value_text(value.pointer)?.toKStringFromUtf8()
 
 public actual fun sqlite3_value_type(value: sqlite3_value): Sqlite3DataType =
     convertDataType(native_sqlite3_value_type(value.pointer))

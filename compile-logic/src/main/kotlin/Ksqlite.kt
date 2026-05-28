@@ -18,6 +18,17 @@ import kotlin.reflect.KClass
 const val KSQLITE = "ksqlite"
 
 ///////////////////////////////////////////////////////////////////////////
+// Naming
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a new list with all items prefixed with [SQLITE3] and [joint].
+ */
+fun Iterable<String>.ksqlitePrefixed(joint: Char = '_'): List<String> {
+    return map { "${KSQLITE}${joint}${it}" }
+}
+
+///////////////////////////////////////////////////////////////////////////
 // Functions
 ///////////////////////////////////////////////////////////////////////////
 
@@ -26,10 +37,10 @@ const val KSQLITE = "ksqlite"
  */
 val KsqliteFunctions = listOf(
     "auto_extension",
-    "cancel_auto_extension"
-).map { name ->
-    "${KSQLITE}_$name"
-}
+    "cancel_auto_extension",
+    "prepare_v2",
+    "prepare_v3",
+).ksqlitePrefixed()
 
 ///////////////////////////////////////////////////////////////////////////
 // Tasks

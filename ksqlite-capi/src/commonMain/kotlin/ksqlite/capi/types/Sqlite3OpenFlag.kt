@@ -10,7 +10,7 @@ package ksqlite.capi.types
  * [Opening A New Database Connection](https://sqlite.org/c3ref/open.html)
  * [sqlite3_vfs](https://sqlite.org/c3ref/vfs.html)
  */
-public sealed class Sqlite3FileOpenFlag(internal open val value: Int) {
+public sealed class Sqlite3OpenFlag(internal open val value: Int) {
 
     ///////////////////////////////////////////////////////////////////////////
     // Common DB + VFS
@@ -19,7 +19,7 @@ public sealed class Sqlite3FileOpenFlag(internal open val value: Int) {
     /**
      * Flag or ORed flags that meet SQLite requirements for opening a file.
      */
-    public sealed class Valid(value: Int) : Sqlite3FileOpenFlag(value) {
+    public sealed class Valid(value: Int) : Sqlite3OpenFlag(value) {
 
         /**
          * Returns a [Vfs] which could be used to add optional flags for VFS.
@@ -50,7 +50,7 @@ public sealed class Sqlite3FileOpenFlag(internal open val value: Int) {
     /**
      * Optional flag.
      */
-    public sealed class Optional(value: Int) : Sqlite3FileOpenFlag(value)
+    public sealed class Optional(value: Int) : Sqlite3OpenFlag(value)
 
     /**
      * The database is opened in read-only mode. If the database does not already exist, an error is
@@ -79,13 +79,13 @@ public sealed class Sqlite3FileOpenFlag(internal open val value: Int) {
      * The database is opened for reading and writing, and is created if it does not already exist.
      * This is the behavior that is always used for sqlite3_open() and sqlite3_open16().
      */
-    public data object CREATE : Sqlite3FileOpenFlag(0x00000004) {
+    public data object CREATE : Sqlite3OpenFlag(0x00000004) {
 
         /**
          * Returns a [Valid] which is ORed with [flag].
          */
         public infix fun or(flag: READWRITE): Valid {
-            return Valid.Masked(value or flag.value)
+            return flag or this
         }
     }
 
@@ -173,7 +173,7 @@ public sealed class Sqlite3FileOpenFlag(internal open val value: Int) {
     /**
      * Optional flag.
      */
-    public sealed class OptionalVfs(value: Int) : Sqlite3FileOpenFlag(value)
+    public sealed class OptionalVfs(value: Int) : Sqlite3OpenFlag(value)
 
     /**
      * The SQLITE_OPEN_DELETEONCLOSE flag means the file should be deleted when it is closed. The
