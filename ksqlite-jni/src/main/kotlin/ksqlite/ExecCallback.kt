@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for [sqlite3_exec].
+ * Callback for use with [sqlite3_exec].
  */
 public fun interface ExecCallback {
 

@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for the CONFIG_LOG option of [sqlite3_config].
+ * Callback for use with the CONFIG_LOG option of [sqlite3_config].
  */
 public fun interface ConfigLogCallback {
 

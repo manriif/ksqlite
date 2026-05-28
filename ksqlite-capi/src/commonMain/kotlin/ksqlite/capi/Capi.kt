@@ -1215,7 +1215,7 @@ public expect fun sqlite3_is_interrupted(db: sqlite3): Int
 public expect fun sqlite3_key(
     db: sqlite3,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result
 
 /**
@@ -1233,7 +1233,7 @@ public expect fun sqlite3_key_v2(
     db: sqlite3,
     dbName: String,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result
 
 /**
@@ -1386,7 +1386,7 @@ public expect fun sqlite3_open(
 public expect fun sqlite3_open_v2(
     fileName: String,
     outDb: Sqlite3OutputParam,
-    flags: Sqlite3OpenFlag.Valid,
+    flags: Sqlite3OpenFlag.Db,
     vfs: String?
 ): Sqlite3Result
 
@@ -1556,7 +1556,7 @@ public expect fun <AppData> sqlite3_progress_handler(
  */
 public expect fun sqlite3_randomness(
     size: Int,
-    buffer: Buffer?
+    buffer: Buffer
 )
 
 /**
@@ -1566,7 +1566,7 @@ public expect fun sqlite3_randomness(
  * [sqlite3_realloc()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_realloc(
-    buffer: Buffer?,
+    buffer: Buffer,
     size: Int
 ): Buffer?
 
@@ -1577,7 +1577,7 @@ public expect fun sqlite3_realloc(
  * [sqlite3_realloc64()](https://sqlite.org/c3ref/free.html)
  */
 public expect fun sqlite3_realloc64(
-    buffer: Buffer?,
+    buffer: Buffer,
     size: Long
 ): Buffer?
 
@@ -1593,7 +1593,7 @@ public expect fun sqlite3_realloc64(
 public expect fun sqlite3_rekey(
     db: sqlite3,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result
 
 /**
@@ -1611,7 +1611,7 @@ public expect fun sqlite3_rekey_v2(
     db: sqlite3,
     dbName: String,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result
 
 /**

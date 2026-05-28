@@ -907,24 +907,19 @@ public actual fun sqlite3_is_interrupted(db: sqlite3): Int =
 public actual fun sqlite3_key(
     db: sqlite3,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result = convertResult(bufferScoped(key) { keyPtr ->
-    exports.sqlite3_key(db.pointer, keyPtr, nKey ?: byteLength)
+    exports.sqlite3_key(db.pointer, keyPtr, nKey)
 })
 
 public actual fun sqlite3_key_v2(
     db: sqlite3,
     dbName: String,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result = convertResult(heapScoped {
     bufferScoped(key, memory) { keyPtr ->
-        exports.sqlite3_key_v2(
-            db.pointer,
-            dbName.allocateUtf8Pointer(),
-            keyPtr,
-            nKey ?: byteLength
-        )
+        exports.sqlite3_key_v2(db.pointer, dbName.allocateUtf8Pointer(), keyPtr, nKey)
     }
 })
 
@@ -1008,7 +1003,7 @@ public actual fun sqlite3_open(
 public actual fun sqlite3_open_v2(
     fileName: String,
     outDb: Sqlite3OutputParam,
-    flags: Sqlite3OpenFlag.Valid,
+    flags: Sqlite3OpenFlag.Db,
     vfs: String?
 ): Sqlite3Result = convertResult(heapScoped {
     useParam(outDb) { dbPtr ->
@@ -1132,46 +1127,41 @@ public actual fun <AppData> sqlite3_progress_handler(
 
 public actual fun sqlite3_randomness(
     size: Int,
-    buffer: Buffer?
-): Unit = exports.sqlite3_randomness(size, buffer?.pointer.notNull)
+    buffer: Buffer
+): Unit = exports.sqlite3_randomness(size, buffer.pointer)
 
 public actual fun sqlite3_realloc(
-    buffer: Buffer?,
+    buffer: Buffer,
     size: Int
 ): Buffer? = Buffer.from(
-    pointer = exports.sqlite3_realloc(buffer?.pointer.notNull, size),
+    pointer = exports.sqlite3_realloc(buffer.pointer, size),
     size = size.toLong()
 )
 
 public actual fun sqlite3_realloc64(
-    buffer: Buffer?,
+    buffer: Buffer,
     size: Long
 ): Buffer? = Buffer.from(
-    pointer = exports.sqlite3_realloc64(buffer?.pointer.notNull, size.toJsBigInt()),
+    pointer = exports.sqlite3_realloc64(buffer.pointer, size.toJsBigInt()),
     size = size
 )
 
 public actual fun sqlite3_rekey(
     db: sqlite3,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result = convertResult(bufferScoped(key) { keyPtr ->
-    exports.sqlite3_rekey(db.pointer, keyPtr, nKey ?: byteLength)
+    exports.sqlite3_rekey(db.pointer, keyPtr, nKey )
 })
 
 public actual fun sqlite3_rekey_v2(
     db: sqlite3,
     dbName: String,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result = convertResult(heapScoped {
     bufferScoped(key, memory) { keyPtr ->
-        exports.sqlite3_rekey_v2(
-            db.pointer,
-            dbName.allocateUtf8Pointer(),
-            keyPtr,
-            nKey ?: byteLength
-        )
+        exports.sqlite3_rekey_v2(db.pointer, dbName.allocateUtf8Pointer(), keyPtr, nKey)
     }
 })
 

@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for [sqlite3_commit_hook].
+ * Callback for use with [sqlite3_commit_hook].
  */
 public fun interface CommitHookCallback {
 

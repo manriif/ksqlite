@@ -114,8 +114,6 @@ static inline bool reportException(
 
 #define IfExceptionThrownClear(clear) if (reportException(env, clear))
 #define IfExceptionThrown IfExceptionThrownClear(false)
-#define IfExceptionNotThrownClear(clear) if (!reportException(env, clear))
-#define IfExceptionNotThrown IfExceptionNotThrownClear(false)
 
 ///////////////////////////////////////////////////////////////////////////
 // JNI reference management helpers
@@ -405,7 +403,6 @@ static void destroyHook(
         sqlite3_mutex_enter(pGuard->mutex);
     }
 
-    // Instance is optional
     if (hook.instance != nullptr) {
         HookClear(hook);
     }
@@ -413,7 +410,6 @@ static void destroyHook(
     jobject destructor = nullptr;
     jmethodID destroy = nullptr;
 
-    // Destructor is also optional but required for callback
     if (hook.destructor != nullptr) {
         destructor = LocalRefCreate(RequireNonNullJobject(hook.destructor));
         destroy = hook.destroy;
@@ -654,11 +650,12 @@ struct DbState : MutexGuarded {
         HookDestroyable collationCompare;
         Hook collationNeeded;
         Hook commitHook;
-        /*S3JniHook progress;
-        S3JniHook rollback;
-        S3JniHook trace;
-        S3JniHook update;
-        S3JniHook auth;*/
+        Hook preupdateHook;
+        Hook progressHandler;
+        Hook rollbackHook;
+        Hook trace;
+        Hook updateHook;
+        Hook walHook;
     } hooks;
 };
 
@@ -1106,7 +1103,7 @@ static void hookDestroyer(void* pHook) {
 #define FunctionHookLeave() LocalRefDestroy(instance)
 
 /**
- * Calls an instance of FunctionCallback.Func1 hook.
+ * Calls an instance of `FunctionCallback.Func1` hook.
  */
 static void callFunctionFunc1(
     Hook& hook,
@@ -1119,7 +1116,7 @@ static void callFunctionFunc1(
 }
 
 /**
- * Calls an instance of FunctionCallback.Func2 hook.
+ * Calls an instance of `FunctionCallback.Func2` hook.
  */
 static void callFunctionFunc2(
     Hook& hook,
@@ -1287,69 +1284,78 @@ static DbState* getDbState(
  * The hook's mutex is disabled during the function call to prevent dead lock as the function call
  * may invoke the destructor.
  */
-#define DbHookDestructorReplace(H, S, N, F, C)                          \
-    if (callback == nullptr && destructor != nullptr) {                 \
-        return SQLITE_MISUSE;                                           \
-    }                                                                   \
-                                                                        \
-    const auto pDb = LongTo_s3(db);                                     \
-    auto rc = SQLITE_OK;                                                \
-                                                                        \
-    DbStateMutexEnter(pDb);                                             \
-    const auto pHook = &dbState.hooks.H;                                \
-    auto& hook = *pHook;                                                \
-    hook.pGuard = nullptr;                                              \
-                                                                        \
-    if (callback != nullptr) {                                          \
-        rc = F;                                                         \
-                                                                        \
-        if (rc == SQLITE_OK) {                                          \
-            HookDestroyableConfigure(hook, destructor, callback, S, N); \
-        }                                                               \
-    }                                                                   \
-                                                                        \
-    hook.pGuard = pDbState;                                             \
-    DbStateMutexLeave();                                                \
-    C;                                                                  \
+#define DbHookDestructorReplace(H, signature, className, install, uninstall, ...)       \
+    if (callback == nullptr && destructor != nullptr) {                                 \
+        return SQLITE_MISUSE;                                                           \
+    }                                                                                   \
+                                                                                        \
+    const auto pDb = LongTo_s3(db);                                                     \
+    auto rc = SQLITE_OK;                                                                \
+                                                                                        \
+    DbStateMutexEnter(pDb);                                                             \
+    const auto pHook = &dbState.hooks.H;                                                \
+    auto& hook = *pHook;                                                                \
+    hook.pGuard = nullptr;                                                              \
+                                                                                        \
+    if (callback != nullptr) {                                                          \
+        rc = install;                                                                   \
+                                                                                        \
+        if (rc == SQLITE_OK) {                                                          \
+            HookDestroyableConfigure(hook, destructor, callback, signature, className); \
+        }                                                                               \
+    } else if (hook.instance != nullptr) {                                              \
+        uninstall;                                                                      \
+    }                                                                                   \
+                                                                                        \
+    hook.pGuard = pDbState;                                                             \
+    DbStateMutexLeave();                                                                \
+    __VA_ARGS__                                                                         \
     return rc
 
 /**
  * Declares the code needed to replace a database connection hook without destructor.
  */
-#define DbHookReplace(H, function, initValue, configure, result) \
-    const auto pDb = LongTo_s3(db);                              \
-    auto R = initValue;                                          \
-                                                                 \
-    DbStateMutexEnter(pDb);                                      \
-    const auto pHook = &dbState.hooks.H;                         \
-    auto& hook = *pHook;                                         \
-    const auto oldInstance = LocalRefCreate(hook.instance);      \
-                                                                 \
-    if (hook.instance != nullptr) {                              \
-        HookClear(hook);                                         \
-    }                                                            \
-                                                                 \
-    if (callback != nullptr) {                                   \
-        R = function;                                            \
-        configure                                                \
-    }                                                            \
-                                                                 \
-    DbStateMutexLeave();                                         \
-    return result
+#define DbHookReplace(H, resultDeclare, configure, install, uninstall, resultReturn)    \
+    const auto pDb = LongTo_s3(db);                                                     \
+                                                                                        \
+    DbStateMutexEnter(pDb);                                                             \
+    const auto pHook = &dbState.hooks.H;                                                \
+    auto& hook = *pHook;                                                                \
+    const auto oldCallback = LocalRefCreate(hook.instance);                             \
+    resultDeclare                                                                       \
+                                                                                        \
+    if (callback != nullptr) {                                                          \
+        install                                                                         \
+        configure                                                                       \
+    } else if (oldCallback != nullptr) {                                                \
+        uninstall                                                                       \
+        HookClear(hook);                                                                \
+    }                                                                                   \
+                                                                                        \
+    DbStateMutexLeave();                                                                \
+    resultReturn
 
 /**
  * Declares the code needed to replace a database connection hook without destructor.
  * The function is expected to return an sqlite result code.
  */
-#define DbHookReplaceRC(H, S, N, F) \
-    DbHookReplace(H, F, SQLITE_OK, if (R == SQLITE_OK) { HookConfigure(hook, callback, S, N); }, R)
+#define DbHookReplaceResultCode(H, signature, className, install, uninstall) DbHookReplace(H,   \
+    auto rc = SQLITE_OK;,                                                                       \
+    if (rc == SQLITE_OK) { HookConfigure(hook, callback, signature, className); },              \
+    rc = install;,                                                                              \
+    rc = uninstall;,                                                                            \
+    return rc                                                                                   \
+)
 
 /**
  * Declares the code needed to replace a database connection hook without destructor.
  * The previous instance is returned.
  */
-#define DbHookReplaceInstance(H, S, N, F) \
-    DbHookReplace(H, F, (void*) nullptr, HookConfigure(hook, callback, S, N);, oldInstance)
+#define DbHookReplaceInstance(H, signature, className, install, uninstall) DbHookReplace(H,,    \
+    install;, uninstall;,                                                                       \
+    HookConfigure(hook, callback, signature, className);,                                       \
+    return oldCallback                                                                          \
+)
 
 ///////////////////////////////////////////////////////////////////////////
 // Freeable operations
@@ -1878,28 +1884,28 @@ static void outputPointerSetInt64Value(
 #define OutputPointerEnterStringConst(jPointer) \
     OutputPointerEnter(const char*, jPointer, OutputPointerGetStringValue,)
 
-#define OutputPointerLeave(jPointer, condition, setValue, transform, ...) \
-    if (condition && jPointer != nullptr)                                 \
+#define OutputPointerLeave(jPointer, setValue, transform, ...) \
+    if (jPointer != nullptr && rc == SQLITE_OK) \
         setValue(jPointer, transform(*UNDERSCORED(jPointer)) __VA_OPT__(,) __VA_ARGS__)
 
-#define OutputPointerLeaveInt32(jPointer, condition) \
-    OutputPointerLeave(jPointer, condition, OutputPointerSetInt32Value,)
+#define OutputPointerLeaveInt32(jPointer) \
+    OutputPointerLeave(jPointer, OutputPointerSetInt32Value,)
 
-#define OutputPointerLeaveInt64(jPointer, condition) \
-    OutputPointerLeave(jPointer, condition, OutputPointerSetInt64Value,)
+#define OutputPointerLeaveInt64(jPointer) \
+    OutputPointerLeave(jPointer, OutputPointerSetInt64Value,)
 
-#define OutputPointerLeavePointer(jPointer, condition) \
-    OutputPointerLeave(jPointer, condition, OutputPointerSetInt64Value, PtrToLong,)
+#define OutputPointerLeavePointer(jPointer) \
+    OutputPointerLeave(jPointer, OutputPointerSetInt64Value, PtrToLong,)
 
-#define OutputPointerLeaveString(jPointer, length, condition) \
-    OutputPointerLeave(jPointer, condition, OutputPointerSetStringValue,,length)
+#define OutputPointerLeaveString(jPointer, length) \
+    OutputPointerLeave(jPointer, OutputPointerSetStringValue,,length)
 
 ///////////////////////////////////////////////////////////////////////////
 // Ksqlite 1 to 1 mapping
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Calls the AutoExtensionCallback hook.
+ * Calls the `AutoExtensionCallback` hook.
  */
 static int autoExtensionCaller(
     sqlite3* pDb,
@@ -2028,8 +2034,8 @@ Java_ksqlite_KsqliteJni_ksqlite_1prepare_1v2(
         outOffset_
     );
 
-    OutputPointerLeaveInt32(outOffset, rc == SQLITE_OK);
-    OutputPointerLeavePointer(outStmt, rc == SQLITE_OK);
+    OutputPointerLeaveInt32(outOffset);
+    OutputPointerLeavePointer(outStmt);
     sqlite3_free(zSql);
 
     return rc;
@@ -2060,8 +2066,8 @@ Java_ksqlite_KsqliteJni_ksqlite_1prepare_1v3(
         outOffset_
     );
 
-    OutputPointerLeaveInt32(outOffset, rc == SQLITE_OK);
-    OutputPointerLeavePointer(outStmt, rc == SQLITE_OK);
+    OutputPointerLeaveInt32(outOffset);
+    OutputPointerLeavePointer(outStmt);
     sqlite3_free(zSql);
 
     return rc;
@@ -2092,7 +2098,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1aggregate_1context(
 }
 
 /**
- * Calls the AutoVacuumPagesCallback hook.
+ * Calls the `AutoVacuumPagesCallback` hook.
  */
 static unsigned int autoVacuumPagesCaller(
     void* pHook,
@@ -2111,10 +2117,6 @@ static unsigned int autoVacuumPagesCaller(
     HookLeave();
     LocalRefDestroy(schema);
 
-    IfExceptionThrown {
-        result = nFreePage;
-    }
-
     return result;
 }
 
@@ -2132,6 +2134,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1autovacuum_1pages(
         "(Ljava/lang/String;III)I",
         "AutoVacuumPagesCallback",
         sqlite3_autovacuum_pages(pDb, autoVacuumPagesCaller, pHook, hookDestroyer),
+        sqlite3_autovacuum_pages(pDb, nullptr, nullptr, nullptr)
     );
 }
 
@@ -2448,7 +2451,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1blob_1open(
 
     OutputPointerEnterPointer(sqlite3_blob*, outBlob);
     const auto rc = sqlite3_blob_open(pDb, zDb, zTable, zColumn, rowIndex, flags, outBlob_);
-    OutputPointerLeavePointer(outBlob, rc == SQLITE_OK);
+    OutputPointerLeavePointer(outBlob);
 
     sqlite3_free(zDb);
     sqlite3_free(zTable);
@@ -2511,7 +2514,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1blob_1write(
 }
 
 /**
- * Calls the BusyHandlerCallback hook.
+ * Calls the `BusyHandlerCallback` hook.
  */
 static int busyHandlerCaller(
     void* pDbStateHook,
@@ -2522,10 +2525,6 @@ static int busyHandlerCaller(
     HookEnterDbState(busyHandler);
     jint result = env->CallIntMethod(instance, call, n);
     HookLeave();
-
-    IfExceptionThrown {
-        result = 0;
-    }
 
     return result;
 }
@@ -2538,11 +2537,12 @@ Java_ksqlite_KsqliteJni_sqlite3_1busy_1handler(
     jlong db,
     jobject callback
 ) {
-    DbHookReplaceRC(
+    DbHookReplaceResultCode(
         busyHandler,
         "(I)I",
         "BusyHandlerCallback",
-        sqlite3_busy_handler(pDb, busyHandlerCaller, pDbState)
+        sqlite3_busy_handler(pDb, busyHandlerCaller, pDbState),
+        sqlite3_busy_handler(pDb, nullptr, nullptr)
     );
 }
 
@@ -2622,7 +2622,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1close_1v2(
 }
 
 /**
- * Calls the CollationNeededCallback hook.
+ * Calls the `CollationNeededCallback` hook.
  */
 static void collationNeededCaller(
     void* pDbStateHook,
@@ -2650,11 +2650,12 @@ Java_ksqlite_KsqliteJni_sqlite3_1collation_1needed(
     jlong db,
     jobject callback
 ) {
-    DbHookReplaceRC(
+    DbHookReplaceResultCode(
         busyHandler,
         "(JILjava/lang/String;)V",
         "CollationNeededCallback",
-        sqlite3_collation_needed(pDb, pDbState, collationNeededCaller)
+        sqlite3_collation_needed(pDb, pDbState, collationNeededCaller),
+        sqlite3_collation_needed(pDb, nullptr, nullptr)
     );
 }
 
@@ -2835,12 +2836,12 @@ Java_ksqlite_KsqliteJni_sqlite3_1column_1value(
 }
 
 /**
- * Calls the CommitHookCallback hook.
+ * Calls the `CommitHookCallback` hook.
  */
 static int commitHookCaller(void* pDbStateHook) {
     JniEnvDeclare();
     DbStateDeclareDirect(pDbStateHook);
-    HookEnterDbState(collationNeeded);
+    HookEnterDbState(commitHook);
     jint result = env->CallIntMethod(instance, call);
     HookLeave();
 
@@ -2859,7 +2860,8 @@ Java_ksqlite_KsqliteJni_sqlite3_1commit_1hook(
         commitHook,
         "()I",
         "CommitHookCallback",
-        sqlite3_commit_hook(pDb, commitHookCaller, pDbState)
+        sqlite3_commit_hook(pDb, commitHookCaller, pDbState),
+        sqlite3_commit_hook(pDb, nullptr, nullptr)
     );
 }
 
@@ -2894,7 +2896,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1complete(
 }
 
 /**
- * Calls the ConfigLogCallback hook.
+ * Calls the `ConfigLogCallback` hook.
  */
 static void configLogCaller(
     void*,
@@ -2908,7 +2910,7 @@ static void configLogCaller(
 }
 
 /**
- * Calls the ConfigSqlLogCallback hook.
+ * Calls the `ConfigSqlLogCallback` hook.
  */
 static void configSqlLogCaller(
     void*,
@@ -2973,7 +2975,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1config(
             const auto jPointer = ArrayObjectGet(args, 0, KKOP.klass);
             OutputPointerEnterInt32(jPointer);
             const auto rc = sqlite3_config(id, jPointer_);
-            OutputPointerLeaveInt32(jPointer, rc == SQLITE_OK);
+            OutputPointerLeaveInt32(jPointer);
             return rc;
         }
 
@@ -3036,7 +3038,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1context_1db_1handle(
 }
 
 /**
- * Calls the CollationCompareCallback hook.
+ * Calls the `CollationCompareCallback` hook.
  */
 static int collationCompareCaller(
     void* pHook,
@@ -3056,10 +3058,6 @@ static int collationCompareCaller(
     HookLeave();
     LocalRefDestroy(lhsByteArray);
     LocalRefDestroy(rhsByteArray);
-
-    IfExceptionThrown {
-        result = 0;
-    }
 
     return result;
 }
@@ -3089,12 +3087,13 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1collation_1v2(
             collationCompareCaller,
             hookDestroyer
         ),
-        sqlite3_free(zName)
+        sqlite3_create_collation_v2(pDb, zName, eTextRep, nullptr, nullptr, nullptr),
+        sqlite3_free(zName);
     );
 }
 
 /**
- * Calls the FunctionCallback.Func hook.
+ * Calls the `FunctionCallback.Func` hook.
  */
 static void functionFuncCaller(
     sqlite3_context* pContext,
@@ -3106,7 +3105,7 @@ static void functionFuncCaller(
 }
 
 /**
- * Calls the FunctionCallback.Step hook.
+ * Calls the `FunctionCallback.Step` hook.
  */
 static void functionStepCaller(
     sqlite3_context* pContext,
@@ -3118,7 +3117,7 @@ static void functionStepCaller(
 }
 
 /**
- * Calls the FunctionCallback.Final hook.
+ * Calls the `FunctionCallback.Final` hook.
  */
 static void functionFinalCaller(sqlite3_context* pContext) {
     FunctionDeclareHook(Function, final);
@@ -3234,7 +3233,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
 }*/
 
 /**
- * Calls the FunctionCallback.Inverse hook.
+ * Calls the `FunctionCallback.Inverse` hook.
  */
 static void functionInverseCaller(
     sqlite3_context* pContext,
@@ -3246,7 +3245,7 @@ static void functionInverseCaller(
 }
 
 /**
- * Calls the FunctionCallback.Value hook.
+ * Calls the `FunctionCallback.Value` hook.
  */
 static void functionValueCaller(sqlite3_context* pContext) {
     FunctionDeclareHook(FunctionWindow, value);
@@ -3413,7 +3412,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1db_1config(
             const auto jPointer = ArrayObjectGet(args, 1, KKOP.klass);
             OutputPointerEnterInt32(jPointer);
             const auto rc = sqlite3_db_config(pDb, option, value, jPointer_);
-            OutputPointerLeaveInt32(jPointer, rc == SQLITE_OK);
+            OutputPointerLeaveInt32(jPointer);
             return rc;
         }
         default:
@@ -3489,8 +3488,8 @@ Java_ksqlite_KsqliteJni_sqlite3_1db_1status(
     OutputPointerEnterInt32(outCurrent);
     OutputPointerEnterInt32(outHighwater);
     const auto rc = sqlite3_db_status(pDb, option, outCurrent_, outHighwater_, resetFlag);
-    OutputPointerLeaveInt32(outCurrent, rc == SQLITE_OK);
-    OutputPointerLeaveInt32(outHighwater, rc == SQLITE_OK);
+    OutputPointerLeaveInt32(outCurrent);
+    OutputPointerLeaveInt32(outHighwater);
     return rc;
 }
 
@@ -3509,8 +3508,8 @@ Java_ksqlite_KsqliteJni_sqlite3_1db_1status64(
     OutputPointerEnterInt64(outCurrent);
     OutputPointerEnterInt64(outHighwater);
     const auto rc = sqlite3_db_status64(pDb, option, outCurrent_, outHighwater_, resetFlag);
-    OutputPointerLeaveInt64(outCurrent, rc == SQLITE_OK);
-    OutputPointerLeaveInt64(outHighwater, rc == SQLITE_OK);
+    OutputPointerLeaveInt64(outCurrent);
+    OutputPointerLeaveInt64(outHighwater);
     return rc;
 }
 
@@ -3588,7 +3587,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1errstr(
 }
 
 /**
- * Calls the ExecCallback hook.
+ * Calls the `ExecCallback` hook.
  */
 static int execCaller(
     void* pCallback,
@@ -3618,9 +3617,8 @@ static int execCaller(
 
     auto result = env->CallIntMethod(callback, KKEC.call, argc, values, names);
 
-    IfExceptionThrown {
-        result = 1;
-    }
+    LocalRefDestroy(values);
+    LocalRefDestroy(names);
 
     return result;
 }
@@ -3640,7 +3638,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1exec(
 
     OutputPointerEnterString(errorMessage);
     const auto rc = sqlite3_exec(pDb, zSql, execCaller, callback, errorMessage_);
-    OutputPointerLeaveString(errorMessage, -1, rc == SQLITE_OK);
+    OutputPointerLeaveString(errorMessage, -1);
 
     sqlite3_free(*errorMessage_);
     sqlite3_free(zSql);
@@ -3786,6 +3784,28 @@ Java_ksqlite_KsqliteJni_sqlite3_1key(
     ReturnWithByteArray(key, nKey, sqlite3_key(LongTo_s3(db), key_, nKey));
 }
 
+/**
+ * Common handling for `sqlite3_key_v2()` and `sqlite3_rekey_v2()`.
+ */
+static jint keyOrRekeyV2(
+    JNIEnv* env,
+    jlong db,
+    jstring dbName,
+    jbyteArray key,
+    jint nKey,
+    int (*callback)(sqlite3* db, const char* zDbName, const void* pKey, int nKey)
+) {
+    const auto pDb = LongTo_s3(db);
+    const auto zName = JstringToUtf8(dbName);
+    const auto pKey = ByteArrayToBuffer(key, nKey);
+    const auto rc = callback(pDb, zName, pKey, nKey);
+
+    sqlite3_free(zName);
+    sqlite3_free(pKey);
+
+    return rc;
+}
+
 extern "C"
 JNIEXPORT jint JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1key_1v2(
@@ -3796,15 +3816,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1key_1v2(
     jbyteArray key,
     jint nKey
 ) {
-    const auto pDb = LongTo_s3(db);
-    const auto zName = JstringToUtf8(dbName);
-    const auto pKey = ByteArrayToBuffer(key, nKey);
-    const auto rc = sqlite3_key_v2(pDb, zName, pKey, nKey);
-
-    sqlite3_free(zName);
-    sqlite3_free(pKey);
-
-    return rc;
+    return keyOrRekeyV2(env, db, dbName, key, nKey, sqlite3_key_v2);
 }
 
 extern "C"
@@ -3837,7 +3849,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1keyword_1name(
     OutputPointerEnterStringConst(name);
     int length = 0;
     const auto rc = sqlite3_keyword_name(index, name_, &length);
-    OutputPointerLeaveString(name, length, rc == SQLITE_OK);
+    OutputPointerLeaveString(name, length);
 
     return rc;
 }
@@ -3967,7 +3979,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1open(
 
     OutputPointerEnterPointer(sqlite3*, outDb);
     const auto rc = sqlite3_open(zFileName, outDb_);
-    OutputPointerLeavePointer(outDb, rc == SQLITE_OK);
+    OutputPointerLeavePointer(outDb);
 
     sqlite3_free(zFileName);
 
@@ -3993,7 +4005,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1open_1v2(
 
     OutputPointerEnterPointer(sqlite3*, outDb);
     const auto rc = sqlite3_open_v2(zFileName, outDb_, flags, zVfs);
-    OutputPointerLeavePointer(outDb, rc == SQLITE_OK);
+    OutputPointerLeavePointer(outDb);
 
     sqlite3_free(zVfs);
     sqlite3_free(zFileName);
@@ -4032,7 +4044,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1prepare_1v2(
 
     OutputPointerEnterPointer(sqlite3_stmt*, outStmt);
     const auto rc = sqlite3_prepare_v2(pDb, zSql, nByte, outStmt_, nullptr);
-    OutputPointerLeavePointer(outStmt, rc == SQLITE_OK);
+    OutputPointerLeavePointer(outStmt);
     sqlite3_free(zSql);
 
     return rc;
@@ -4054,8 +4066,238 @@ Java_ksqlite_KsqliteJni_sqlite3_1prepare_1v3(
 
     OutputPointerEnterPointer(sqlite3_stmt*, outStmt);
     const auto rc = sqlite3_prepare_v3(pDb, zSql, nByte, flags, outStmt_, nullptr);
-    OutputPointerLeavePointer(outStmt, rc == SQLITE_OK);
+    OutputPointerLeavePointer(outStmt);
     sqlite3_free(zSql);
 
     return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1preupdate_1blobwrite(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db
+) {
+    return sqlite3_preupdate_blobwrite(LongTo_s3(db));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1preupdate_1count(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db
+) {
+    return sqlite3_preupdate_count(LongTo_s3(db));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1preupdate_1depth(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db
+) {
+    return sqlite3_preupdate_depth(LongTo_s3(db));
+}
+
+/**
+ * Calls the `PreupdateHookCallback` hook.
+ */
+static void preupdateHookCaller(
+    void* pDbStateHook,
+    sqlite3* db,
+    int op,
+    char const* zDb,
+    char const* zName,
+    sqlite3_int64 iKey1,
+    sqlite3_int64 iKey2
+) {
+    JniEnvDeclare();
+    DbStateDeclareDirect(pDbStateHook);
+    HookEnterDbState(preupdateHook);
+
+    const auto dbName = Utf8ToJstring(zDb);
+    const auto dbTable = Utf8ToJstring(zName);
+
+    env->CallVoidMethod(instance, call, PtrToLong(db), op, dbName, dbTable, iKey1, iKey2);
+
+    HookLeave();
+    LocalRefDestroy(dbName);
+    LocalRefDestroy(dbTable);
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1preupdate_1hook(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jobject callback
+) {
+    DbHookReplaceInstance(
+        preupdateHook,
+        "(JILjava/lang/String;Ljava/lang/String;JJ)V",
+        "PreupdateHookCallback",
+        sqlite3_preupdate_hook(pDb, preupdateHookCaller, pDbState),
+        sqlite3_preupdate_hook(pDb, nullptr, nullptr)
+    );
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1preupdate_1new(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jint index,
+    jobject outValue
+) {
+    OutputPointerEnterPointer(sqlite3_value*, outValue);
+    const auto rc = sqlite3_preupdate_new(LongTo_s3(db), index, outValue_);
+    OutputPointerLeavePointer(outValue);
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1preupdate_1old(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jint index,
+    jobject outValue
+) {
+    OutputPointerEnterPointer(sqlite3_value*, outValue);
+    const auto rc = sqlite3_preupdate_old(LongTo_s3(db), index, outValue_);
+    OutputPointerLeavePointer(outValue);
+
+    return rc;
+}
+
+/**
+ * Calls the `ProgressHandlerCallback` hook.
+ */
+static int progressHandlerCaller(void* pDbStateHook) {
+    JniEnvDeclare();
+    DbStateDeclareDirect(pDbStateHook);
+    HookEnterDbState(progressHandler);
+    const auto result = env->CallIntMethod(instance, call);
+    HookLeave();
+
+    return result;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1progress_1handler(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jint nOps,
+    jobject callback
+) {
+    DbHookReplace(
+        preupdateHook, ,
+        HookConfigure(hook, callback, "()I", "ProgressHandlerCallback");,
+        sqlite3_progress_handler(pDb, nOps, progressHandlerCaller, nullptr);,
+        sqlite3_progress_handler(pDb, 0, nullptr, nullptr);,
+    )
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1randomness(
+    JNIEnv* env,
+    jclass clazz,
+    jint size,
+    jlong buffer
+) {
+    sqlite3_randomness(size, LongToPtr(buffer));
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1realloc(
+    JNIEnv* env,
+    jclass clazz,
+    jlong buffer,
+    jint size
+) {
+    return PtrToLong(sqlite3_realloc(LongToPtr(buffer), size));
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1realloc64(
+    JNIEnv* env,
+    jclass clazz,
+    jlong buffer,
+    jlong size
+) {
+    return PtrToLong(sqlite3_realloc64(LongToPtr(buffer), size));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1rekey(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jbyteArray key,
+    jint nKey
+) {
+    ReturnWithByteArray(key, nKey, sqlite3_rekey(LongTo_s3(db), key_, nKey));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1rekey_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring dbName,
+    jbyteArray key,
+    jint nKey
+) {
+    return keyOrRekeyV2(env, db, dbName, key, nKey, sqlite3_rekey_v2);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1release_1memory(
+    JNIEnv* env,
+    jclass clazz,
+    jint size
+) {
+    return sqlite3_release_memory(size);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1reset(
+    JNIEnv* env,
+    jclass clazz,
+    jlong stmt
+) {
+    return sqlite3_reset(LongTo_s3_stmt(stmt));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1reset_1auto_1extension(
+    JNIEnv* env,
+    jclass clazz
+) {
+    MutexEnter(KHS);
+    auto& hook = KHS.autoExtension;
+
+    if (hook.instance != nullptr) {
+        sqlite3_reset_auto_extension();
+        HookClear(hook);
+    }
+
+    MutexLeave(KHS);
 }

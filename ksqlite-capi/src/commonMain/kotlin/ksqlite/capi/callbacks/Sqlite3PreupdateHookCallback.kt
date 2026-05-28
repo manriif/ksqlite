@@ -17,7 +17,7 @@ public fun interface Sqlite3PreupdateHookCallback<AppData> {
         action: Sqlite3ActionCode.Dml,
         dbName: String,
         tableName: String,
-        oldRowId: Long,
-        newRowId: Long
+        preRowId: Long,
+        postRowId: Long
     )
 }

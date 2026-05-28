@@ -14,3 +14,8 @@ target_link_libraries(${KSQLITE_LIB_NAME} PRIVATE
         ${SQLITE_LIB_NAME}
         "-Wl,--no-whole-archive"
 )
+
+# TODO: theses sould be removed and generated from Gradle after the JNI implementation is done
+target_compile_definitions(${KSQLITE_LIB_NAME} PRIVATE
+        SQLITE_ENABLE_PREUPDATE_HOOK=1
+)

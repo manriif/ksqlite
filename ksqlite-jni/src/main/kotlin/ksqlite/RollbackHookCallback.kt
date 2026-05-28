@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for [sqlite3_rollback_hook].
+ * Callback for use with [sqlite3_rollback_hook].
  */
 public fun interface RollbackHookCallback {
 

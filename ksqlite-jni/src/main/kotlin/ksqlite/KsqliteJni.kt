@@ -573,82 +573,70 @@ public external fun sqlite3_prepare_v3(
     outStmt: OutputPointer.OfPointer
 ): Int
 
-/*public external fun sqlite3_preupdate_blobwrite(
-    p0: Long,
-): Int
+public external fun sqlite3_preupdate_blobwrite(db: Long): Int
 
-public external fun sqlite3_preupdate_count(
-    p0: Long,
-): Int
+public external fun sqlite3_preupdate_count(db: Long): Int
 
-public external fun sqlite3_preupdate_depth(
-    p0: Long,
-): Int
+public external fun sqlite3_preupdate_depth(db: Long): Int
 
 public external fun sqlite3_preupdate_hook(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-): Long
+    db: Long,
+    callback: PreupdateHookCallback?
+): PreupdateHookCallback?
 
 public external fun sqlite3_preupdate_new(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    index: Int,
+    outValue: OutputPointer.OfPointer,
 ): Int
 
 public external fun sqlite3_preupdate_old(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    index: Int,
+    outValue: OutputPointer.OfPointer,
 ): Int
 
 public external fun sqlite3_progress_handler(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
+    db: Long,
+    nOps: Int,
+    callback: ProgressHandlerCallback?
 )
 
 public external fun sqlite3_randomness(
-    p0: Int,
-    p1: Long,
+    size: Int,
+    buffer: Long,
 )
 
 public external fun sqlite3_realloc(
-    p0: Long,
-    p1: Int,
+    buffer: Long,
+    size: Int,
 ): Long
 
 public external fun sqlite3_realloc64(
-    p0: Long,
-    p1: Long,
+    buffer: Long,
+    size: Long,
 ): Long
 
 public external fun sqlite3_rekey(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    db: Long,
+    key: ByteArray,
+    nKey: Int,
 ): Int
 
 public external fun sqlite3_rekey_v2(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    db: Long,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int,
 ): Int
 
-public external fun sqlite3_release_memory(
-    p0: Int,
-): Int
+public external fun sqlite3_release_memory(size: Int): Int
 
-public external fun sqlite3_reset(
-    p0: Long,
-): Int
+public external fun sqlite3_reset(stmt: Long): Int
 
 public external fun sqlite3_reset_auto_extension()
 
-public external fun sqlite3_result_blob(
+/*public external fun sqlite3_result_blob(
     p0: Long,
     p1: Long,
     p2: Int,

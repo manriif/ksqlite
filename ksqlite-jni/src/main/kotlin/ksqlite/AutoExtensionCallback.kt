@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for [ksqlite_auto_extension].
+ * Callback for use with [ksqlite_auto_extension].
  */
 public fun interface AutoExtensionCallback {
 

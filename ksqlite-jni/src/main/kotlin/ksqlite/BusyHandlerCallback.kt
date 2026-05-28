@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for [sqlite3_busy_handler].
+ * Callback for use with [sqlite3_busy_handler].
  */
 public fun interface BusyHandlerCallback {
 

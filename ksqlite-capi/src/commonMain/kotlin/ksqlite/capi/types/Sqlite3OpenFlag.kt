@@ -17,9 +17,9 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Flag or ORed flags that meet SQLite requirements for opening a file.
+     * Flag or ORed flags for use with [ksqlite.capi.sqlite3_open_v2] only.
      */
-    public sealed class Valid(value: Int) : Sqlite3OpenFlag(value) {
+    public sealed class Db(value: Int) : Sqlite3OpenFlag(value) {
 
         /**
          * Returns a [Vfs] which could be used to add optional flags for VFS.
@@ -29,9 +29,9 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
         }
 
         /**
-         * Returns a [Valid] which is ORed with [flag].
+         * Returns a [Db] which is ORed with [flag].
          */
-        public open infix fun or(flag: Optional): Valid {
+        public open infix fun or(flag: OptionalDb): Db {
             return Masked(value or flag.value)
         }
 
@@ -39,18 +39,23 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
          * Holder for flags.
          */
         @ConsistentCopyVisibility
-        public data class Masked internal constructor(override val value: Int) : Valid(value)
+        public data class Masked internal constructor(override val value: Int) : Db(value)
     }
 
     /**
      * Flag required to open a database connection.
      */
-    public sealed class Required(value: Int) : Valid(value)
+    public sealed class Required(value: Int) : Db(value)
 
     /**
-     * Optional flag.
+     * Optional flag for use with [ksqlite.capi.sqlite3_open_v2] and VFS.
      */
     public sealed class Optional(value: Int) : Sqlite3OpenFlag(value)
+
+    /**
+     * Optional flag for use with [ksqlite.capi.sqlite3_open_v2] only.
+     */
+    public sealed class OptionalDb(value: Int) : Optional(value)
 
     /**
      * The database is opened in read-only mode. If the database does not already exist, an error is
@@ -68,9 +73,9 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
     public data object READWRITE : Required(0x00000002) {
 
         /**
-         * Returns a [Valid] which is ORed with [flag].
+         * Returns a [Db] which is ORed with [flag].
          */
-        public infix fun or(flag: CREATE): Valid {
+        public infix fun or(flag: CREATE): Db {
             return Masked(value or flag.value)
         }
     }
@@ -82,9 +87,9 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
     public data object CREATE : Sqlite3OpenFlag(0x00000004) {
 
         /**
-         * Returns a [Valid] which is ORed with [flag].
+         * Returns a [Db] which is ORed with [flag].
          */
-        public infix fun or(flag: READWRITE): Valid {
+        public infix fun or(flag: READWRITE): Db {
             return flag or this
         }
     }
@@ -92,28 +97,28 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
     /**
      * The filename can be interpreted as a URI if this flag is set.
      */
-    public data object URI : Optional(0x00000040)
+    public data object URI : OptionalDb(0x00000040)
 
     /**
      * The database will be opened as an in-memory database. The database is named by the "filename"
      * argument for the purposes of cache-sharing, if shared cache mode is enabled, but the
      * "filename" is otherwise ignored.
      */
-    public data object MEMORY : Optional(0x00000080)
+    public data object MEMORY : OptionalDb(0x00000080)
 
     /**
      * The new database connection will use the "multi-thread" threading mode. This means that
      * separate threads are allowed to use SQLite at the same time, as long as each thread is using
      * a different database connection.
      */
-    public data object NOMUTEX: Optional(0x00008000)
+    public data object NOMUTEX : OptionalDb(0x00008000)
 
     /**
      * The new database connection will use the "serialized" threading mode. This means the multiple
      * threads can safely attempt to use the same database connection at the same time. (Mutexes
      * will block any actual concurrency, but in this mode there is no harm in trying.)
      */
-    public data object FULLMUTEX: Optional(0x00010000)
+    public data object FULLMUTEX : OptionalDb(0x00010000)
 
     /**
      * The database is opened with shared cache enabled, overriding the default shared cache setting
@@ -122,13 +127,13 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
      * this option is a no-op.
      */
     @Deprecated("The use of shared cache mode is discouraged")
-    public data object SHAREDCACHE: Optional(0x00020000)
+    public data object SHAREDCACHE : OptionalDb(0x00020000)
 
     /**
      * The database is opened with shared cache disabled, overriding the default shared cache
      * setting provided by sqlite3_enable_shared_cache().
      */
-    public data object PRIVATECACHE: Optional(0x00040000)
+    public data object PRIVATECACHE : OptionalDb(0x00040000)
 
     /**
      * The database connection comes up in "extended result code mode". In other words, the database
@@ -136,12 +141,12 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
      * soon as the connection is created. In addition to setting the extended result code mode, this
      * flag also causes sqlite3_open_v2() to return an extended result code.
      */
-    public data object NOFOLLOW: Optional(0x01000000)
+    public data object NOFOLLOW : OptionalDb(0x01000000)
 
     /**
      * The database filename is not allowed to contain a symbolic link.
      */
-    public data object EXRESCODE: Optional(0x02000000)
+    public data object EXRESCODE : OptionalDb(0x02000000)
 
     ///////////////////////////////////////////////////////////////////////////
     // VFS only
@@ -150,16 +155,12 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
     /**
      * Flag or ORed flags that meet SQLite requirements for opening a file in VFS context.
      */
-    public sealed class Vfs(value: Int) : Valid(value) {
-
-        override fun or(flag: Optional): Vfs {
-            return Masked(value or flag.value)
-        }
+    public sealed class Vfs(value: Int) : Sqlite3OpenFlag(value) {
 
         /**
-         * Returns a [Valid] which is ORed with [flag].
+         * Returns a [Vfs] which is ORed with [flag].
          */
-        public infix fun or(flag: OptionalVfs): Vfs {
+        public infix fun or(flag: Optional): Vfs {
             return Masked(value or flag.value)
         }
 
@@ -171,9 +172,9 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
     }
 
     /**
-     * Optional flag.
+     * Optional flag availaible for VFS.
      */
-    public sealed class OptionalVfs(value: Int) : Sqlite3OpenFlag(value)
+    public sealed class OptionalVfs(value: Int) : Optional(value)
 
     /**
      * The SQLITE_OPEN_DELETEONCLOSE flag means the file should be deleted when it is closed. The

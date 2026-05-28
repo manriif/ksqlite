@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for [sqlite3_collation_needed].
+ * Callback for use with [sqlite3_collation_needed].
  */
 public fun interface CollationNeededCallback {
 

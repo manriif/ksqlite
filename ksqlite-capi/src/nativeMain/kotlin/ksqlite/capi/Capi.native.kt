@@ -1031,16 +1031,16 @@ public actual fun sqlite3_is_interrupted(db: sqlite3): Int =
 public actual fun sqlite3_key(
     db: sqlite3,
     key: ByteArray,
-    nKey: Int?,
-): Sqlite3Result = convertResult(native_sqlite3_key(db.pointer, key.refTo(0), nKey ?: key.size))
+    nKey: Int,
+): Sqlite3Result = convertResult(native_sqlite3_key(db.pointer, key.refTo(0), nKey))
 
 public actual fun sqlite3_key_v2(
     db: sqlite3,
     dbName: String,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result =
-    convertResult(native_sqlite3_key_v2(db.pointer, dbName, key.refTo(0), nKey ?: key.size))
+    convertResult(native_sqlite3_key_v2(db.pointer, dbName, key.refTo(0), nKey))
 
 public actual fun sqlite3_keyword_check(word: String): Int = memScoped {
     val cWord = word.cstr
@@ -1118,7 +1118,7 @@ public actual fun sqlite3_open(
 public actual fun sqlite3_open_v2(
     fileName: String,
     outDb: Sqlite3OutputParam,
-    flags: Sqlite3OpenFlag.Valid,
+    flags: Sqlite3OpenFlag.Db,
     vfs: String?
 ): Sqlite3Result = convertResult(memScoped {
     useParam(outDb) { dbPtr ->
@@ -1229,38 +1229,38 @@ public actual fun <AppData> sqlite3_progress_handler(
 
 public actual fun sqlite3_randomness(
     size: Int,
-    buffer: Buffer?
-): Unit = native_sqlite3_randomness(size, buffer?.pointer)
+    buffer: Buffer
+): Unit = native_sqlite3_randomness(size, buffer.pointer)
 
 public actual fun sqlite3_realloc(
-    buffer: Buffer?,
+    buffer: Buffer,
     size: Int
 ): Buffer? = Buffer.from(
-    pointer = native_sqlite3_realloc(buffer?.pointer, size),
+    pointer = native_sqlite3_realloc(buffer.pointer, size),
     size = size.toLong()
 )
 
 public actual fun sqlite3_realloc64(
-    buffer: Buffer?,
+    buffer: Buffer,
     size: Long
 ): Buffer? = Buffer.from(
-    pointer = native_sqlite3_realloc64(buffer?.pointer, size.convert()),
+    pointer = native_sqlite3_realloc64(buffer.pointer, size.convert()),
     size = size
 )
 
 public actual fun sqlite3_rekey(
     db: sqlite3,
     key: ByteArray,
-    nKey: Int?,
-): Sqlite3Result = convertResult(native_sqlite3_rekey(db.pointer, key.refTo(0), nKey ?: key.size))
+    nKey: Int,
+): Sqlite3Result = convertResult(native_sqlite3_rekey(db.pointer, key.refTo(0), nKey))
 
 public actual fun sqlite3_rekey_v2(
     db: sqlite3,
     dbName: String,
     key: ByteArray,
-    nKey: Int?,
+    nKey: Int,
 ): Sqlite3Result =
-    convertResult(native_sqlite3_rekey_v2(db.pointer, dbName, key.refTo(0), nKey ?: key.size))
+    convertResult(native_sqlite3_rekey_v2(db.pointer, dbName, key.refTo(0), nKey))
 
 public actual fun sqlite3_release_memory(size: Int): Int =
     native_sqlite3_release_memory(size)

@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for [sqlite3_autovacuum_pages].
+ * Callback for use with [sqlite3_autovacuum_pages].
  */
 public fun interface AutoVacuumPagesCallback {
 

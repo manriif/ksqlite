@@ -15,6 +15,8 @@ import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
+import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationNeededHandler
@@ -28,6 +30,8 @@ import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.handlers.FunctionInverseHandler
 import ksqlite.capi.handlers.FunctionStepHandler
 import ksqlite.capi.handlers.FunctionValueHandler
+import ksqlite.capi.handlers.PreupdateHookHandler
+import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
@@ -54,6 +58,7 @@ import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3StmtOutputParam
 import ksqlite.capi.types.Sqlite3TextEncoding
+import ksqlite.capi.types.Sqlite3ValueOutputParam
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
@@ -178,6 +183,21 @@ import ksqlite.sqlite3_open_v2 as jni_sqlite3_open_v2
 import ksqlite.sqlite3_overload_function as jni_sqlite3_overload_function
 import ksqlite.sqlite3_prepare_v2 as jni_sqlite3_prepare_v2
 import ksqlite.sqlite3_prepare_v3 as jni_sqlite3_prepare_v3
+import ksqlite.sqlite3_preupdate_blobwrite as jni_sqlite3_preupdate_blobwrite
+import ksqlite.sqlite3_preupdate_count as jni_sqlite3_preupdate_count
+import ksqlite.sqlite3_preupdate_depth as jni_sqlite3_preupdate_depth
+import ksqlite.sqlite3_preupdate_hook as jni_sqlite3_preupdate_hook
+import ksqlite.sqlite3_preupdate_new as jni_sqlite3_preupdate_new
+import ksqlite.sqlite3_preupdate_old as jni_sqlite3_preupdate_old
+import ksqlite.sqlite3_progress_handler as jni_sqlite3_progress_handler
+import ksqlite.sqlite3_randomness as jni_sqlite3_randomness
+import ksqlite.sqlite3_realloc as jni_sqlite3_realloc
+import ksqlite.sqlite3_realloc64 as jni_sqlite3_realloc64
+import ksqlite.sqlite3_rekey as jni_sqlite3_rekey
+import ksqlite.sqlite3_rekey_v2 as jni_sqlite3_rekey_v2
+import ksqlite.sqlite3_release_memory as jni_sqlite3_release_memory
+import ksqlite.sqlite3_reset as jni_sqlite3_reset
+import ksqlite.sqlite3_reset_auto_extension as jni_sqlite3_reset_auto_extension
 
 ///////////////////////////////////////////////////////////////////////////
 // Library
@@ -809,15 +829,15 @@ public actual fun sqlite3_is_interrupted(db: sqlite3): Int =
 public actual fun sqlite3_key(
     db: sqlite3,
     key: ByteArray,
-    nKey: Int?,
-): Sqlite3Result = convertResult(jni_sqlite3_key(db.pointer, key, nKey ?: key.size))
+    nKey: Int,
+): Sqlite3Result = convertResult(jni_sqlite3_key(db.pointer, key, nKey))
 
 public actual fun sqlite3_key_v2(
     db: sqlite3,
     dbName: String,
     key: ByteArray,
-    nKey: Int?,
-): Sqlite3Result = convertResult(jni_sqlite3_key_v2(db.pointer, dbName, key, nKey ?: key.size))
+    nKey: Int,
+): Sqlite3Result = convertResult(jni_sqlite3_key_v2(db.pointer, dbName, key, nKey))
 
 public actual fun sqlite3_keyword_check(word: String): Int = jni_sqlite3_keyword_check(word)
 
@@ -876,14 +896,13 @@ public actual fun sqlite3_open(
     fileName: String,
     outDb: Sqlite3OutputParam
 ): Sqlite3Result = convertResult(useParam(outDb) { dbPtr ->
-    sqlite3_open_v2(fileName, outDb, Sqlite3OpenFlag.READWRITE or Sqlite3OpenFlag.CREATE, null)
     jni_sqlite3_open(fileName, dbPtr!!)
 })
 
 public actual fun sqlite3_open_v2(
     fileName: String,
     outDb: Sqlite3OutputParam,
-    flags: Sqlite3OpenFlag.Valid,
+    flags: Sqlite3OpenFlag.Db,
     vfs: String?
 ): Sqlite3Result = convertResult(useParam(outDb) { dbPtr ->
     jni_sqlite3_open_v2(fileName, dbPtr!!, flags.value, vfs)
@@ -935,7 +954,7 @@ public actual fun sqlite3_prepare_v3(
     jni_sqlite3_prepare_v3(db.pointer, sql, prepFlags, stmtPtr!!)
 })
 
-/*public actual fun sqlite3_preupdate_blobwrite(db: sqlite3): Int =
+public actual fun sqlite3_preupdate_blobwrite(db: sqlite3): Int =
     jni_sqlite3_preupdate_blobwrite(db.pointer)
 
 public actual fun sqlite3_preupdate_count(db: sqlite3): Int =
@@ -948,11 +967,10 @@ public actual fun <AppData> sqlite3_preupdate_hook(
     db: sqlite3,
     appData: AppData,
     callback: Sqlite3PreupdateHookCallback<AppData>?
-): Unit = db.withMemoryManager {
-    jni_sqlite3_preupdate_hook(
+) {
+    val _ = jni_sqlite3_preupdate_hook(
         db.pointer,
         callbackHandler(callback, appData, ::PreupdateHookHandler),
-        keyedStableRefPointer(KEY_PREUPDATE_HOOK, callback, appData)
     )
 }
 
@@ -960,16 +978,16 @@ public actual fun sqlite3_preupdate_new(
     db: sqlite3,
     index: Int,
     outValue: Sqlite3ValueOutputParam
-): Sqlite3Result = convertResult(useParamMemScoped(outValue) { valuePtr ->
-    jni_sqlite3_preupdate_new(db.pointer, index, valuePtr)
+): Sqlite3Result = convertResult(useParam(outValue) { valuePtr ->
+    jni_sqlite3_preupdate_new(db.pointer, index, valuePtr!!)
 })
 
 public actual fun sqlite3_preupdate_old(
     db: sqlite3,
     index: Int,
     outValue: Sqlite3ValueOutputParam
-): Sqlite3Result = convertResult(useParamMemScoped(outValue) { valuePtr ->
-    jni_sqlite3_preupdate_old(db.pointer, index, valuePtr)
+): Sqlite3Result = convertResult(useParam(outValue) { valuePtr ->
+    jni_sqlite3_preupdate_old(db.pointer, index, valuePtr!!)
 })
 
 public actual fun <AppData> sqlite3_progress_handler(
@@ -977,50 +995,47 @@ public actual fun <AppData> sqlite3_progress_handler(
     nOps: Int,
     appData: AppData,
     callback: Sqlite3ProgressHandlerCallback<AppData>?
-): Unit = db.withMemoryManager {
-    jni_sqlite3_progress_handler(
+) {
+    val _ = jni_sqlite3_progress_handler(
         db.pointer,
         nOps,
         callbackHandler(callback, appData, ::ProgressHandlerHandler),
-        keyedStableRefPointer(KEY_PROGRESS_HANDLER, callback, appData)
     )
 }
 
 public actual fun sqlite3_randomness(
     size: Int,
-    buffer: Buffer?
-): Unit = jni_sqlite3_randomness(size, buffer?.pointer.notNull)
+    buffer: Buffer
+): Unit = jni_sqlite3_randomness(size, buffer.pointer)
 
 public actual fun sqlite3_realloc(
-    buffer: Buffer?,
+    buffer: Buffer,
     size: Int
 ): Buffer? = Buffer.from(
-    pointer = jni_sqlite3_realloc(buffer?.pointer.notNull, size),
+    pointer = jni_sqlite3_realloc(buffer.pointer, size),
     size = size.toLong()
 )
 
 public actual fun sqlite3_realloc64(
-    buffer: Buffer?,
+    buffer: Buffer,
     size: Long
 ): Buffer? = Buffer.from(
-    pointer = jni_sqlite3_realloc64(buffer?.pointer.notNull, size),
+    pointer = jni_sqlite3_realloc64(buffer.pointer, size),
     size = size
 )
 
 public actual fun sqlite3_rekey(
     db: sqlite3,
     key: ByteArray,
-    nKey: Int?,
-): Sqlite3Result = convertResult(jni_sqlite3_rekey(db.pointer, key.backing(), nKey ?: key.size))
+    nKey: Int,
+): Sqlite3Result = convertResult(jni_sqlite3_rekey(db.pointer, key, nKey))
 
 public actual fun sqlite3_rekey_v2(
     db: sqlite3,
     dbName: String,
     key: ByteArray,
-    nKey: Int?,
-): Sqlite3Result = convertResult(memScoped {
-    jni_sqlite3_rekey_v2(db.pointer, dbName.allocateUtf8(), key.backing(), nKey ?: key.size)
-})
+    nKey: Int,
+): Sqlite3Result = convertResult(jni_sqlite3_rekey_v2(db.pointer, dbName, key, nKey))
 
 public actual fun sqlite3_release_memory(size: Int): Int =
     jni_sqlite3_release_memory(size)
@@ -1031,7 +1046,7 @@ public actual fun sqlite3_reset(stmt: sqlite3_stmt): Sqlite3Result =
 public actual fun sqlite3_reset_auto_extension(): Unit =
     autoExtensionReset { jni_sqlite3_reset_auto_extension() }
 
-public actual fun sqlite3_result_blob(
+/*public actual fun sqlite3_result_blob(
     context: sqlite3_context,
     bytes: ByteArray,
     size: Int,

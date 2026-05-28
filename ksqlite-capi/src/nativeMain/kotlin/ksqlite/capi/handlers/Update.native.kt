@@ -32,8 +32,8 @@ private fun preupdateHookHandler(
     action: Int,
     dbName: CPointer<ByteVar>?,
     tableName: CPointer<ByteVar>?,
-    oldRowId: sqlite3_int64,
-    newRowId: sqlite3_int64
+    iKey1: sqlite3_int64,
+    ikey2: sqlite3_int64
 ) = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
     callback.handle(
         appData = appData,
@@ -41,8 +41,8 @@ private fun preupdateHookHandler(
         action = convertActionCode(action),
         dbName = dbName!!.toKStringFromUtf8(),
         tableName = tableName!!.toKStringFromUtf8(),
-        oldRowId = oldRowId,
-        newRowId = newRowId
+        preRowId = iKey1,
+        postRowId = ikey2
     )
 }
 

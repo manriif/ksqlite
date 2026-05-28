@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * User data destructor.
+ * Application data destructor.
  */
 public fun interface DestructorCallback {
 

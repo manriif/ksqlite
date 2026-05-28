@@ -1,0 +1,58 @@
+package ksqlite.capi.handlers
+
+import ksqlite.PreupdateHookCallback
+import ksqlite.UpdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
+import ksqlite.capi.convertActionCode
+import ksqlite.capi.types.sqlite3
+
+/**
+ * Handler for [ksqlite.capi.sqlite3_preupdate_hook].
+ */
+internal class PreupdateHookHandler<AppData> :
+    Handler<Sqlite3PreupdateHookCallback<AppData>, AppData>(),
+    PreupdateHookCallback {
+
+    override fun call(
+        db: Long,
+        op: Int,
+        dbName: String,
+        dbTable: String,
+        iKey1: Long,
+        iKey2: Long
+    ) = handler { callback, appData ->
+        callback.handle(
+            appData = appData,
+            db = sqlite3(db),
+            action = convertActionCode(op),
+            dbName = dbName,
+            tableName = dbTable,
+            preRowId = iKey1,
+            postRowId = iKey2
+        )
+    }
+}
+
+/**
+ * Handler for [ksqlite.capi.sqlite3_update_hook].
+ */
+internal class UpdateHookHandler<AppData> :
+    Handler<Sqlite3UpdateHookCallback<AppData>, AppData>(),
+    UpdateHookCallback {
+
+    override fun call(
+        opId: Int,
+        dbName: String,
+        tableName: String,
+        rowId: Long
+    ) = handler { callback, appData ->
+        callback.handle(
+            appData = appData,
+            action = convertActionCode(opId),
+            dbName = dbName,
+            tableName = tableName,
+            rowId = rowId
+        )
+    }
+}

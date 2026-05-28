@@ -35,8 +35,8 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
         action: Int,
         dbName: WasmPointer,
         tableName: WasmPointer,
-        oldRowId: Long,
-        newRowId: Long
+        iKey1: Long,
+        iKey2: Long
     ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
@@ -44,8 +44,8 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
             action = convertActionCode(action),
             dbName = dbName.toKStringFromUtf8(),
             tableName = tableName.toKStringFromUtf8(),
-            oldRowId = oldRowId,
-            newRowId = newRowId
+            preRowId = iKey1,
+            postRowId = iKey2
         )
     }
 }

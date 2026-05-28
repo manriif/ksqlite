@@ -1,7 +1,7 @@
 package ksqlite
 
 /**
- * Callback for [sqlite3_create_collation_v2].
+ * Callback for use with [sqlite3_create_collation_v2].
  */
 public fun interface CollationCompareCallback {
 
