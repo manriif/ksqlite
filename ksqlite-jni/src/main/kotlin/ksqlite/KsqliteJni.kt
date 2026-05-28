@@ -163,9 +163,7 @@ public external fun sqlite3_bind_pointer(
 public external fun sqlite3_bind_text(
     stmt: Long,
     index: Int,
-    text: String?,
-    size: Int,
-    computeSize: Boolean
+    text: String
 ): Int
 
 public external fun sqlite3_bind_text64(
@@ -460,123 +458,93 @@ public external fun sqlite3_exec(
 
 public external fun sqlite3_expanded_sql(stmt: Long): String?
 
-/*public external fun sqlite3_extended_errcode(
-    p0: Long,
-): Int
+public external fun sqlite3_extended_errcode(db: Long): Int
 
 public external fun sqlite3_extended_result_codes(
-    p0: Long,
-    p1: Int,
+    db: Long,
+    enabled: Int,
 ): Int
 
 public external fun sqlite3_file_control(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
+    db: Long,
+    name: String?,
+    opcode: Int,
 ): Int
 
-public external fun sqlite3_finalize(
-    p0: Long,
-): Int
+public external fun sqlite3_finalize(stmt: Long): Int
 
-public external fun sqlite3_free(
-    p0: Long,
-)
+public external fun sqlite3_free(buffer: ByteBuffer?)
 
-public external fun sqlite3_get_autocommit(
-    p0: Long,
-): Int
+public external fun sqlite3_get_autocommit(db: Long): Int
+
+public external fun sqlite3_hard_heap_limit64(limit: Long): Long
 
 public external fun sqlite3_get_auxdata(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    index: Int,
 ): Long
 
 public external fun sqlite3_initialize(): Int
 
-public external fun sqlite3_interrupt(
-    p0: Long,
-)
+public external fun sqlite3_interrupt(db: Long)
 
-public external fun sqlite3_is_interrupted(
-    p0: Long,
-): Int
+public external fun sqlite3_is_interrupted(db: Long): Int
 
 public external fun sqlite3_key(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    db: Long,
+    key: ByteArray,
+    nKey: Int,
 ): Int
 
 public external fun sqlite3_key_v2(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    db: Long,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int,
 ): Int
 
-public external fun sqlite3_keyword_check(
-    p0: Long,
-    p1: Int,
-): Int
+public external fun sqlite3_keyword_check(word: String): Int
 
 public external fun sqlite3_keyword_count(): Int
 
 public external fun sqlite3_keyword_name(
-    p0: Int,
-    p1: Long,
-    p2: Long,
+    index: Int,
+    name: OutputPointer.OfString?
 ): Int
 
-public external fun sqlite3_last_insert_rowid(
-    p0: Long,
-): Long
+public external fun sqlite3_last_insert_rowid(db: Long): Long
 
-public external fun sqlite3_libversion(): Long
+public external fun sqlite3_libversion(): String
 
 public external fun sqlite3_libversion_number(): Int
 
 public external fun sqlite3_limit(
-    p0: Long,
-    p1: Int,
-    p2: Int,
+    db: Long,
+    id: Int,
+    newVal: Int
 ): Int
 
-/**
- * TODO variadic
- */
 public external fun sqlite3_log(
-    p0: Int,
-    p1: Long,
-    p2: Long
+    errorCode: Int,
+    message: String
 )
 
-public external fun sqlite3_malloc(
-    p0: Int,
-): Long
+public external fun sqlite3_malloc(size: Int): Long
 
-public external fun sqlite3_malloc64(
-    p0: Long,
-): Long
+public external fun sqlite3_malloc64(size: Long): Long
 
-public external fun sqlite3_msize(
-    p0: Long,
-): Long
+public external fun sqlite3_memory_used(): Long
 
-public external fun sqlite3_memory_used(
-): Long
+public external fun sqlite3_memory_highwater(resetFlag: Int): Long
 
-public external fun sqlite3_memory_highwater(
-    p0: Int,
-): Long
+public external fun sqlite3_msize(buffer: ByteBuffer?): Long
 
 public external fun sqlite3_next_stmt(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    stmt: Long,
 ): Long
 
-public external fun sqlite3_open(
+/*public external fun sqlite3_open(
     p0: Long,
     p1: Long,
 ): Int

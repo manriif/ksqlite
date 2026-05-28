@@ -1,5 +1,3 @@
-@file:Suppress("NOTHING_TO_INLINE")
-
 package ksqlite.capi.interop.js
 
 @IgnorableReturnValue
@@ -11,17 +9,21 @@ private inline fun Int8Array.fill(getValue: (index: Int) -> Byte): Int8Array {
     return this
 }
 
-internal actual inline fun toInt8Array(array: ByteArray): Int8Array {
-    return Int8Array(length = array.size).fill(array::get)
+internal actual fun toInt8Array(array: ByteArray, size: Int): Int8Array {
+    return Int8Array(length = size).fill(array::get)
 }
 
-internal actual inline fun toByteArray(array: Int8Array): ByteArray {
+internal actual fun toInt8Array(array: ByteArray): Int8Array {
+    return toInt8Array(array, array.size)
+}
+
+internal actual fun toByteArray(array: Int8Array): ByteArray {
     return ByteArray(size = array.length) { index ->
         array[index].toInt().toByte()
     }
 }
 
-internal actual inline fun Int8Array.copyTo(
+internal actual fun Int8Array.copyTo(
     target: ByteArray,
     targetOffset: Int
 ) {
@@ -30,7 +32,7 @@ internal actual inline fun Int8Array.copyTo(
     }
 }
 
-internal actual inline fun Int8Array.copyFrom(
+internal actual fun Int8Array.copyFrom(
     source: ByteArray,
     sourceOffset: Int
 ) {

@@ -296,12 +296,11 @@ public actual fun <Data> sqlite3_bind_pointer(
 public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String,
-    size: Int?
+    text: String
 ): Sqlite3Result = convertResult(memScoped {
     val cText = text.allocateUtf8()
-    val nByte = size ?: cText.byteSize().toInt()
-    native.sqlite3_bind_text(stmt.pointer, index, cText.notNull, nByte, SqliteTransient)
+    val nByte = cText.byteSize().toInt()
+    native.sqlite3_bind_text(stmt.pointer, index, cText, nByte, SqliteTransient)
 })
 
 public actual fun sqlite3_bind_text64(
@@ -384,11 +383,10 @@ public actual fun sqlite3_blob_reopen(
 public actual fun sqlite3_blob_write(
     blob: sqlite3_blob,
     bytes: ByteArray,
-    size: Int?,
+    size: Int,
     offset: Int
-): Sqlite3Result = convertResult(
-    native.sqlite3_blob_write(blob.pointer, bytes.backing(), size ?: bytes.size, offset)
-)
+): Sqlite3Result =
+    convertResult(native.sqlite3_blob_write(blob.pointer, bytes.backing(), size, offset))
 
 public actual fun <AppData> sqlite3_busy_handler(
     db: sqlite3,
@@ -775,6 +773,7 @@ public actual fun sqlite3_deserialize(
         flags?.value ?: 0
     )
 })
+
 /*
 public actual fun sqlite3_drop_modules(
     db: sqlite3,
@@ -879,6 +878,14 @@ public actual fun sqlite3_key_v2(
     native.sqlite3_key_v2(db.pointer, dbName.allocateUtf8(), key.backing(), nKey ?: key.size)
 })
 
+public actual fun sqlite3_keyword_check(
+    word: String
+): Int = memScoped {
+    val cWord = word.allocateUtf8()
+    val nByte = cWord.byteSize().toInt()
+    native.sqlite3_keyword_check(cWord, nByte)
+}
+
 public actual fun sqlite3_keyword_count(): Int =
     native.sqlite3_keyword_count()
 
@@ -897,15 +904,6 @@ public actual fun sqlite3_keyword_name(
     }
 })
 
-public actual fun sqlite3_keyword_check(
-    word: String,
-    size: Int?
-): Int = memScoped {
-    val cWord = word.allocateUtf8()
-    val nByte = size ?: cWord.byteSize().toInt()
-    native.sqlite3_keyword_check(cWord, nByte)
-}
-
 public actual fun sqlite3_last_insert_rowid(db: sqlite3): Long =
     native.sqlite3_last_insert_rowid(db.pointer)
 
@@ -922,10 +920,10 @@ public actual fun sqlite3_limit(
 ): Int = native.sqlite3_limit(db.pointer, id.id, newVal)
 
 public actual fun sqlite3_log(
-    errCode: Int,
+    errorCode: Int,
     message: String
 ): Unit = memScoped {
-    native.sqlite3_log.makeInvoker().apply(errCode, message.allocateUtf8())
+    native.sqlite3_log.makeInvoker().apply(errorCode, message.allocateUtf8())
 }
 
 public actual fun sqlite3_malloc(size: Int): Buffer? =
@@ -977,33 +975,79 @@ public actual fun sqlite3_overload_function(
     native.sqlite3_overload_function(db.pointer, name.allocateUtf8(), nArg)
 })
 
+/**
+ * Common code for [sqlite3_prepare_v2] and [sqlite3_prepare_v3] overloads with [ByteArray].
+ */
+private inline fun prepare(
+    sql: ByteArray,
+    outStmt: Sqlite3StmtOutputParam,
+    outTailOffset: Int32OutputParam?,
+    call: (
+        sqlPtr: MemorySegment,
+        stmtPtr: MemorySegment,
+        tailPtr: MemorySegment
+    ) -> Int
+): Sqlite3Result = convertResult(memScoped {
+    useParams(outStmt, outTailOffset) { stmtPtr, offsetPtr ->
+        val begin = sql.backing()
+        val endPointer = offsetPtr.orNull?.let { allocate(ValueLayout.ADDRESS) }
+        val resultCode = call(begin, stmtPtr, endPointer.notNull)
+
+        endPointer?.let { end ->
+            val startAddress = end.toLong()
+            val endAddress = end.get(ValueLayout.ADDRESS, 0)
+            memory.poke32(offsetPtr, (endAddress - startAddress).toInt())
+        }
+
+        resultCode
+    }
+})
+
+public actual fun sqlite3_prepare_v2(
+    db: sqlite3,
+    sql: ByteArray,
+    maxBytes: Int,
+    outStmt: Sqlite3StmtOutputParam,
+    outTailOffset: Int32OutputParam?
+): Sqlite3Result = prepare(sql, outStmt, outTailOffset) { sqlPtr, stmtPtr, tailPtr ->
+    native.sqlite3_prepare_v2(db.pointer, sqlPtr, maxBytes, stmtPtr, tailPtr)
+}
+
 public actual fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
-    size: Int?,
-    outStmt: Sqlite3StmtOutputParam,
-    outTail: Utf8OutputParam?
+    outStmt: Sqlite3StmtOutputParam
 ): Sqlite3Result = convertResult(memScoped {
-    useParams(outStmt, outTail) { stmtPtr, tailPtr ->
+    useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
-        val nByte = size ?: cSql.byteSize().toInt()
-        native.sqlite3_prepare_v2(db.pointer, cSql, nByte, stmtPtr, tailPtr)
+        val nByte = cSql.byteSize().toInt()
+        native.sqlite3_prepare_v2(db.pointer, cSql, nByte, stmtPtr, MemorySegment.NULL)
     }
 })
 
 public actual fun sqlite3_prepare_v3(
     db: sqlite3,
-    sql: String,
-    size: Int?,
+    sql: ByteArray,
+    maxBytes: Int,
     flags: Sqlite3PrepareFlag?,
     outStmt: Sqlite3StmtOutputParam,
-    outTail: Utf8OutputParam?
+    outTailOffset: Int32OutputParam?
+): Sqlite3Result = prepare(sql, outStmt, outTailOffset) { sqlPtr, stmtPtr, tailPtr ->
+    val prepFlags = flags?.value ?: 0
+    native.sqlite3_prepare_v3(db.pointer, sqlPtr, maxBytes, prepFlags, stmtPtr, tailPtr)
+}
+
+public actual fun sqlite3_prepare_v3(
+    db: sqlite3,
+    sql: String,
+    flags: Sqlite3PrepareFlag?,
+    outStmt: Sqlite3StmtOutputParam
 ): Sqlite3Result = convertResult(memScoped {
-    useParams(outStmt, outTail) { stmtPtr, tailPtr ->
+    useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
-        val nByte = size ?: cSql.byteSize().toInt()
+        val nByte = cSql.byteSize().toInt()
         val prepFlags = flags?.value ?: 0
-        native.sqlite3_prepare_v3(db.pointer, cSql, nByte, prepFlags, stmtPtr, tailPtr)
+        native.sqlite3_prepare_v3(db.pointer, cSql, nByte, prepFlags, stmtPtr, MemorySegment.NULL)
     }
 })
 
@@ -1134,12 +1178,11 @@ public actual fun sqlite3_result_double(
 
 public actual fun sqlite3_result_error(
     context: sqlite3_context,
-    message: String?,
-    size: Int?
+    message: String
 ): Unit = memScoped {
-    val cMessage = message?.allocateUtf8()
-    val nByte = size ?: cMessage?.byteSize()?.toInt() ?: 0
-    native.sqlite3_result_error(context.pointer, cMessage.notNull, nByte)
+    val cMessage = message.allocateUtf8()
+    val nByte = cMessage.byteSize().toInt()
+    native.sqlite3_result_error(context.pointer, cMessage, nByte)
 }
 
 public actual fun sqlite3_result_error_code(
@@ -1190,11 +1233,10 @@ public actual fun sqlite3_result_subtype(
 
 public actual fun sqlite3_result_text(
     context: sqlite3_context,
-    text: String?,
-    size: Int?
+    text: String
 ): Unit = memScoped {
-    val cText = text?.allocateUtf8()
-    val nByte = size ?: cText?.byteSize()?.toInt() ?: 0
+    val cText = text.allocateUtf8()
+    val nByte = cText.byteSize().toInt()
     native.sqlite3_result_text(context.pointer, cText.notNull, nByte, SqliteTransient)
 }
 

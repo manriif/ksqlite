@@ -281,8 +281,7 @@ public expect fun <Data> sqlite3_bind_pointer(
 public expect fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String,
-    size: Int? = null
+    text: String
 ): Sqlite3Result
 
 /**
@@ -396,7 +395,7 @@ public expect fun sqlite3_blob_reopen(
 public expect fun sqlite3_blob_write(
     blob: sqlite3_blob,
     bytes: ByteArray,
-    size: Int?,
+    size: Int,
     offset: Int
 ): Sqlite3Result
 
@@ -1238,6 +1237,14 @@ public expect fun sqlite3_key_v2(
 ): Sqlite3Result
 
 /**
+ * The sqlite3_keyword_check() interface checks to see whether or not [word] is a keyword, returning
+ * `true` if it is and `false` if not.
+ *
+ * [sqlite3_keyword_check()](https://sqlite.org/c3ref/keyword_check.html)
+ */
+public expect fun sqlite3_keyword_check(word: String): Int
+
+/**
  * The sqlite3_keyword_count() interface returns the number of distinct keywords understood by
  * SQLite.
  *
@@ -1257,17 +1264,6 @@ public expect fun sqlite3_keyword_name(
     index: Int,
     outName: Utf8OutputParam,
 ): Sqlite3Result
-
-/**
- * The sqlite3_keyword_check() interface checks to see whether or not [word] is a keyword, returning
- * `true` if it is and `false` if not.
- *
- * [sqlite3_keyword_check()](https://sqlite.org/c3ref/keyword_check.html)
- */
-public expect fun sqlite3_keyword_check(
-    word: String,
-    size: Int?
-): Int
 
 /**
  * Return the ROWID of the most recent insert.
@@ -1314,7 +1310,7 @@ public expect fun sqlite3_limit(
  * [sqlite3_log()](https://sqlite.org/c3ref/log.html)
  */
 public expect fun sqlite3_log(
-    errCode: Int,
+    errorCode: Int,
     message: String
 )
 
@@ -1421,10 +1417,10 @@ public expect fun sqlite3_overload_function(
  */
 public expect fun sqlite3_prepare_v2(
     db: sqlite3,
-    sql: String,
-    size: Int?,
+    sql: ByteArray,
+    maxBytes: Int,
     outStmt: Sqlite3StmtOutputParam,
-    outTail: Utf8OutputParam?
+    outTailOffset: Int32OutputParam?
 ): Sqlite3Result
 
 /**
@@ -1434,13 +1430,40 @@ public expect fun sqlite3_prepare_v2(
  *
  * [sqlite3_prepare_v2()](https://sqlite.org/c3ref/prepare.html)
  */
+public expect fun sqlite3_prepare_v2(
+    db: sqlite3,
+    sql: String,
+    outStmt: Sqlite3StmtOutputParam
+): Sqlite3Result
+
+/**
+ * To execute an SQL statement, it must first be compiled into a byte-code program using one of
+ * [sqlite3_prepare_v2] or [sqlite3_prepare_v3]. Or, in other words, these routines are constructors
+ * for the prepared statement object.
+ *
+ * [sqlite3_prepare_v3()](https://sqlite.org/c3ref/prepare.html)
+ */
+public expect fun sqlite3_prepare_v3(
+    db: sqlite3,
+    sql: ByteArray,
+    maxBytes: Int,
+    flags: Sqlite3PrepareFlag?,
+    outStmt: Sqlite3StmtOutputParam,
+    outTailOffset: Int32OutputParam?
+): Sqlite3Result
+
+/**
+ * To execute an SQL statement, it must first be compiled into a byte-code program using one of
+ * [sqlite3_prepare_v2] or [sqlite3_prepare_v3]. Or, in other words, these routines are constructors
+ * for the prepared statement object.
+ *
+ * [sqlite3_prepare_v3()](https://sqlite.org/c3ref/prepare.html)
+ */
 public expect fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: String,
-    size: Int?,
     flags: Sqlite3PrepareFlag?,
-    outStmt: Sqlite3StmtOutputParam,
-    outTail: Utf8OutputParam?
+    outStmt: Sqlite3StmtOutputParam
 ): Sqlite3Result
 
 /**
@@ -1659,8 +1682,7 @@ public expect fun sqlite3_result_double(
  */
 public expect fun sqlite3_result_error(
     context: sqlite3_context,
-    message: String?,
-    size: Int?
+    message: String
 )
 
 /**
@@ -1744,8 +1766,7 @@ public expect fun sqlite3_result_subtype(
  */
 public expect fun sqlite3_result_text(
     context: sqlite3_context,
-    text: String?,
-    size: Int? = null
+    text: String
 )
 
 /**

@@ -82,7 +82,6 @@ public abstract class PointerOutputParam<Value, Var : CPointed> :
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
-
 public actual class Int32OutputParam actual constructor(initialValue: Int) :
     OutputParamBase<Int, IntVar>(initialValue) {
 

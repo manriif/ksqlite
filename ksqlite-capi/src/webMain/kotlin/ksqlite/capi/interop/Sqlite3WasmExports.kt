@@ -607,16 +607,16 @@ internal external interface Sqlite3WasmExports : JsAny {
         p1: JsBigInt,
     ): JsBigInt
 
-    fun sqlite3_msize(
-        p0: JsBigInt,
-    ): JsBigInt
-
     fun sqlite3_memory_used(
 	): JsBigInt
 
     fun sqlite3_memory_highwater(
 		p0: Int, 
 	): JsBigInt
+
+    fun sqlite3_msize(
+        p0: JsBigInt,
+    ): JsBigInt
 
     fun sqlite3_next_stmt(
         p0: JsBigInt,

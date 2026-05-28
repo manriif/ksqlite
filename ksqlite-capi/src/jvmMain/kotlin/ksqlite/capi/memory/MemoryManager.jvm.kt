@@ -246,7 +246,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
         override val appData: ByteArray,
     ) : ArenaDisposable<ByteArray>(id, destructor) {
 
-        // TODO see of copy is necessary
         val pointer: MemorySegment = arena.allocate(appData.size.toLong()).apply {
             copyFrom(MemorySegment.ofArray(appData))
         }

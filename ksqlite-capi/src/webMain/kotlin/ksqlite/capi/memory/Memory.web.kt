@@ -276,12 +276,13 @@ internal inline fun <reified T> WasmPointer.toArray(
  * Allocates a pointer to store [buffer]'s content to wasm memory then invokes [block] with the
  * pointer. The allocated memory is reclaimed after [block] returns or throws.
  */
-internal fun <R> bufferScoped(
+internal inline fun <R> bufferScoped(
     buffer: ByteArray,
     memory: WasmMemory = wasm,
+    size: Int? = null,
     block: Int8Array.(buffer: WasmPointer) -> R
 ): R {
-    val typedArray = toInt8Array(buffer)
+    val typedArray = size?.let { toInt8Array(buffer, it) } ?: toInt8Array(buffer)
     val pointer = memory.allocFromTypedArray(typedArray)
 
     return try {
