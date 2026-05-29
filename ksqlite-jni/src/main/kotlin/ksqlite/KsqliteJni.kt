@@ -738,120 +738,129 @@ public external fun sqlite3_set_authorizer(
     callback: AuthorizerCallback?
 ): Int
 
-/*public external fun sqlite3_set_auxdata(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-)
+public external fun sqlite3_set_auxdata(
+    context: Long,
+    index: Int,
+    destructor: DestructorCallback?
+): Long
 
 public external fun sqlite3_set_errmsg(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    errorCode: Int,
+    message: String?
 ): Int
 
 public external fun sqlite3_set_last_insert_rowid(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    rowId: Long,
 )
 
 public external fun sqlite3_shutdown(): Int
 
-public external fun sqlite3_sourceid(): Long
+public external fun sqlite3_snapshot_cmp(
+    snapshot1: Long,
+    snapshot2: Long,
+): Int
 
-public external fun sqlite3_sql(
-    p0: Long,
-): Long
+public external fun sqlite3_snapshot_free(snapshot: Long)
+
+public external fun sqlite3_snapshot_get(
+    db: Long,
+    name: String?,
+    outSnapshot: OutputPointer.OfPointer
+): Int
+
+public external fun sqlite3_snapshot_open(
+    db: Long,
+    name: String?,
+    snapshot: Long
+): Int
+
+public external fun sqlite3_snapshot_recover(
+    db: Long,
+    name: String?
+): Int
+
+public external fun sqlite3_soft_heap_limit64(limit: Long): Long
+
+public external fun sqlite3_sourceid(): String
+
+public external fun sqlite3_sql(stmt: Long): String
 
 public external fun sqlite3_status(
-    p0: Int,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    option: Int,
+    outCurrent: OutputPointer.OfInt32,
+    outHighwater: OutputPointer.OfInt32,
+    resetFlag: Int,
 ): Int
 
 public external fun sqlite3_status64(
-    p0: Int,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    option: Int,
+    outCurrent: OutputPointer.OfInt64,
+    outHighwater: OutputPointer.OfInt64,
+    resetFlag: Int,
 ): Int
 
-public external fun sqlite3_step(
-    p0: Long,
+public external fun sqlite3_step(stmt: Long): Int
+
+public external fun sqlite3_stmt_busy(stmt: Long): Int
+
+public external fun sqlite3_stmt_explain(
+    stmt: Long,
+    mode: Int,
 ): Int
 
-public external fun Long_busy(
-    p0: Long,
-): Int
+public external fun sqlite3_stmt_isexplain(stmt: Long): Int
 
-public external fun Long_explain(
-    p0: Long,
-    p1: Int,
-): Int
+public external fun sqlite3_stmt_readonly(stmt: Long): Int
 
-public external fun Long_isexplain(
-    p0: Long,
-): Int
-
-public external fun Long_readonly(
-    p0: Long,
-): Int
-
-public external fun Long_status(
-    p0: Long,
-    p1: Int,
-    p2: Int,
+public external fun sqlite3_stmt_status(
+    stmt: Long,
+    counter: Int,
+    resetFlag: Int,
 ): Int
 
 public external fun sqlite3_strglob(
-    p0: Long,
-    p1: Long,
+    pattern: String,
+    input: String,
 ): Int
 
 public external fun sqlite3_stricmp(
-    p0: Long,
-    p1: Long,
+    first: String,
+    second: String
 ): Int
 
 public external fun sqlite3_strlike(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    pattern: String,
+    input: String,
+    escape: Int,
 ): Int
 
 public external fun sqlite3_strnicmp(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    first: String,
+    second: String,
+    maxChars: Int,
 ): Int
 
-public external fun sqlite3_system_errno(
-    p0: Long,
-): Int
+public external fun sqlite3_system_errno(db: Long): Int
 
 public external fun sqlite3_table_column_metadata(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
-    p5: Long,
-    p6: Long,
-    p7: Long,
-    p8: Long,
+    db: Long,
+    dbName: String?,
+    tableName: String,
+    columnName: String,
+    outDataType: OutputPointer.OfString?,
+    outCollationName: OutputPointer.OfString?,
+    outNotNull: OutputPointer.OfInt32?,
+    outPrimaryKey: OutputPointer.OfInt32?,
+    outAutoIncrement: OutputPointer.OfInt32?
 ): Int
 
-public external fun sqlite3_total_changes(
-    p0: Long,
-): Int
+public external fun sqlite3_total_changes(db: Long): Int
 
-public external fun sqlite3_total_changes64(
-    p0: Long,
-): Long
+public external fun sqlite3_total_changes64(db: Long): Long
 
-public external fun sqlite3_trace_v2(
+/*public external fun sqlite3_trace_v2(
     p0: Long,
     p1: Int,
     p2: Long,

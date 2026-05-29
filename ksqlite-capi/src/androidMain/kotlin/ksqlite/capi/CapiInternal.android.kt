@@ -1,34 +1,28 @@
 package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.orNull
-import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.types.sqlite3_value
 import ksqlite.sqlite3_aggregate_context as jni_sqlite3_aggregate_context
 import ksqlite.sqlite3_get_auxdata as jni_sqlite3_get_auxdata
+import ksqlite.sqlite3_set_auxdata as jni_sqlite3_set_auxdata
 
 internal actual fun nativeAggregateContext(
     context: sqlite3_context,
     create: Boolean
-): Long? {
-    return jni_sqlite3_aggregate_context(context.pointer, create).orNull
-}
+): Long? = jni_sqlite3_aggregate_context(context.pointer, create).orNull
 
-internal actual fun nativeGetAuxdata(context: sqlite3_context, index: Int): Long? {
-    return jni_sqlite3_get_auxdata(context.pointer, index).orNull
-}
+internal actual fun nativeGetAuxdata(context: sqlite3_context, index: Int): Long? =
+    jni_sqlite3_get_auxdata(context.pointer, index).orNull
 
 internal actual fun nativeSetAuxdata(
     context: sqlite3_context,
     index: Int,
     destroy: Sqlite3DestroyCallback<Nothing?>
-): Long? = context.db.withMemoryManager {
-    val pointer = stableRefPointer(null, null, destroy)
-    val disposer = stableRefDisposer(null, destroy)
-    sqlite3.sqlite3_set_auxdata(context.pointer, index, pointer, disposer)
-    pointer.orNull?.address()
-}
+): Long? = jni_sqlite3_set_auxdata(context.pointer, index, destructorHandler(null, destroy)).orNull
 
 @PublishedApi
 internal actual fun nativeUserData(context: sqlite3_context): ApplicationDefinedFunction<*>? {

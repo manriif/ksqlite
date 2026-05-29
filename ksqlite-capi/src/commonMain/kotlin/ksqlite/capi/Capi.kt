@@ -2000,8 +2000,8 @@ public expect fun sqlite3_stmt_status(
  * [sqlite3_strglob()](https://sqlite.org/c3ref/strglob.html)
  */
 public expect fun sqlite3_strglob(
-    pattern: String,
-    string: String
+    globPattern: String,
+    input: String
 ): Int
 
 /**
@@ -2012,8 +2012,8 @@ public expect fun sqlite3_strglob(
  * [sqlite3_stricmp()](https://sqlite.org/c3ref/stricmp.html)
  */
 public expect fun sqlite3_stricmp(
-    left: String,
-    right: String
+    first: String,
+    second: String
 ): Int
 
 /**
@@ -2022,9 +2022,9 @@ public expect fun sqlite3_stricmp(
  * [sqlite3_strlike()](https://sqlite.org/c3ref/strlike.html)
  */
 public expect fun sqlite3_strlike(
-    pattern: String,
-    string: String,
-    escape: Char
+    likePattern: String,
+    input: String,
+    escapeCharacter: Char
 ): Int
 
 /**
@@ -2035,9 +2035,9 @@ public expect fun sqlite3_strlike(
  * [sqlite3_strnicmp()](https://sqlite.org/c3ref/stricmp.html)
  */
 public expect fun sqlite3_strnicmp(
-    left: String,
-    right: String,
-    size: Int
+    first: String,
+    second: String,
+    maxCharacters: Int
 ): Int
 
 /**

@@ -1400,37 +1400,37 @@ public actual fun sqlite3_stmt_status(
 ): Int = exports.sqlite3_stmt_status(stmt.pointer, counter.id, resetFlag)
 
 public actual fun sqlite3_strglob(
-    pattern: String,
-    string: String
+    globPattern: String,
+    input: String
 ): Int = heapScoped {
-    exports.sqlite3_strglob(pattern.allocateUtf8Pointer(), string.allocateUtf8Pointer())
+    exports.sqlite3_strglob(globPattern.allocateUtf8Pointer(), input.allocateUtf8Pointer())
 }
 
 public actual fun sqlite3_stricmp(
-    left: String,
-    right: String
+    first: String,
+    second: String
 ): Int = heapScoped {
-    exports.sqlite3_stricmp(left.allocateUtf8Pointer(), right.allocateUtf8Pointer())
+    exports.sqlite3_stricmp(first.allocateUtf8Pointer(), second.allocateUtf8Pointer())
 }
 
 public actual fun sqlite3_strlike(
-    pattern: String,
-    string: String,
-    escape: Char
+    likePattern: String,
+    input: String,
+    escapeCharacter: Char
 ): Int = heapScoped {
     exports.sqlite3_strlike(
-        pattern.allocateUtf8Pointer(),
-        string.allocateUtf8Pointer(),
-        escape.code
+        likePattern.allocateUtf8Pointer(),
+        input.allocateUtf8Pointer(),
+        escapeCharacter.code
     )
 }
 
 public actual fun sqlite3_strnicmp(
-    left: String,
-    right: String,
-    size: Int
+    first: String,
+    second: String,
+    maxCharacters: Int
 ): Int = heapScoped {
-    exports.sqlite3_strnicmp(left.allocateUtf8Pointer(), right.allocateUtf8Pointer(), size)
+    exports.sqlite3_strnicmp(first.allocateUtf8Pointer(), second.allocateUtf8Pointer(), maxCharacters)
 }
 
 public actual fun sqlite3_system_errno(db: sqlite3): Int =

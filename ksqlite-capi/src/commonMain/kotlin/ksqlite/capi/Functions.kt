@@ -201,10 +201,11 @@ internal class ApplicationDefinedFunction<AppData>(
 /**
  * Invokes [block] with [function] and a destroy to use in place of client destroy.
  */
+@Suppress("UNCHECKED_CAST")
 private inline fun <AppData, R> appFunction(
     function: ApplicationDefinedFunction<AppData>,
-    block: (ApplicationDefinedFunction<AppData>, Sqlite3DestroyCallback<AppData>) -> R
-): R = block(function) { function.cleanup() }
+    block: (ApplicationDefinedFunction<Any?>, Sqlite3DestroyCallback<Any?>) -> R
+): R = block(function as ApplicationDefinedFunction<Any?>) { function.cleanup() }
 
 /**
  * Invokes [block] with a [ApplicationDefinedFunction] for aggregate and scalar functions and a destroy

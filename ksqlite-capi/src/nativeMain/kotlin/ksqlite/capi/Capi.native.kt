@@ -1521,26 +1521,26 @@ public actual fun sqlite3_stmt_status(
 ): Int = native_sqlite3_stmt_status(stmt.pointer, counter.id, resetFlag)
 
 public actual fun sqlite3_strglob(
-    pattern: String,
-    string: String
-): Int = native_sqlite3_strglob(pattern, string)
+    globPattern: String,
+    input: String
+): Int = native_sqlite3_strglob(globPattern, input)
 
 public actual fun sqlite3_stricmp(
-    left: String,
-    right: String
-): Int = native_sqlite3_stricmp(left, right)
+    first: String,
+    second: String
+): Int = native_sqlite3_stricmp(first, second)
 
 public actual fun sqlite3_strlike(
-    pattern: String,
-    string: String,
-    escape: Char
-): Int = native_sqlite3_strlike(pattern, string, escape.code.convert())
+    likePattern: String,
+    input: String,
+    escapeCharacter: Char
+): Int = native_sqlite3_strlike(likePattern, input, escapeCharacter.code.convert())
 
 public actual fun sqlite3_strnicmp(
-    left: String,
-    right: String,
-    size: Int
-): Int = native_sqlite3_strnicmp(left, right, size)
+    first: String,
+    second: String,
+    maxCharacters: Int
+): Int = native_sqlite3_strnicmp(first, second, maxCharacters)
 
 public actual fun sqlite3_system_errno(db: sqlite3): Int =
     native_sqlite3_system_errno(db.pointer)

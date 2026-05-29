@@ -1382,33 +1382,33 @@ public actual fun sqlite3_stmt_status(
 ): Int = native.sqlite3_stmt_status(stmt.pointer, counter.id, resetFlag)
 
 public actual fun sqlite3_strglob(
-    pattern: String,
-    string: String
+    globPattern: String,
+    input: String
 ): Int = memScoped {
-    native.sqlite3_strglob(pattern.allocateUtf8(), string.allocateUtf8())
+    native.sqlite3_strglob(globPattern.allocateUtf8(), input.allocateUtf8())
 }
 
 public actual fun sqlite3_stricmp(
-    left: String,
-    right: String
+    first: String,
+    second: String
 ): Int = memScoped {
-    native.sqlite3_stricmp(left.allocateUtf8(), right.allocateUtf8())
+    native.sqlite3_stricmp(first.allocateUtf8(), second.allocateUtf8())
 }
 
 public actual fun sqlite3_strlike(
-    pattern: String,
-    string: String,
-    escape: Char
+    likePattern: String,
+    input: String,
+    escapeCharacter: Char
 ): Int = memScoped {
-    native.sqlite3_strlike(pattern.allocateUtf8(), string.allocateUtf8(), escape.code)
+    native.sqlite3_strlike(likePattern.allocateUtf8(), input.allocateUtf8(), escapeCharacter.code)
 }
 
 public actual fun sqlite3_strnicmp(
-    left: String,
-    right: String,
-    size: Int
+    first: String,
+    second: String,
+    maxCharacters: Int
 ): Int = memScoped {
-    native.sqlite3_strnicmp(left.allocateUtf8(), right.allocateUtf8(), size)
+    native.sqlite3_strnicmp(first.allocateUtf8(), second.allocateUtf8(), maxCharacters)
 }
 
 public actual fun sqlite3_system_errno(db: sqlite3): Int =
