@@ -257,9 +257,6 @@ static inline jfieldID getFieldIdOrDie(
     getFieldIdOrDie(env, klass, name, signature, \
     "Error getting reference to " className "#" name " field")
 
-#define RequireField(O, name, signature, className) \
-    RequireClassField(O.klass, name, signature, className)
-
 #define RequireKsqliteClassField(klass, name, signature, className) \
     RequireClassField(klass, name, signature, "ksqlite." className)
 
@@ -510,9 +507,6 @@ static void destroyFreeable(
 #define AllocateFreeablePointer(pointer, destructor) \
     AllocateFreeable(pointer, nullptr, destructor)
 
-#define AllocateFreeableTarget(target, destructor) \
-    AllocateFreeable(nullptr, target, destructor)
-
 ///////////////////////////////////////////////////////////////////////////
 // Functions
 ///////////////////////////////////////////////////////////////////////////
@@ -645,6 +639,7 @@ struct DbState : MutexGuarded {
     char* configMainDbName; // SQLITE_DBCONFIG_MAINDBNAME, must be freed with sqlite3_free()
 
     struct {
+        Hook authorizer;
         HookDestroyable autoVacuumPages;
         Hook busyHandler;
         HookDestroyable collationCompare;
@@ -684,9 +679,16 @@ static void destroyDbState(
     auto& hooks = state.hooks;
 
     // Clear hooks to release Java references.
+    HookClear(hooks.authorizer);
     HookClear(hooks.busyHandler);
     HookClear(hooks.collationNeeded);
     HookClear(hooks.commitHook);
+    HookClear(hooks.preupdateHook);
+    HookClear(hooks.progressHandler);
+    HookClear(hooks.rollbackHook);
+    HookClear(hooks.trace);
+    HookClear(hooks.updateHook);
+    HookClear(hooks.walHook);
 
     // Destructors must have been called by SQLite for theses hooks.
     RequireNull(hooks.autoVacuumPages.instance);
@@ -1688,11 +1690,18 @@ static jstring utf8ToJstring(
 /**
  * Declares the function body for simple function call requiring jstring conversion.
  */
-#define ReturnWithString(string, function) \
+#define WithString(string, function) \
     int CONCAT(string, _size) = 0; \
     const auto UNDERSCORED(string) = JstringToUtf8Out(string, &CONCAT(string, _size)); \
-    const auto result = function;          \
-    sqlite3_free(UNDERSCORED(string)); \
+    function;          \
+    sqlite3_free(UNDERSCORED(string))
+
+/**
+ * Declares the function body for simple function call requiring jstring conversion and return the
+ * result of the function.
+ */
+#define ReturnWithString(string, function) \
+    WithString(string, const auto result = function); \
     return result
 
 ///////////////////////////////////////////////////////////////////////////
@@ -2233,7 +2242,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1blob64(
 ) {
     const auto pStmt = LongTo_s3_stmt(stmt);
     const auto pBuffer = LongToPtr(buffer);
-    const auto freeable = AllocateFreeableTarget(nullptr, destructor);
+    const auto freeable = AllocateFreeablePointer(nullptr, destructor);
     const auto destroyer = FreeableDestroyerPush(pBuffer, freeable);
 
     return sqlite3_bind_blob64(pStmt, index, pBuffer, size, destroyer);
@@ -2344,11 +2353,11 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text(
     jclass clazz,
     jlong stmt,
     jint index,
-    jstring text
+    jstring value
 ) {
     const auto pStmt = LongTo_s3_stmt(stmt);
     int bufferSize = 0;
-    const auto buffer = JstringToUtf8Out(text, &bufferSize);
+    const auto buffer = JstringToUtf8Out(value, &bufferSize);
     const auto freeable = AllocateFreeablePointer(buffer, nullptr);
     const auto pDestructor = FreeableDestroyerPush(buffer, freeable);
 
@@ -2369,7 +2378,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1bind_1text64(
 ) {
     const auto pStmt = LongTo_s3_stmt(stmt);
     const auto pBuffer = reinterpret_cast<char*>(LongToPtr(buffer));
-    const auto freeable = AllocateFreeableTarget(nullptr, destructor);
+    const auto freeable = AllocateFreeablePointer(nullptr, destructor);
     const auto destroyer = FreeableDestroyerPush(pBuffer, freeable);
 
     return sqlite3_bind_text64(pStmt, index, pBuffer, size, destroyer, encoding);
@@ -3793,7 +3802,7 @@ static jint keyOrRekeyV2(
     jstring dbName,
     jbyteArray key,
     jint nKey,
-    int (*callback)(sqlite3* db, const char* zDbName, const void* pKey, int nKey)
+    int (* callback)(sqlite3* db, const char* zDbName, const void* pKey, int nKey)
 ) {
     const auto pDb = LongTo_s3(db);
     const auto zName = JstringToUtf8(dbName);
@@ -4300,4 +4309,321 @@ Java_ksqlite_KsqliteJni_sqlite3_1reset_1auto_1extension(
     }
 
     MutexLeave(KHS);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1blob(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jbyteArray bytes,
+    jint size,
+    jobject destructor
+) {
+    const auto pContext = LongTo_s3_context(context);
+    const auto pBuffer = ByteArrayToBuffer(bytes, size);
+    const auto freeable = AllocateFreeablePointer(pBuffer, destructor);
+    const auto destroyer = FreeableDestroyerPush(pBuffer, freeable);
+
+    sqlite3_result_blob(pContext, pBuffer, size, destroyer);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1blob64(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jlong buffer,
+    jlong size,
+    jobject destructor
+) {
+    const auto pContext = LongTo_s3_context(context);
+    const auto pBuffer = LongToPtr(buffer);
+    const auto freeable = AllocateFreeablePointer(nullptr, destructor);
+    const auto destroyer = FreeableDestroyerPush(pBuffer, freeable);
+
+    sqlite3_result_blob64(pContext, pBuffer, size, destroyer);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1double(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jdouble value
+) {
+    sqlite3_result_double(LongTo_s3_context(context), value);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1error(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jstring message
+) {
+    WithString(message, sqlite3_result_error(LongTo_s3_context(context), message_, message_size));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1error_1code(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jint errorCode
+) {
+    sqlite3_result_error_code(LongTo_s3_context(context), errorCode);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1error_1nomem(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context
+) {
+    sqlite3_result_error_nomem(LongTo_s3_context(context));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1error_1toobig(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context
+) {
+    sqlite3_result_error_toobig(LongTo_s3_context(context));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1int(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jint value
+) {
+    sqlite3_result_int(LongTo_s3_context(context), value);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1int64(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jlong value
+) {
+    sqlite3_result_int64(LongTo_s3_context(context), value);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1null(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context
+) {
+    sqlite3_result_null(LongTo_s3_context(context));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1pointer(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jobject data,
+    jstring type,
+    jobject destructor
+) {
+    const auto pContext = LongTo_s3_context(context);
+    const auto zType = JstringToUtf8(type);
+    const auto freeable = AllocateFreeable(zType, data, destructor);
+    const auto destroyer = FreeableDestroyer(freeable);
+
+    sqlite3_result_pointer(pContext, freeable, zType, destroyer);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1subtype(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jint subtype
+) {
+    sqlite3_result_subtype(LongTo_s3_context(context), subtype);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1text(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jstring value
+) {
+    const auto pContext = LongTo_s3_context(context);
+    int bufferSize = 0;
+    const auto buffer = JstringToUtf8Out(value, &bufferSize);
+    const auto freeable = AllocateFreeablePointer(buffer, nullptr);
+    const auto pDestructor = FreeableDestroyerPush(buffer, freeable);
+
+    return sqlite3_result_text(pContext, buffer, bufferSize, pDestructor);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1text64(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jlong buffer,
+    jlong size,
+    jobject destructor,
+    jint encoding
+) {
+    const auto pContext = LongTo_s3_context(context);
+    const auto pBuffer = reinterpret_cast<char*>(LongToPtr(buffer));
+    const auto freeable = AllocateFreeablePointer(nullptr, destructor);
+    const auto destroyer = FreeableDestroyerPush(pBuffer, freeable);
+
+    sqlite3_result_text64(pContext, pBuffer, size, destroyer, encoding);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1value(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jlong value
+) {
+    sqlite3_result_value(LongTo_s3_context(context), LongTo_s3_value(value));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1zeroblob(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jint size
+) {
+    sqlite3_result_zeroblob(LongTo_s3_context(context), size);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1result_1zeroblob64(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context,
+    jlong size
+) {
+    return sqlite3_result_zeroblob64(LongTo_s3_context(context), size);
+}
+
+/**
+ * Calls the `RollbackHookCallback` hook.
+ */
+static void rollbackHookCaller(void* pDbStateHook) {
+    JniEnvDeclare();
+    DbStateDeclareDirect(pDbStateHook);
+    HookEnterDbState(rollbackHook);
+    env->CallVoidMethod(instance, call);
+    HookLeave();
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1rollback_1hook(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jobject callback
+) {
+    DbHookReplaceInstance(
+        rollbackHook,
+        "()V",
+        "RollbackHookCallback",
+        sqlite3_rollback_hook(pDb, rollbackHookCaller, pDbState),
+        sqlite3_rollback_hook(pDb, nullptr, nullptr)
+    );
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1serialize(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring schema,
+    jobject outSize,
+    jint flags
+) {
+    const auto zSchema = JstringToUtf8(schema);
+
+    OutputPointerEnterInt64(outSize);
+    const auto buffer = sqlite3_serialize(LongTo_s3(db), zSchema, outSize_, flags);
+    const auto rc = (buffer == nullptr) ? SQLITE_NOMEM : SQLITE_OK;
+    OutputPointerLeaveInt64(outSize);
+
+    sqlite3_free(zSchema);
+
+    return PtrToLong(buffer);
+}
+
+/**
+ * Calls the `AuthorizerCallback` hook.
+ */
+static int authorizerHookCaller(
+    void* pDbStateHook,
+    int opId,
+    const char* pString1,
+    const char* pString2,
+    const char* pString3,
+    const char* pString4
+) {
+    JniEnvDeclare();
+    DbStateDeclareDirect(pDbStateHook);
+
+    const auto string1 = Utf8ToJstring(pString1);
+    const auto string2 = Utf8ToJstring(pString2);
+    const auto string3 = Utf8ToJstring(pString3);
+    const auto string4 = Utf8ToJstring(pString4);
+
+    HookEnterDbState(authorizer);
+    jint result = env->CallIntMethod(instance, call, opId, string1, string2, string3, string4);
+    HookLeave();
+
+    LocalRefDestroy(string1);
+    LocalRefDestroy(string2);
+    LocalRefDestroy(string3);
+    LocalRefDestroy(string4);
+
+    return result;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1set_1authorizer(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jobject callback
+) {
+    DbHookReplaceResultCode(
+        authorizer,
+        "()I",
+        "AuthorizerHookCallback",
+        sqlite3_set_authorizer(pDb, authorizerHookCaller, pDbState),
+        sqlite3_set_authorizer(pDb, nullptr, nullptr)
+    );
 }

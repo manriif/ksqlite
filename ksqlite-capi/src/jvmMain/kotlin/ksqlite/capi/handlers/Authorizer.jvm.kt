@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.convertActionCode
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
@@ -11,7 +11,7 @@ import java.lang.foreign.ValueLayout
 /**
  * Handler for [ksqlite.capi.sqlite3_set_authorizer].
  */
-internal class SetAuthorizerHandler(manager: MemoryManager) : Handler(manager) {
+internal class AuthorizerHandler(manager: MemoryManager) : Handler(manager) {
 
     override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
         ValueLayout.JAVA_INT,
@@ -30,7 +30,7 @@ internal class SetAuthorizerHandler(manager: MemoryManager) : Handler(manager) {
         param4: MemorySegment,
         param5: MemorySegment,
         param6: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3SetAuthorizerCallback<Any?>, appData ->
+    ): Int = handler(refPointer) { callback: Sqlite3AuthorizerCallback<Any?>, appData ->
         callback.handle(
             appData = appData,
             action = convertActionCode(action),

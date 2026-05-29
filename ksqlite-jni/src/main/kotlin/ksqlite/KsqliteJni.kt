@@ -159,7 +159,7 @@ public external fun sqlite3_bind_pointer(
 public external fun sqlite3_bind_text(
     stmt: Long,
     index: Int,
-    text: String
+    value: String
 ): Int
 
 public external fun sqlite3_bind_text64(
@@ -636,117 +636,109 @@ public external fun sqlite3_reset(stmt: Long): Int
 
 public external fun sqlite3_reset_auto_extension()
 
-/*public external fun sqlite3_result_blob(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
+public external fun sqlite3_result_blob(
+    context: Long,
+    bytes: ByteArray,
+    size: Int,
+    destructor: DestructorCallback?
 )
 
 public external fun sqlite3_result_blob64(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,)
+    context: Long,
+    buffer: Long,
+    size: Long,
+    destructor: DestructorCallback?
+)
 
 public external fun sqlite3_result_double(
-    p0: Long,
-    p1: Double,
+    context: Long,
+    value: Double,
 )
 
 public external fun sqlite3_result_error(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    context: Long,
+    message: String
 )
 
 public external fun sqlite3_result_error_code(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    errorCode: Int,
 )
 
-public external fun sqlite3_result_error_nomem(
-    p0: Long,
-)
+public external fun sqlite3_result_error_nomem(context: Long)
 
-public external fun sqlite3_result_error_toobig(
-    p0: Long,
-)
+public external fun sqlite3_result_error_toobig(context: Long)
 
 public external fun sqlite3_result_int(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    value: Int,
 )
 
 public external fun sqlite3_result_int64(
-    p0: Long,
-    p1: Long,
+    context: Long,
+    value: Long,
 )
 
-public external fun sqlite3_result_null(
-    p0: Long,
-)
+public external fun sqlite3_result_null(context: Long)
 
 public external fun sqlite3_result_pointer(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
+    context: Long,
+    data: Any?,
+    type: String?,
+    destructor: DestructorCallback?
 )
 
 public external fun sqlite3_result_subtype(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    subtype: Int,
 )
 
 public external fun sqlite3_result_text(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
+    context: Long,
+    value: String
 )
 
 public external fun sqlite3_result_text64(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Int,)
+    context: Long,
+    buffer: Long,
+    size: Long,
+    destructor: DestructorCallback?,
+    encoding: Int
+)
+
+public external fun sqlite3_result_value(
+    context: Long,
+    value: Long
+)
 
 public external fun sqlite3_result_zeroblob(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    size: Int,
 )
 
 public external fun sqlite3_result_zeroblob64(
-    p0: Long,
-    p1: Long,
+    context: Long,
+    size: Long,
 ): Int
 
-public external fun sqlite3_result_value(
-    p0: Long,
-    p1: Long,)
-
 public external fun sqlite3_rollback_hook(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-): Long
+    db: Long,
+    callback: RollbackHookCallback?
+): RollbackHookCallback?
 
 public external fun sqlite3_serialize(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    db: Long,
+    schema: String?,
+    outSize: OutputPointer.OfInt64,
+    flags: Int,
 ): Long
 
 public external fun sqlite3_set_authorizer(
-    p0: Long,
-    p1: Long,
-    p2: Long,
+    db: Long,
+    callback: AuthorizerCallback?
 ): Int
 
-public external fun sqlite3_set_auxdata(
+/*public external fun sqlite3_set_auxdata(
     p0: Long,
     p1: Int,
     p2: Long,

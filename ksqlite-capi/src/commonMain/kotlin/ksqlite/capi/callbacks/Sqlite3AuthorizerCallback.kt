@@ -6,7 +6,7 @@ import ksqlite.capi.types.Sqlite3AuthorizerCode
 /**
  * Callback to use with [ksqlite.capi.sqlite3_set_authorizer].
  */
-public fun interface Sqlite3SetAuthorizerCallback<AppData> {
+public fun interface Sqlite3AuthorizerCallback<AppData> {
 
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/set_authorizer.html).

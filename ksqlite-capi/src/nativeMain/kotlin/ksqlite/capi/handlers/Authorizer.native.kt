@@ -6,24 +6,24 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.convertActionCode
-import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 
 /**
- * Static C function for [setAuthorizerHandler].
+ * Static C function for [AuthorizerHandler].
  */
-internal val SetAuthorizerHandler = staticCFunction(::setAuthorizerHandler)
+internal val AuthorizerHandler = staticCFunction(::authorizerHandler)
 
 /**
  * Handler for [ksqlite.capi.sqlite3_set_authorizer].
  */
-private fun setAuthorizerHandler(
+private fun authorizerHandler(
     refPointer: COpaquePointer?,
     action: Int,
     param3: CPointer<ByteVar>?,
     param4: CPointer<ByteVar>?,
     param5: CPointer<ByteVar>?,
     param6: CPointer<ByteVar>?
-) = handler(refPointer) { callback: Sqlite3SetAuthorizerCallback<Any?>, appData ->
+) = handler(refPointer) { callback: Sqlite3AuthorizerCallback<Any?>, appData ->
     callback.handle(
         appData = appData,
         action = convertActionCode(action),

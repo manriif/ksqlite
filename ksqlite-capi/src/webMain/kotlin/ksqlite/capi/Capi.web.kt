@@ -18,7 +18,7 @@ import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
@@ -37,7 +37,7 @@ import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
-import ksqlite.capi.handlers.SetAuthorizerHandler
+import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
@@ -319,9 +319,9 @@ public actual fun <Data> sqlite3_bind_pointer(
 public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String
+    value: String
 ): Sqlite3Result = convertResult(heapScoped {
-    val cText = text.allocateUtf8()
+    val cText = value.allocateUtf8()
     exports.sqlite3_bind_text(stmt.pointer, index, cText.pointer, cText.size, SqliteTransient)
 })
 
@@ -1213,8 +1213,8 @@ public actual fun sqlite3_result_error(
 
 public actual fun sqlite3_result_error_code(
     context: sqlite3_context,
-    code: Int
-): Unit = exports.sqlite3_result_error_code(context.pointer, code)
+    errorCode: Int
+): Unit = exports.sqlite3_result_error_code(context.pointer, errorCode)
 
 public actual fun sqlite3_result_error_nomem(context: sqlite3_context): Unit =
     exports.sqlite3_result_error_nomem(context.pointer)
@@ -1259,9 +1259,9 @@ public actual fun sqlite3_result_subtype(
 
 public actual fun sqlite3_result_text(
     context: sqlite3_context,
-    text: String
+    value: String
 ): Unit = heapScoped {
-    val cText = text.allocateUtf8()
+    val cText = value.allocateUtf8()
     exports.sqlite3_result_text(context.pointer, cText.pointer, cText.size, SqliteTransient)
 }
 
@@ -1292,7 +1292,8 @@ public actual fun sqlite3_result_zeroblob(
 public actual fun sqlite3_result_zeroblob64(
     context: sqlite3_context,
     size: ULong
-): Int = exports.sqlite3_result_zeroblob64(context.pointer, size.toLong().toJsBigInt())
+): Sqlite3Result =
+    convertResult(exports.sqlite3_result_zeroblob64(context.pointer, size.toLong().toJsBigInt()))
 
 public actual fun <AppData> sqlite3_rollback_hook(
     db: sqlite3,
@@ -1326,11 +1327,11 @@ public actual fun sqlite3_serialize(
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3SetAuthorizerCallback<AppData>?
+    callback: Sqlite3AuthorizerCallback<AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     exports.sqlite3_set_authorizer(
         db.pointer,
-        functionPointer(callback, ::SetAuthorizerHandler),
+        functionPointer(callback, ::AuthorizerHandler),
         keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, appData)
     )
 })

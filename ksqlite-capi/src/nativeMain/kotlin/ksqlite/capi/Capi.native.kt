@@ -28,7 +28,7 @@ import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3WalHookCallback
@@ -48,7 +48,7 @@ import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
-import ksqlite.capi.handlers.SetAuthorizerHandler
+import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.SharedExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
@@ -481,9 +481,9 @@ public actual fun <Data> sqlite3_bind_pointer(
 public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String
+    value: String
 ): Sqlite3Result = convertResult(memScoped {
-    val cText = text.cstr
+    val cText = value.cstr
     native_sqlite3_bind_text(stmt.pointer, index, cText.ptr, cText.size, SQLITE_TRANSIENT)
 })
 
@@ -1310,8 +1310,8 @@ public actual fun sqlite3_result_error(
 
 public actual fun sqlite3_result_error_code(
     context: sqlite3_context,
-    code: Int
-): Unit = native_sqlite3_result_error_code(context.pointer, code)
+    errorCode: Int
+): Unit = native_sqlite3_result_error_code(context.pointer, errorCode)
 
 public actual fun sqlite3_result_error_nomem(context: sqlite3_context): Unit =
     native_sqlite3_result_error_nomem(context.pointer)
@@ -1353,9 +1353,9 @@ public actual fun sqlite3_result_subtype(
 
 public actual fun sqlite3_result_text(
     context: sqlite3_context,
-    text: String
+    value: String
 ): Unit = memScoped {
-    val cText = text.cstr
+    val cText = value.cstr
     native_sqlite3_result_text(context.pointer, cText.ptr, cText.size, SQLITE_TRANSIENT)
 }
 
@@ -1386,7 +1386,7 @@ public actual fun sqlite3_result_zeroblob(
 public actual fun sqlite3_result_zeroblob64(
     context: sqlite3_context,
     size: ULong
-): Int = native_sqlite3_result_zeroblob64(context.pointer, size)
+): Sqlite3Result = convertResult(native_sqlite3_result_zeroblob64(context.pointer, size))
 
 public actual fun <AppData> sqlite3_rollback_hook(
     db: sqlite3,
@@ -1420,11 +1420,11 @@ public actual fun sqlite3_serialize(
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3SetAuthorizerCallback<AppData>?
+    callback: Sqlite3AuthorizerCallback<AppData>?
 ): Sqlite3Result = convertResult(
     native_sqlite3_set_authorizer(
         db.pointer,
-        SetAuthorizerHandler.handle(callback),
+        AuthorizerHandler.handle(callback),
         db.memory.keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, appData)
     )
 )

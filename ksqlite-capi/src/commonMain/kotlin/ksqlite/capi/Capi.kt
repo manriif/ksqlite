@@ -18,7 +18,7 @@ import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3SetAuthorizerCallback
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.memory.Buffer
@@ -281,7 +281,7 @@ public expect fun <Data> sqlite3_bind_pointer(
 public expect fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String
+    value: String
 ): Sqlite3Result
 
 /**
@@ -1692,7 +1692,7 @@ public expect fun sqlite3_result_error(
  */
 public expect fun sqlite3_result_error_code(
     context: sqlite3_context,
-    code: Int
+    errorCode: Int
 )
 
 /**
@@ -1766,7 +1766,7 @@ public expect fun sqlite3_result_subtype(
  */
 public expect fun sqlite3_result_text(
     context: sqlite3_context,
-    text: String
+    value: String
 )
 
 /**
@@ -1810,7 +1810,7 @@ public expect fun sqlite3_result_zeroblob(
 public expect fun sqlite3_result_zeroblob64(
     context: sqlite3_context,
     size: ULong
-): Int
+): Sqlite3Result
 
 /**
  * Register a callback to be invoked each time a transaction is rolled back by this database
@@ -1849,7 +1849,7 @@ public expect fun sqlite3_serialize(
 public expect fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3SetAuthorizerCallback<AppData>?
+    callback: Sqlite3AuthorizerCallback<AppData>?
 ): Sqlite3Result
 
 /**

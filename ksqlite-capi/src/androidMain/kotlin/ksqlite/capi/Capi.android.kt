@@ -2,28 +2,33 @@
 
 package ksqlite.capi
 
+//import ksqlite.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
+//import ksqlite.sqlite3_drop_modules as jni_sqlite3_drop_modules
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
+import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
+import ksqlite.capi.handlers.CollationCompareHandler
 import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
 import ksqlite.capi.handlers.ConfigSqlLogHandler
-import ksqlite.capi.handlers.CollationCompareHandler
 import ksqlite.capi.handlers.ExecHandler
 import ksqlite.capi.handlers.FunctionFinalHandler
 import ksqlite.capi.handlers.FunctionFuncHandler
@@ -32,6 +37,7 @@ import ksqlite.capi.handlers.FunctionStepHandler
 import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
+import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
@@ -51,11 +57,12 @@ import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.types.Sqlite3SerializeFlag
 import ksqlite.capi.types.Sqlite3StmtOutputParam
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3ValueOutputParam
@@ -131,7 +138,6 @@ import ksqlite.sqlite3_config as jni_sqlite3_config
 import ksqlite.sqlite3_context_db_handle as jni_sqlite3_context_db_handle
 import ksqlite.sqlite3_create_collation_v2 as jni_sqlite3_create_collation_v2
 import ksqlite.sqlite3_create_function_v2 as jni_sqlite3_create_function_v2
-//import ksqlite.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
 import ksqlite.sqlite3_create_window_function as jni_sqlite3_create_window_function
 import ksqlite.sqlite3_data_count as jni_sqlite3_data_count
 import ksqlite.sqlite3_db_cacheflush as jni_sqlite3_db_cacheflush
@@ -145,7 +151,6 @@ import ksqlite.sqlite3_db_status as jni_sqlite3_db_status
 import ksqlite.sqlite3_db_status64 as jni_sqlite3_db_status64
 import ksqlite.sqlite3_declare_vtab as jni_sqlite3_declare_vtab
 import ksqlite.sqlite3_deserialize as jni_sqlite3_deserialize
-//import ksqlite.sqlite3_drop_modules as jni_sqlite3_drop_modules
 import ksqlite.sqlite3_errcode as jni_sqlite3_errcode
 import ksqlite.sqlite3_errmsg as jni_sqlite3_errmsg
 import ksqlite.sqlite3_error_offset as jni_sqlite3_error_offset
@@ -198,6 +203,26 @@ import ksqlite.sqlite3_rekey_v2 as jni_sqlite3_rekey_v2
 import ksqlite.sqlite3_release_memory as jni_sqlite3_release_memory
 import ksqlite.sqlite3_reset as jni_sqlite3_reset
 import ksqlite.sqlite3_reset_auto_extension as jni_sqlite3_reset_auto_extension
+import ksqlite.sqlite3_result_blob as jni_sqlite3_result_blob
+import ksqlite.sqlite3_result_blob64 as jni_sqlite3_result_blob64
+import ksqlite.sqlite3_result_double as jni_sqlite3_result_double
+import ksqlite.sqlite3_result_error as jni_sqlite3_result_error
+import ksqlite.sqlite3_result_error_code as jni_sqlite3_result_error_code
+import ksqlite.sqlite3_result_error_nomem as jni_sqlite3_result_error_nomem
+import ksqlite.sqlite3_result_error_toobig as jni_sqlite3_result_error_toobig
+import ksqlite.sqlite3_result_int as jni_sqlite3_result_int
+import ksqlite.sqlite3_result_int64 as jni_sqlite3_result_int64
+import ksqlite.sqlite3_result_null as jni_sqlite3_result_null
+import ksqlite.sqlite3_result_pointer as jni_sqlite3_result_pointer
+import ksqlite.sqlite3_result_subtype as jni_sqlite3_result_subtype
+import ksqlite.sqlite3_result_text as jni_sqlite3_result_text
+import ksqlite.sqlite3_result_text64 as jni_sqlite3_result_text64
+import ksqlite.sqlite3_result_value as jni_sqlite3_result_value
+import ksqlite.sqlite3_result_zeroblob as jni_sqlite3_result_zeroblob
+import ksqlite.sqlite3_result_zeroblob64 as jni_sqlite3_result_zeroblob64
+import ksqlite.sqlite3_rollback_hook as jni_sqlite3_rollback_hook
+import ksqlite.sqlite3_serialize as jni_sqlite3_serialize
+import ksqlite.sqlite3_set_authorizer as jni_sqlite3_set_authorizer
 
 ///////////////////////////////////////////////////////////////////////////
 // Library
@@ -343,8 +368,8 @@ public actual fun <Data> sqlite3_bind_pointer(
 public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
-    text: String
-): Sqlite3Result = convertResult(jni_sqlite3_bind_text(stmt.pointer, index, text))
+    value: String
+): Sqlite3Result = convertResult(jni_sqlite3_bind_text(stmt.pointer, index, value))
 
 public actual fun sqlite3_bind_text64(
     stmt: sqlite3_stmt,
@@ -625,6 +650,7 @@ public actual fun <AppData> sqlite3_create_function_v2(
         )
     }
 )
+
 /*
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
@@ -1046,16 +1072,16 @@ public actual fun sqlite3_reset(stmt: sqlite3_stmt): Sqlite3Result =
 public actual fun sqlite3_reset_auto_extension(): Unit =
     autoExtensionReset { jni_sqlite3_reset_auto_extension() }
 
-/*public actual fun sqlite3_result_blob(
+public actual fun sqlite3_result_blob(
     context: sqlite3_context,
     bytes: ByteArray,
     size: Int,
     destroy: Sqlite3DestroyCallback<ByteArray>?
 ): Unit = jni_sqlite3_result_blob(
     context.pointer,
-    context.db.memory.byteArrayPointer(bytes, destroy),
+    bytes,
     size,
-    globalDisposer(bytes)
+    destructorHandler(bytes, destroy)
 )
 
 public actual fun sqlite3_result_blob64(
@@ -1067,7 +1093,7 @@ public actual fun sqlite3_result_blob64(
     context.pointer,
     buffer.pointer,
     size,
-    bufferDisposer(buffer, destroy)
+    destructorHandler(buffer, destroy)
 )
 
 public actual fun sqlite3_result_double(
@@ -1077,18 +1103,13 @@ public actual fun sqlite3_result_double(
 
 public actual fun sqlite3_result_error(
     context: sqlite3_context,
-    message: String?,
-    size: Int?
-): Unit = memScoped {
-    val cMessage = message?.allocateUtf8()
-    val nByte = size ?: cMessage?.byteSize()?.toInt() ?: 0
-    jni_sqlite3_result_error(context.pointer, cMessage.notNull, nByte)
-}
+    message: String
+): Unit = jni_sqlite3_result_error(context.pointer, message)
 
 public actual fun sqlite3_result_error_code(
     context: sqlite3_context,
-    code: Int
-): Unit = jni_sqlite3_result_error_code(context.pointer, code)
+    errorCode: Int
+): Unit = jni_sqlite3_result_error_code(context.pointer, errorCode)
 
 public actual fun sqlite3_result_error_nomem(context: sqlite3_context): Unit =
     jni_sqlite3_result_error_nomem(context.pointer)
@@ -1114,17 +1135,7 @@ public actual fun <Data> sqlite3_result_pointer(
     data: Data,
     type: String?,
     destroy: Sqlite3DestroyCallback<Data>?
-): Unit = with(globalMemory) {
-    // Use globalMemory because of lack of information within sqlite3_value_pointer()
-    allocateNamedPointer(type, destroy) { ptr, ptrDestroy ->
-        jni_sqlite3_result_pointer(
-            context.pointer,
-            stableRefPointer(ptr, data, ptrDestroy),
-            ptr.name.notNull,
-            destructorHandler(ptr, ptrDestroy)
-        )
-    }
-}
+): Unit = jni_sqlite3_result_pointer(context.pointer, data, type, destructorHandler(data, destroy))
 
 public actual fun sqlite3_result_subtype(
     context: sqlite3_context,
@@ -1133,13 +1144,8 @@ public actual fun sqlite3_result_subtype(
 
 public actual fun sqlite3_result_text(
     context: sqlite3_context,
-    text: String?,
-    size: Int?
-): Unit = memScoped {
-    val cText = text?.allocateUtf8()
-    val nByte = size ?: cText?.byteSize()?.toInt() ?: 0
-    jni_sqlite3_result_text(context.pointer, cText.notNull, nByte, SqliteTransient)
-}
+    value: String
+): Unit = jni_sqlite3_result_text(context.pointer, value)
 
 public actual fun sqlite3_result_text64(
     context: sqlite3_context,
@@ -1151,8 +1157,8 @@ public actual fun sqlite3_result_text64(
     context.pointer,
     buffer.pointer,
     size,
-    bufferDisposer(buffer, destroy),
-    encoding.utf8OrThrow().value.toByte()
+    destructorHandler(buffer, destroy),
+    encoding.utf8OrThrow().value
 )
 
 public actual fun sqlite3_result_value(
@@ -1168,17 +1174,16 @@ public actual fun sqlite3_result_zeroblob(
 public actual fun sqlite3_result_zeroblob64(
     context: sqlite3_context,
     size: ULong
-): Int = jni_sqlite3_result_zeroblob64(context.pointer, size.toLong())
+): Sqlite3Result = convertResult(jni_sqlite3_result_zeroblob64(context.pointer, size.toLong()))
 
 public actual fun <AppData> sqlite3_rollback_hook(
     db: sqlite3,
     appData: AppData,
     callback: Sqlite3RollbackHookCallback<AppData>?
-): Unit = db.withMemoryManager {
-    jni_sqlite3_rollback_hook(
+) {
+    val _ = jni_sqlite3_rollback_hook(
         db.pointer,
-        callbackHandler(callback, appData, ::RollbackHookHandler),
-        keyedStableRefPointer(KEY_ROLLBACK_HOOK, callback, appData)
+        callbackHandler(callback, appData, ::RollbackHookHandler)
     )
 }
 
@@ -1189,11 +1194,8 @@ public actual fun sqlite3_serialize(
 ): Buffer? {
     val size = Int64OutputParam(0)
 
-    val pointer = memScoped {
-        useParam(size) { sizePtr ->
-            val mFlags = flags?.value ?: 0
-            jni_sqlite3_serialize(db.pointer, schema.allocateUtf8(), sizePtr, mFlags)
-        }
+    val pointer = useParam(size) { sizePtr ->
+        jni_sqlite3_serialize(db.pointer, schema, sizePtr!!, flags?.value ?: 0)
     }
 
     return Buffer.from(pointer, size.value)
@@ -1202,16 +1204,15 @@ public actual fun sqlite3_serialize(
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3SetAuthorizerCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    callback: Sqlite3AuthorizerCallback<AppData>?
+): Sqlite3Result = convertResult(
     jni_sqlite3_set_authorizer(
         db.pointer,
-        callbackHandler(callback, appData, ::SetAuthorizerHandler),
-        keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, appData)
+        callbackHandler(callback, appData, ::AuthorizerHandler)
     )
-})
+)
 
-public actual fun sqlite3_set_errmsg(
+/*public actual fun sqlite3_set_errmsg(
     db: sqlite3,
     errorCode: Sqlite3Result.Failure,
     message: String?
