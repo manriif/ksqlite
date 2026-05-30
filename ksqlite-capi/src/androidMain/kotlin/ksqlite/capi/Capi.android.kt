@@ -23,6 +23,7 @@ import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3WalHookCallback
 import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
@@ -43,6 +44,7 @@ import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
+import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
@@ -54,6 +56,7 @@ import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
+import ksqlite.capi.types.Sqlite3CheckpointMode
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3DataType
@@ -76,15 +79,18 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
+import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
+import ksqlite.capi.types.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParams
 import ksqlite.ksqliteLoadLibrary
@@ -286,7 +292,6 @@ import ksqlite.sqlite3_vfs_find as jni_sqlite3_vfs_find
 import ksqlite.sqlite3_vfs_register as jni_sqlite3_vfs_register
 import ksqlite.sqlite3_vfs_unregister as jni_sqlite3_vfs_unregister
 import ksqlite.sqlite3_vtab_collation as jni_sqlite3_vtab_collation
-import ksqlite.sqlite3_vtab_config as jni_sqlite3_vtab_config
 import ksqlite.sqlite3_vtab_distinct as jni_sqlite3_vtab_distinct
 import ksqlite.sqlite3_vtab_in as jni_sqlite3_vtab_in
 import ksqlite.sqlite3_vtab_in_first as jni_sqlite3_vtab_in_first
@@ -649,10 +654,8 @@ public actual fun <AppData> sqlite3_commit_hook(
     appData: AppData,
     callback: Sqlite3CommitHookCallback<AppData>?
 ) {
-    val _ = jni_sqlite3_commit_hook(
-        db.pointer,
-        callbackHandler(callback, appData, ::CommitHookHandler)
-    )
+    val _ =
+        jni_sqlite3_commit_hook(db.pointer, callbackHandler(callback, appData, ::CommitHookHandler))
 }
 
 public actual fun sqlite3_compileoption_get(index: Int): String? =
@@ -1474,10 +1477,8 @@ public actual fun <AppData> sqlite3_update_hook(
     appData: AppData,
     callback: Sqlite3UpdateHookCallback<AppData>?
 ) {
-    val _ = jni_sqlite3_update_hook(
-        db.pointer,
-        callbackHandler(callback, appData, ::UpdateHookHandler)
-    )
+    val _ =
+        jni_sqlite3_update_hook(db.pointer, callbackHandler(callback, appData, ::UpdateHookHandler))
 }
 
 public actual fun sqlite3_uri_boolean(
@@ -1544,9 +1545,8 @@ public actual fun sqlite3_value_text(value: sqlite3_value): String? =
 public actual fun sqlite3_value_type(value: sqlite3_value): Sqlite3DataType =
     convertDataType(jni_sqlite3_value_type(value.pointer))
 
-/*public actual fun sqlite3_vfs_find(name: String?): sqlite3_vfs? = memScoped {
-    jni_sqlite3_vfs_find(name.allocateUtf8()).orNull?.let(::sqlite3_vfs)
-}
+public actual fun sqlite3_vfs_find(name: String?): sqlite3_vfs? =
+    jni_sqlite3_vfs_find(name).wrapOrNull(::sqlite3_vfs)
 
 public actual fun sqlite3_vfs_register(
     vfs: sqlite3_vfs,
@@ -1560,17 +1560,12 @@ public actual fun sqlite3_vtab_collation(
     info: sqlite3_index_info,
     index: Int
 ): String? = jni_sqlite3_vtab_collation(info.pointer, index)
-    .toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: Sqlite3VirtualTableConfigOption
 ): Sqlite3Result = commonVtabConfig(option) { id, values ->
-    invokeVariadic(values) { layouts, arguments ->
-        jni_sqlite3_vtab_config
-            .makeInvoker(*layouts)
-            .apply(db.pointer, id, *arguments)
-    }
+    jni_sqlite3_db_config(db.pointer, id, values.toJniJavaObjectArray())
 }
 
 public actual fun sqlite3_vtab_distinct(info: sqlite3_index_info): Int =
@@ -1585,14 +1580,14 @@ public actual fun sqlite3_vtab_in(
 public actual fun sqlite3_vtab_in_first(
     value: sqlite3_value,
     outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result = convertResult(useParamMemScoped(outValue) { valuePtr ->
+): Sqlite3Result = convertResult(useParam(outValue) { valuePtr ->
     jni_sqlite3_vtab_in_first(value.pointer, valuePtr)
 })
 
 public actual fun sqlite3_vtab_in_next(
     value: sqlite3_value,
     outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result = convertResult(useParamMemScoped(outValue) { valuePtr ->
+): Sqlite3Result = convertResult(useParam(outValue) { valuePtr ->
     jni_sqlite3_vtab_in_next(value.pointer, valuePtr)
 })
 
@@ -1606,7 +1601,7 @@ public actual fun sqlite3_vtab_rhs_value(
     info: sqlite3_index_info,
     index: Int,
     outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result = convertResult(useParamMemScoped(outValue) { valuePtr ->
+): Sqlite3Result = convertResult(useParam(outValue) { valuePtr ->
     jni_sqlite3_vtab_rhs_value(info.pointer, index, valuePtr)
 })
 
@@ -1618,9 +1613,7 @@ public actual fun sqlite3_wal_autocheckpoint(
 public actual fun sqlite3_wal_checkpoint(
     db: sqlite3,
     name: String?
-): Sqlite3Result = convertResult(memScoped {
-    jni_sqlite3_wal_checkpoint(db.pointer, name.allocateUtf8())
-})
+): Sqlite3Result = convertResult(jni_sqlite3_wal_checkpoint(db.pointer, name))
 
 public actual fun sqlite3_wal_checkpoint_v2(
     db: sqlite3,
@@ -1628,26 +1621,14 @@ public actual fun sqlite3_wal_checkpoint_v2(
     mode: Sqlite3CheckpointMode,
     outNLog: Int32OutputParam?,
     outNCkpt: Int32OutputParam?
-): Sqlite3Result = convertResult(memScoped {
-    useParams(outNLog, outNCkpt) { nLogPtr, nCkptPtr ->
-        jni_sqlite3_wal_checkpoint_v2(
-            db.pointer,
-            name.allocateUtf8(),
-            mode.id,
-            nLogPtr,
-            nCkptPtr
-        )
-    }
+): Sqlite3Result = convertResult(useParams(outNLog, outNCkpt) { nLogPtr, nCkptPtr ->
+    jni_sqlite3_wal_checkpoint_v2(db.pointer, name, mode.id, nLogPtr, nCkptPtr)
 })
 
 public actual fun <AppData> sqlite3_wal_hook(
     db: sqlite3,
     appData: AppData,
     callback: Sqlite3WalHookCallback<AppData>?
-): Unit = db.withMemoryManager {
-    jni_sqlite3_wal_hook(
-        db.pointer,
-        callbackHandler(callback, appData, ::WalHookHandler),
-        keyedStableRefPointer(KEY_WAL_HOOK, callback, appData)
-    )
-}*/
+) {
+    val _ = jni_sqlite3_wal_hook(db.pointer, callbackHandler(callback, appData, ::WalHookHandler))
+}

@@ -14,12 +14,12 @@ public sealed class OutputPointer<Value>(initialValue: Value) {
     /**
      * 32 bits signed integer output parameter.
      */
-    public class OfInt32(initialValue: Int = 0) : OutputPointer<Int>(initialValue)
+    public class OfInt32(initialValue: Int) : OutputPointer<Int>(initialValue)
 
     /**
      * 64 bits signed integer output parameter.
      */
-    public class OfInt64(initialValue: Long = 0L) : OutputPointer<Long>(initialValue)
+    public class OfInt64(initialValue: Long) : OutputPointer<Long>(initialValue)
 
     /**
      * 64 bits pointer output parameter.
@@ -29,5 +29,5 @@ public sealed class OutputPointer<Value>(initialValue: Value) {
     /**
      * String output parameter.
      */
-    public class OfString(initialValue: String? = null): OutputPointer<String?>(initialValue)
+    public class OfString(initialValue: String?): OutputPointer<String?>(initialValue)
 }

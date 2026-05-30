@@ -946,61 +946,73 @@ public external fun sqlite3_value_text(value: Long): String?
 
 public external fun sqlite3_value_type(value: Long): Int
 
-/*public external fun sqlite3_vfs_find(
-    p0: Long,
-): Long
+public external fun sqlite3_vfs_find(name: String?): Long
 
 public external fun sqlite3_vfs_register(
-    p0: Long,
-    p1: Int,
+    vfs: Long,
+    makeDefault: Int
 ): Int
 
-public external fun sqlite3_vfs_unregister(
-    p0: Long,
-): Int
+public external fun sqlite3_vfs_unregister(vfs: Long): Int
 
 public external fun sqlite3_vtab_collation(
-    p0: Long,
-    p1: Int,
-): Long
+    info: Long,
+    index: Int,
+): String?
 
 public external fun sqlite3_vtab_config(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    option: Int,
+    args: Array<*>
 ): Int
 
-public external fun sqlite3_vtab_distinct(
-    p0: Long,
-): Int
+public external fun sqlite3_vtab_distinct(info: Long): Int
 
 public external fun sqlite3_vtab_in(
-    p0: Long,
-    p1: Int,
-    p2: Int,
+    info: Long,
+    index: Int,
+    handle: Int
 ): Int
 
 public external fun sqlite3_vtab_in_first(
-    p0: Long,
-    p1: Long,
+    value: Long,
+    outValue: OutputPointer.OfPointer?,
 ): Int
 
 public external fun sqlite3_vtab_in_next(
-    p0: Long,
-    p1: Long,
+    value: Long,
+    outValue: OutputPointer.OfPointer?,
 ): Int
 
-public external fun sqlite3_vtab_nochange(
-    p0: Long,
-): Int
+public external fun sqlite3_vtab_nochange(context: Long): Int
 
-public external fun sqlite3_vtab_on_conflict(
-    p0: Long,
-): Int
+public external fun sqlite3_vtab_on_conflict(db: Long): Int
 
 public external fun sqlite3_vtab_rhs_value(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    info: Long,
+    index: Int,
+    outValue: OutputPointer.OfPointer?,
 ): Int
- */
+
+public external fun sqlite3_wal_autocheckpoint(
+    db: Long,
+    nFrame: Int
+): Int
+
+public external fun sqlite3_wal_checkpoint(
+    db: Long,
+    name: String?
+): Int
+
+public external fun sqlite3_wal_checkpoint_v2(
+    db: Long,
+    name: String?,
+    mode: Int,
+    outNLog: OutputPointer.OfInt32?,
+    outNCkpt: OutputPointer.OfInt32?
+): Int
+
+public external fun sqlite3_wal_hook(
+    db: Long,
+    callback: WalHookCallback?
+): WalHookCallback?

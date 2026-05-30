@@ -903,7 +903,7 @@ static void deinitializeJavaJniCache(JNIEnv* env) {
  * Initializes and caches the Ksqlite related classes and objects.
  */
 static void initializeKsqliteJniCache(JNIEnv* env) {
-    KK.emptyBufferPointer = sqlite3_malloc(sizeof(void *));
+    KK.emptyBufferPointer = sqlite3_malloc(sizeof(void*));
     OutOfMemoryCheck(KK.emptyBufferPointer != nullptr);
 
     // Classes only
@@ -1035,9 +1035,11 @@ JNI_OnUnload(
 #define LongTo_s3_backup(L) LongCast(sqlite3_backup, (L))
 #define LongTo_s3_blob(L) LongCast(sqlite3_blob, (L))
 #define LongTo_s3_context(L) LongCast(sqlite3_context, (L))
+#define LongTo_s3_index_info(L) LongCast(sqlite3_index_info, (L))
 #define LongTo_s3_snapshot(L) LongCast(sqlite3_snapshot, (L))
 #define LongTo_s3_stmt(L) LongCast(sqlite3_stmt, (L))
 #define LongTo_s3_value(L) LongCast(sqlite3_value, (L))
+#define LongTo_s3_vfs(L) LongCast(sqlite3_vfs, (L))
 
 ///////////////////////////////////////////////////////////////////////////
 // Hook operations
@@ -1486,7 +1488,7 @@ static inline DestructorFunction freeableDestroyerPush(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Declares the common logic for blob (column_blob, value_blob).
+ * Declares the common logic for blob (column_blob, column_buffer, value_blob, value_buffer).
  */
 #define BufferBlobDeclare(T, emptyBlob, toBlob, getPointer, getLength, getType, ...)        \
     const auto pointer = getPointer;                                                        \
@@ -1502,11 +1504,9 @@ static inline DestructorFunction freeableDestroyerPush(
                 case SQLITE_NULL:                                                           \
                     result = nullptr;                                                       \
                     break;                                                                  \
-                case SQLITE_BLOB: {                                                         \
+                case SQLITE_BLOB:                                                           \
                     result = toBlob;                                                        \
-                    __VA_ARGS__                                                             \
                     break;                                                                  \
-                }                                                                           \
                 default:                                                                    \
                     env->ThrowNew(                                                          \
                         KJV.illegalStateException,                                          \
@@ -1519,6 +1519,7 @@ static inline DestructorFunction freeableDestroyerPush(
                     break;                                                                  \
             }                                                                               \
         }                                                                                   \
+        __VA_ARGS__                                                                         \
     }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1719,7 +1720,7 @@ static jstring utf8ToJstring(
         return nullptr;
     }
 
-    const auto utf8 = static_cast<const char *>(pUtf8);
+    const auto utf8 = static_cast<const char*>(pUtf8);
 
     if (length == -1) {
         // This is what is used by sqlite internally
@@ -1758,7 +1759,9 @@ static jstring utf8ToJstring(
     return string;
 }
 
+// String must be freed
 #define JstringToUtf8Out(string, outLength) jstringToUtf8(env, string, outLength)
+// String must be freed
 #define JstringToUtf8(string) JstringToUtf8Out(string, nullptr)
 #define Utf8ToJstringLength(utf8, length) utf8ToJstring(env, utf8, length)
 #define Utf8ToJstring(utf8) Utf8ToJstringLength(utf8, -1)
@@ -1799,7 +1802,9 @@ static jstring utf8ToJstring(
 // Primitives helpers
 ///////////////////////////////////////////////////////////////////////////
 
+#define PrimitiveBoxInt(unboxedInt) env->NewObject(KJVI.klass, KJVI.constructor, unboxedInt)
 #define PrimitiveBoxLong(unboxedLong) env->NewObject(KJVL.klass, KJVL.constructor, unboxedLong)
+
 #define PrimitiveUnboxInt(boxedInt) env->CallIntMethod(boxedInt, KJVI.intValue)
 #define PrimitiveUnboxLong(boxedLong) env->CallLongMethod(boxedLong, KJVL.longValue)
 
@@ -1884,7 +1889,7 @@ static jobject outputPointerGetValue(
 /**
  * Sets the value of an OutputPointer.
  */
-static void outputPointerSetValue(
+static inline void outputPointerSetValue(
     JNIEnv* env,
     jobject pointer,
     jobject value
@@ -1901,10 +1906,7 @@ static void outputPointerSetValue(
 #define OutputPointerGetStringValue(pointer) \
     JstringToUtf8(JstringCast(OutputPointerGetValue(pointer)))
 
-#define OutputPointerSetStringValue(pointer, value) \
-    OutputPointerSetValue(pointer, Utf8ToJstring(value))
-
-#define OutputPointerSetStringValueLength(pointer, value, length) \
+#define OutputPointerSetStringValue(pointer, value, length) \
     OutputPointerSetValue(pointer, Utf8ToJstringLength(value, length))
 
 /**
@@ -1923,14 +1925,13 @@ static jint outputPointerGetInt32Value(
 /**
  * Sets the value of a 32bits integer OutputPointer.
  */
-static void outputPointerSetInt32Value(
+static inline void outputPointerSetInt32Value(
     JNIEnv* env,
     jobject pointer,
     jint value
 ) {
     if (pointer != nullptr) {
-        jobject boxedInt = env->NewObject(KJVI.klass, KJVI.constructor, value);
-        OutputPointerSetValue(pointer, boxedInt);
+        OutputPointerSetValue(pointer, PrimitiveBoxInt(value));
     }
 }
 
@@ -1953,14 +1954,13 @@ static jlong outputPointerGetInt64Value(
 /**
  * Sets the value of a 64bits integer OutputPointer.
  */
-static void outputPointerSetInt64Value(
+static inline void outputPointerSetInt64Value(
     JNIEnv* env,
     jobject pointer,
     jlong value
 ) {
     if (pointer != nullptr) {
-        jobject boxedLong = env->NewObject(KJVL.klass, KJVL.constructor, value);
-        OutputPointerSetValue(pointer, boxedLong);
+        OutputPointerSetValue(pointer, PrimitiveBoxLong(value));
     }
 }
 
@@ -1968,8 +1968,9 @@ static void outputPointerSetInt64Value(
 #define OutputPointerSetInt64Value(pointer, value) outputPointerSetInt64Value(env, pointer, value)
 
 #define OutputPointerEnter(T, jPointer, getValue, transform) \
+    const auto CONCAT(jPointer, _init) = transform(getValue(jPointer));                                                         \
     T* UNDERSCORED(jPointer) = nullptr; \
-    if (jPointer != nullptr) *UNDERSCORED(jPointer) = transform(getValue(jPointer))
+    if (jPointer != nullptr) *UNDERSCORED(jPointer) = CONCAT(jPointer, _init)
 
 #define OutputPointerEnterInt32(jPointer) \
     OutputPointerEnter(jint, jPointer, OutputPointerGetInt32Value,)
@@ -1980,13 +1981,11 @@ static void outputPointerSetInt64Value(
 #define OutputPointerEnterPointer(T, jPointer) \
     OutputPointerEnter(T, jPointer, OutputPointerGetInt64Value, reinterpret_cast<T>)
 
-// String must be freed
-#define OutputPointerEnterString(jPointer) \
-    OutputPointerEnter(char*, jPointer, OutputPointerGetStringValue,)
+#define OutputPointerEnterString(jPointer, ...) \
+    OutputPointerEnter(__VA_ARGS__ char*, jPointer, OutputPointerGetStringValue,)
 
-// String must be freed
 #define OutputPointerEnterStringConst(jPointer) \
-    OutputPointerEnter(const char*, jPointer, OutputPointerGetStringValue,)
+    OutputPointerEnterString(jPointer, const)
 
 #define OutputPointerLeave(jPointer, setValue, transform, ...) \
     if (jPointer != nullptr && rc == SQLITE_OK) \
@@ -2001,11 +2000,12 @@ static void outputPointerSetInt64Value(
 #define OutputPointerLeavePointer(jPointer) \
     OutputPointerLeave(jPointer, OutputPointerSetInt64Value, PtrToLong,)
 
-#define OutputPointerLeaveString(jPointer) \
-    OutputPointerLeave(jPointer, OutputPointerSetStringValue,)
-
 #define OutputPointerLeaveStringLength(jPointer, length) \
-    OutputPointerLeave(jPointer, OutputPointerSetStringValueLength,,length)
+    OutputPointerLeave(jPointer, OutputPointerSetStringValue,,length); \
+    sqlite3_free(CONCAT(jPointer, _init))
+
+#define OutputPointerLeaveString(jPointer) \
+    OutputPointerLeaveStringLength(jPointer, -1)
 
 ///////////////////////////////////////////////////////////////////////////
 // Ksqlite 1 to 1 mapping
@@ -2801,13 +2801,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1column_1buffer(
         BufferToByteArray(pointer, length),
         sqlite3_column_blob(pStmt, index),
         sqlite3_column_bytes(pStmt, index),
-        sqlite3_column_type(pStmt, index)
+        sqlite3_column_type(pStmt, index),
+        OutputPointerSetInt64Value(outSize, length);
     )
-
-    OutputPointerEnterInt64(outSize);
-    // TODO
-    constexpr auto rc = SQLITE_OK;
-    OutputPointerLeaveInt64(outSize);
 
     return PtrToLong(result);
 }
@@ -3068,6 +3064,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1config(
         case SQLITE_CONFIG_SINGLETHREAD:
         case SQLITE_CONFIG_MULTITHREAD:
         case SQLITE_CONFIG_SERIALIZED: {
+            ArrayLengthEnsure(args, 0);
             return sqlite3_config(id);
         }
 
@@ -4251,15 +4248,15 @@ static void preupdateHookCaller(
 ) {
     JniEnvDeclare();
     DbStateDeclareDirect(pDbStateHook);
-    HookEnterDbState(preupdateHook);
 
     const auto pDb = PtrToLong(db);
     const auto dbName = Utf8ToJstring(zDb);
     const auto dbTable = Utf8ToJstring(zName);
 
+    HookEnterDbState(preupdateHook);
     env->CallVoidMethod(instance, call, pDb, op, dbName, dbTable, iKey1, iKey2);
-
     HookLeave();
+
     LocalRefDestroy(dbName);
     LocalRefDestroy(dbTable);
 }
@@ -5216,14 +5213,14 @@ static void updateHookCaller(
 ) {
     JniEnvDeclare();
     DbStateDeclareDirect(pDbStateHook);
-    HookEnterDbState(updateHook);
 
     const auto dbName = Utf8ToJstring(zDb);
     const auto dbTable = Utf8ToJstring(zName);
 
+    HookEnterDbState(updateHook);
     env->CallVoidMethod(instance, call, op, dbName, dbTable, rowId);
-
     HookLeave();
+
     LocalRefDestroy(dbName);
     LocalRefDestroy(dbTable);
 }
@@ -5335,7 +5332,19 @@ Java_ksqlite_KsqliteJni_sqlite3_1value_1buffer(
     jlong value,
     jobject outSize
 ) {
-    // TODO: implement sqlite3_value_buffer()
+    const auto pValue = LongTo_s3_value(value);
+
+    BufferBlobDeclare(
+        void *,
+        KK.emptyBufferPointer,
+        BufferToByteArray(pointer, length),
+        sqlite3_value_blob(pValue),
+        sqlite3_value_bytes(pValue),
+        sqlite3_value_type(pValue),
+        OutputPointerSetInt64Value(outSize, length);
+    )
+
+    return PtrToLong(result);
 }
 
 extern "C"
@@ -5487,4 +5496,249 @@ Java_ksqlite_KsqliteJni_sqlite3_1value_1type(
     jlong value
 ) {
     return sqlite3_value_type(LongTo_s3_value(value));
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vfs_1find(
+    JNIEnv* env,
+    jclass clazz,
+    jstring name
+) {
+    ReturnWithString(name, PtrToLong(sqlite3_vfs_find(name_)));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vfs_1register(
+    JNIEnv* env,
+    jclass clazz,
+    jlong vfs,
+    jint makeDefault
+) {
+    return sqlite3_vfs_register(LongTo_s3_vfs(vfs), makeDefault);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vfs_1unregister(
+    JNIEnv* env,
+    jclass clazz,
+    jlong vfs
+) {
+    return sqlite3_vfs_unregister(LongTo_s3_vfs(vfs));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1collation(
+    JNIEnv* env,
+    jclass clazz,
+    jlong info,
+    jint index
+) {
+    return Utf8ToJstring(sqlite3_vtab_collation(LongTo_s3_index_info(info), index));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1config(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jint option,
+    jobjectArray args
+) {
+    const auto pDb = LongTo_s3(db);
+
+    switch (option) {
+        // []
+        case SQLITE_VTAB_DIRECTONLY:
+        case SQLITE_VTAB_INNOCUOUS:
+        case SQLITE_VTAB_USES_ALL_SCHEMAS: {
+            return sqlite3_vtab_config(pDb, option);
+        }
+            // [Int]
+        case SQLITE_VTAB_CONSTRAINT_SUPPORT: {
+            ArrayLengthEnsure(args, 1);
+            return sqlite3_vtab_config(pDb, option, ArrayIntGet(args, 0));
+        }
+        default:
+            return SQLITE_MISUSE;
+    }
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1distinct(
+    JNIEnv* env,
+    jclass clazz,
+    jlong info
+) {
+    return sqlite3_vtab_distinct(LongTo_s3_index_info(info));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1in(
+    JNIEnv* env,
+    jclass clazz,
+    jlong info,
+    jint index,
+    jint handle
+) {
+    return sqlite3_vtab_in(LongTo_s3_index_info(info), index, handle);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1in_1first(
+    JNIEnv* env,
+    jclass clazz,
+    jlong value,
+    jobject outValue
+) {
+    OutputPointerEnterPointer(sqlite3_value*, outValue);
+    const auto rc = sqlite3_vtab_in_first(LongTo_s3_value(value), outValue_);
+    OutputPointerLeavePointer(outValue);
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1in_1next(
+    JNIEnv* env,
+    jclass clazz,
+    jlong value,
+    jobject outValue
+) {
+    OutputPointerEnterPointer(sqlite3_value*, outValue);
+    const auto rc = sqlite3_vtab_in_next(LongTo_s3_value(value), outValue_);
+    OutputPointerLeavePointer(outValue);
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1nochange(
+    JNIEnv* env,
+    jclass clazz,
+    jlong context
+) {
+    return sqlite3_vtab_nochange(LongTo_s3_context(context));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1on_1conflict(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db
+) {
+    return sqlite3_vtab_on_conflict(LongTo_s3(db));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1vtab_1rhs_1value(
+    JNIEnv* env,
+    jclass clazz,
+    jlong info,
+    jint index,
+    jobject outValue
+) {
+    OutputPointerEnterPointer(sqlite3_value*, outValue);
+    const auto rc = sqlite3_vtab_rhs_value(LongTo_s3_index_info(info), index, outValue_);
+    OutputPointerLeavePointer(outValue);
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1wal_1autocheckpoint(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jint nFrame
+) {
+    return sqlite3_wal_autocheckpoint(LongTo_s3(db), nFrame);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1wal_1checkpoint(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring name
+) {
+    ReturnWithString(name, sqlite3_wal_checkpoint(LongTo_s3(db), name_));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1wal_1checkpoint_1v2(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring name,
+    jint mode,
+    jobject outNlog,
+    jobject outCckpt
+) {
+    const auto zName = JstringToUtf8(name);
+
+    OutputPointerEnterInt32(outNlog);
+    OutputPointerEnterInt32(outCckpt);
+
+    const auto rc = sqlite3_wal_checkpoint_v2(LongTo_s3(db), zName, mode, outNlog_, outCckpt_);
+
+    OutputPointerLeaveInt32(outNlog);
+    OutputPointerLeaveInt32(outCckpt);
+    sqlite3_free(zName);
+
+    return rc;
+}
+
+/**
+ * Calls the `WalHookCallback` hook.
+ */
+static int walHookCaller(
+    void* pDbStateHook,
+    sqlite3* pDb,
+    const char* zDb,
+    int nPage
+) {
+    JniEnvDeclare();
+    DbStateDeclareDirect(pDbStateHook);
+
+    const auto db = PtrToLong(pDb);
+    const auto dbName = Utf8ToJstring(zDb);
+
+    HookEnterDbState(walHook);
+    const auto rc = env->CallIntMethod(instance, call, db, dbName, nPage);
+    HookLeave();
+
+    LocalRefDestroy(dbName);
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1wal_1hook(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jobject callback
+) {
+    DbHookReplaceInstance(
+        walHook,
+        "(JLjava/lang/String;I)I",
+        "WalHookCallback",
+        sqlite3_wal_hook(pDb, walHookCaller, pDbState),
+        sqlite3_wal_hook(pDb, nullptr, nullptr)
+    );
 }
