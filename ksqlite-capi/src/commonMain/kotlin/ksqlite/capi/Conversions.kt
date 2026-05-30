@@ -11,6 +11,7 @@ import ksqlite.capi.types.sqlite3ActionCodes
 import ksqlite.capi.types.sqlite3DataTypes
 import ksqlite.capi.types.sqlite3Results
 import ksqlite.capi.types.sqlite3TextEncodings
+import ksqlite.capi.vtab.Sqlite3VTabConstraintOperatorCode
 
 ///////////////////////////////////////////////////////////////////////////
 // Result
@@ -22,11 +23,11 @@ import ksqlite.capi.types.sqlite3TextEncodings
 private val Sqlite3ResultMap = sqlite3Results().associateBy(Sqlite3Result::code)
 
 /**
- * Converts [resultCode] to [Sqlite3Result].
+ * Converts [code] to [Sqlite3Result].
  */
-internal fun convertResult(resultCode: Int): Sqlite3Result {
-    return checkNotNull(Sqlite3ResultMap[resultCode]) {
-        "Unknown sqlite3 result code $resultCode"
+internal fun convertResult(code: Int): Sqlite3Result {
+    return checkNotNull(Sqlite3ResultMap[code]) {
+        "Unknown sqlite3 result code $code"
     }
 }
 
@@ -40,15 +41,15 @@ internal fun convertResult(resultCode: Int): Sqlite3Result {
 private val Sqlite3ActionCodeMap = sqlite3ActionCodes().associateBy(Sqlite3ActionCode::code)
 
 /**
- * Converts [actionCode] to [Sqlite3ActionCode].
+ * Converts [code] to [Sqlite3ActionCode].
  */
-internal inline fun <reified A : Sqlite3ActionCode> convertActionCode(actionCode: Int): A {
-    val code = checkNotNull(Sqlite3ActionCodeMap[actionCode]) {
-        "Unknown sqlite3 action code $actionCode"
+internal inline fun <reified A : Sqlite3ActionCode> convertActionCode(code: Int): A {
+    val actionCode = checkNotNull(Sqlite3ActionCodeMap[code]) {
+        "Unknown sqlite3 action code $code"
     }
 
-    check(code is A) { "Unexpected action type $code" }
-    return code
+    check(actionCode is A) { "Unexpected action type $actionCode" }
+    return actionCode
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -75,13 +76,13 @@ internal inline fun <reified E : Sqlite3TextEncoding> convertTextEncoding(encodi
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Converts [resultCode] to [Sqlite3CompleteResult].
+ * Converts [code] to [Sqlite3CompleteResult].
  */
-internal fun convertCompleteResult(resultCode: Int): Sqlite3CompleteResult = when (resultCode) {
+internal fun convertCompleteResult(code: Int): Sqlite3CompleteResult = when (code) {
     0 -> Sqlite3CompleteResult.Incomplete
     1 -> Sqlite3CompleteResult.Complete
     else -> Sqlite3CompleteResult.Failure(
-        checkNotNull(convertResult(resultCode) as? Sqlite3Result.Failure)
+        checkNotNull(convertResult(code) as? Sqlite3Result.Failure)
     )
 }
 
@@ -95,11 +96,11 @@ internal fun convertCompleteResult(resultCode: Int): Sqlite3CompleteResult = whe
 private val Sqlite3DataTypeMap = sqlite3DataTypes().associateBy(Sqlite3DataType::code)
 
 /**
- * Converts [dataType] to [Sqlite3DataType].
+ * Converts [type] to [Sqlite3DataType].
  */
-internal fun convertDataType(dataType: Int): Sqlite3DataType {
-    return checkNotNull(Sqlite3DataTypeMap[dataType]) {
-        "Unknown sqlite3 data type $dataType"
+internal fun convertDataType(type: Int): Sqlite3DataType {
+    return checkNotNull(Sqlite3DataTypeMap[type]) {
+        "Unknown sqlite3 data type $type"
     }
 }
 
@@ -113,11 +114,11 @@ internal fun convertDataType(dataType: Int): Sqlite3DataType {
 private val Sqlite3ExplainModeMap = Sqlite3ExplainMode.entries.associateBy(Sqlite3ExplainMode::id)
 
 /**
- * Converts [explainMode] to [Sqlite3ExplainMode].
+ * Converts [mode] to [Sqlite3ExplainMode].
  */
-internal fun convertExplainMode(explainMode: Int): Sqlite3ExplainMode {
-    return checkNotNull(Sqlite3ExplainModeMap[explainMode]) {
-        "Unknown sqlite3 explain mode $explainMode"
+internal fun convertExplainMode(mode: Int): Sqlite3ExplainMode {
+    return checkNotNull(Sqlite3ExplainModeMap[mode]) {
+        "Unknown sqlite3 explain mode $mode"
     }
 }
 
@@ -132,10 +133,29 @@ private val Sqlite3TransactionStateMap =
     Sqlite3TransactionState.entries.associateBy(Sqlite3TransactionState::value)
 
 /**
- * Converts [transactionState] to [Sqlite3TransactionState].
+ * Converts [state] to [Sqlite3TransactionState].
  */
-internal fun convertTransactionState(transactionState: Int): Sqlite3TransactionState {
-    return checkNotNull(Sqlite3TransactionStateMap[transactionState]) {
-        "Unknown sqlite3 transaction state $transactionState"
+internal fun convertTransactionState(state: Int): Sqlite3TransactionState {
+    return checkNotNull(Sqlite3TransactionStateMap[state]) {
+        "Unknown sqlite3 transaction state $state"
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Virtual table constraint operator codes
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * [Sqlite3VTabConstraintOperatorCode]s associated by their integer code.
+ */
+private val Sqlite3VTabConstraintOperatorCodeMap =
+    Sqlite3VTabConstraintOperatorCode.entries.associateBy(Sqlite3VTabConstraintOperatorCode::code)
+
+/**
+ * Converts [code] to [Sqlite3VTabConstraintOperatorCode].
+ */
+internal fun convertVTabConstraintOperatorCode(code: Int): Sqlite3VTabConstraintOperatorCode {
+    return checkNotNull(Sqlite3VTabConstraintOperatorCodeMap[code]) {
+        "Unknown sqlite3 vTabConstraintOperatorCode code $code"
     }
 }

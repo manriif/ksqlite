@@ -21,12 +21,6 @@ public actual class sqlite3_api_routines internal constructor(pointer: Long) :
 public actual class sqlite3_context internal constructor(pointer: Long) :
     StructPointer(pointer)
 
-public actual class sqlite3_index_info internal constructor(pointer: Long) :
-    StructPointer(pointer)
-/*
-public actual class sqlite3_module<ClientData> internal constructor(pointer: Long) :
-    StructPointer(pointer)
-*/
 public actual class sqlite3_snapshot internal constructor(pointer: Long) :
     StructPointer(pointer)
 

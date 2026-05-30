@@ -48,14 +48,14 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
+import ksqlite.capi.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.types.sqlite3_index_info
+import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
@@ -2354,7 +2354,7 @@ public expect fun sqlite3_vtab_collation(
  */
 public expect fun sqlite3_vtab_config(
     db: sqlite3,
-    option: Sqlite3VirtualTableConfigOption
+    option: Sqlite3VTabConfigOption
 ): Sqlite3Result
 
 /**

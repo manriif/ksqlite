@@ -10,12 +10,16 @@ import copyToTempDirectory
 import komple.exec.Command
 import komple.exec.CommandExecutor
 import org.gradle.api.file.FileSystemOperations
+import replaceFiles
 import sqlitePrefixed
 import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////
 // Sources
 ///////////////////////////////////////////////////////////////////////////
+
+private const val GENERATED_ARTIFACTS = "artifacts"
+private const val GENERATED_SOURCES = "sources"
 
 private const val KSQLITE_AMALGAMATION = "${KSQLITE}_amalgamation"
 

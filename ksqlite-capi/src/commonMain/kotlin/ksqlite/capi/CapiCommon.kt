@@ -10,7 +10,7 @@ import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3VirtualTableConfigOption
+import ksqlite.capi.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
@@ -317,7 +317,7 @@ internal fun <Pointer : Any> commonDbConfig(
  * The array passed to [nativeConfig] contains at most 1 value.
  */
 internal fun <Pointer : Any> commonVtabConfig(
-    option: Sqlite3VirtualTableConfigOption,
+    option: Sqlite3VTabConfigOption,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
 ): Sqlite3Result {
     val args = with(option) {

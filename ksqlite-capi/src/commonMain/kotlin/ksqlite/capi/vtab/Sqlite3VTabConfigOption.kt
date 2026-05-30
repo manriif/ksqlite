@@ -1,6 +1,6 @@
-@file:Suppress("SpellCheckingInspection", "ClassName")
+@file:Suppress("ClassName", "SpellCheckingInspection")
 
-package ksqlite.capi.types
+package ksqlite.capi.vtab
 
 /**
  * These constants define the various options to the sqlite3_vtab_config() interface that virtual
@@ -8,7 +8,7 @@ package ksqlite.capi.types
  *
  * [Virtual Table Configuration Options][https://sqlite.org/c3ref/c_vtab_constraint_support.html]
  */
-public sealed class Sqlite3VirtualTableConfigOption(internal val id: Int) {
+public sealed class Sqlite3VTabConfigOption(internal val id: Int) {
 
     /**
      * Calls of the form sqlite3_vtab_config(db,SQLITE_VTAB_CONSTRAINT_SUPPORT,X) are supported,
@@ -33,7 +33,7 @@ public sealed class Sqlite3VirtualTableConfigOption(internal val id: Int) {
      * is not possible, it may return SQLITE_CONSTRAINT, in which case SQLite falls back to OR
      * ABORT constraint handling.
      */
-    public class CONSTRAINT_SUPPORT(internal val enabled: Int) : Sqlite3VirtualTableConfigOption(1)
+    public class CONSTRAINT_SUPPORT(internal val enabled: Int) : Sqlite3VTabConfigOption(1)
 
     /**
      * Calls of the form sqlite3_vtab_config(db,SQLITE_VTAB_INNOCUOUS) from within the xConnect or
@@ -42,14 +42,14 @@ public sealed class Sqlite3VirtualTableConfigOption(internal val id: Int) {
      * the virtual table can do no serious harm even if it is controlled by a malicious hacker.
      * Developers should avoid setting the SQLITE_VTAB_INNOCUOUS flag unless absolutely necessary.
      */
-    public object INNOCUOUS : Sqlite3VirtualTableConfigOption(2)
+    public object INNOCUOUS : Sqlite3VTabConfigOption(2)
 
     /**
      * Calls of the form sqlite3_vtab_config(db,SQLITE_VTAB_DIRECTONLY) from within the the xConnect
      * or xCreate methods of a virtual table implementation prohibits that virtual table from being
      * used from within triggers and views.
      */
-    public object DIRECTONLY : Sqlite3VirtualTableConfigOption(3)
+    public object DIRECTONLY : Sqlite3VTabConfigOption(3)
 
     /**
      * Calls of the form sqlite3_vtab_config(db,SQLITE_VTAB_USES_ALL_SCHEMA) from within the
@@ -57,5 +57,5 @@ public sealed class Sqlite3VirtualTableConfigOption(internal val id: Int) {
      * begin at least a read transaction on all schemas ("main", "temp", and any ATTACH-ed
      * databases) whenever the virtual table is used.
      */
-    public object USES_ALL_SCHEMAS : Sqlite3VirtualTableConfigOption(4)
+    public object USES_ALL_SCHEMAS : Sqlite3VTabConfigOption(4)
 }
