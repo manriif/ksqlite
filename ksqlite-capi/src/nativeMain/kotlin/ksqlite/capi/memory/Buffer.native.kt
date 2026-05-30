@@ -6,8 +6,11 @@ import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
+import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.plus
+import kotlinx.cinterop.ptr
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
 import platform.posix.memcpy
@@ -50,7 +53,10 @@ public actual class Buffer internal constructor(
         }
     }
 
-    internal companion object {
+    internal actual companion object {
+
+        private val OneByte = nativeHeap.alloc(0.toByte())
+        actual val Empty = Buffer(OneByte.ptr, 0)
 
         /**
          * Returns a [Buffer] from [pointer] or `null` if [pointer] is `null`.

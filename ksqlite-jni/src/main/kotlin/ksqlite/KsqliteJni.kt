@@ -252,6 +252,12 @@ public external fun sqlite3_column_blob(
     index: Int,
 ): ByteArray
 
+public external fun sqlite3_column_buffer(
+    stmt: Long,
+    index: Int,
+    outSize: OutputPointer.OfInt64
+): Long
+
 public external fun sqlite3_column_bytes(
     stmt: Long,
     index: Int,
@@ -345,6 +351,7 @@ public external fun sqlite3_create_function_v2(
     name: String,
     nArg: Int,
     eTextRep: Int,
+    appData: Any?,
     func: FunctionCallback.Func?,
     step: FunctionCallback.Step?,
     final: FunctionCallback.Final?,
@@ -365,6 +372,7 @@ public external fun sqlite3_create_window_function(
     name: String,
     nArg: Int,
     eTextRep: Int,
+    appData: Any?,
     step: FunctionCallback.Step?,
     final: FunctionCallback.Final?,
     value: FunctionCallback.Value?,
@@ -860,110 +868,85 @@ public external fun sqlite3_total_changes(db: Long): Int
 
 public external fun sqlite3_total_changes64(db: Long): Long
 
-/*public external fun sqlite3_trace_v2(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
+public external fun sqlite3_trace_v2(
+    db: Long,
+    mask: Int,
+    callback: TraceCallback?
 ): Int
 
 public external fun sqlite3_txn_state(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    schema: String?
 ): Int
 
 public external fun sqlite3_update_hook(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-): Long
+    db: Long,
+    callback: UpdateHookCallback?
+): UpdateHookCallback?
 
 public external fun sqlite3_uri_boolean(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    fileName: String,
+    parameter: String,
+    def: Int
 ): Int
 
 public external fun sqlite3_uri_int64(
-    p0: Long,
-    p1: Long,
-    p2: Long,
+    fileName: String,
+    parameter: String,
+    def: Long
 ): Long
 
 public external fun sqlite3_uri_key(
-    p0: Long,
-    p1: Int,
-): Long
+    fileName: String,
+    index: Int
+): String?
 
 public external fun sqlite3_uri_parameter(
-    p0: Long,
-    p1: Long,
-): Long*/
+    fileName: String,
+    parameter: String
+): String?
 
-//public external fun sqlite3_user_data(context: Long): Long
+public external fun sqlite3_user_data(context: Long): Any?
 
-/*public external fun Long_blob(
-    p0: Long,
+public external fun sqlite3_value_blob(value: Long): ByteArray?
+
+public external fun sqlite3_value_buffer(
+    value: Long,
+    outSize: OutputPointer.OfInt64
 ): Long
 
-public external fun Long_bytes(
-    p0: Long,
-): Int
+public external fun sqlite3_value_bytes(value: Long): Int
 
-public external fun Long_double(
-    p0: Long,
-): Double
+public external fun sqlite3_value_double(value: Long): Double
 
-public external fun Long_dup(
-    p0: Long,
-): Long
+public external fun sqlite3_value_dup(value: Long): Long
 
-public external fun Long_encoding(
-    p0: Long,
-): Int
+public external fun sqlite3_value_encoding(value: Long): Int
 
-public external fun Long_free(
-    p0: Long,
-)
+public external fun sqlite3_value_free(value: Long)
 
-public external fun Long_frombind(
-    p0: Long,
-): Int
+public external fun sqlite3_value_frombind(value: Long): Int
 
-public external fun Long_int(
-    p0: Long,
-): Int
+public external fun sqlite3_value_int(value: Long): Int
 
-public external fun Long_int64(
-    p0: Long,
-): Long
+public external fun sqlite3_value_int64(value: Long): Long
 
-public external fun Long_nochange(
-    p0: Long,
-): Int
+public external fun sqlite3_value_nochange(value: Long): Int
 
-public external fun Long_numeric_type(
-    p0: Long,
-): Int
+public external fun sqlite3_value_numeric_type(value: Long): Int
 
-public external fun Long_pointer(
-    p0: Long,
-    p1: Long,
-): Long
+public external fun sqlite3_value_pointer(
+    value: Long,
+    type: String?
+): Any?
 
-public external fun Long_subtype(
-    p0: Long,
-): Int
+public external fun sqlite3_value_subtype(value: Long): Int
 
-public external fun Long_text(
-    p0: Long,
-): Long
+public external fun sqlite3_value_text(value: Long): String?
 
-public external fun Long_type(
-    p0: Long,
-): Int
+public external fun sqlite3_value_type(value: Long): Int
 
-public external fun sqlite3_vfs_find(
+/*public external fun sqlite3_vfs_find(
     p0: Long,
 ): Long
 

@@ -30,15 +30,15 @@ internal class TraceHandler(manager: MemoryManager) : Handler(manager) {
     private fun handle(
         code: Int,
         refPointer: WasmPointer,
-        pointer1: WasmPointer,
-        pointer2: WasmPointer
+        pPointer: WasmPointer,
+        xPointer: WasmPointer
     ): Int = handler(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
         dispatchTraceEvent(
             callback = callback,
             appData = appData,
             code = code,
-            pointer1 = pointer1,
-            pointer2 = pointer2,
+            pPointer = pPointer,
+            xPointer = xPointer,
             toDb = ::sqlite3,
             toStatement = ::sqlite3_stmt,
             toString = { it.toKStringFromUtf8() },

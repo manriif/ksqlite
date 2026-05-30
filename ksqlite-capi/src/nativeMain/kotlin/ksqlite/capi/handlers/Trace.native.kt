@@ -24,15 +24,15 @@ internal val TraceHandler = staticCFunction(::traceHandler)
 private fun traceHandler(
     code: UInt,
     refPointer: COpaquePointer?,
-    pointer1: COpaquePointer?,
-    pointer2: COpaquePointer?
+    pPointer: COpaquePointer?,
+    xPointer: COpaquePointer?
 ) = handler(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
     dispatchTraceEvent(
         callback = callback,
         appData = appData,
         code = code.toInt(),
-        pointer1 = pointer1,
-        pointer2 = pointer2,
+        pPointer = pPointer,
+        xPointer = xPointer,
         toDb = { sqlite3(it.reinterpret()) },
         toStatement = { sqlite3_stmt(it.reinterpret()) },
         toString = { it.reinterpret<ByteVar>().toKStringFromUtf8() },

@@ -482,13 +482,11 @@ public actual fun <AppData> sqlite3_collation_needed(
 public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): ByteArray? = commonColumnBlob(
+): ByteArray? = commonColumnByteArray(
     stmt = stmt,
     index = index,
     pointer = exports.sqlite3_column_blob(stmt.pointer, index),
-    toByteArray = { pointer, size ->
-        pointer.readByteArray(size)
-    }
+    toByteArray = WasmPointer::readByteArray
 )
 
 public actual fun sqlite3_column_bytes(
@@ -1551,6 +1549,12 @@ public actual fun sqlite3_uri_parameter(
     exports.sqlite3_uri_parameter(fileName.allocateUtf8Pointer(), parameter.allocateUtf8Pointer())
 }.toKStringFromUtf8OrNull()
 
+public actual fun sqlite3_value_blob(value: sqlite3_value): ByteArray? = commonValueByteArray(
+    value = value,
+    pointer = exports.sqlite3_value_blob(value.pointer),
+    toByteArray = WasmPointer::readByteArray
+)
+
 public actual fun sqlite3_value_bytes(value: sqlite3_value): Int =
     exports.sqlite3_value_bytes(value.pointer)
 
@@ -1607,7 +1611,6 @@ public actual fun sqlite3_vtab_collation(
     index: Int
 ): String? = exports.sqlite3_vtab_collation(info.pointer, index)
     .toKStringFromUtf8OrNull()
-
 
 public actual fun sqlite3_vtab_config(
     db: sqlite3,

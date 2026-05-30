@@ -4,20 +4,40 @@ import kotlinx.cinterop.CPointerVarOf
 import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.toLong
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.sqlite3_aggregate_context as native_sqlite3_aggregate_context
+import ksqlite.sqlite3_column_blob as native_sqlite3_column_blob
 import ksqlite.sqlite3_get_auxdata as native_sqlite3_get_auxdata
 import ksqlite.sqlite3_set_auxdata as native_sqlite3_set_auxdata
 import ksqlite.sqlite3_user_data as native_sqlite3_user_data
+import ksqlite.sqlite3_value_blob as native_sqlite3_value_blob
 import ksqlite.sqlite3_value_pointer as native_sqlite3_value_pointer
 
 private val pointerSize = sizeOf<CPointerVarOf<*>>().toInt()
 
-internal actual fun nativeAggregateContext(
+internal actual fun columnBufferInternal(
+    stmt: sqlite3_stmt,
+    index: Int
+): Buffer? = commonColumnBuffer(
+    stmt = stmt,
+    index = index,
+    pointer = native_sqlite3_column_blob(stmt.pointer, index),
+    toBuffer = Buffer::from
+)
+
+internal actual fun valueBufferInternal(value: sqlite3_value): Buffer? = commonValueBuffer(
+    value = value,
+    pointer = native_sqlite3_value_blob(value.pointer),
+    toBuffer = Buffer::from
+)
+
+internal actual fun aggregateContextInternal(
     context: sqlite3_context,
     create: Boolean
 ): Long? {
@@ -30,11 +50,11 @@ internal actual fun nativeAggregateContext(
     return pointer?.toLong()
 }
 
-internal actual fun nativeGetAuxdata(context: sqlite3_context, index: Int): Long? {
+internal actual fun getAuxdataInternal(context: sqlite3_context, index: Int): Long? {
     return native_sqlite3_get_auxdata(context.pointer, index)?.toLong()
 }
 
-internal actual fun nativeSetAuxdata(
+internal actual fun setAuxdataInternal(
     context: sqlite3_context,
     index: Int,
     destroy: Sqlite3DestroyCallback<Nothing?>
@@ -46,13 +66,13 @@ internal actual fun nativeSetAuxdata(
 }
 
 @PublishedApi
-internal actual fun nativeUserData(context: sqlite3_context): ApplicationDefinedFunction<*>? {
+internal actual fun userDataInternal(context: sqlite3_context): ApplicationDefinedFunction<*>? {
     val pointer = native_sqlite3_user_data(context.pointer) ?: return null
     return stableRefData<ApplicationDefinedFunction<*>, Nothing?>(pointer).first
 }
 
 @PublishedApi
-internal actual fun nativeValuePointer(
+internal actual fun valuePointerInternal(
     value: sqlite3_value,
     type: String?
 ): Any? {

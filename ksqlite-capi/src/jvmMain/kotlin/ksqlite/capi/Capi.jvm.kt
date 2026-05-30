@@ -440,7 +440,7 @@ public actual fun <AppData> sqlite3_collation_needed(
 public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): ByteArray? = commonColumnBlob(
+): ByteArray? = commonColumnByteArray(
     stmt = stmt,
     index = index,
     pointer = native.sqlite3_column_blob(stmt.pointer, index),
@@ -1520,6 +1520,16 @@ public actual fun sqlite3_uri_parameter(
 ): String? = memScoped {
     native.sqlite3_uri_parameter(fileName.allocateUtf8(), parameter.allocateUtf8())
 }.toKStringFromUtf8OrNull()
+
+public actual fun sqlite3_value_blob(value: sqlite3_value): ByteArray? = commonValueByteArray(
+    value = value,
+    pointer = native.sqlite3_value_blob(value.pointer),
+    toByteArray = { pointer, size ->
+        pointer
+            .reinterpret(size.toLong())
+            .toArray(ValueLayout.JAVA_BYTE)
+    }
+)
 
 public actual fun sqlite3_value_bytes(value: sqlite3_value): Int =
     native.sqlite3_value_bytes(value.pointer)

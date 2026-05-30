@@ -288,6 +288,7 @@ import ksqlite.sqlite3_uri_boolean as native_sqlite3_uri_boolean
 import ksqlite.sqlite3_uri_int64 as native_sqlite3_uri_int64
 import ksqlite.sqlite3_uri_key as native_sqlite3_uri_key
 import ksqlite.sqlite3_uri_parameter as native_sqlite3_uri_parameter
+import ksqlite.sqlite3_value_blob as native_sqlite3_value_blob
 import ksqlite.sqlite3_value_bytes as native_sqlite3_value_bytes
 import ksqlite.sqlite3_value_double as native_sqlite3_value_double
 import ksqlite.sqlite3_value_dup as native_sqlite3_value_dup
@@ -622,13 +623,11 @@ public actual fun <AppData> sqlite3_collation_needed(
 public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
-): ByteArray? = commonColumnBlob(
+): ByteArray? = commonColumnByteArray(
     stmt = stmt,
     index = index,
     pointer = native_sqlite3_column_blob(stmt.pointer, index),
-    toByteArray = { pointer, size ->
-        pointer.copyBytes(size)
-    }
+    toByteArray = COpaquePointer::copyBytes
 )
 
 public actual fun sqlite3_column_bytes(
@@ -1643,6 +1642,12 @@ public actual fun sqlite3_uri_parameter(
     parameter: String
 ): String? = native_sqlite3_uri_parameter(fileName, parameter)
     ?.toKStringFromUtf8()
+
+public actual fun sqlite3_value_blob(value: sqlite3_value): ByteArray? = commonValueByteArray(
+    value = value,
+    pointer = native_sqlite3_value_blob(value.pointer),
+    toByteArray = COpaquePointer::copyBytes
+)
 
 public actual fun sqlite3_value_bytes(value: sqlite3_value): Int =
     native_sqlite3_value_bytes(value.pointer)

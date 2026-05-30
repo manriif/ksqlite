@@ -40,7 +40,9 @@ public actual class Buffer internal constructor(
         )
     }
 
-    internal companion object {
+    internal actual companion object {
+
+        actual val Empty = Buffer(MemorySegment.NULL, 0)
 
         /**
          * Returns a [Buffer] from [pointer] or `null` if [pointer] is `null`.

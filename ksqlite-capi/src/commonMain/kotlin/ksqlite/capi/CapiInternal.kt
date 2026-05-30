@@ -1,11 +1,30 @@
 package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.memory.Buffer
 import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 
 ///////////////////////////////////////////////////////////////////////////
-// Native
+// Buffer
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the value blob content as a [Buffer].
+ */
+internal expect fun columnBufferInternal(
+    stmt: sqlite3_stmt,
+    index: Int
+): Buffer?
+
+/**
+ * Returns the value blob content as a [Buffer].
+ */
+internal expect fun valueBufferInternal(value: sqlite3_value): Buffer?
+
+///////////////////////////////////////////////////////////////////////////
+// Non-canonical behaviour
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -15,15 +34,15 @@ import ksqlite.capi.types.sqlite3_value
  * If [create] is `false` and no identifier was created before or if [create] is `true` and creating
  * a new identifier fails then `null` must be returned.
  */
-internal expect fun nativeAggregateContext(
+internal expect fun aggregateContextInternal(
     context: sqlite3_context,
     create: Boolean
 ): Long?
 
 /**
- * Returns the identifier previously created with [nativeSetAuxdata] with the given parameters.
+ * Returns the identifier previously created with [setAuxdataInternal] with the given parameters.
  */
-internal expect fun nativeGetAuxdata(
+internal expect fun getAuxdataInternal(
     context: sqlite3_context,
     index: Int
 ): Long?
@@ -34,7 +53,7 @@ internal expect fun nativeGetAuxdata(
  *
  * If creating a new identifier fails then `null` must be returned.
  */
-internal expect fun nativeSetAuxdata(
+internal expect fun setAuxdataInternal(
     context: sqlite3_context,
     index: Int,
     destroy: Sqlite3DestroyCallback<Nothing?>
@@ -44,13 +63,13 @@ internal expect fun nativeSetAuxdata(
  * Returns the [ApplicationDefinedFunction] instance from [context] user data.
  */
 @PublishedApi
-internal expect fun nativeUserData(context: sqlite3_context): ApplicationDefinedFunction<*>?
+internal expect fun userDataInternal(context: sqlite3_context): ApplicationDefinedFunction<*>?
 
 /**
- * Returns the pointer value
+ * Returns the pointer value.
  */
 @PublishedApi
-internal expect fun nativeValuePointer(
+internal expect fun valuePointerInternal(
     value: sqlite3_value,
     type: String?
 ): Any?

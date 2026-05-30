@@ -22,6 +22,7 @@ import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.ReadableBuffer
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
@@ -79,7 +80,7 @@ public inline fun <reified Data : Any> sqlite3_aggregate_context(
     context: sqlite3_context,
     noinline factory: (() -> Data)?
 ): Data? {
-    val function = nativeUserData(context) ?: return null
+    val function = userDataInternal(context) ?: return null
 
     val instance = if (factory == null) {
         function.getAggregateContextOrNull(context)
@@ -498,6 +499,18 @@ public expect fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
 ): ByteArray?
+
+/**
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * Variant of [sqlite3_column_blob] that returns a [Buffer] instead.
+ */
+public fun sqlite3_column_buffer(
+    stmt: sqlite3_stmt,
+    index: Int
+): ReadableBuffer? = columnBufferInternal(stmt, index)?.readOnly()
 
 /**
  * The following routines are used to access elements of the current row in the result set.
@@ -1158,7 +1171,7 @@ public expect fun sqlite3_get_autocommit(db: sqlite3): Int
 public inline fun <reified Data : Any> sqlite3_get_auxdata(
     context: sqlite3_context,
     index: Int
-): Data? = castOrThrows(nativeUserData(context)?.getAuxiliaryDataOrNull(context, index))
+): Data? = castOrThrows(userDataInternal(context)?.getAuxiliaryDataOrNull(context, index))
 
 /**
  * Initialize SQLite.
@@ -1870,7 +1883,7 @@ public inline fun <reified Data : Any> sqlite3_set_auxdata(
     data: Data,
     destroy: Sqlite3DestroyCallback<Data>?
 ) {
-    nativeUserData(context)?.setAuxiliaryData(context, index, data, destroy)
+    userDataInternal(context)?.setAuxiliaryData(context, index, data, destroy)
 }
 
 /**
@@ -2175,8 +2188,25 @@ public expect fun sqlite3_uri_parameter(
  * [sqlite3_user_data()](https://sqlite.org/c3ref/user_data.html)
  */
 public inline fun <reified AppData : Any> sqlite3_user_data(context: sqlite3_context): AppData? {
-    return castOrThrows(nativeUserData(context)?.appData)
+    return castOrThrows(userDataInternal(context)?.appData)
 }
+
+/**
+ * Extract information from sqlite3_value structure.
+ *
+ * [sqlite3_value_blob()](https://sqlite.org/c3ref/value_blob.html)
+ */
+public expect fun sqlite3_value_blob(value: sqlite3_value): ByteArray?
+
+/**
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * Variant of [sqlite3_value_blob] that returns a [Buffer] instead.
+ */
+public fun sqlite3_value_buffer(value: sqlite3_value): ReadableBuffer? =
+    valueBufferInternal(value)?.readOnly()
 
 /**
  * Extract information from sqlite3_value structure.
@@ -2258,7 +2288,7 @@ public expect fun sqlite3_value_numeric_type(value: sqlite3_value): Sqlite3DataT
 public inline fun <reified Data> sqlite3_value_pointer(
     value: sqlite3_value,
     type: String?
-): Data? = castOrThrows(nativeValuePointer(value, type))
+): Data? = castOrThrows(valuePointerInternal(value, type))
 
 /**
  * Return the subtype for an application-defined SQL function argument [value].

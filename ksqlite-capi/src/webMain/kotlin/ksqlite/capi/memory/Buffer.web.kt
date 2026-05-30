@@ -3,6 +3,7 @@ package ksqlite.capi.memory
 import ksqlite.capi.interop.js.copyFrom
 import ksqlite.capi.interop.js.copyTo
 import ksqlite.capi.interop.js.plus
+import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.wasm
@@ -45,7 +46,9 @@ public actual open class Buffer internal constructor(
             .copyFrom(source, sourceOffset)
     }
 
-    internal companion object {
+    internal actual companion object {
+
+        actual val Empty = Buffer(wasm, NullPtr, 0)
 
         /**
          * Returns a [Buffer] from [pointer] or `null` if [pointer] is `null`.

@@ -45,31 +45,31 @@ private val TraceConstantMap = sqlite3TraceConstants().associateBy(Sqlite3TraceC
 /**
  * Dispatches [Sqlite3TraceEvent] to [callback].
  */
-internal fun <Pointer, AppData> dispatchTraceEvent(
+internal fun <P, X, AppData> dispatchTraceEvent(
     callback: Sqlite3TraceCallback<AppData>,
     appData: AppData,
     code: Int,
-    pointer1: Pointer?,
-    pointer2: Pointer?,
-    toDb: (Pointer) -> sqlite3,
-    toStatement: (Pointer) -> sqlite3_stmt,
-    toString: (Pointer) -> String,
-    toLong: (Pointer) -> Long
+    pPointer: P?,
+    xPointer: X?,
+    toDb: (P) -> sqlite3,
+    toStatement: (P) -> sqlite3_stmt,
+    toString: (X) -> String,
+    toLong: (X) -> Long
 ): Int = callback.handle(
     appData = appData,
     event = when (TraceConstantMap[code]) {
         Sqlite3TraceCode.STMT -> Sqlite3TraceEvent.Stmt(
-            stmt = toStatement(pointer1!!),
-            sql = toString(pointer2!!)
+            stmt = toStatement(pPointer!!),
+            sql = toString(xPointer!!)
         )
 
         Sqlite3TraceCode.PROFILE -> Sqlite3TraceEvent.Profile(
-            stmt = toStatement(pointer1!!),
-            nanos = toLong(pointer2!!)
+            stmt = toStatement(pPointer!!),
+            nanos = toLong(xPointer!!)
         )
 
-        Sqlite3TraceCode.ROW -> Sqlite3TraceEvent.Row(toStatement(pointer1!!))
-        Sqlite3TraceCode.CLOSE -> Sqlite3TraceEvent.Close(toDb(pointer1!!))
+        Sqlite3TraceCode.ROW -> Sqlite3TraceEvent.Row(toStatement(pPointer!!))
+        Sqlite3TraceCode.CLOSE -> Sqlite3TraceEvent.Close(toDb(pPointer!!))
         null -> error("Unknown trace event type: $code")
     }
 )
