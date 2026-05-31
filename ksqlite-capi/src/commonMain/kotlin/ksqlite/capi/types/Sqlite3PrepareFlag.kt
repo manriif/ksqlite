@@ -50,17 +50,21 @@ public sealed class Sqlite3PrepareFlag(internal open val value: Int) {
      */
     public data object DONT_LOG : Constant(0x10)
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Masking
+    ///////////////////////////////////////////////////////////////////////////
+
     /**
      * Holder for the flags to be passed to the prepare API functions.
      */
     @ConsistentCopyVisibility
-    public data class Masked internal constructor(override val value: Int) :
+    public data class Mask internal constructor(override val value: Int) :
         Sqlite3PrepareFlag(value)
 
     /**
      * Returns an [Sqlite3PrepareFlag] which is ORed with [flag].
      */
     public infix fun or(flag: Sqlite3PrepareFlag): Sqlite3PrepareFlag {
-        return Masked(value or flag.value)
+        return Mask(value or flag.value)
     }
 }

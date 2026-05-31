@@ -50,18 +50,22 @@ public sealed class Sqlite3TraceCode(internal open val value: Int) {
      */
     public data object CLOSE : Constant(0x08)
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Masking
+    ///////////////////////////////////////////////////////////////////////////
+
     /**
      * Holder for the flags to be passed to the trace API function.
      */
     @ConsistentCopyVisibility
-    public data class Masked internal constructor(override val value: Int) :
+    public data class Mask internal constructor(override val value: Int) :
         Sqlite3TraceCode(value)
 
     /**
      * Returns an [Sqlite3TraceCode] which is ORed with [flag].
      */
     public infix fun or(flag: Sqlite3TraceCode): Sqlite3TraceCode {
-        return Masked(value or flag.value)
+        return Mask(value or flag.value)
     }
 }
 

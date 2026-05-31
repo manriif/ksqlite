@@ -25,21 +25,21 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
          * Returns a [Vfs] which could be used to add optional flags for VFS.
          */
         public fun vfs(): Vfs {
-            return Vfs.Masked(value)
+            return Vfs.Mask(value)
         }
 
         /**
          * Returns a [Db] which is ORed with [flag].
          */
         public open infix fun or(flag: OptionalDb): Db {
-            return Masked(value or flag.value)
+            return Mask(value or flag.value)
         }
 
         /**
          * Holder for flags.
          */
         @ConsistentCopyVisibility
-        public data class Masked internal constructor(override val value: Int) : Db(value)
+        public data class Mask internal constructor(override val value: Int) : Db(value)
     }
 
     /**
@@ -76,7 +76,7 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
          * Returns a [Db] which is ORed with [flag].
          */
         public infix fun or(flag: CREATE): Db {
-            return Masked(value or flag.value)
+            return Mask(value or flag.value)
         }
     }
 
@@ -161,14 +161,14 @@ public sealed class Sqlite3OpenFlag(internal open val value: Int) {
          * Returns a [Vfs] which is ORed with [flag].
          */
         public infix fun or(flag: Optional): Vfs {
-            return Masked(value or flag.value)
+            return Mask(value or flag.value)
         }
 
         /**
          * Holder for VFS only flags.
          */
         @ConsistentCopyVisibility
-        public data class Masked internal constructor(override val value: Int) : Vfs(value)
+        public data class Mask internal constructor(override val value: Int) : Vfs(value)
     }
 
     /**
