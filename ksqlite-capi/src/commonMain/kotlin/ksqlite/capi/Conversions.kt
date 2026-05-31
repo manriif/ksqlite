@@ -12,6 +12,7 @@ import ksqlite.capi.types.sqlite3DataTypes
 import ksqlite.capi.types.sqlite3Results
 import ksqlite.capi.types.sqlite3TextEncodings
 import ksqlite.capi.vtab.Sqlite3VTabConstraintOperatorCode
+import ksqlite.capi.vtab.sqlite3VTabConstraintOperatorCodes
 
 ///////////////////////////////////////////////////////////////////////////
 // Result
@@ -149,13 +150,12 @@ internal fun convertTransactionState(state: Int): Sqlite3TransactionState {
  * [Sqlite3VTabConstraintOperatorCode]s associated by their integer code.
  */
 private val Sqlite3VTabConstraintOperatorCodeMap =
-    Sqlite3VTabConstraintOperatorCode.entries.associateBy(Sqlite3VTabConstraintOperatorCode::code)
+    sqlite3VTabConstraintOperatorCodes().associateBy(Sqlite3VTabConstraintOperatorCode::code)
 
 /**
  * Converts [code] to [Sqlite3VTabConstraintOperatorCode].
  */
 internal fun convertVTabConstraintOperatorCode(code: Int): Sqlite3VTabConstraintOperatorCode {
-    return checkNotNull(Sqlite3VTabConstraintOperatorCodeMap[code]) {
-        "Unknown sqlite3 vTabConstraintOperatorCode code $code"
-    }
+    return Sqlite3VTabConstraintOperatorCodeMap[code]
+        ?: Sqlite3VTabConstraintOperatorCode.Custom(code)
 }

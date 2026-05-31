@@ -12,13 +12,13 @@ const val SQLITE3 = "sqlite3"
  * Name of the SQLite Multiple Ciphers.
  * It is the name of the code source function prefix.
  */
-const val SQLITE3_MC = "${SQLITE3}mc"
+const val SQLITE3MC = "${SQLITE3}mc"
 
 /**
  * Name of the SQLite Multiple Ciphers amalgamation files.
  * It is the name of the C header file, C source file.
  */
-const val SQLITE3_MC_AMALGAMATION = "${SQLITE3_MC}_amalgamation"
+const val SQLITE3MC_AMALGAMATION = "${SQLITE3MC}_amalgamation"
 
 ///////////////////////////////////////////////////////////////////////////
 // Naming

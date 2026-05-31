@@ -32,7 +32,7 @@ public fun interface Sqlite3Function3Callback<AppData> {
     public fun handle(
         appData: AppData,
         context: sqlite3_context,
-        values: Array<sqlite3_value>
+        arguments: Array<sqlite3_value>
     )
 }
 

@@ -3,7 +3,7 @@ package modules
 import KSQLITE
 import KsqliteFunctions
 import SQLITE3
-import SQLITE3_MC_AMALGAMATION
+import SQLITE3MC_AMALGAMATION
 import cHeaderFile
 import cSourceFile
 import copyToTempDirectory
@@ -178,10 +178,10 @@ private fun generateKsqliteAmalgamation(
     ksqliteAmalgamationSourceFile: File,
 ) {
     val sqliteMcAmalgamationHeaderFile =
-        sqliteDirectory.resolve(cHeaderFile(SQLITE3_MC_AMALGAMATION))
+        sqliteDirectory.resolve(cHeaderFile(SQLITE3MC_AMALGAMATION))
 
     val sqliteMcAmalgamationSourceFile =
-        sqliteDirectory.resolve(cSourceFile(SQLITE3_MC_AMALGAMATION))
+        sqliteDirectory.resolve(cSourceFile(SQLITE3MC_AMALGAMATION))
 
     val ksqliteHeaderFile = ksqliteDirectory.resolve(cHeaderFile(KSQLITE))
     val ksqliteSourceFile = ksqliteDirectory.resolve(cSourceFile(KSQLITE))

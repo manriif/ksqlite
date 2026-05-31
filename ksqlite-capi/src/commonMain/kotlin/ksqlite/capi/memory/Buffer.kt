@@ -242,6 +242,9 @@ public fun ReadableBuffer.read(
     destinationOffset: Int = 0,
 ): ByteArray {
     require(size >= 0) { "size must not be negative ($size)" }
+    require(sourceOffset >= 0) { "sourceOffset must not be negative ($sourceOffset)" }
+    require(destinationOffset >= 0) { "destinationOffset must not be negative ($size)" }
+
     val destination = ByteArray(size)
 
     read(

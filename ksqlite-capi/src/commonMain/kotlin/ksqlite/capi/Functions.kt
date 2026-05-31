@@ -158,22 +158,22 @@ internal class ApplicationDefinedFunction<AppData>(
     /**
      * Invokes the [func] callback.
      */
-    fun callFunc(context: sqlite3_context, values: Array<sqlite3_value>) {
-        func!!.handle(appData, context, values)
+    fun callFunc(context: sqlite3_context, arguments: Array<sqlite3_value>) {
+        func!!.handle(appData, context, arguments)
     }
 
     /**
      * Invokes the [step] callback.
      */
-    fun callStep(context: sqlite3_context, values: Array<sqlite3_value>) {
-        step!!.handle(appData, context, values)
+    fun callStep(context: sqlite3_context, arguments: Array<sqlite3_value>) {
+        step!!.handle(appData, context, arguments)
     }
 
     /**
      * Invokes the [inverse] callback.
      */
-    fun callInverse(context: sqlite3_context, values: Array<sqlite3_value>) {
-        inverse!!.handle(appData, context, values)
+    fun callInverse(context: sqlite3_context, arguments: Array<sqlite3_value>) {
+        inverse!!.handle(appData, context, arguments)
     }
 
     /**

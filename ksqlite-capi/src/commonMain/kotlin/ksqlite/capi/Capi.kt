@@ -67,8 +67,8 @@ import ksqlite.capi.types.sqlite3_vfs
  * [sqlite3_aggregate_context()](https://sqlite.org/c3ref/aggregate_context.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * The [Data] instance is created on the first call and is returned on subsequent calls.
  * The [Data] instance, if created, is then made eligible for GC after Xfinalize() is getting called
@@ -501,10 +501,6 @@ public expect fun sqlite3_column_blob(
 ): ByteArray?
 
 /**
- * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
- *
  * Variant of [sqlite3_column_blob] that returns a [Buffer] instead.
  */
 public fun sqlite3_column_buffer(
@@ -655,8 +651,8 @@ public expect fun sqlite3_column_value(
  * [sqlite_commit_hook()](https://sqlite.org/c3ref/commit_hook.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
@@ -715,8 +711,8 @@ public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
  * [sqlite3_create_collation()](https://sqlite.org/c3ref/create_collation.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * This function differs from sqlite3_create_collation_v2() in the destroy parameter only.
  * sqlite3_create_collation_v2() is used in place of sqlite3_create_collation(). That being said,
@@ -757,8 +753,8 @@ public expect fun <AppData> sqlite3_create_collation_v2(
  * [sqlite3_create_function()](https://sqlite.org/c3ref/create_function.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * This function differs from sqlite3_create_function_v2() in the destroy parameter only.
  * As KSQLite internally associates some resources with the function that need to be clenaed up
@@ -810,8 +806,8 @@ public expect fun <AppData> sqlite3_create_function_v2(
  * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * This function differs from sqlite3_create_module_v2() in the destroy parameter only.
  * sqlite3_create_module_v2() is used in place of sqlite3_create_module(). That being said, the
@@ -836,8 +832,8 @@ public fun <AppData> sqlite3_create_module(
  * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * Drop the module previously registered with [name].
  */
@@ -871,8 +867,8 @@ public expect fun <AppData> sqlite3_create_module_v2(
  * [sqlite3_create_module_v2()](https://sqlite.org/c3ref/create_module.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * Drop the module previously registered with [name].
  */
@@ -1514,8 +1510,8 @@ public expect fun sqlite3_preupdate_depth(db: sqlite3): Int
  * [sqlite3_preupdate_hook()](https://sqlite.org/c3ref/preupdate_blobwrite.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
@@ -1832,8 +1828,8 @@ public expect fun sqlite3_result_zeroblob64(
  * [sqlite3_rollback_hook()](https://sqlite.org/c3ref/commit_hook.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
@@ -2122,8 +2118,8 @@ public expect fun sqlite3_txn_state(
  * [sqlite3_update_hook()](https://sqlite.org/c3ref/update_hook.html)
  *
  * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
  *
  * The previous hook is returned by SQLite but is not returned by KSQlite for now.
  */
@@ -2199,10 +2195,6 @@ public inline fun <reified AppData : Any> sqlite3_user_data(context: sqlite3_con
 public expect fun sqlite3_value_blob(value: sqlite3_value): ByteArray?
 
 /**
- * -------------------------------------------------------------------------------------------------
- *                                              Ksqlite
- * -------------------------------------------------------------------------------------------------
- *
  * Variant of [sqlite3_value_blob] that returns a [Buffer] instead.
  */
 public fun sqlite3_value_buffer(value: sqlite3_value): ReadableBuffer? =

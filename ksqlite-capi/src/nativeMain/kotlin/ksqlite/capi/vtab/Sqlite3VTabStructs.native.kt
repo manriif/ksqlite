@@ -21,15 +21,3 @@ internal typealias s3_vtab_cursor = sqlite3_vtab
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class sqlite3_index_info internal constructor(override val pointer: CPointer<s3_index_info>) :
-    StructPointer(pointer),
-    Sqlite3IndexInfo
-
-public actual class sqlite3_module internal constructor(override val pointer: CPointer<s3_module>) :
-    StructPointer(pointer)
-
-public actual class sqlite3_vtab internal constructor(override val pointer: CPointer<s3_vtab>) :
-    StructPointer(pointer)
-
-public actual class sqlite3_vtab_cursor internal constructor(override val pointer: CPointer<s3_vtab_cursor>) :
-    StructPointer(pointer)

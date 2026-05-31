@@ -1,9 +1,17 @@
+@file:Suppress("ClassName")
+
 package ksqlite.capi.vtab
 
+import ksqlite.capi.memory.StructPointer
+
 /**
- * Definition of [sqlite3_index_info].
+ * The sqlite3_index_info structure and its substructures is used as part of the virtual table
+ * interface to pass information into and receive the reply from the xBestIndex method of a virtual
+ * table module.
+ *
+ * [sqlite3_index_info](https://sqlite.org/c3ref/index_info.html)
  */
-public interface Sqlite3IndexInfo {
+public expect class sqlite3_index_info : StructPointer {
 
     ///////////////////////////////////////////////////////////////////////////
     // Inputs
@@ -93,10 +101,16 @@ public interface Sqlite3IndexInfo {
     /**
      * if [argvIndex] > 0, then the constraint at [index] is part of argv to xFilter.
      */
-    public fun setConstraintUsageArgvIndex(index: Int, argvIndex: Int)
+    public fun setConstraintUsageArgvIndex(
+        index: Int,
+        argvIndex: Int
+    )
 
     /**
      * If [omit] is `True` then no test is coded for the constraint at [index].
      */
-    public fun setConstraintUsageOmit(index: Int, omit: Int)
+    public fun setConstraintUsageOmit(
+        index: Int,
+        omit: Int
+    )
 }
