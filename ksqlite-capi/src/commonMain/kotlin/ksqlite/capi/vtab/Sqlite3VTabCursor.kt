@@ -17,4 +17,4 @@ import ksqlite.capi.memory.StructPointer
  *
  * [sqlite3_vtab_cursor](https://sqlite.org/c3ref/vtab_cursor.html)
  */
-public expect open class sqlite3_vtab_cursor : StructPointer, MemoryScope
+public expect open class sqlite3_vtab_cursor() : StructPointer, MemoryScope

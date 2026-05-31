@@ -33,12 +33,22 @@ import ksqlite.capi.vtab.callbacks.Sqlite3VTabUpdateCallback
  * virtual table. This structure consists mostly of methods for the module.
  *
  * [sqlite3_module](https://sqlite.org/c3ref/module.html)
- *
- * # Ksqlite
- *
- * For eponymous virtual table, [create] and [connect] must be referentially equals (===).
  */
-public expect class sqlite3_module<AppData, VTab : sqlite3_vtab, VTabCursor: sqlite3_vtab_cursor>(
+public expect class sqlite3_module<AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>
+internal constructor(
+    version: Int,
+    callbacks: Sqlite3ModuleCallbacks<AppData, VTab, VTabCursor>
+) : StructPointer
+
+///////////////////////////////////////////////////////////////////////////
+// Factory
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns an instance of [sqlite3_module].
+ * For an eponymous virtual table, [create] and [connect] must be referentially equals (===).
+ */
+public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqlite3_module(
     version: Sqlite3ModuleVersion,
     create: Sqlite3VTabCreateCallback<AppData, VTab>?,
     connect: Sqlite3VTabConnectCallback<AppData, VTab>,
@@ -64,4 +74,32 @@ public expect class sqlite3_module<AppData, VTab : sqlite3_vtab, VTabCursor: sql
     rollbackTo: Sqlite3VTabRollbackToCallback<VTab>?,
     shadowName: Sqlite3VTabShadowNameCallback?,
     integrity: Sqlite3VTabIntegrityCallback<VTab>?
-) : StructPointer
+): sqlite3_module<AppData, VTab, VTabCursor> = sqlite3_module(
+    version = version.iVersion,
+    callbacks = Sqlite3ModuleCallbacks(
+        create = create,
+        connect = connect,
+        bestIndex = bestIndex,
+        disconnect = disconnect,
+        destroy = destroy,
+        open = open,
+        close = close,
+        filter = filter,
+        next = next,
+        eof = eof,
+        column = column,
+        rowid = rowid,
+        update = update,
+        begin = begin,
+        sync = sync,
+        commit = commit,
+        rollback = rollback,
+        findFunction = findFunction,
+        rename = rename,
+        savepoint = savepoint,
+        release = release,
+        rollbackTo = rollbackTo,
+        shadowName = shadowName,
+        integrity = integrity,
+    )
+)
