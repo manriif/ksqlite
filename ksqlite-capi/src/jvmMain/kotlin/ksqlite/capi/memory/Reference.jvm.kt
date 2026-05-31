@@ -4,12 +4,22 @@ import java.lang.foreign.MemorySegment
 
 /**
  * Returns the object [Data] backed by [pointer] with an optional app data pointer.
- *
- * Throws [IllegalStateException] if [pointer] is [MemorySegment.NULL].
  */
-internal inline fun <reified Data : Any, AppData> MemoryManager.stableRefData(
+internal inline fun <reified Data : Any, AppData> MemoryManager.stableRefDataHolder(
     pointer: MemorySegment
-): ReferencedData<Data, AppData> {
+): DataHolder<Data, AppData> {
     check(!pointer.isNull) { "Pointer must not point to null" }
-    return getStableRef<AppData>(pointer).getReferencedData()
+    return getStableRef<AppData>(pointer).cast()
 }
+
+/**
+ * Returns the [Data] referenced by [pointer].
+ */
+internal inline fun <reified Data : Any> MemoryManager.stableRefData(pointer: MemorySegment): Data =
+    stableRefDataHolder<Data, Any?>(pointer).data
+
+/**
+ * Returns the [AppData] referenced by [pointer].
+ */
+internal fun <AppData> MemoryManager.stableRefAppData(pointer: MemorySegment): AppData =
+    stableRefDataHolder<Any, AppData>(pointer).appData

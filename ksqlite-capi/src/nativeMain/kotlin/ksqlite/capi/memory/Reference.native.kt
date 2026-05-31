@@ -26,15 +26,23 @@ internal fun stableRefDisposer(
 }
 
 /**
- * Returns the object [Data] backed by [pointer] with an optional user data pointer.
- *
- * Throws [IllegalStateException] if [pointer] is `null`.
+ * Returns the [DataHolder] referenced by [pointer].
  */
-internal inline fun <reified Data : Any, AppData> stableRefData(
+internal inline fun <reified Data : Any, AppData> stableRefDataHolder(
     pointer: COpaquePointer?
-): ReferencedData<Data, AppData> {
-    return checkNotNull(pointer) { "Pointer must not be null" }
-        .asStableRef<Reference<AppData>>()
-        .get()
-        .getReferencedData()
-}
+): DataHolder<Data, AppData> = checkNotNull(pointer) { "Pointer must not be null" }
+    .asStableRef<Reference<AppData>>()
+    .get()
+    .cast()
+
+/**
+ * Returns the [Data] referenced by [pointer].
+ */
+internal inline fun <reified Data : Any> stableRefData(pointer: COpaquePointer?): Data =
+    stableRefDataHolder<Data, Any?>(pointer).data
+
+/**
+ * Returns the [AppData] referenced by [pointer].
+ */
+internal fun <AppData> stableRefAppData(pointer: COpaquePointer?): AppData =
+    stableRefDataHolder<Any, AppData>(pointer).appData

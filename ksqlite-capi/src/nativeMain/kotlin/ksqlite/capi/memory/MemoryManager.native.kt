@@ -20,7 +20,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The returned reference data can later be accessed using [stableRefData] and it can be
+     * The returned reference data can later be accessed using [stableRefDataHolder] and it can be
      * disposed using [stableRefDisposer].
      */
     private fun <AppData> commonStableRefPointer(
@@ -42,8 +42,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The returned reference data can be accessed using [stableRefData] and it can be disposed
-     * using [stableRefDisposer].
+     * The returned reference data can be accessed using [stableRefDataHolder] and it can be
+     * disposed using [stableRefDisposer].
      */
     fun <AppData> stableRefPointer(
         data: Any?,
@@ -55,8 +55,8 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The returned reference data can be accessed using [stableRefData] and it can be disposed
-     * using [stableRefDisposer].
+     * The returned reference data can be accessed using [stableRefDataHolder] and it can be
+     * disposed using [stableRefDisposer].
      *
      * If a pointer was previously obtained using [key], it is disposed.
      */

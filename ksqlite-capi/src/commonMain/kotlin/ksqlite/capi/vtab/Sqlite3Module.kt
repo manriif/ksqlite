@@ -33,12 +33,26 @@ import ksqlite.capi.vtab.callbacks.Sqlite3VTabUpdateCallback
  * virtual table. This structure consists mostly of methods for the module.
  *
  * [sqlite3_module](https://sqlite.org/c3ref/module.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * The module must be [close]d by the owner when no longer required to release the associated
+ * resource(s).
  */
-public expect class sqlite3_module<AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>
+public expect class sqlite3_module<AppData>
 internal constructor(
     version: Int,
-    callbacks: Sqlite3ModuleCallbacks<AppData, VTab, VTabCursor>
-) : StructPointer
+    callbacks: VTabModuleCallbacks<AppData, *, *>
+) : StructPointer,
+    AutoCloseable {
+
+    /**
+     * Releases associated resource(s) and frees native memory.
+     */
+    override fun close()
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Factory
@@ -47,6 +61,8 @@ internal constructor(
 /**
  * Returns an instance of [sqlite3_module].
  * For an eponymous virtual table, [create] and [connect] must be referentially equals (===).
+ *
+ * Note that the returned module must be closed when no longer required.
  */
 public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqlite3_module(
     version: Sqlite3ModuleVersion,
@@ -74,9 +90,9 @@ public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqli
     rollbackTo: Sqlite3VTabRollbackToCallback<VTab>?,
     shadowName: Sqlite3VTabShadowNameCallback?,
     integrity: Sqlite3VTabIntegrityCallback<VTab>?
-): sqlite3_module<AppData, VTab, VTabCursor> = sqlite3_module(
+): sqlite3_module<AppData> = sqlite3_module(
     version = version.iVersion,
-    callbacks = Sqlite3ModuleCallbacks(
+    callbacks = VTabModuleCallbacks(
         create = create,
         connect = connect,
         bestIndex = bestIndex,

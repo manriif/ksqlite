@@ -12,7 +12,7 @@ import ksqlite.capi.types.Sqlite3Result
 internal data object AutoExtensionSuccessResult: Sqlite3AutoExtensionCallback.Result
 
 /**
- * FFailure result for [Sqlite3AutoExtensionCallback].
+ * Failure result for [Sqlite3AutoExtensionCallback].
  */
 internal data class AutoExtensionFailureResult(
     val result: Sqlite3Result.Failure,

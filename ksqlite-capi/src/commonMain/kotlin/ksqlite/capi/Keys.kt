@@ -57,11 +57,10 @@ internal fun collationKey(
 ): String {
     return "create_collation_${name}_${encoding.value}"
 }
-/*
+
 /**
  * Returns a unique name for a module.
  */
 internal fun moduleKey(name: String): String {
     return "create_module_$name"
 }
-*/

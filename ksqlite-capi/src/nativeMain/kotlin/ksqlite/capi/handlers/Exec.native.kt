@@ -5,9 +5,9 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.staticCFunction
-import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
-import ksqlite.capi.memory.toArray
+import ksqlite.capi.memory.toNullableStringArrayOrEmpty
+import ksqlite.capi.memory.toStringArrayOrEmpty
 
 /**
  * Static C function for [execHandler].
@@ -23,13 +23,10 @@ private fun execHandler(
     values: CPointer<CPointerVar<ByteVar>>?,
     names: CPointer<CPointerVar<ByteVar>>?
 ) = handler(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
-    val columnValues = values?.toArray(columnCount) { it?.toKStringFromUtf8() } ?: emptyArray()
-    val columnNames = names?.toArray(columnCount) { it!!.toKStringFromUtf8() } ?: emptyArray()
-
     callback.handle(
         appData = appData,
         columnCount = columnCount,
-        columnValues = columnValues,
-        columnNames = columnNames
+        columnValues = values.toNullableStringArrayOrEmpty(columnCount),
+        columnNames = names.toStringArrayOrEmpty(columnCount)
     )
 }

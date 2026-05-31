@@ -3,20 +3,28 @@ package ksqlite.capi.memory
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.CPointerVarOf
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
+import kotlinx.cinterop.free
 import kotlinx.cinterop.get
+import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.reinterpret
+import kotlinx.cinterop.toKStringFromUtf8
+import kotlinx.cinterop.toLong
 import kotlinx.cinterop.usePinned
 import platform.posix.memcpy
 
+/**
+ * Library managed pointer must be allocated using [nativeHeap] match [free].
+ */
 public actual open class StructPointer internal constructor(
     internal open val pointer: COpaquePointer
 ) : StructPointerBase() {
 
     actual override val address: Long
-        get() = pointer.rawValue.toLong()
+        get() = pointer.toLong()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -27,6 +35,14 @@ public actual open class StructPointer internal constructor(
 
     override fun hashCode(): Int {
         return pointer.hashCode()
+    }
+
+    /**
+     * Free the [pointer].
+     * Must be called for pointer managed by the library.
+     */
+    internal fun free() {
+        nativeHeap.free(pointer)
     }
 }
 
@@ -46,6 +62,34 @@ internal inline fun <P : CPointer<*>, reified T> CPointer<CPointerVarOf<P>>.toAr
     }
 
     return Array(count) { transform(get(it)) }
+}
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun CPointer<CPointerVar<ByteVar>>.toNullableStringArray(count: Int): Array<String?> {
+    return this.toArray(count) { it?.toKStringFromUtf8() }
+}
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun CPointer<CPointerVar<ByteVar>>?.toNullableStringArrayOrEmpty(count: Int): Array<String?> {
+    return this?.toNullableStringArray(count) ?: emptyArray()
+}
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun CPointer<CPointerVar<ByteVar>>.toStringArray(count: Int): Array<String> {
+    return this.toArray(count) { it!!.toKStringFromUtf8() }
+}
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun CPointer<CPointerVar<ByteVar>>?.toStringArrayOrEmpty(count: Int): Array<String> {
+    return this?.toStringArray(count) ?: emptyArray()
 }
 
 ///////////////////////////////////////////////////////////////////////////

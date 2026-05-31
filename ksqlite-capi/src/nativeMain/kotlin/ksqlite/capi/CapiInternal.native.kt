@@ -5,6 +5,7 @@ import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.toLong
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.stableRefAppData
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.withMemoryManager
@@ -68,7 +69,7 @@ internal actual fun setAuxdataInternal(
 @PublishedApi
 internal actual fun userDataInternal(context: sqlite3_context): ApplicationDefinedFunction<*>? {
     val pointer = native_sqlite3_user_data(context.pointer) ?: return null
-    return stableRefData<ApplicationDefinedFunction<*>, Nothing?>(pointer).first
+    return stableRefData<ApplicationDefinedFunction<*>>(pointer)
 }
 
 @PublishedApi
@@ -77,5 +78,5 @@ internal actual fun valuePointerInternal(
     type: String?
 ): Any? {
     val pointer = native_sqlite3_value_pointer(value.pointer, type) ?: return null
-    return stableRefData<NamedPointer<*>, Any?>(pointer).second
+    return stableRefAppData(pointer)
 }

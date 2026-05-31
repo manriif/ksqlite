@@ -70,6 +70,7 @@ public expect class sqlite3_index_info : StructPointer {
 
     /**
      * String recorded with [idxNum] and passed into the xFilter method.
+     * Setting a value to this field automatically free any previously existing value.
      */
     public var idxStr: String?
 

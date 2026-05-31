@@ -1,19 +1,30 @@
 package ksqlite.capi.memory
 
 /**
- * Reference to an object preventing GC from collecting or moving it.
+ * Holds an instance of [Data] and [AppData]
  */
-internal interface Reference<AppData> : Disposable {
+internal interface DataHolder<Data, AppData> {
 
     /**
      * Internally referenced data.
      */
-    val data: Any?
+    val data: Data
 
     /**
      * The associated application data.
      * */
     val appData: AppData
+}
+
+/**
+ * Keeps a strong reference to [data] and [appData] allowing future access.
+ *
+ * Data is stored as [Any]? to reduce the number of generic types across files.
+ * Use [cast] to retrieve the [DataHolder] with the expected type.
+ */
+internal interface Reference<AppData> :
+    DataHolder<Any?, AppData>,
+    Disposable {
 
     /**
      * Disposes the reference, making referenced object(s) eligible to GC.
@@ -25,12 +36,10 @@ internal interface Reference<AppData> : Disposable {
 // Helpers
 ///////////////////////////////////////////////////////////////////////////
 
-internal typealias ReferencedData<Data, AppData> = Pair<Data, AppData>
-
 /**
  * Returns `this` [Reference]'s referenced data as [D] paired with the user data.
  */
-internal inline fun <reified D : Any, C> Reference<C>.getReferencedData(): ReferencedData<D, C> {
+internal inline fun <reified D : Any, AppData> Reference<AppData>.cast(): DataHolder<D, AppData> {
     val data = checkNotNull(data) {
         "No data exists for reference"
     }
@@ -39,5 +48,6 @@ internal inline fun <reified D : Any, C> Reference<C>.getReferencedData(): Refer
         "Data is not of expected type (${data::class} vs ${D::class})"
     }
 
-    return data to appData
+    @Suppress("UNCHECKED_CAST")
+    return this as DataHolder<D, AppData>
 }

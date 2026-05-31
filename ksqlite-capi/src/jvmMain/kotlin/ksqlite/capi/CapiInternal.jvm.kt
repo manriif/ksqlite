@@ -7,6 +7,7 @@ import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.orNull
+import ksqlite.capi.memory.stableRefAppData
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
@@ -64,7 +65,7 @@ internal actual fun setAuxdataInternal(
 @PublishedApi
 internal actual fun userDataInternal(context: sqlite3_context): ApplicationDefinedFunction<*>? {
     val pointer = sqlite3.sqlite3_user_data(context.pointer).orNull ?: return null
-    return context.db.memory.stableRefData<ApplicationDefinedFunction<*>, Nothing?>(pointer).first
+    return context.db.memory.stableRefData<ApplicationDefinedFunction<*>>(pointer)
 }
 
 @PublishedApi
@@ -75,5 +76,5 @@ internal actual fun valuePointerInternal(
     val pointer = sqlite3.sqlite3_value_pointer(value.pointer, type.allocateUtf8()).orNull
         ?: return null
 
-    globalMemory.stableRefData<NamedPointer<*>, Any?>(pointer).second
+    globalMemory.stableRefAppData(pointer)
 }

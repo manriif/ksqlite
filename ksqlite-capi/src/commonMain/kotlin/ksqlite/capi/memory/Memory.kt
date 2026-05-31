@@ -12,7 +12,7 @@ import ksqlite.capi.types.Sqlite3Result
  */
 public abstract class StructPointerBase internal constructor() {
 
-    protected abstract val address: Long
+    internal abstract val address: Long
 
     override fun toString(): String {
         return "${this::class.simpleName}(address=0x${address.toHexString()})"

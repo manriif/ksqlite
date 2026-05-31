@@ -11,15 +11,16 @@ import ksqlite.capi.vtab.Sqlite3ModuleKind.Eponymous
 import ksqlite.capi.vtab.Sqlite3ModuleKind.EponymousOnly
 import ksqlite.capi.vtab.Sqlite3ModuleKind.Ordinal
 
-public actual class sqlite3_module<AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>
+public actual class sqlite3_module<AppData>
 internal constructor(
-    internal val callbacks: Sqlite3ModuleCallbacks<AppData, VTab, VTabCursor>,
+    internal val callbacks: VTabModuleCallbacks<AppData, *, *>,
     override val pointer: CPointer<s3_module>
-) : StructPointer(pointer) {
+) : StructPointer(pointer),
+    AutoCloseable {
 
     internal actual constructor(
         version: Int,
-        callbacks: Sqlite3ModuleCallbacks<AppData, VTab, VTabCursor>
+        callbacks: VTabModuleCallbacks<AppData, *, *>
     ) : this(callbacks, nativeHeap.alloc<s3_module>().apply {
         iVersion = version
 
@@ -53,4 +54,8 @@ internal constructor(
         xShadowName = callbacks.shadowName?.let { VTabShadowNameHandler }
         xIntegrity = callbacks.integrity?.let { VTabIntegrityHandler }
     }.ptr)
+
+    actual override fun close() {
+        free()
+    }
 }

@@ -3,8 +3,7 @@ package ksqlite.capi.handlers
 import kotlinx.cinterop.CFunction
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
-import ksqlite.capi.memory.stableRefData
-import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.stableRefDataHolder
 
 /**
  * Returns `this` [Pointer] to a [CFunction] only if [data] is not `null`.
@@ -21,12 +20,11 @@ internal fun <Fun : CFunction<*>, Pointer : CPointer<Fun>> Pointer.handle(data: 
  * Returns [block]'s result, invoked with [Data] and optional application data obtained from a
  * previously referenced [refPointer].
  *
- * App data type is erased for simplicity.
+ * AppData type is erased to reduce complexity.
  */
 internal inline fun <reified Data : Any, Result> handler(
     refPointer: COpaquePointer?,
     block: (data: Data, appData: Any?) -> Result
-): Result {
-    val (data, appData) = stableRefData<Data, Any?>(refPointer)
-    return block(data, appData)
+): Result = stableRefDataHolder<Data, Any?>(refPointer).run {
+    block(data, appData)
 }

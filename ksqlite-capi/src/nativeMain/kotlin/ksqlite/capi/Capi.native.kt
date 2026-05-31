@@ -2,16 +2,16 @@
 
 package ksqlite.capi
 
-//import ksqlite.sqlite3_create_module_v2 as native_sqlite3_create_module_v2
-//import ksqlite.sqlite3_drop_modules as native_sqlite3_drop_modules
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.refTo
 import kotlinx.cinterop.reinterpret
+import kotlinx.cinterop.toCStringArray
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.SQLITE_TRANSIENT
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
@@ -28,10 +28,10 @@ import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3WalHookCallback
+import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationCompareHandler
@@ -48,7 +48,6 @@ import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
-import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.SharedExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
@@ -78,8 +77,8 @@ import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3Result
@@ -92,14 +91,12 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
@@ -108,6 +105,10 @@ import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParamMemScoped
 import ksqlite.capi.types.useParams
 import ksqlite.capi.types.useParamsMemScoped
+import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.vtab.createVTabModule
+import ksqlite.capi.vtab.sqlite3_index_info
+import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.ksqlite_auto_extension
 import ksqlite.ksqlite_cancel_auto_extension
 import ksqlite.ksqlite_prepare_v2
@@ -169,6 +170,7 @@ import ksqlite.sqlite3_config as native_sqlite3_config
 import ksqlite.sqlite3_context_db_handle as native_sqlite3_context_db_handle
 import ksqlite.sqlite3_create_collation_v2 as native_sqlite3_create_collation_v2
 import ksqlite.sqlite3_create_function_v2 as native_sqlite3_create_function_v2
+import ksqlite.sqlite3_create_module_v2 as native_sqlite3_create_module_v2
 import ksqlite.sqlite3_create_window_function as native_sqlite3_create_window_function
 import ksqlite.sqlite3_data_count as native_sqlite3_data_count
 import ksqlite.sqlite3_db_cacheflush as native_sqlite3_db_cacheflush
@@ -182,6 +184,7 @@ import ksqlite.sqlite3_db_status as native_sqlite3_db_status
 import ksqlite.sqlite3_db_status64 as native_sqlite3_db_status64
 import ksqlite.sqlite3_declare_vtab as native_sqlite3_declare_vtab
 import ksqlite.sqlite3_deserialize as native_sqlite3_deserialize
+import ksqlite.sqlite3_drop_modules as native_sqlite3_drop_modules
 import ksqlite.sqlite3_errcode as native_sqlite3_errcode
 import ksqlite.sqlite3_errmsg as native_sqlite3_errmsg
 import ksqlite.sqlite3_error_offset as native_sqlite3_error_offset
@@ -797,23 +800,22 @@ public actual fun <AppData> sqlite3_create_function_v2(
     }
 )
 
-/*
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
     module: sqlite3_module<AppData>?,
     appData: AppData,
     destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result = convertResult(
+): Sqlite3Result = convertResult(createVTabModule(module?.callbacks, appData) { vTabModule ->
     native_sqlite3_create_module_v2(
         db.pointer,
         name,
         module?.pointer,
-        db.memory.keyedStableRefPointer(moduleKey(name), appData, appData),
-        stableRefDisposer(appData, destroy)
+        db.memory.keyedStableRefPointer(moduleKey(name), vTabModule, appData, destroy),
+        stableRefDisposer(vTabModule, destroy)
     )
-)
-*/
+})
+
 public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
@@ -943,14 +945,13 @@ public actual fun sqlite3_deserialize(
     )
 )
 
-/*
 public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): Sqlite3Result = convertResult(memScoped {
     native_sqlite3_drop_modules(db.pointer, keep?.toCStringArray(this))
 })
-*/
+
 public actual fun sqlite3_errcode(db: sqlite3): Int =
     native_sqlite3_errcode(db.pointer)
 

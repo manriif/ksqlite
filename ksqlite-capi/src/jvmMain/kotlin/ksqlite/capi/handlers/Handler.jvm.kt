@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.memory.stableRefData
+import ksqlite.capi.memory.stableRefDataHolder
 import java.lang.foreign.FunctionDescriptor
 import java.lang.foreign.MemorySegment
 
@@ -25,8 +25,7 @@ internal abstract class Handler(protected val manager: MemoryManager) {
     protected inline fun <reified Data : Any, Result> handler(
         refPointer: MemorySegment,
         block: (data: Data, appData: Any?) -> Result
-    ): Result {
-        val (data, appData) = manager.stableRefData<Data, Any?>(refPointer)
-        return block(data, appData)
+    ): Result = manager.stableRefDataHolder<Data, Any?>(refPointer).run {
+        block(data, appData)
     }
 }

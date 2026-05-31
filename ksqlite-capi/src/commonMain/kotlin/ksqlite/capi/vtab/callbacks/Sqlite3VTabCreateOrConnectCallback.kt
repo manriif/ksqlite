@@ -12,7 +12,7 @@ public fun interface Sqlite3VTabCreateOrConnectCallback<AppData, VTab : sqlite3_
     /**
      * Result for [handle].
      */
-    public sealed interface Result<VTab : sqlite3_vtab>
+    public sealed interface Result<out VTab : sqlite3_vtab>
 
     /**
      * Scope for [handle].

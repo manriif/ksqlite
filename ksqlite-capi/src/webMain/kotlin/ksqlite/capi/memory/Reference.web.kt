@@ -8,9 +8,21 @@ import ksqlite.capi.interop.wasm.WasmPointer
  *
  * Throws [IllegalStateException] if [pointer] is [NullPtr].
  */
-internal inline fun <reified Data : Any, AppData> MemoryManager.stableRefData(
+internal inline fun <reified Data : Any, AppData> MemoryManager.stableRefDataHolder(
     pointer: WasmPointer
-): ReferencedData<Data, AppData> {
+): DataHolder<Data, AppData> {
     check(!pointer.isNull) { "Pointer must not point to null" }
-    return getStableRef<AppData>(pointer).getReferencedData()
+    return getStableRef<AppData>(pointer).cast()
 }
+
+/**
+ * Returns the [Data] referenced by [pointer].
+ */
+internal inline fun <reified Data : Any> MemoryManager.stableRefData(pointer: WasmPointer): Data =
+    stableRefDataHolder<Data, Any?>(pointer).data
+
+/**
+ * Returns the [AppData] referenced by [pointer].
+ */
+internal fun <AppData> MemoryManager.stableRefAppData(pointer: WasmPointer): AppData =
+    stableRefDataHolder<Any, AppData>(pointer).appData
