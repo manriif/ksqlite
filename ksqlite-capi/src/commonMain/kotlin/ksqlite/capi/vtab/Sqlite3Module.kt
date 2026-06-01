@@ -24,7 +24,6 @@ import ksqlite.capi.vtab.callbacks.Sqlite3VTabRollbackCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabRollbackToCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabRowidCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabSavepointCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabShadowNameCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabSyncCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabUpdateCallback
 
@@ -62,7 +61,10 @@ internal constructor(
  * Returns an instance of [sqlite3_module].
  * For an eponymous virtual table, [create] and [connect] must be referentially equals (===).
  *
- * Note that the returned module must be closed when no longer required.
+ * See [Sqlite3ModuleVersion.VERSION_3] for explanation about why xShadowName is not supported.
+ *
+ * The caller take the ownership of the returned [sqlite3_module] and is responsible to release it
+ * by invoking [sqlite3_module.close].
  */
 public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqlite3_module(
     version: Sqlite3ModuleVersion,
@@ -88,7 +90,7 @@ public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqli
     savepoint: Sqlite3VTabSavepointCallback<VTab>?,
     release: Sqlite3VTabReleaseCallback<VTab>?,
     rollbackTo: Sqlite3VTabRollbackToCallback<VTab>?,
-    shadowName: Sqlite3VTabShadowNameCallback?,
+    //shadowName: Sqlite3VTabShadowNameCallback?,
     integrity: Sqlite3VTabIntegrityCallback<VTab>?
 ): sqlite3_module<AppData> = sqlite3_module(
     version = version.iVersion,
@@ -115,7 +117,6 @@ public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqli
         savepoint = savepoint,
         release = release,
         rollbackTo = rollbackTo,
-        shadowName = shadowName,
         integrity = integrity,
     )
 )

@@ -8,15 +8,24 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.staticCFunction
+import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.toLong
 import kotlinx.cinterop.value
+import ksqlite.capi.createFunction
+import ksqlite.capi.functionKey
+import ksqlite.capi.handlers.FunctionFuncHandler
+import ksqlite.capi.handlers.handle
 import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.stableRefData
+import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.memory.toStringArrayOrEmpty
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.s3_context
 import ksqlite.capi.types.s3_value
 import ksqlite.capi.types.sqlite3
+import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.types.sqlite3_value
 import ksqlite.sqlite3_int64Var
 import ksqlite.sqlite3_mprintf
 
@@ -52,24 +61,42 @@ internal val VTabConnectHandler = staticCFunction { db: CPointer<s3>?,
 
 internal val VTabBestIndexHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                       info: CPointer<s3_index_info>? ->
-    vTabBestIndex(vTab.toLong(), sqlite3_index_info(info!!))
+    vTabBestIndex(
+        vTab = vTab.toLong(),
+        info = sqlite3_index_info(info!!)
+    )
 }
 
 internal val VTabDisconnectHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
-    vTabDisconnect(vTab.toLong(), StructPointer::free)
+    vTabDisconnect(
+        vTab = vTab.toLong(),
+        destroyMemory = true,
+        cleanup = StructPointer::free
+    )
 }
 
 internal val VTabDestroyHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
-    vTabDestroy(vTab.toLong(), StructPointer::free)
+    vTabDestroy(
+        vTab = vTab.toLong(),
+        destroyMemory = true,
+        cleanup = StructPointer::free
+    )
 }
 
 internal val VTabOpenHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                  outCursor: CPointer<CPointerVar<s3_vtab_cursor>>? ->
-    vTabOpen(vTab.toLong()) { outCursor!!.pointed.value = it.pointer }
+    vTabOpen(
+        vTab = vTab.toLong(),
+        setCursor = { outCursor!!.pointed.value = it.pointer }
+    )
 }
 
 internal val VTabCloseHandler = staticCFunction { cursor: CPointer<s3_vtab_cursor>? ->
-    0
+    vTabClose(
+        vTab = cursor!!.pointed.pVtab!!.toLong(),
+        cursor = cursor.toLong(),
+        cleanup = StructPointer::free
+    )
 }
 
 internal val VTabFilterHandler = staticCFunction { cursor: CPointer<s3_vtab_cursor>?,
@@ -77,80 +104,134 @@ internal val VTabFilterHandler = staticCFunction { cursor: CPointer<s3_vtab_curs
                                                    idxStr: CPointer<ByteVar>?,
                                                    argc: Int,
                                                    argv: CPointer<CPointerVar<s3_value>>? ->
-    0
+    vTabFilter(
+        vTab = cursor!!.pointed.pVtab!!.toLong(),
+        cursor = cursor.toLong(),
+        idxNum = idxNum,
+        idxStr = idxStr?.toKStringFromUtf8(),
+        arguments = argv.toArrayOrEmpty(argc) { sqlite3_value(it!!) }
+    )
 }
 
 internal val VTabNextHandler = staticCFunction { cursor: CPointer<s3_vtab_cursor>? ->
-    0
+    vTabNext(
+        vTab = cursor!!.pointed.pVtab!!.toLong(),
+        cursor = cursor.toLong()
+    )
 }
 
 internal val VTabEofHandler = staticCFunction { cursor: CPointer<s3_vtab_cursor>? ->
-    0
+    vTabEof(
+        vTab = cursor!!.pointed.pVtab!!.toLong(),
+        cursor = cursor.toLong()
+    )
 }
 
 internal val VTabColumnHandler = staticCFunction { cursor: CPointer<s3_vtab_cursor>?,
                                                    context: CPointer<s3_context>?,
                                                    columnIndex: Int ->
-    0
+    vTabColumn(
+        vTab = cursor!!.pointed.pVtab!!.toLong(),
+        cursor = cursor.toLong(),
+        context = sqlite3_context(context!!),
+        columnIndex = columnIndex
+    )
 }
 
-internal val VTabRowidHandler = staticCFunction { vTab: CPointer<s3_vtab_cursor>?,
+internal val VTabRowidHandler = staticCFunction { cursor: CPointer<s3_vtab_cursor>?,
                                                   outRowId: CPointer<sqlite3_int64Var>? ->
-    0
+    vTabRowid(
+        vTab = cursor!!.pointed.pVtab!!.toLong(),
+        cursor = cursor.toLong(),
+        setRowid = { outRowId!!.pointed.value = it }
+    )
 }
 
 internal val VTabUpdateHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                    argc: Int,
                                                    argv: CPointer<CPointerVar<s3_value>>?,
                                                    outRowId: CPointer<sqlite3_int64Var>? ->
-    0
+    vTabUpdate(
+        vTab = vTab.toLong(),
+        arguments = argv.toArrayOrEmpty(argc) { sqlite3_value(it!!) },
+        setRowid = { outRowId!!.pointed.value = it }
+    )
 }
 
 internal val VTabBeginHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
-    0
+    vTabBegin(vTab.toLong())
 }
 
 internal val VTabSyncHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
-    0
+    vTabSync(vTab.toLong())
 }
 
 internal val VTabCommitHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
-    0
+    vTabCommit(vTab.toLong())
 }
 
 internal val VTabRollbackHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
-    0
+    vTabRollback(vTab.toLong())
 }
 
 internal val VTabFindFunctionHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
-                                                         argc: Int, name: CPointer<ByteVar>?,
+                                                         argc: Int,
+                                                         name: CPointer<ByteVar>?,
                                                          outFunction: CPointer<CPointerVar<CFunction<(CPointer<s3_context>?, Int, CPointer<CPointerVar<s3_value>>?) -> Unit>>>?,
                                                          outAppData: CPointer<COpaquePointerVar>? ->
-    0
+    val functionName = name!!.toKStringFromUtf8()
+
+    vTabFindFunction(
+        vTab = vTab.toLong(),
+        argumentCount = argc,
+        functionName = functionName,
+        setFunction = { instance, appData, function ->
+            // Keep the same logic as regular function from C-API
+            // The function is bound to the sqlite3_vtab lifecycle
+            createFunction(appData, function, null, null, null) { fn, fnDestroy ->
+                outFunction!!.pointed.value = FunctionFuncHandler.handle(function)
+
+                outAppData!!.pointed.value = instance.memory.keyedStableRefPointer(
+                    key = functionKey(functionName, argc, null),
+                    data = fn,
+                    appData = appData,
+                    destructor = fnDestroy
+                )
+            }
+        }
+    )
 }
 
 internal val VTabRenameHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                    newName: CPointer<ByteVar>? ->
-    0
+    vTabRename(
+        vTab = vTab.toLong(),
+        newName = newName!!.toKStringFromUtf8()
+    )
 }
 
 internal val VTabSavepointHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                       savepoint: Int ->
-    0
+    vTabSavepoint(
+        vTab = vTab.toLong(),
+        savepoint = savepoint
+    )
 }
 
 internal val VTabReleaseHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                     savepoint: Int ->
-    0
+    vTabRelease(
+        vTab = vTab.toLong(),
+        savepoint = savepoint
+    )
 }
 
 internal val VTabRollbackToHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                        savepoint: Int ->
-    0
-}
-
-internal val VTabShadowNameHandler = staticCFunction { name: CPointer<ByteVar>? ->
-    0
+    vTabRollbackTo(
+        vTab = vTab.toLong(),
+        savepoint = savepoint
+    )
 }
 
 internal val VTabIntegrityHandler = staticCFunction { vtab: CPointer<s3_vtab>?,
@@ -158,5 +239,11 @@ internal val VTabIntegrityHandler = staticCFunction { vtab: CPointer<s3_vtab>?,
                                                       tableName: CPointer<ByteVar>?,
                                                       flags: Int,
                                                       outError: CPointer<CPointerVar<ByteVar>>? ->
-    0
+    vTabIntegrity(
+        vTab = vtab.toLong(),
+        schema = schema!!.toKStringFromUtf8(),
+        tableName = tableName!!.toKStringFromUtf8(),
+        flags = flags,
+        setError = { outError!!.pointed.value = sqlite3_mprintf(it) }
+    )
 }

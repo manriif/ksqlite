@@ -2,7 +2,6 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.StructPointer
 
 /**
@@ -16,5 +15,11 @@ import ksqlite.capi.memory.StructPointer
  * implementations.
  *
  * [sqlite3_vtab_cursor](https://sqlite.org/c3ref/vtab_cursor.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * Subclasser may pass the typed [sqlite3_vtab] as a constructor parameter if necessary.
  */
-public expect open class sqlite3_vtab_cursor() : StructPointer, MemoryScope
+public expect open class sqlite3_vtab_cursor() : StructPointer

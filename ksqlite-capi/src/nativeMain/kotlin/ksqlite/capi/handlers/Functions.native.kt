@@ -4,7 +4,7 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.staticCFunction
 import ksqlite.capi.ApplicationDefinedFunction
-import ksqlite.capi.memory.toArray
+import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.types.s3_context
 import ksqlite.capi.types.s3_value
 import ksqlite.capi.types.sqlite3_context
@@ -78,7 +78,7 @@ private fun functionHandler(
     argv: CPointer<CPointerVar<s3_value>>?,
     call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
 ) = functionHandler(context) { context ->
-    call(context, argv?.toArray(argc) { sqlite3_value(it!!) } ?: emptyArray())
+    call(context, argv.toArrayOrEmpty(argc) { sqlite3_value(it!!) })
 }
 
 /**

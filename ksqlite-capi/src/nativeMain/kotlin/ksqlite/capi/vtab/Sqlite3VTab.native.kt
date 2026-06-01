@@ -13,7 +13,8 @@ import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.sqlite3_free
 import ksqlite.sqlite3_mprintf
 
-public actual abstract class sqlite3_vtab internal constructor(override val pointer: CPointer<s3_vtab>) :
+public actual abstract class sqlite3_vtab
+internal constructor(override val pointer: CPointer<s3_vtab>) :
     StructPointer(pointer),
     MemoryScope {
 

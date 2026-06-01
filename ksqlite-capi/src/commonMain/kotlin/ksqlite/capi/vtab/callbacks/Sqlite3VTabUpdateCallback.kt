@@ -23,9 +23,9 @@ public fun interface Sqlite3VTabUpdateCallback<VTab : sqlite3_vtab> {
     public sealed interface Scope {
 
         /**
-         * Writes [rowId] to `pRowid` if it is supplied and returns [Sqlite3Result.OK] to SQLite.
+         * Writes [rowid] to `pRowid` if it is supplied and returns [Sqlite3Result.OK] to SQLite.
          */
-        public fun success(rowId: Long?): Result
+        public fun success(rowid: Long?): Result
 
         /**
          * Returns [result] to SQLite.

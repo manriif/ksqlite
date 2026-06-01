@@ -638,14 +638,14 @@ public actual fun <AppData> sqlite3_create_function_v2(
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
-        appFunction(appData, func, step, final, destroy) { fn, fnDestroy ->
+        createFunction(appData, func, step, final, destroy) { fn, fnDestroy ->
             exports.sqlite3_create_function_v2(
                 db.pointer,
                 name.allocateUtf8Pointer(),
                 nArg,
                 encoding.utf8OrThrow().value,
                 keyedStableRefPointer(
-                    key = appFunctionKey(name, nArg, encoding),
+                    key = functionKey(name, nArg, encoding),
                     data = fn,
                     appData = appData,
                     destructor = fnDestroy
@@ -691,14 +691,14 @@ public actual fun <AppData> sqlite3_create_window_function(
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
-        appWindowFunction(appData, step, final, value, inverse, destroy) { fn, fnDestroy ->
+        createWindowFunction(appData, step, final, value, inverse, destroy) { fn, fnDestroy ->
             exports.sqlite3_create_window_function(
                 db.pointer,
                 name.allocateUtf8Pointer(),
                 nArg,
                 encoding.utf8OrThrow().value,
                 keyedStableRefPointer(
-                    key = appWindowFunctionKey(name, nArg, encoding),
+                    key = windowFunctionKey(name, nArg, encoding),
                     data = fn,
                     appData = appData,
                     destructor = fnDestroy

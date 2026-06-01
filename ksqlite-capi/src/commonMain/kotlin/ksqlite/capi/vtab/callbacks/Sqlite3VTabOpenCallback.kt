@@ -17,7 +17,7 @@ public fun interface Sqlite3VTabOpenCallback<VTab : sqlite3_vtab, VTabCursor: sq
     /**
      * Result for [handle].
      */
-    public sealed interface Result<VTabCursor : sqlite3_vtab_cursor>
+    public sealed interface Result<out VTabCursor : sqlite3_vtab_cursor>
 
     /**
      * Scope for [handle].

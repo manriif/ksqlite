@@ -6,14 +6,8 @@ import ksqlite.capi.types.Sqlite3Result
 // Auto extension
 ///////////////////////////////////////////////////////////////////////////
 
-/**
- * Success result for [Sqlite3AutoExtensionCallback].
- */
 internal data object AutoExtensionSuccessResult: Sqlite3AutoExtensionCallback.Result
 
-/**
- * Failure result for [Sqlite3AutoExtensionCallback].
- */
 internal data class AutoExtensionFailureResult(
     val result: Sqlite3Result.Failure,
     val message: String

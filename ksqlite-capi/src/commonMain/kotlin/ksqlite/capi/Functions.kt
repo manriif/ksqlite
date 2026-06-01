@@ -199,7 +199,7 @@ internal class ApplicationDefinedFunction<AppData>(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Invokes [block] with [function] and a destroy to use in place of client destroy.
+ * Invokes [block] with [function] and a destructor to use in place of application destroy.
  */
 @Suppress("UNCHECKED_CAST")
 private inline fun <AppData, R> appFunction(
@@ -208,10 +208,10 @@ private inline fun <AppData, R> appFunction(
 ): R = block(function as ApplicationDefinedFunction<Any?>) { function.cleanup() }
 
 /**
- * Invokes [block] with a [ApplicationDefinedFunction] for aggregate and scalar functions and a destroy
- * to use in place of client [destroy].
+ * Invokes [block] with a [ApplicationDefinedFunction] for aggregate and scalar functions and a
+ * destructor to use in place of application [destroy].
  */
-internal inline fun <AppData, R> appFunction(
+internal inline fun <AppData, R> createFunction(
     appData: AppData,
     func: Sqlite3FunctionFuncCallback<AppData>?,
     step: Sqlite3FunctionStepCallback<AppData>?,
@@ -235,10 +235,10 @@ internal inline fun <AppData, R> appFunction(
 )
 
 /**
- * Returns a [ApplicationDefinedFunction] for window function and a destroy to use in place of client
- * [destroy].
+ * Returns a [ApplicationDefinedFunction] for window function and a destructor to use in place of
+ * application [destroy].
  */
-internal inline fun <AppData, R> appWindowFunction(
+internal inline fun <AppData, R> createWindowFunction(
     appData: AppData,
     step: Sqlite3FunctionStepCallback<AppData>?,
     final: Sqlite3FunctionFinalCallback<AppData>?,

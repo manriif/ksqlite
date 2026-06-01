@@ -15,19 +15,21 @@ public enum class Sqlite3ModuleVersion(internal val iVersion: Int) {
     VERSION_1(1),
 
     /**
-     * Adds support for [ksqlite.capi.vtab.callbacks.Sqlite3VTabSavepointCallback],
-     * [ksqlite.capi.vtab.callbacks.Sqlite3VTabReleaseCallback] and
-     * [ksqlite.capi.vtab.callbacks.Sqlite3VTabRollbackToCallback].
+     * Adds support for xSavepoint, xRelease and xRollbackTo.
      */
     VERSION_2(2),
 
     /**
-     * Adds support for [ksqlite.capi.vtab.callbacks.Sqlite3VTabShadowNameCallback].
+     * Adds support for xShadowName.
+     *
+     * Note that xShadowName is currently unsupported as SQLite doesn't supply enough information
+     * in the callback to retrieve an associated Kotlin object. There is possible workarounds but
+     * they're awkward.
      */
     VERSION_3(3),
 
     /**
-     * Adds support for [ksqlite.capi.vtab.callbacks.Sqlite3VTabIntegrityCallback].
+     * Adds support for xIntegrity.
      */
     VERSION_4(4);
 }

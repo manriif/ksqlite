@@ -65,6 +65,21 @@ internal inline fun <P : CPointer<*>, reified T> CPointer<CPointerVarOf<P>>.toAr
 }
 
 /**
+ * Returns an array of [count] item of type [T] [transform]ed from pointer [P].
+ * Returns an empty array if `this` is `null`.
+ */
+internal inline fun <P : CPointer<*>, reified T> CPointer<CPointerVarOf<P>>?.toArrayOrEmpty(
+    count: Int,
+    transform: (P?) -> T
+): Array<T> {
+    if (this == null) {
+        return emptyArray()
+    }
+
+    return toArray(count, transform)
+}
+
+/**
  * Reads and returns an array of [count] String.
  */
 internal fun CPointer<CPointerVar<ByteVar>>.toNullableStringArray(count: Int): Array<String?> {
@@ -73,6 +88,7 @@ internal fun CPointer<CPointerVar<ByteVar>>.toNullableStringArray(count: Int): A
 
 /**
  * Reads and returns an array of [count] String.
+ * Returns an empty array if `this` is `null`.
  */
 internal fun CPointer<CPointerVar<ByteVar>>?.toNullableStringArrayOrEmpty(count: Int): Array<String?> {
     return this?.toNullableStringArray(count) ?: emptyArray()
@@ -87,6 +103,7 @@ internal fun CPointer<CPointerVar<ByteVar>>.toStringArray(count: Int): Array<Str
 
 /**
  * Reads and returns an array of [count] String.
+ * Returns an empty array if `this` is `null`.
  */
 internal fun CPointer<CPointerVar<ByteVar>>?.toStringArrayOrEmpty(count: Int): Array<String> {
     return this?.toStringArray(count) ?: emptyArray()

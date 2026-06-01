@@ -25,9 +25,9 @@ public fun interface Sqlite3VTabRowidCallback<VTabCursor : sqlite3_vtab_cursor> 
     public sealed interface Scope {
 
         /**
-         * Writes [rowId] to `pRowid` and returns [Sqlite3Result.OK] to SQLite.
+         * Writes [rowid] to `pRowid` and returns [Sqlite3Result.OK] to SQLite.
          */
-        public fun success(rowId: Long): Result
+        public fun success(rowid: Long): Result
 
         /**
          * Returns [result] to SQLite.
