@@ -11,7 +11,7 @@ public fun interface Sqlite3CollationNeededCallback<AppData> {
     /**
      * Details on parameters can be found [here](https://sqlite.org/c3ref/collation_needed.html).
      */
-    public fun handle(
+    public fun apply(
         appData: AppData,
         db: sqlite3,
         eTextRep: Sqlite3TextEncoding.Set2,

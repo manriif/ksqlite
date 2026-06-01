@@ -1,32 +1,31 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.dispatchSqlLogEvent
-import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
 import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.dispatchSqlLogEvent
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import java.lang.foreign.FunctionDescriptor
+import ksqlite.capi.types.sqlite3
+import ksqlite.ksqlite_xLog
+import ksqlite.ksqlite_xSqllog
+import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
 
 /**
  * Handler for the LOG option of [ksqlite.capi.sqlite3_config].
  */
-internal class ConfigLogHandler(manager: MemoryManager) : Handler(manager) {
+internal class ConfigLogHandler :
+    Handler(),
+    ksqlite_xLog.Function {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS
-    )
+    override fun allocate(arena: Arena): MemorySegment =
+        ksqlite_xLog.allocate(this, arena)
 
-    fun handle(
+    override fun apply(
         refPointer: MemorySegment,
         errCode: Int,
         errMsg: MemorySegment
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigLogCallback<Any?>, appData ->
-        callback.handle(
+    ): Unit = handle(refPointer) { callback: Sqlite3ConfigLogCallback<Any?>, appData ->
+        callback.apply(
             appData = appData,
             errorCode = errCode,
             message = errMsg.toKStringFromUtf8OrNull()
@@ -37,21 +36,19 @@ internal class ConfigLogHandler(manager: MemoryManager) : Handler(manager) {
 /**
  * Handler for the SQLLOG option of [ksqlite.capi.sqlite3_config].
  */
-internal class ConfigSqlLogHandler(manager: MemoryManager) : Handler(manager) {
+internal class ConfigSqlLogHandler :
+    Handler(),
+    ksqlite_xSqllog.Function {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT
-    )
+    override fun allocate(arena: Arena): MemorySegment =
+        ksqlite_xSqllog.allocate(this, arena)
 
-    fun handle(
+    override fun apply(
         refPointer: MemorySegment,
         db: MemorySegment,
         name: MemorySegment,
         type: Int
-    ): Unit = handler(refPointer) { callback: Sqlite3ConfigSqlLogCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: Sqlite3ConfigSqlLogCallback<Any?>, appData ->
         dispatchSqlLogEvent(
             callback = callback,
             appData = appData,

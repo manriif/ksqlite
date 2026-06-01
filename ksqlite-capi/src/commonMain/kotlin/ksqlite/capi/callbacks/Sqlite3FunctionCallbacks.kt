@@ -14,7 +14,7 @@ public fun interface Sqlite3Function1Callback<AppData> {
     /**
      * Details on parameters can be found [here](https://sqlite.org/c3ref/create_function.html).
      */
-    public fun handle(
+    public fun apply(
         appData: AppData,
         context: sqlite3_context
     )
@@ -29,7 +29,7 @@ public fun interface Sqlite3Function3Callback<AppData> {
     /**
      * Details on parameters can be found [here](https://sqlite.org/c3ref/create_function.html).
      */
-    public fun handle(
+    public fun apply(
         appData: AppData,
         context: sqlite3_context,
         arguments: Array<sqlite3_value>

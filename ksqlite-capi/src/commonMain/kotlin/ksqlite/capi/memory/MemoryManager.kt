@@ -151,7 +151,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
          * Invokes destructor and releases the resource(s).
          */
         fun destroy() {
-            destructor?.handle(appData)
+            destructor?.apply(appData)
             release()
         }
 

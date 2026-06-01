@@ -17,8 +17,8 @@ internal class AuthorizerHandler<AppData> :
         string2: String?,
         string3: String?,
         string4: String?
-    ): Int = handler { callback, appData ->
-        callback.handle(
+    ): Int = handle { callback, appData ->
+        callback.apply(
             appData = appData,
             action = convertActionCode(opId),
             param3 = string1,

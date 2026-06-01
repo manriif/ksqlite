@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName", "SpellCheckingInspection")
+
 package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
@@ -14,6 +16,9 @@ import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.sqlite3
+import java.lang.foreign.Arena
+import java.lang.foreign.MemorySegment
+import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
 
 private val pointerSize = ValueLayout.ADDRESS.byteSize().toInt()
@@ -77,4 +82,35 @@ internal actual fun valuePointerInternal(
         ?: return null
 
     globalMemory.stableRefAppData(pointer)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Utils
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a pointer to a string holding [text]'s content, obtained through
+ * [sqlite3.sqlite3_mprintf].
+ */
+context(allocator: SegmentAllocator)
+internal fun sqlite3_mprintf(text: String): MemorySegment {
+    return sqlite3.sqlite3_mprintf
+        .makeInvoker()
+        .apply(text.allocateUtf8(allocator))
+}
+
+/**
+ * Returns a pointer to a string holding [text]'s content, obtained through
+ * [sqlite3.sqlite3_mprintf]. Returns [MemorySegment.NULL] if [text] is `null`.
+ */
+internal fun sqlite3_mprintf(text: String?): MemorySegment {
+    if (text == null) {
+        return MemorySegment.NULL
+    }
+
+    return Arena.ofConfined().use { arena ->
+        with(arena) {
+            sqlite3_mprintf(text)
+        }
+    }
 }

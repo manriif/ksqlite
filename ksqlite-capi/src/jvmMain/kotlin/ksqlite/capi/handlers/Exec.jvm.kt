@@ -1,37 +1,33 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
+import ksqlite.capi.memory.toArray
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import ksqlite.capi.memory.toArray
-import java.lang.foreign.FunctionDescriptor
+import ksqlite.`sqlite3_exec$callback`
+import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
 
 /**
  * Handler for [ksqlite.capi.sqlite3_exec].
  */
-internal class ExecHandler(manager: MemoryManager) : Handler(manager) {
+internal class ExecHandler :
+    Handler(),
+    `sqlite3_exec$callback`.Function {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-    )
+    override fun allocate(arena: Arena): MemorySegment =
+        `sqlite3_exec$callback`.allocate(this, arena)
 
-    fun handle(
+    override fun apply(
         refPointer: MemorySegment,
         columnCount: Int,
         values: MemorySegment,
         names: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
         val columnValues = values.toArray(columnCount) { it.toKStringFromUtf8OrNull() }
         val columnNames = names.toArray(columnCount) { it.toKStringFromUtf8() }
 
-        callback.handle(
+        callback.apply(
             appData = appData,
             columnCount = columnCount,
             columnValues = columnValues,

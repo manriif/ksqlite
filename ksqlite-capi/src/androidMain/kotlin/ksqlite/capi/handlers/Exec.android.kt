@@ -14,8 +14,8 @@ internal class ExecHandler<AppData> :
         columnCount: Int,
         columnValues: Array<String?>,
         columnNames: Array<String>
-    ): Int = handler { callback, appData ->
-        callback.handle(
+    ): Int = handle { callback, appData ->
+        callback.apply(
             appData = appData,
             columnCount = columnCount,
             columnValues = columnValues,

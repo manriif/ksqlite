@@ -12,8 +12,8 @@ internal class CommitHookHandler<AppData> :
     Handler<Sqlite3CommitHookCallback<AppData>, AppData>(),
     CommitHookCallback {
 
-    override fun call(): Int = handler { callback, appData ->
-        callback.handle(appData)
+    override fun call(): Int = handle { callback, appData ->
+        callback.apply(appData)
     }
 }
 
@@ -24,7 +24,7 @@ internal class RollbackHookHandler<AppData> :
     Handler<Sqlite3RollbackHookCallback<AppData>, AppData>(),
     RollbackHookCallback {
 
-    override fun call() = handler { callback, appData ->
-        callback.handle(appData)
+    override fun call() = handle { callback, appData ->
+        callback.apply(appData)
     }
 }

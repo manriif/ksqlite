@@ -23,8 +23,8 @@ private fun authorizerHandler(
     param4: CPointer<ByteVar>?,
     param5: CPointer<ByteVar>?,
     param6: CPointer<ByteVar>?
-) = handler(refPointer) { callback: Sqlite3AuthorizerCallback<Any?>, appData ->
-    callback.handle(
+) = handle(refPointer) { callback: Sqlite3AuthorizerCallback<Any?>, appData ->
+    callback.apply(
         appData = appData,
         action = convertActionCode(action),
         param3 = param3?.toKStringFromUtf8(),

@@ -3,11 +3,7 @@ package ksqlite.capi.memory
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.Handler
 import java.lang.foreign.Arena
-import java.lang.foreign.FunctionDescriptor
-import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
-import java.lang.invoke.MethodHandles
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
@@ -110,24 +106,18 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private fun getOrCreateFunctionPointer(
         handlerKlass: KClass<out Handler>,
-        factory: (MemoryManager) -> Handler
+        factory: () -> Handler
     ): MemorySegment = notClosed {
         functionPointers.computeIfAbsent(handlerKlass) {
-            val handler = factory(this)
-            val functionDescriptor = handler.createFunctionDescriptor()
-
-            val methodHandle = MethodHandles
-                .lookup()
-                .findVirtual(handler::class.java, "handle", functionDescriptor.toMethodType())
-                .bindTo(handler)
+            val handler = factory().apply {
+                manager = this@MemoryManager
+            }
 
             val reference = registerDisposable { id ->
                 FunctionDisposable(id, handler)
             }
 
-            Linker
-                .nativeLinker()
-                .upcallStub(methodHandle, functionDescriptor, reference.arena)
+            handler.allocate(reference.arena)
         }
     }
 
@@ -139,7 +129,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     inline fun <reified H : Handler> functionPointer(
         callback: Any?,
-        noinline factory: (MemoryManager) -> H
+        noinline factory: () -> H
     ): MemorySegment = notClosed {
         if (callback == null) {
             return MemorySegment.NULL
@@ -153,7 +143,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * [Handler] returned by [factory].
      */
     inline fun <reified H : Handler> functionPointer(
-        noinline factory: (MemoryManager) -> H
+        noinline factory: () -> H
     ): MemorySegment {
         return functionPointer(this, factory)
     }
@@ -183,20 +173,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
     ///////////////////////////////////////////////////////////////////////////
     // Disposables
     ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Handler that dispose reference to object to make it available for GC.
-     */
-    private class StableRefDisposerHandler(manager: MemoryManager) : Handler(manager) {
-
-        override fun createFunctionDescriptor(): FunctionDescriptor {
-            return FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
-        }
-
-        fun handle(userPtr: MemorySegment) {
-            manager.getStableRef<Nothing?>(userPtr).dispose()
-        }
-    }
 
     /**
      * Reference to [data].

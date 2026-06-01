@@ -21,8 +21,8 @@ internal class PreupdateHookHandler<AppData> :
         dbTable: String,
         iKey1: Long,
         iKey2: Long
-    ) = handler { callback, appData ->
-        callback.handle(
+    ) = handle { callback, appData ->
+        callback.apply(
             appData = appData,
             db = sqlite3(db),
             action = convertActionCode(op),
@@ -46,8 +46,8 @@ internal class UpdateHookHandler<AppData> :
         dbName: String,
         tableName: String,
         rowId: Long
-    ) = handler { callback, appData ->
-        callback.handle(
+    ) = handle { callback, appData ->
+        callback.apply(
             appData = appData,
             action = convertActionCode(opId),
             dbName = dbName,

@@ -1,7 +1,11 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.convertResult
-import ksqlite.capi.types.Sqlite3Result
+///////////////////////////////////////////////////////////////////////////
+// Concurrency
+///////////////////////////////////////////////////////////////////////////
+
+internal typealias ConcurrentMap<K, V> = co.touchlab.stately.collections.ConcurrentMutableMap<K, V>
+internal typealias Lock = co.touchlab.stately.concurrency.Lock
 
 ///////////////////////////////////////////////////////////////////////////
 // Struct
@@ -22,54 +26,9 @@ public abstract class StructPointerBase internal constructor() {
 /**
  * Pointer to an sqlite3 struct.
  */
-public expect open class StructPointer: StructPointerBase {
+public expect open class StructPointer : StructPointerBase {
     override val address: Long
 }
-
-/**
- * Invokes [block] which is expected to be the SQLite function that will deallocate [Scope] and
- * returns [block]'s result.
- *
- * If the deallocation succeeds, which is the case if [block] returns [Sqlite3Result.OK], then
- * all the resources associated with [Scope] through [memory] are disposed and [memory] is
- * closed before the function returns.
- */
-internal inline fun <Scope : MemoryScope> Scope.deallocate(
-    block: (Scope) -> Int
-): Sqlite3Result {
-    val result = convertResult(block(this))
-
-    if (result == Sqlite3Result.OK) {
-        destroyMemory()
-    }
-
-    return result
-}
-
-/**
- * Invokes [block] which is expected to be the SQLite function that will deallocate [Scope] and
- * returns [block]'s result.
- *
- * If the deallocation succeeds, which is the case if [block] returns [Sqlite3Result.OK], then
- * all the resources associated with [Scope] through [memory] are disposed and [memory] is
- * closed before the function returns.
- */
-internal inline fun <Scope : MemoryScope> Scope?.deallocateNullable(
-    block: (Scope?) -> Int
-): Sqlite3Result {
-    if (this == null) {
-        return convertResult(block(null))
-    }
-
-    return this.deallocate(block)
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Concurrency
-///////////////////////////////////////////////////////////////////////////
-
-internal typealias ConcurrentMap<K, V> = co.touchlab.stately.collections.ConcurrentMutableMap<K, V>
-internal typealias Lock = co.touchlab.stately.concurrency.Lock
 
 ///////////////////////////////////////////////////////////////////////////
 // Managers
@@ -84,7 +43,7 @@ public interface MemoryScope
 /**
  * Memory manager for top level objects.
  */
-private val GlobalMemoryManager: MemoryManager by lazy(::MemoryManager)
+private val GlobalMemoryManager by lazy(::MemoryManager)
 
 /**
  * Returns the global [MemoryManager] instance.
@@ -95,56 +54,57 @@ internal val globalMemory: MemoryManager
 /**
  * Per pointer memory manager.
  */
-private val ScopedMemoryManagers = ConcurrentMap<MemoryScope, MemoryManager>()
+private val ScopedMemoryManagers by lazy { ConcurrentMap<Long, MemoryManager>() }
 
 /**
  * Returns the [MemoryManager] for `this` [StructPointer], creating one if necessary.
  */
-internal val MemoryScope.memory: MemoryManager
-    get() = ScopedMemoryManagers.computeIfAbsent(this) { MemoryManager() }
+internal val <S> S.memory: MemoryManager where S : StructPointer, S : MemoryScope
+    get() = ScopedMemoryManagers.computeIfAbsent(address) { MemoryManager() }
 
 /**
  * Returns the [MemoryManager] for `this` [StructPointer] or `null`.
  */
-internal val MemoryScope.memoryOrNull: MemoryManager?
-    get() = ScopedMemoryManagers[this]
+internal val <S> S.memoryOrNull: MemoryManager? where S : StructPointer, S : MemoryScope
+    get() = ScopedMemoryManagers[address]
 
 /**
  * Invokes [block] with the [MemoryManager] associated to this pointer as receiver.
  */
-internal inline fun <R> MemoryScope.withMemoryManager(block: MemoryManager.() -> R): R {
-    return memory.block()
-}
+internal inline fun <S, R> S.withMemoryManager(block: MemoryManager.() -> R): R
+        where S : StructPointer, S : MemoryScope = memory.block()
 
 /**
  * Releases the [MemoryManager] associated with `this` [StructPointer].
  */
-internal fun MemoryScope.destroyMemory() {
-    ScopedMemoryManagers.remove(this)?.close()
+internal fun <S> S.destroyMemory() where S : StructPointer, S : MemoryScope {
+    ScopedMemoryManagers.remove(address)?.close()
 }
 
 /**
  * Invokes and returns [block]'s result with a [MemoryManager] receiver that is closed before
  * function returns.
  */
-internal inline fun <R> useMemoryManager(block: MemoryManager.() -> R): R {
-    return MemoryManager().use { manager ->
-        block(manager)
-    }
-}
+internal inline fun <R> useMemoryManager(block: MemoryManager.() -> R): R =
+    MemoryManager().use { block(it) }
 
 /**
  * Clears all the resources owned by ksqlite.
  * It is recommended to close all opened sqlite database connections before calling that function.
+ *
+ * If all the resources have been correctly cleaned up before that method call, `true` is returned.
+ * If `false` is returned then either some resource(s) have not been cleaned up correctly or something
+ * escaped its owner or both.
  */
-public fun ksqliteCleanup() {
+public fun ksqliteCleanup(): Boolean {
     val keys = ScopedMemoryManagers.keys
 
     for (key in keys) {
-        ScopedMemoryManagers
-            .remove(key)
-            ?.close()
+        ScopedMemoryManagers.remove(key)?.close()
     }
 
+    // May contains top level callbacks registered with sqlite3_config() (log/sqllog)
     GlobalMemoryManager.clear()
+
+    return keys.isEmpty()
 }

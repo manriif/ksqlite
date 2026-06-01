@@ -37,10 +37,6 @@ public actual open class StructPointer internal constructor(
         return pointer.hashCode()
     }
 
-    /**
-     * Free the [pointer].
-     * Must be called for pointer managed by the library.
-     */
     internal fun free() {
         nativeHeap.free(pointer)
     }

@@ -84,6 +84,7 @@ val SqliteUnixLinkerOptions = listOf(
  * Structs that must be exported.
  */
 val Sqlite3Structs = listOf(
+    "index_info",
     "module",
     "vtab",
     "vtab_cursor"

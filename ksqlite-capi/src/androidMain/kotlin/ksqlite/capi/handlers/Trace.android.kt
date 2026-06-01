@@ -17,7 +17,7 @@ internal class TraceHandler<AppData> :
         code: Int,
         pPointer: Long,
         xPointer: Any?
-    ): Int = handler { callback, appData ->
+    ): Int = handle { callback, appData ->
         dispatchTraceEvent(
             callback = callback,
             appData = appData,

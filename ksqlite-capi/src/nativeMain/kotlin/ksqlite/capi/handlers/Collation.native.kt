@@ -9,7 +9,6 @@ import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.convertTextEncoding
-import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
 
@@ -32,8 +31,8 @@ private fun collationCompareHandler(
     text1: COpaquePointer?,
     size2: Int,
     text2: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3CollationCompareCallback<Any?>, appData ->
-    callback.handle(
+) = handle(refPointer) { callback: Sqlite3CollationCompareCallback<Any?>, appData ->
+    callback.apply(
         appData = appData,
         lhs = text1!!.readBytes(size1),
         rhs = text2!!.readBytes(size2)
@@ -57,8 +56,8 @@ private fun collationNeededHandler(
     db: CPointer<s3>?,
     eTextRep: Int,
     name: CPointer<ByteVar>?
-) = handler(refPointer) { callback: Sqlite3CollationNeededCallback<Any?>, appData ->
-    callback.handle(
+) = handle(refPointer) { callback: Sqlite3CollationNeededCallback<Any?>, appData ->
+    callback.apply(
         appData = appData,
         db = sqlite3(db!!),
         eTextRep = convertTextEncoding(eTextRep),

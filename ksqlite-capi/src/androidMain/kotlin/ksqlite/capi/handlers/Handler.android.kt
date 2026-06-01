@@ -13,7 +13,7 @@ internal abstract class Handler<Data : Any, AppData> {
     /**
      * Returns [block]'s result, invoked with [Data] and optional appData.
      */
-    protected inline fun <Result> handler(
+    protected inline fun <Result> handle(
         block: (data: Data, appData: AppData) -> Result
     ): Result {
         return block(holder.data, holder.appData)
@@ -35,8 +35,8 @@ private class DestructorHandler<AppData> :
     Handler<Sqlite3DestroyCallback<AppData>, AppData>(),
     DestructorCallback {
 
-    override fun destroy() = handler { callback, appData ->
-        callback.handle(appData)
+    override fun destroy() = handle { callback, appData ->
+        callback.apply(appData)
     }
 }
 

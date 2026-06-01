@@ -13,11 +13,11 @@ internal abstract class FunctionHandler : Handler<ApplicationDefinedFunction<*>,
     /**
      * Handler for function callback.
      */
-    protected inline fun functionHandler(
+    protected inline fun handleFunction(
         context: Long,
         call: ApplicationDefinedFunction<*>.(sqlite3_context) -> Unit
     ) {
-        handler { function, _ ->
+        handle { function, _ ->
             function.call(sqlite3_context(context))
         }
     }
@@ -39,7 +39,7 @@ internal abstract class Function1ArgHandler : FunctionHandler(), FunctionCallbac
 internal class FunctionFinalHandler : Function1ArgHandler(), FunctionCallback.Final {
 
     override fun call(context: Long) =
-        functionHandler(context, ApplicationDefinedFunction<*>::callFinal)
+        handleFunction(context, ApplicationDefinedFunction<*>::callFinal)
 }
 
 /**
@@ -48,7 +48,7 @@ internal class FunctionFinalHandler : Function1ArgHandler(), FunctionCallback.Fi
 internal class FunctionValueHandler : Function1ArgHandler(), FunctionCallback.Value {
 
     override fun call(context: Long) =
-        functionHandler(context, ApplicationDefinedFunction<*>::callValue)
+        handleFunction(context, ApplicationDefinedFunction<*>::callValue)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -63,11 +63,11 @@ internal abstract class Function3ArgsHandler : FunctionHandler(), FunctionCallba
     /**
      * Handler for 3-args function callback.
      */
-    protected fun functionHandler(
+    protected fun handleFunction(
         context: Long,
         values: LongArray,
         call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
-    ) = functionHandler(context) { context ->
+    ) = handleFunction(context) { context ->
         call(context, values.map(::sqlite3_value).toTypedArray())
     }
 }
@@ -81,7 +81,7 @@ internal class FunctionFuncHandler : Function3ArgsHandler(), FunctionCallback.Fu
     override fun call(
         context: Long,
         values: LongArray
-    ) = functionHandler(context, values, ApplicationDefinedFunction<*>::callFunc)
+    ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callFunc)
 }
 
 /**
@@ -93,7 +93,7 @@ internal class FunctionStepHandler : Function3ArgsHandler(), FunctionCallback.St
     override fun call(
         context: Long,
         values: LongArray
-    ) = functionHandler(context, values, ApplicationDefinedFunction<*>::callStep)
+    ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callStep)
 }
 
 /**
@@ -104,5 +104,5 @@ internal class FunctionInverseHandler : Function3ArgsHandler(), FunctionCallback
     override fun call(
         context: Long,
         values: LongArray
-    ) = functionHandler(context, values, ApplicationDefinedFunction<*>::callInverse)
+    ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callInverse)
 }

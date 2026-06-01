@@ -8,5 +8,5 @@ public fun interface Sqlite3CommitHookCallback<AppData> {
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/commit_hook.html).
      */
-    public fun handle(appData: AppData): Int
+    public fun apply(appData: AppData): Int
 }

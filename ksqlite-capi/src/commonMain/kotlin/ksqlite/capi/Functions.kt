@@ -45,7 +45,7 @@ internal class ApplicationDefinedFunction<AppData>(
             "Not all of the identified instances were destroyed"
         }
 
-        destroy?.handle(appData)
+        destroy?.apply(appData)
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -143,7 +143,7 @@ internal class ApplicationDefinedFunction<AppData>(
         var key: Long? = null
 
         val destroyAndRemove = Sqlite3DestroyCallback<Nothing?> {
-            destroy?.handle(instance)
+            destroy?.apply(instance)
             key?.let(::uncacheInstance)
         }
 
@@ -159,35 +159,35 @@ internal class ApplicationDefinedFunction<AppData>(
      * Invokes the [func] callback.
      */
     fun callFunc(context: sqlite3_context, arguments: Array<sqlite3_value>) {
-        func!!.handle(appData, context, arguments)
+        func!!.apply(appData, context, arguments)
     }
 
     /**
      * Invokes the [step] callback.
      */
     fun callStep(context: sqlite3_context, arguments: Array<sqlite3_value>) {
-        step!!.handle(appData, context, arguments)
+        step!!.apply(appData, context, arguments)
     }
 
     /**
      * Invokes the [inverse] callback.
      */
     fun callInverse(context: sqlite3_context, arguments: Array<sqlite3_value>) {
-        inverse!!.handle(appData, context, arguments)
+        inverse!!.apply(appData, context, arguments)
     }
 
     /**
      * Invokes the [value] callback.
      */
     fun callValue(context: sqlite3_context) {
-        value!!.handle(appData, context)
+        value!!.apply(appData, context)
     }
 
     /**
      * Invokes the [final] callback and release the associated aggregate context Kotlin instance.
      */
     fun callFinal(context: sqlite3_context) {
-        final!!.handle(appData, context)
+        final!!.apply(appData, context)
 
         aggregateContextInternal(context, false)
             ?.let(::uncacheInstance)

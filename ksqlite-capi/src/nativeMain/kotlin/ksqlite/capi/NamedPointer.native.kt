@@ -19,7 +19,7 @@ internal class NamedPointer<Data>(
      * Invokes application [destroy] and clears the associated [arena].
      */
     fun destroy(data: Data) {
-        destroy?.handle(data)
+        destroy?.apply(data)
         arena?.clear()
     }
 }

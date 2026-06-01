@@ -2,29 +2,28 @@
 
 package ksqlite.capi.vtab
 
-import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.nativeHeap
-import kotlinx.cinterop.ptr
 import ksqlite.capi.memory.StructPointer
-import ksqlite.capi.vtab.Sqlite3ModuleKind.Eponymous
-import ksqlite.capi.vtab.Sqlite3ModuleKind.EponymousOnly
-import ksqlite.capi.vtab.Sqlite3ModuleKind.Ordinal
 
 public actual class sqlite3_module<AppData>
-internal constructor(
-    internal val callbacks: VTabModuleCallbacks<AppData, *, *>,
-    override val pointer: CPointer<s3_module>
-) : StructPointer(pointer),
+internal actual constructor(
+    version: Int,
+    internal val callbacks: VTabModuleCallbacks<AppData, *, *>
+) : StructPointer(allocate = { s3_module.allocate(this) }),
     AutoCloseable {
 
-    internal actual constructor(
-        version: Int,
-        callbacks: VTabModuleCallbacks<AppData, *, *>
-    ) : this(callbacks, nativeHeap.alloc<s3_module>().apply {
-        iVersion = version
+    init {
+        s3_module.iVersion(pointer, version)
 
-        xCreate = when (callbacks.moduleKind) {
+        s3_module.xCreate(
+            pointer,
+            when (callbacks.moduleKind) {
+                EponymousOnly -> null
+                Eponymous -> VTabConnectHandler
+                Ordinal -> VTabCreateHandler
+            }
+        )
+
+        /*xCreate = when (callbacks.moduleKind) {
             EponymousOnly -> null
             Eponymous -> VTabConnectHandler
             Ordinal -> VTabCreateHandler
@@ -51,8 +50,9 @@ internal constructor(
         xSavepoint = callbacks.savepoint?.let { VTabSavepointHandler }
         xRelease = callbacks.release?.let { VTabReleaseHandler }
         xRollbackTo = callbacks.rollbackTo?.let { VTabRollbackToHandler }
-        xIntegrity = callbacks.integrity?.let { VTabIntegrityHandler }
-    }.ptr)
+        xIntegrity = callbacks.integrity?.let { VTabIntegrityHandler }*/
+    }
 
+    @Suppress("ACTUAL_IGNORABILITY_NOT_MATCH_EXPECT")
     actual override fun close(): Unit = free()
 }

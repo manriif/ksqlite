@@ -26,7 +26,7 @@ private fun traceHandler(
     refPointer: COpaquePointer?,
     pPointer: COpaquePointer?,
     xPointer: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
+) = handle(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
     dispatchTraceEvent(
         callback = callback,
         appData = appData,

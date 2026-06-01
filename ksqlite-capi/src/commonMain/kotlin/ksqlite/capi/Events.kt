@@ -22,7 +22,7 @@ internal fun <AppData> dispatchSqlLogEvent(
     type: Int,
     db: sqlite3,
     name: String?
-): Unit = callback.handle(
+): Unit = callback.apply(
     appData = appData,
     db = db,
     event = when (type) {
@@ -55,7 +55,7 @@ internal fun <P, X, AppData> dispatchTraceEvent(
     toStatement: (P) -> sqlite3_stmt,
     toString: (X) -> String,
     toLong: (X) -> Long
-): Int = callback.handle(
+): Int = callback.apply(
     appData = appData,
     event = when (TraceConstantMap[code]) {
         Sqlite3TraceCode.STMT -> Sqlite3TraceEvent.Stmt(

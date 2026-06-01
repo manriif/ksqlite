@@ -1,6 +1,17 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.handlers.ReferenceHandler
 import java.lang.foreign.MemorySegment
+
+/**
+ * Handler that dispose reference to object.
+ */
+internal class StableRefDisposerHandler : ReferenceHandler() {
+
+    override fun apply(refPointer: MemorySegment) {
+        manager.getStableRef<Nothing?>(refPointer).dispose()
+    }
+}
 
 /**
  * Returns the object [Data] backed by [pointer] with an optional app data pointer.

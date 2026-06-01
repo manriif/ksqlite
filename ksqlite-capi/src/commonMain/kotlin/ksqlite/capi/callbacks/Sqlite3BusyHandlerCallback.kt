@@ -8,7 +8,7 @@ public fun interface Sqlite3BusyHandlerCallback<AppData> {
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/busy_handler.html).
      */
-    public fun handle(
+    public fun apply(
         appData: AppData,
         count: Int
     ): Int

@@ -22,9 +22,13 @@ public enum class Sqlite3ModuleVersion(internal val iVersion: Int) {
     /**
      * Adds support for xShadowName.
      *
-     * Note that xShadowName is currently unsupported as SQLite doesn't supply enough information
-     * in the callback to retrieve an associated Kotlin object. There is possible workarounds but
-     * they're awkward.
+     * Note that xShadowName is currently unsupported as SQLite doesn't supply enough context
+     * information for the callback to retrieve an associated Kotlin object.
+     * The issue doesn't affect all the interops (Kotlin/Native, mainly) but as they're intended to
+     * be feature aligned the support for xShadowName is impossible. There is possible workarounds
+     * but they're awkward.
+     *
+     * TODO: to be discussed before production
      */
     VERSION_3(3),
 

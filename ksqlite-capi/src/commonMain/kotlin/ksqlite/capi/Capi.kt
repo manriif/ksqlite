@@ -466,7 +466,7 @@ public expect fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result
  *
  * [sqlite3_close()](https://sqlite.org/c3ref/close.html)
  */
-public expect fun sqlite3_close(db: sqlite3?): Sqlite3Result
+public expect fun sqlite3_close(db: sqlite3): Sqlite3Result
 
 /**
  * Two variations on the public interface for closing a database.
@@ -477,7 +477,7 @@ public expect fun sqlite3_close(db: sqlite3?): Sqlite3Result
  *
  * [sqlite3_close_v2()](https://sqlite.org/c3ref/close.html)
  */
-public expect fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result
+public expect fun sqlite3_close_v2(db: sqlite3): Sqlite3Result
 
 /**
  * Register a collation sequence factory callback with the database handle [db].
@@ -1133,7 +1133,7 @@ public expect fun sqlite3_file_control(
  *
  * [sqlite3_finalize()](https://sqlite.org/c3ref/finalize.html)
  */
-public expect fun sqlite3_finalize(stmt: sqlite3_stmt?): Sqlite3Result
+public expect fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result
 
 /**
  * Free memory previously obtained from sqlite3Malloc().

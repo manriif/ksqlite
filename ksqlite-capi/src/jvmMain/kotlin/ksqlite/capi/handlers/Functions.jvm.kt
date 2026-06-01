@@ -1,29 +1,32 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.ApplicationDefinedFunction
-import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.toArray
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.sqlite3.sqlite3_user_data
-import java.lang.foreign.FunctionDescriptor
+import ksqlite.`sqlite3_create_function_v2$xFinal`
+import ksqlite.`sqlite3_create_function_v2$xFunc`
+import ksqlite.`sqlite3_create_function_v2$xStep`
+import ksqlite.`sqlite3_create_window_function$xInverse`
+import ksqlite.`sqlite3_create_window_function$xValue`
+import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
 
 /**
  * Base for function [Handler]s.
  */
-internal abstract class FunctionHandler(manager: MemoryManager) : Handler(manager) {
+internal abstract class FunctionHandler : Handler() {
 
     /**
      * Handler for function callback.
      */
-    protected inline fun functionHandler(
+    protected inline fun handleFunction(
         context: MemorySegment,
         call: ApplicationDefinedFunction<*>.(sqlite3_context) -> Unit
     ) {
-        handler(sqlite3_user_data(context)) { function: ApplicationDefinedFunction<*>, _ ->
+        handle(sqlite3_user_data(context)) { function: ApplicationDefinedFunction<*>, _ ->
             function.call(sqlite3_context(context))
         }
     }
@@ -34,34 +37,32 @@ internal abstract class FunctionHandler(manager: MemoryManager) : Handler(manage
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Base for 1-arg function [Handler]s.
- */
-internal abstract class Function1ArgHandler(manager: MemoryManager) :
-    FunctionHandler(manager) {
-
-    final override fun createFunctionDescriptor(): FunctionDescriptor =
-        FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
-}
-
-/**
  * Handler for the `final` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class FunctionFinalHandler(manager: MemoryManager) :
-    Function1ArgHandler(manager) {
+internal class FunctionFinalHandler :
+    FunctionHandler(),
+    `sqlite3_create_function_v2$xFinal`.Function {
 
-    fun handle(context: MemorySegment) =
-        functionHandler(context, ApplicationDefinedFunction<*>::callFinal)
+    override fun allocate(arena: Arena): MemorySegment =
+        `sqlite3_create_function_v2$xFinal`.allocate(this, arena)
+
+    override fun apply(context: MemorySegment) =
+        handleFunction(context, ApplicationDefinedFunction<*>::callFinal)
 }
 
 /**
  * Handler for the `value` argument of  [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class FunctionValueHandler(manager: MemoryManager) :
-    Function1ArgHandler(manager) {
+internal class FunctionValueHandler :
+    FunctionHandler(),
+    `sqlite3_create_window_function$xValue`.Function {
 
-    fun handle(context: MemorySegment) =
-        functionHandler(context, ApplicationDefinedFunction<*>::callValue)
+    override fun allocate(arena: Arena): MemorySegment =
+        `sqlite3_create_window_function$xValue`.allocate(this, arena)
+
+    override fun apply(context: MemorySegment) =
+        handleFunction(context, ApplicationDefinedFunction<*>::callValue)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -71,24 +72,17 @@ internal class FunctionValueHandler(manager: MemoryManager) :
 /**
  * Base for 3-args function [Handler]s.
  */
-internal abstract class Function3ArgsHandler(manager: MemoryManager) :
-    FunctionHandler(manager) {
-
-    final override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.ofVoid(
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS
-    )
+internal abstract class Function3ArgsHandler : FunctionHandler() {
 
     /**
      * Handler for 3-args function callback.
      */
-    protected fun functionHandler(
+    protected fun handleFunction(
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment,
         call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
-    ) = functionHandler(context) {context ->
+    ) = handleFunction(context) { context ->
         call(context, argv.orNull?.toArray(argc) { sqlite3_value(it) } ?: emptyArray())
     }
 }
@@ -97,39 +91,51 @@ internal abstract class Function3ArgsHandler(manager: MemoryManager) :
  * Handler for the `func` argument of [ksqlite.capi.sqlite3_create_function] and
  * [ksqlite.capi.sqlite3_create_function_v2].
  */
-internal class FunctionFuncHandler(manager: MemoryManager) :
-    Function3ArgsHandler(manager) {
+internal class FunctionFuncHandler :
+    Function3ArgsHandler(),
+    `sqlite3_create_function_v2$xFunc`.Function {
 
-    fun handle(
+    override fun allocate(arena: Arena): MemorySegment =
+        `sqlite3_create_function_v2$xFunc`.allocate(this, arena)
+
+    override fun apply(
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callFunc)
+    ) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callFunc)
 }
 
 /**
  * Handler for the `step` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class FunctionStepHandler(manager: MemoryManager) :
-    Function3ArgsHandler(manager) {
+internal class FunctionStepHandler :
+    Function3ArgsHandler(),
+    `sqlite3_create_function_v2$xStep`.Function {
 
-    fun handle(
+    override fun allocate(arena: Arena): MemorySegment =
+        `sqlite3_create_function_v2$xStep`.allocate(this, arena)
+
+    override fun apply(
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callStep)
+    ) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callStep)
 }
 
 /**
  * Handler for the `inverse` argument of [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class FunctionInverseHandler(manager: MemoryManager) :
-    Function3ArgsHandler(manager) {
+internal class FunctionInverseHandler :
+    Function3ArgsHandler(),
+    `sqlite3_create_window_function$xInverse`.Function {
 
-    fun handle(
+    override fun allocate(arena: Arena): MemorySegment =
+        `sqlite3_create_window_function$xInverse`.allocate(this, arena)
+
+    override fun apply(
         context: MemorySegment,
         argc: Int,
         argv: MemorySegment
-    ) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callInverse)
+    ) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callInverse)
 }

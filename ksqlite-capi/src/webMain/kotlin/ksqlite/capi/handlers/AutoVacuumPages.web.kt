@@ -1,19 +1,18 @@
 package ksqlite.capi.handlers
 
+import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.interop.wasm.FunctionSignature
 import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_autovacuum_pages].
  */
-internal class AutoVacuumPagesHandler(manager: MemoryManager) : Handler(manager) {
+internal class AutoVacuumPagesHandler : Handler() {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Int32(
             FunctionSignature.Pointer,
             FunctionSignature.Pointer,
@@ -21,17 +20,17 @@ internal class AutoVacuumPagesHandler(manager: MemoryManager) : Handler(manager)
             FunctionSignature.Int32,
             FunctionSignature.Int32,
         ),
-        function = ::handle
+        function = this::apply
     )
 
-    private fun handle(
+    private fun apply(
         refPointer: WasmPointer,
         zSchema: WasmPointer,
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback<Any?>, appData ->
-        callback.handle(
+    ): Int = handle(refPointer) { callback: Sqlite3AutoVacuumPagesCallback<Any?>, appData ->
+        callback.apply(
             appData = appData,
             schemaName = zSchema.toKStringFromUtf8(),
             dbPage = nDbPage.toUInt(),

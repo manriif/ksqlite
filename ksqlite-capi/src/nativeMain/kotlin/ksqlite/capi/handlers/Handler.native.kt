@@ -22,7 +22,7 @@ internal fun <Fun : CFunction<*>, Pointer : CPointer<Fun>> Pointer.handle(data: 
  *
  * AppData type is erased to reduce complexity.
  */
-internal inline fun <reified Data : Any, Result> handler(
+internal inline fun <reified Data : Any, Result> handle(
     refPointer: COpaquePointer?,
     block: (data: Data, appData: Any?) -> Result
 ): Result = stableRefDataHolder<Data, Any?>(refPointer).run {

@@ -7,7 +7,6 @@ import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.StaticMemoryManager
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.heapScoped
@@ -25,18 +24,18 @@ internal val SharedAutoExtensionHandler by lazy {
 /**
  * Handler for [ksqlite.capi.sqlite3_auto_extension].
  */
-internal class AutoExtensionHandler(manager: MemoryManager) : Handler(manager) {
+internal class AutoExtensionHandler : Handler() {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Int32(
             FunctionSignature.Pointer,
             FunctionSignature.Pointer,
             FunctionSignature.Pointer,
         ),
-        function = ::handle
+        function = this::apply
     )
 
-    private fun handle(
+    private fun apply(
         db: WasmPointer,
         pzErrMsg: WasmPointer,
         pApi: WasmPointer

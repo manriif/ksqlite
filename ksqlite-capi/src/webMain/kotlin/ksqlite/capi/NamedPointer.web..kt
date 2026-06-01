@@ -18,7 +18,7 @@ internal class NamedPointer<Data>(
      * Invokes application [destroy] and free [name] allocated memory.
      */
     fun destroy(data: Data) {
-        destroy?.handle(data)
+        destroy?.apply(data)
         name?.let(memory::dealloc)
     }
 }

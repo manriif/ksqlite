@@ -34,8 +34,8 @@ private fun preupdateHookHandler(
     tableName: CPointer<ByteVar>?,
     iKey1: sqlite3_int64,
     ikey2: sqlite3_int64
-) = handler(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
-    callback.handle(
+) = handle(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
+    callback.apply(
         appData = appData,
         db = sqlite3(db!!),
         action = convertActionCode(action),
@@ -64,8 +64,8 @@ private fun updateHookHandler(
     dbName: CPointer<ByteVar>?,
     tableName: CPointer<ByteVar>?,
     rowId: sqlite3_int64
-) = handler(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
-    callback.handle(
+) = handle(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
+    callback.apply(
         appData = appData,
         action = convertActionCode(action),
         dbName = dbName!!.toKStringFromUtf8(),

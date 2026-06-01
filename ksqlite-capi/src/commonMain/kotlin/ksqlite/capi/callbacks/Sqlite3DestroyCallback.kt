@@ -8,5 +8,5 @@ public fun interface Sqlite3DestroyCallback<AppData> {
     /**
      * Releases resource(s) associated with [appData].
      */
-    public fun handle(appData: AppData)
+    public fun apply(appData: AppData)
 }

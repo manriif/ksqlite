@@ -1,10 +1,8 @@
 package ksqlite.capi.memory
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.handlers.Handler
-import java.lang.foreign.FunctionDescriptor
+import ksqlite.capi.handlers.ReferenceHandler
 import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
 import java.util.concurrent.ConcurrentHashMap
 
 ///////////////////////////////////////////////////////////////////////////
@@ -24,14 +22,10 @@ private val GlobalDisposer: MemorySegment = StaticMemoryManager.functionPointer(
 /**
  * Handler that dispose reference to object to make it available for GC.
  */
-private class DisposerHandler(manager: MemoryManager) : Handler(manager) {
+private class DisposerHandler : ReferenceHandler() {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor {
-        return FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
-    }
-
-    fun handle(dataPointer: MemorySegment) {
-        val address = dataPointer.address()
+    override fun apply(refPointer: MemorySegment) {
+        val address = refPointer.address()
         checkNotNull(GlobalDisposables[address]).dispose()
         // It is the owner responsibility to unregister the disposable after dispose has been called
         check(GlobalDisposables[address] == null)
@@ -82,7 +76,7 @@ private class BufferDisposer(
 
     override fun dispose() {
         unregisterGlobalDisposable(buffer.pointer)
-        destructor.handle(buffer)
+        destructor.apply(buffer)
     }
 }
 

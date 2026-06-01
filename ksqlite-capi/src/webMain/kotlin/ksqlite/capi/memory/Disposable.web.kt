@@ -27,7 +27,7 @@ private val GlobalDisposer: WasmPointer = StaticMemoryManager.functionPointer(::
  */
 private class DisposerHandler(manager: MemoryManager) : Handler(manager) {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Void(FunctionSignature.Pointer),
         function = v@{ dataPointer: WasmPointer ->
             checkNotNull(GlobalDisposables[dataPointer]).dispose()
@@ -82,7 +82,7 @@ private class BufferDisposer(
 
     override fun dispose() {
         unregisterGlobalDisposable(buffer.pointer)
-        destructor.handle(buffer)
+        destructor.apply(buffer)
     }
 }
 

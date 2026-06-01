@@ -77,7 +77,7 @@ private class BufferDisposer(
 
     override fun dispose() {
         unregisterGlobalDisposable(buffer.pointer)
-        destructor.handle(buffer)
+        destructor.apply(buffer)
     }
 }
 

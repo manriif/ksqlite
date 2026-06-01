@@ -15,8 +15,8 @@ internal class AutoVacuumPagesHandler<AppData> :
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = handler { callback, appData ->
-        callback.handle(
+    ): Int = handle { callback, appData ->
+        callback.apply(
             appData = appData,
             schemaName = zSchema,
             dbPage = nDbPage.toUInt(),

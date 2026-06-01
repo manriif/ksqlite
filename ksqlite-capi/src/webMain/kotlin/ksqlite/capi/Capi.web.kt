@@ -461,10 +461,10 @@ public actual fun sqlite3_changes64(db: sqlite3): Long =
 public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
     commonClearBindings(stmt, exports.sqlite3_clear_bindings(stmt.pointer))
 
-public actual fun sqlite3_close(db: sqlite3?): Sqlite3Result =
+public actual fun sqlite3_close(db: sqlite3): Sqlite3Result =
     db.deallocateNullable { exports.sqlite3_close(it?.pointer.notNull) }
 
-public actual fun sqlite3_close_v2(db: sqlite3?): Sqlite3Result =
+public actual fun sqlite3_close_v2(db: sqlite3): Sqlite3Result =
     db.deallocateNullable { exports.sqlite3_close_v2(it?.pointer.notNull) }
 
 public actual fun <AppData> sqlite3_collation_needed(
@@ -884,7 +884,7 @@ public actual fun sqlite3_file_control(
     )
 })
 
-public actual fun sqlite3_finalize(stmt: sqlite3_stmt?): Sqlite3Result =
+public actual fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result =
     stmt.deallocateNullable { exports.sqlite3_finalize(stmt?.pointer.notNull) }
 
 public actual fun sqlite3_free(buffer: Buffer?): Unit =

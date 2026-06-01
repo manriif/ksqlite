@@ -14,11 +14,11 @@ import ksqlite.sqlite3_user_data
 /**
  * Handler for function callback.
  */
-private inline fun functionHandler(
+private inline fun handleFunction(
     context: CPointer<s3_context>?,
     call: ApplicationDefinedFunction<*>.(sqlite3_context) -> Unit
 ) {
-    handler(sqlite3_user_data(context)) { function: ApplicationDefinedFunction<*>, _ ->
+    handle(sqlite3_user_data(context)) { function: ApplicationDefinedFunction<*>, _ ->
         function.call(sqlite3_context(context!!))
     }
 }
@@ -42,13 +42,13 @@ internal val FunctionValueHandler = staticCFunction(::functionValueHandler)
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
 private fun functionFinalHandler(context: CPointer<s3_context>?) =
-    functionHandler(context, ApplicationDefinedFunction<*>::callFinal)
+    handleFunction(context, ApplicationDefinedFunction<*>::callFinal)
 
 /**
  * Handler for the `value` argument of  [ksqlite.capi.sqlite3_create_window_function].
  */
 private fun functionValueHandler(context: CPointer<s3_context>?) =
-    functionHandler(context, ApplicationDefinedFunction<*>::callValue)
+    handleFunction(context, ApplicationDefinedFunction<*>::callValue)
 
 ///////////////////////////////////////////////////////////////////////////
 // 3 args
@@ -72,12 +72,12 @@ internal val FunctionInverseHandler = staticCFunction(::functionInverseHandler)
 /**
  * Handler for 3 args function callback.
  */
-private fun functionHandler(
+private fun handleFunction(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?,
     call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
-) = functionHandler(context) { context ->
+) = handleFunction(context) { context ->
     call(context, argv.toArrayOrEmpty(argc) { sqlite3_value(it!!) })
 }
 
@@ -89,7 +89,7 @@ private fun functionFuncHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callFunc)
+) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callFunc)
 
 /**
  * Handler for the `step` argument of [ksqlite.capi.sqlite3_create_function],
@@ -99,7 +99,7 @@ private fun functionStepHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callStep)
+) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callStep)
 
 /**
  * Handler for the `inverse` argument of [ksqlite.capi.sqlite3_create_window_function].
@@ -108,4 +108,4 @@ private fun functionInverseHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler(context, argc, argv, ApplicationDefinedFunction<*>::callInverse)
+) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callInverse)

@@ -83,7 +83,7 @@ internal fun <Pointer> autoExtensionHandle(
 
     while (iterator.hasNext() && result == Sqlite3Result.OK) {
         result = iterator.next().run {
-            when (val result = AutoExtensionCallbackScope.handle(db, api)) {
+            when (val result = AutoExtensionCallbackScope.apply(db, api)) {
                 AutoExtensionSuccessResult -> Sqlite3Result.OK
 
                 is AutoExtensionFailureResult -> result.result.also {

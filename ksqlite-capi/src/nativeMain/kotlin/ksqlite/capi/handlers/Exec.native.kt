@@ -22,8 +22,8 @@ private fun execHandler(
     columnCount: Int,
     values: CPointer<CPointerVar<ByteVar>>?,
     names: CPointer<CPointerVar<ByteVar>>?
-) = handler(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
-    callback.handle(
+) = handle(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
+    callback.apply(
         appData = appData,
         columnCount = columnCount,
         columnValues = values.toNullableStringArrayOrEmpty(columnCount),

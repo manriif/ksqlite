@@ -16,6 +16,6 @@ internal val ProgressHandlerHandler = staticCFunction(::progressHandlerHandler)
  */
 private fun progressHandlerHandler(
     refPointer: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3ProgressHandlerCallback<Any?>, appData ->
-    callback.handle(appData)
+) = handle(refPointer) { callback: Sqlite3ProgressHandlerCallback<Any?>, appData ->
+    callback.apply(appData)
 }

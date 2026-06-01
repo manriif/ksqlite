@@ -12,10 +12,20 @@ extern "C" {
 #endif
 
 /**
- * Callback expected by sqlite3_auto_extension() and sqlite3_cancel_auto_extension() with the
- * complete signature.
+ * Callback for SQLITE_CONFIG_LOG, exposed for binding generation.
  */
-typedef int (* xEntryPoint)(
+typedef void(*ksqlite_xLog)(void*,int,const char*);
+
+/**
+ * Callback for SQLITE_CONFIG_SQLLOG, exposed for binding generation.
+ */
+typedef void(*ksqlite_xSqllog)(void*, sqlite3*, const char*, int);
+
+/**
+ * Callback expected by sqlite3_auto_extension() and sqlite3_cancel_auto_extension() with the
+ * full signature.
+ */
+typedef int (* ksqlite_xEntryPoint)(
     sqlite3* db,
     char** pzErrMsg,
     const struct sqlite3_api_routines* pThunk
@@ -29,7 +39,7 @@ typedef int (* xEntryPoint)(
  * @param xEntryPoint the XEntryPoint with expected signature.
  * @return sqlite3_auto_extension() result
  */
-int ksqlite_auto_extension(xEntryPoint);
+int ksqlite_auto_extension(ksqlite_xEntryPoint);
 
 /**
  * Wrappers function around sqlite3_cancel_auto_extension() with accept the xEntryPoint parameter
@@ -39,7 +49,7 @@ int ksqlite_auto_extension(xEntryPoint);
  * @param xEntryPoint the XEntryPoint with expected signature.
  * @return sqlite3_cancel_auto_extension() result
  */
-int ksqlite_cancel_auto_extension(xEntryPoint);
+int ksqlite_cancel_auto_extension(ksqlite_xEntryPoint);
 
 /**
  * Works like the canonical sqlite3_prepare_v2() but its "tail"  output parameter is returned as the

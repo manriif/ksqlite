@@ -18,8 +18,8 @@ internal class CollationCompareHandler<AppData> :
     override fun call(
         lhs: ByteArray,
         rhs: ByteArray
-    ): Int = handler { callback, appData ->
-        callback.handle(
+    ): Int = handle { callback, appData ->
+        callback.apply(
             appData = appData,
             lhs = lhs,
             rhs = rhs
@@ -38,8 +38,8 @@ internal class CollationNeededHandler<AppData> :
         db: Long,
         eTextRep: Int,
         name: String
-    ) = handler { callback, appData ->
-        callback.handle(
+    ) = handle { callback, appData ->
+        callback.apply(
             appData = appData,
             db = sqlite3(db),
             eTextRep = convertTextEncoding(eTextRep),

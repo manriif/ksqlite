@@ -8,7 +8,7 @@ public fun interface Sqlite3AutoVacuumPagesCallback<AppData> {
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/autovacuum_pages.html).
      */
-    public fun handle(
+    public fun apply(
         appData: AppData,
         schemaName: String,
         dbPage: UInt,

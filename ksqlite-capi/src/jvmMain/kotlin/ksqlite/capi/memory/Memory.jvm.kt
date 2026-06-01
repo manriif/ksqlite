@@ -5,8 +5,15 @@ import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
 
-public actual open class StructPointer internal constructor(internal val pointer: MemorySegment) :
-    StructPointerBase() {
+public actual open class StructPointer internal constructor(
+    internal val pointer: MemorySegment,
+    private val arena: Arena? = null
+) : StructPointerBase() {
+
+    internal constructor(
+        arena: Arena = Arena.ofShared(),
+        allocate: Arena.() -> MemorySegment
+    ) : this(arena.allocate(), arena)
 
     actual override val address: Long
         get() = pointer.address()
@@ -16,11 +23,14 @@ public actual open class StructPointer internal constructor(internal val pointer
         if (other !is StructPointer) return false
 
         return pointer == other.pointer
-
     }
 
     override fun hashCode(): Int {
         return pointer.hashCode()
+    }
+
+    internal fun free() {
+        arena?.close()
     }
 }
 
@@ -49,7 +59,7 @@ internal inline fun <T> memScoped(block: SegmentAllocator.() -> T): T {
  * Whether `this` [MemorySegment] points to a null pointer.
  */
 internal val MemorySegment.isNull: Boolean
-    get() = address() == MemorySegment.NULL.address()
+    get() = this == MemorySegment.NULL || address() == MemorySegment.NULL.address()
 
 /**
  * Returns `null` if `this` [MemorySegment] points to a null pointer.

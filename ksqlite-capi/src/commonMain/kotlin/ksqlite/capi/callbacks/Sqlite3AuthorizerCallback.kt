@@ -11,7 +11,7 @@ public fun interface Sqlite3AuthorizerCallback<AppData> {
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/set_authorizer.html).
      */
-    public fun handle(
+    public fun apply(
         appData: AppData,
         action: Sqlite3ActionCode,
         param3: String?,

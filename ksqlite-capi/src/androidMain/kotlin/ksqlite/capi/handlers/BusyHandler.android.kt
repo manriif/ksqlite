@@ -10,7 +10,7 @@ internal class BusyHandlerHandler<AppData> :
     Handler<Sqlite3BusyHandlerCallback<AppData>, AppData>(),
     BusyHandlerCallback {
 
-    override fun call(n: Int): Int = handler { callback, appData ->
-        callback.handle(appData, n)
+    override fun call(n: Int): Int = handle { callback, appData ->
+        callback.apply(appData, n)
     }
 }

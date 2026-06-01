@@ -10,12 +10,12 @@ import ksqlite.capi.types.sqlite3_api_routines
 public fun interface Sqlite3AutoExtensionCallback {
 
     /**
-     * Result for [handle].
+     * Result for [apply].
      */
     public sealed interface Result
 
     /**
-     * Scope for [handle].
+     * Scope for [apply].
      */
     public sealed interface Scope {
 
@@ -38,7 +38,7 @@ public fun interface Sqlite3AutoExtensionCallback {
      *
      * A [Result] instance can be obtained by invoking one of [Scope.success] or [Scope.failure].
      */
-    public fun Scope.handle(
+    public fun Scope.apply(
         db: sqlite3,
         routines: sqlite3_api_routines
     ): Result

@@ -17,8 +17,8 @@ internal class ConfigLogHandler<AppData> :
     override fun call(
         errorCode: Int,
         message: String?
-    ): Unit = handler { callback, appData ->
-        callback.handle(
+    ): Unit = handle { callback, appData ->
+        callback.apply(
             appData = appData,
             errorCode = errorCode,
             message = message
@@ -37,7 +37,7 @@ internal class ConfigSqlLogHandler<AppData> :
         db: Long,
         message: String?,
         messageType: Int
-    ): Unit = handler { callback, appData ->
+    ): Unit = handle { callback, appData ->
         dispatchSqlLogEvent(
             callback = callback,
             appData = appData,

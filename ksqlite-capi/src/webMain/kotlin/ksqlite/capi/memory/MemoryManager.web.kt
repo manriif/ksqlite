@@ -6,13 +6,10 @@ import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.Handler
 import ksqlite.capi.interop.Sqlite3Wasm
 import ksqlite.capi.interop.js.toInt8Array
-import ksqlite.capi.interop.wasm.FunctionSignature
 import ksqlite.capi.interop.wasm.IR
 import ksqlite.capi.interop.wasm.NullPtr
-import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.allocCString
-import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.interop.wasm.sizeofIR
 import ksqlite.capi.wasm
 import kotlin.js.toJsBigInt
@@ -24,7 +21,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     private val functionPointers: MutableMap<KClass<*>, WasmPointer> by lazy(::mutableMapOf)
     private val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
 
-    private val memory: Sqlite3Wasm
+    val memory: Sqlite3Wasm
         inline get() = wasm
 
     ///////////////////////////////////////////////////////////////////////////
@@ -121,11 +118,11 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private fun getOrCreateFunctionPointer(
         handlerKlass: KClass<out Handler>,
-        factory: (MemoryManager) -> Handler
+        factory: () -> Handler
     ): WasmPointer = notClosed {
         functionPointers.getOrPut(handlerKlass) {
-            val handler = factory(this).apply {
-                this.memory = this@MemoryManager.memory
+            val handler = factory().apply {
+                manager = this@MemoryManager
             }
 
             val reference = registerDisposable { id ->
@@ -144,7 +141,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     inline fun <reified H : Handler> functionPointer(
         callback: Any?,
-        noinline factory: (MemoryManager) -> H
+        noinline factory: () -> H
     ): WasmPointer = notClosed {
         if (callback == null) {
             return NullPtr
@@ -158,7 +155,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * [Handler] returned by [factory].
      */
     inline fun <reified H : Handler> functionPointer(
-        noinline factory: (MemoryManager) -> H
+        noinline factory: () -> H
     ): WasmPointer {
         return functionPointer(this, factory)
     }
@@ -188,19 +185,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
     ///////////////////////////////////////////////////////////////////////////
     // Disposables
     ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Handler that dispose reference to object to make it available for GC.
-     */
-    private class StableRefDisposerHandler(manager: MemoryManager) : Handler(manager) {
-
-        override fun WasmFunctions.install(): WasmPointer = installFunction(
-            signature = FunctionSignature.Void(FunctionSignature.Pointer),
-            function = { refPointer: WasmPointer ->
-                manager.getStableRef<Nothing?>(refPointer).dispose()
-            }
-        )
-    }
 
     /**
      * Disposable allocating a [WasmPointer].
@@ -243,9 +227,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         override val appData: Handler
     ) : PointerDisposable<Handler>(id, null) {
 
-        override val pointer = with(appData) {
-            this@MemoryManager.memory.install()
-        }
+        override val pointer = appData.install(this@MemoryManager.memory)
     }
 
     /**
