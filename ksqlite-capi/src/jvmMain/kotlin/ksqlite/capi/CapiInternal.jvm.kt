@@ -94,11 +94,9 @@ internal actual fun valuePointerInternal(
  * [sqlite3.sqlite3_mprintf].
  */
 context(allocator: SegmentAllocator)
-internal fun sqlite3_mprintf(text: String): MemorySegment {
-    return sqlite3.sqlite3_mprintf
-        .makeInvoker()
-        .apply(text.allocateUtf8(allocator))
-}
+internal fun sqlite3_mprintf(text: String): MemorySegment = sqlite3.sqlite3_mprintf
+    .makeInvoker()
+    .apply(text.allocateUtf8(allocator))
 
 /**
  * Returns a pointer to a string holding [text]'s content, obtained through

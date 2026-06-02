@@ -1,24 +1,32 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.Handler
-import ksqlite.capi.interop.wasm.FunctionSignature
 import ksqlite.capi.interop.wasm.NullPtr
 import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.installFunction
 
 /**
  * Handler that dispose reference to object.
  */
-internal class StableRefDisposerHandler : Handler() {
+internal class StableRefDisposerHandler : Handler(), ReferenceFunction {
 
-    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
-        signature = FunctionSignature.Void(FunctionSignature.Pointer),
-        function = { refPointer: WasmPointer ->
-            manager.getStableRef<Nothing?>(refPointer).dispose()
-        }
-    )
+    override fun install(functions: WasmFunctions): WasmPointer =
+        functions.installReferenceFunction(this)
+
+    override fun apply(refPointer: WasmPointer) {
+        manager.getStableRef<Nothing?>(refPointer).dispose()
+    }
 }
+
+/**
+ * Returns the [StableRefDisposerHandler] instance of `this` [MemoryManager] only if
+ * [data] != `null` or [destructor] != `null`. [NullPtr] is returned otherwise.
+ */
+internal fun MemoryManager.stableRefDisposer(
+    data: Any?,
+    destructor: Sqlite3DestroyCallback<*>? = null
+): WasmPointer = stableRefDisposer.takeIf { data != null || destructor != null } ?: NullPtr
 
 /**
  * Returns the object [Data] backed by [pointer] with an optional user data pointer.

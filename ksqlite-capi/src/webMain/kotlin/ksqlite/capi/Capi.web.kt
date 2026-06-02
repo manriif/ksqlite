@@ -2,7 +2,6 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.VariadicValue.OfPointer
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
@@ -39,7 +38,6 @@ import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
-import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.interop.js.arrayForEachIndexed
@@ -55,6 +53,7 @@ import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.HeapAllocatorScope
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.allocateUtf8
+import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.bufferScoped
@@ -65,6 +64,7 @@ import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.readByteArray
+import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
@@ -108,7 +108,9 @@ import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParamStackScoped
 import ksqlite.capi.types.useParamsStackScoped
 import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.vtab.createVTabModule
 import ksqlite.capi.vtab.sqlite3_index_info
+import ksqlite.capi.vtab.sqlite3_module
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 
@@ -586,7 +588,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
     logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
-    keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
+    keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     rowidInView = {
         heapScoped {
             useParam(param) { paramPtr ->
@@ -659,7 +661,6 @@ public actual fun <AppData> sqlite3_create_function_v2(
     }
 })
 
-/*
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
@@ -668,16 +669,18 @@ public actual fun <AppData> sqlite3_create_module_v2(
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
-        exports.sqlite3_create_module_v2(
-            db.pointer,
-            name.allocateUtf8Pointer(),
-            module?.pointer.notNull,
-            keyedStableRefPointer(moduleKey(name), appData, appData),
-            stableRefDisposer(appData, destroy)
-        )
+        createVTabModule(module?.callbacks, appData) { vTabModule ->
+            exports.sqlite3_create_module_v2(
+                db.pointer,
+                name.allocateUtf8Pointer(),
+                module?.pointer.notNull,
+                keyedStableRefPointer(moduleKey(name), vTabModule, appData, destroy),
+                stableRefDisposer(vTabModule, destroy)
+            )
+        }
     }
 })
-*/
+
 public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
@@ -816,14 +819,13 @@ public actual fun sqlite3_deserialize(
     )
 })
 
-/*
 public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): Sqlite3Result = convertResult(heapScoped {
     exports.sqlite3_drop_modules(db.pointer, allocateUtf8Array(keep))
 })
-*/
+
 public actual fun sqlite3_errcode(db: sqlite3): Int =
     exports.sqlite3_errcode(db.pointer)
 

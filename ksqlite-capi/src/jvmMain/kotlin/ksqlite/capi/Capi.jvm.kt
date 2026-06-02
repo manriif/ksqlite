@@ -161,7 +161,7 @@ private inline fun <Result> invokeVariadic(
 ///////////////////////////////////////////////////////////////////////////
 
 public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
-    autoExtensionRegister(callback) { native.ksqlite_auto_extension(SharedAutoExtensionHandler) }
+    autoExtensionRegister(callback) { native.ksqlite_auto_extension(AutoExtensionHandler) }
 
 public actual fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
@@ -408,9 +408,7 @@ public actual fun sqlite3_busy_timeout(
 ): Sqlite3Result = convertResult(native.sqlite3_busy_timeout(db.pointer, millis))
 
 public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int =
-    autoExtensionUnregister(callback) {
-        native.ksqlite_cancel_auto_extension(SharedAutoExtensionHandler)
-    }
+    autoExtensionUnregister(callback) { native.ksqlite_cancel_auto_extension(AutoExtensionHandler) }
 
 public actual fun sqlite3_changes(db: sqlite3): Int =
     native.sqlite3_changes(db.pointer)

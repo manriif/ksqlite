@@ -19,7 +19,6 @@ internal val AutoExtensionHandler = staticCFunction(::autoExtensionHandler)
 
 /**
  * Handler for [sqlite3_auto_extension].
- * Dispatches sqlite3_auto_extension call to all registered extensions.
  */
 private fun autoExtensionHandler(
     db: CPointer<s3>?,

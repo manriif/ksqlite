@@ -1,13 +1,12 @@
 package ksqlite.capi.handlers
 
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.interop.wasm.FunctionSignature
 import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.memory.toArray
-import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
+import ksqlite.capi.memory.toNullableStringArrayOrEmpty
+import ksqlite.capi.memory.toStringArrayOrEmpty
 
 /**
  * Handler for [ksqlite.capi.sqlite3_exec].
@@ -30,14 +29,11 @@ internal class ExecHandler : Handler() {
         values: WasmPointer,
         names: WasmPointer
     ): Int = handle(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
-        val columnValues = values.toArray(columnCount) { it.toKStringFromUtf8OrNull() }
-        val columnNames = names.toArray(columnCount) { it.toKStringFromUtf8() }
-
         callback.apply(
             appData = appData,
             columnCount = columnCount,
-            columnValues = columnValues,
-            columnNames = columnNames
+            columnValues = values.toNullableStringArrayOrEmpty(columnCount),
+            columnNames = names.toStringArrayOrEmpty(columnCount)
         )
     }
 }

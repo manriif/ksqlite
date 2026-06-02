@@ -9,47 +9,75 @@ import ksqlite.capi.interop.js.plus
 import ksqlite.capi.interop.js.toByteArray
 import ksqlite.capi.interop.js.toInt8Array
 import ksqlite.capi.interop.wasm.CString
+import ksqlite.capi.interop.wasm.FunctionSignature
 import ksqlite.capi.interop.wasm.IR
 import ksqlite.capi.interop.wasm.NullPtr
+import ksqlite.capi.interop.wasm.WasmFunctions
 import ksqlite.capi.interop.wasm.WasmMemory
 import ksqlite.capi.interop.wasm.WasmPStack
 import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.alloc
 import ksqlite.capi.interop.wasm.allocPtr
+import ksqlite.capi.interop.wasm.installFunction
 import ksqlite.capi.interop.wasm.scopedAllocCStringStruct
 import ksqlite.capi.interop.wasm.scopedAllocPtr
 import ksqlite.capi.interop.wasm.sizeofIR
 import ksqlite.capi.wasm
 import kotlin.js.JsAny
+import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 
-public actual open class Struct internal constructor(internal val pointer: WasmPointer) :
-    StructBase() {
+///////////////////////////////////////////////////////////////////////////
+// Pointer
+///////////////////////////////////////////////////////////////////////////
 
-    actual override val address: Long
-        get() = pointer.toLong()
+/**
+ * Whether `this` [WasmPointer] points to a null pointer.
+ */
+internal val WasmPointer.isNull: Boolean
+    get() = this == NullPtr
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is Struct) return false
+/**
+ * Returns `null` if `this` [WasmPointer] points to a null pointer.
+ */
+internal val WasmPointer.orNull: WasmPointer?
+    get() = takeUnless { isNull }
 
-        return pointer == other.pointer
+/**
+ * Returns a non-null [WasmPointer].
+ */
+internal val WasmPointer?.notNull: WasmPointer
+    get() = this ?: NullPtr
 
-    }
-
-    override fun hashCode(): Int {
-        return pointer.hashCode()
-    }
-
-    actual override fun free() {
-        TODO("Not yet implemented")
-    }
+/**
+ * Sets the pointer value of `this` pointer to pointer.
+ */
+internal fun WasmPointer.setValue(
+    value: WasmPointer,
+    memory: WasmMemory = wasm
+) {
+    memory.pokePtr(this, value)
 }
 
 /**
- * Memory manager that is never cleared.
+ * Sets the [Long] value of `this` pointer to long.
  */
-internal val StaticMemoryManager = MemoryManager()
+internal fun WasmPointer.setValue(
+    value: Long,
+    memory: WasmMemory = wasm
+) {
+    memory.poke64(this, value.toJsBigInt())
+}
+
+/**
+ * Sets the [Int] value of `this` pointer to int.
+ */
+internal fun WasmPointer.setValue(
+    value: Int,
+    memory: WasmMemory = wasm
+) {
+    memory.poke32(this, value)
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Allocators
@@ -140,9 +168,7 @@ internal class HeapAllocatorScope(
  * Allocates a pointer, initializes it with `this` UTF-8 string's content + a NUL terminator.
  */
 context(scope: HeapAllocatorScope)
-internal fun String.allocateUtf8(): CString {
-    return scope.allocateUtf8(this)
-}
+internal fun String.allocateUtf8(): CString = scope.allocateUtf8(this)
 
 /**
  * Allocates a pointer, initializes it with `this` UTF-8 string's content + a NUL terminator and
@@ -151,9 +177,8 @@ internal fun String.allocateUtf8(): CString {
  * Returns [NullPtr] if `this` is `null`.
  */
 context(scope: HeapAllocatorScope)
-internal fun String?.allocateUtf8Pointer(): WasmPointer {
-    return if (this == null) NullPtr else scope.allocateUtf8(this).pointer
-}
+internal fun String?.allocateUtf8Pointer(): WasmPointer =
+    if (this == null) NullPtr else scope.allocateUtf8(this).pointer
 
 /**
  * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
@@ -185,9 +210,7 @@ internal fun allocateUtf8Array(array: Array<String>?): WasmPointer {
 internal inline fun <T> heapScoped(
     memory: WasmMemory = wasm,
     block: HeapAllocatorScope.() -> T
-): T {
-    return HeapAllocatorScope(memory, memory.scopedAllocPush()).use(block)
-}
+): T = HeapAllocatorScope(memory, memory.scopedAllocPush()).use(block)
 
 /**
  * Memory allocator allocating from the wasm [stack].
@@ -228,26 +251,28 @@ internal inline fun <T> stackScoped(
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Null
+// Functions
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Whether `this` [WasmPointer] points to a null pointer.
+ * Function accepting a pointer.
  */
-internal val WasmPointer.isNull: Boolean
-    get() = this == NullPtr
+internal fun interface ReferenceFunction {
+
+    /**
+     * Handles the [refPointer].
+     */
+    fun apply(refPointer: WasmPointer)
+}
 
 /**
- * Returns `null` if `this` [WasmPointer] points to a null pointer.
+ * Allocates a new upcall stub, that invokes [ReferenceFunction.apply] on [function].
  */
-internal val WasmPointer.orNull: WasmPointer?
-    get() = takeUnless { isNull }
-
-/**
- * Returns a non-null [WasmPointer].
- */
-internal val WasmPointer?.notNull: WasmPointer
-    get() = this ?: NullPtr
+internal fun WasmFunctions.installReferenceFunction(function: ReferenceFunction): WasmPointer =
+    installFunction(
+        signature = FunctionSignature.Void(FunctionSignature.Pointer),
+        function = function::apply
+    )
 
 ///////////////////////////////////////////////////////////////////////////
 // Arrays
@@ -271,6 +296,50 @@ internal inline fun <reified T> WasmPointer.toArray(
         transform(memory, plus(ptrSize * index))
     }
 }
+
+/**
+ * Returns an array of [count] item of type [T] obtained from [transform].
+ * Returns an empty array if `this` is `null`.
+ */
+internal inline fun <reified T> WasmPointer.toArrayOrEmpty(
+    count: Int,
+    memory: WasmMemory = wasm,
+    transform: WasmMemory.(WasmPointer) -> T
+): Array<T> = orNull?.toArray(count, memory, transform) ?: emptyArray()
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun WasmPointer.toNullableStringArray(
+    count: Int,
+    memory: WasmMemory = wasm
+): Array<String?> = toArray(count, memory) { it.toKStringFromUtf8OrNull() }
+
+/**
+ * Reads and returns an array of [count] String.
+ * Returns an empty array if `this` is `null`.
+ */
+internal fun WasmPointer.toNullableStringArrayOrEmpty(
+    count: Int,
+    memory: WasmMemory = wasm
+): Array<String?> = orNull?.toNullableStringArray(count, memory) ?: emptyArray()
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun WasmPointer.toStringArray(
+    count: Int,
+    memory: WasmMemory = wasm
+): Array<String> = this.toArray(count, memory) { it.toKStringFromUtf8() }
+
+/**
+ * Reads and returns an array of [count] String.
+ * Returns an empty array if `this` is `null`.
+ */
+internal fun WasmPointer.toStringArrayOrEmpty(
+    count: Int,
+    memory: WasmMemory = wasm
+): Array<String> = orNull?.toStringArray(count, memory) ?: emptyArray()
 
 ///////////////////////////////////////////////////////////////////////////
 // Buffer
@@ -317,48 +386,41 @@ internal fun WasmPointer.readByteArray(
 /**
  * Reads bytes from this pointer until NULL and then convert to string.
  */
-internal fun WasmPointer.toKStringFromUtf8OrNull(memory: WasmMemory = wasm): String? {
-    return memory
+internal fun WasmPointer.toKStringFromUtf8OrNull(memory: WasmMemory = wasm): String? =
+    memory
         .cstrToJs(this)
         ?.toString()
-}
 
 /**
  * Reads bytes from this pointer until NULL and then convert to string.
  */
 context(memory: WasmMemory)
-internal fun WasmPointer.toKStringFromUtf8OrNull(): String? {
-    return toKStringFromUtf8OrNull(memory)
-}
+internal fun WasmPointer.toKStringFromUtf8OrNull(): String? = toKStringFromUtf8OrNull(memory)
 
 /**
  * Reads bytes from this pointer until NULL and then convert to string.
  */
-internal fun WasmPointer.toKStringFromUtf8(memory: WasmMemory = wasm): String {
-    return checkNotNull(toKStringFromUtf8OrNull(memory))
-}
+internal fun WasmPointer.toKStringFromUtf8(memory: WasmMemory = wasm): String =
+    checkNotNull(toKStringFromUtf8OrNull(memory))
 
 /**
  * Reads bytes from this pointer until NULL and then convert to string.
  */
 context(memory: WasmMemory)
-internal fun WasmPointer.toKStringFromUtf8(): String {
-    return toKStringFromUtf8(memory)
-}
+internal fun WasmPointer.toKStringFromUtf8(): String = toKStringFromUtf8(memory)
 
 /**
  * Reads [size] bytes from this pointer and then convert to string.
  */
-internal fun WasmPointer.toKStringFromUtf8(size: Int, memory: WasmMemory = wasm): String {
-    return memory
-        .typedArrayToString(memory.heap8u(), this, plus(size))
-        .toString()
-}
+internal fun WasmPointer.toKStringFromUtf8(
+    size: Int,
+    memory: WasmMemory = wasm
+): String = memory
+    .typedArrayToString(memory.heap8u(), this, plus(size))
+    .toString()
 
 /**
  * Reads [size] bytes from this pointer and then convert to string.
  */
 context(memory: WasmMemory)
-internal fun WasmPointer.toKStringFromUtf8(size: Int): String {
-    return toKStringFromUtf8(size, memory)
-}
+internal fun WasmPointer.toKStringFromUtf8(size: Int): String = toKStringFromUtf8(size, memory)

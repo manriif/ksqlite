@@ -6,9 +6,8 @@ import java.lang.foreign.MemorySegment
 /**
  * Pointer to a static function disposing a [Disposable] registered with [registerGlobalDisposable].
  */
-private val GlobalDisposer: MemorySegment = StaticMemoryAllocator.allocateFunction { refPointer ->
-    disposeGlobal(refPointer.orNull?.address())
-}
+private val GlobalDisposer: MemorySegment =
+    StaticMemoryAllocator.allocateReferenceFunction { disposeGlobal(it.orNull?.address()) }
 
 /**
  * Returns [GlobalDisposer] or [MemorySegment.NULL] if [data] is `null`.

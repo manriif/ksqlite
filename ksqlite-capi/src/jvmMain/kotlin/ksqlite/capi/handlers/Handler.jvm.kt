@@ -11,7 +11,7 @@ import java.lang.foreign.MemorySegment
 internal abstract class Handler {
 
     /**
-     * Manager holding the data associated to the reference pointer in [handle].
+     * Manager owning the data associated to the reference pointer in [handle].
      */
     lateinit var manager: MemoryManager
 
@@ -21,7 +21,7 @@ internal abstract class Handler {
     abstract fun allocate(arena: Arena): MemorySegment
 
     /**
-     * Returns [block]'s result, invoked with [Data] and optional userData obtained from a
+     * Returns [block]'s result, invoked with [Data] and optional appData obtained from a
      * previously referenced [refPointer].
      */
     protected inline fun <reified Data : Any, Result> handle(

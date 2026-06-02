@@ -18,15 +18,16 @@ import kotlin.reflect.KClass
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
-    private val functionPointers: MutableMap<KClass<*>, WasmPointer> by lazy(::mutableMapOf)
-    private val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
+    private val functionPointers = mutableMapOf<KClass<*>, WasmPointer>()
+    val stableRefDisposer = functionPointer(::StableRefDisposerHandler)
 
     val memory: Sqlite3Wasm
         inline get() = wasm
 
-    ///////////////////////////////////////////////////////////////////////////
-    // References
-    ///////////////////////////////////////////////////////////////////////////
+    override fun clear() {
+        super.clear()
+        functionPointers.clear()
+    }
 
     /**
      * Returns the object, previously referenced using [stableRefPointer] and identified by
@@ -39,28 +40,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
         val reference = getDisposable<AppData, StableRefReference<AppData>>(refId)
         return reference
     }
-
-    /**
-     * Returns a pointer to a function that disposes the reference previously obtained from
-     * [stableRefPointer].
-     *
-     * Returns [NullPtr] if both [data] and [destructor] are `null`
-     */
-    fun stableRefDisposer(
-        data: Any?,
-        destructor: Sqlite3DestroyCallback<*>? = null
-    ): WasmPointer {
-        return stableRefDisposer.takeIf { data != null || destructor != null } ?: NullPtr
-    }
-
-    override fun clear() {
-        super.clear()
-        functionPointers.clear()
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Pointers
-    ///////////////////////////////////////////////////////////////////////////
 
     /**
      * Returns a [WasmPointer] referring [data] or `null` if both [data] and [destructor] are
@@ -242,12 +221,12 @@ internal actual class MemoryManager : MemoryManagerBase() {
         override val pointer = memory.allocFromTypedArray(toInt8Array(appData))
 
         init {
-            registerGlobalDisposable(pointer, this)
+            registerGlobalDisposable(pointer.toLong(), this)
         }
 
         override fun release() {
             super.release()
-            unregisterGlobalDisposable(pointer)
+            unregisterGlobalDisposable(pointer.toLong())
         }
     }
 

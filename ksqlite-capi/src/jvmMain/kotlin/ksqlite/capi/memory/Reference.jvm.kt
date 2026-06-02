@@ -8,9 +8,9 @@ import java.lang.foreign.MemorySegment
 /**
  * Handler that dispose reference to object.
  */
-internal class StableRefDisposer : Handler(), ReferenceFunction {
+internal class StableRefDisposerHandler : Handler(), ReferenceFunction {
 
-    override fun allocate(arena: Arena): MemorySegment = arena.allocateFunction(this)
+    override fun allocate(arena: Arena): MemorySegment = arena.allocateReferenceFunction(this)
 
     override fun apply(refPointer: MemorySegment) {
         manager.getStableRef<Nothing?>(refPointer).dispose()
@@ -18,8 +18,8 @@ internal class StableRefDisposer : Handler(), ReferenceFunction {
 }
 
 /**
- * Returns the [StableRefDisposer] instance of `this` [MemoryManager] only if [data] != `null` or
- * [destructor] != `null`. [MemorySegment.NULL] is returned otherwise.
+ * Returns the [StableRefDisposerHandler] instance of `this` [MemoryManager] only if
+ * [data] != `null` or [destructor] != `null`. [MemorySegment.NULL] is returned otherwise.
  */
 internal fun MemoryManager.stableRefDisposer(
     data: Any?,

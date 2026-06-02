@@ -1,9 +1,15 @@
+@file:Suppress("FunctionName", "SpellCheckingInspection")
+
 package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.interop.Sqlite3WasmExports
 import ksqlite.capi.interop.wasm.IR
+import ksqlite.capi.interop.wasm.NullPtr
+import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.interop.wasm.sizeofIR
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.HeapAllocatorScope
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.heapScoped
@@ -11,6 +17,7 @@ import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.stableRefAppData
 import ksqlite.capi.memory.stableRefData
+import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
@@ -78,4 +85,30 @@ internal actual fun valuePointerInternal(
         ?: return null
 
     globalMemory.stableRefAppData(pointer)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Utils
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a pointer to a string holding [text]'s content, obtained through
+ * [Sqlite3WasmExports.sqlite3_mprintf].
+ */
+context(allocator: HeapAllocatorScope)
+internal fun sqlite3_mprintf(text: String): WasmPointer =
+    exports.sqlite3_mprintf(text.allocateUtf8Pointer(), NullPtr)
+
+/**
+ * Returns a pointer to a string holding [text]'s content, obtained through
+ * [Sqlite3WasmExports.sqlite3_mprintf]. Returns [NullPtr] if [text] is `null`.
+ */
+internal fun sqlite3_mprintf(text: String?): WasmPointer {
+    if (text == null) {
+        return NullPtr
+    }
+
+    return heapScoped {
+        sqlite3_mprintf(text)
+    }
 }

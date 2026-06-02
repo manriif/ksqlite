@@ -9,7 +9,7 @@ import java.lang.foreign.ValueLayout
 import java.lang.invoke.MethodHandles
 
 ///////////////////////////////////////////////////////////////////////////
-// Segment
+// Pointer
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -33,8 +33,8 @@ internal val MemorySegment?.notNull: MemorySegment
 /**
  * Sets the pointer value of `this` pointer to pointer.
  */
-internal fun MemorySegment.setPointer(pointer: MemorySegment) {
-    set(ValueLayout.ADDRESS, 0, pointer)
+internal fun MemorySegment.setValue(value: MemorySegment) {
+    set(ValueLayout.ADDRESS, 0, value)
 }
 
 /**
@@ -64,12 +64,11 @@ internal val StaticMemoryAllocator = Arena.ofShared()
  * Runs given [block] providing allocation of memory which will be automatically disposed at the end
  * of this scope.
  */
-internal inline fun <T> memScoped(block: SegmentAllocator.() -> T): T {
-    return Arena.ofConfined().use(block)
-}
+internal inline fun <T> memScoped(block: SegmentAllocator.() -> T): T =
+    Arena.ofConfined().use(block)
 
 ///////////////////////////////////////////////////////////////////////////
-// Function
+// Functions
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -86,7 +85,7 @@ internal fun interface ReferenceFunction {
 /**
  * Allocates a new upcall stub, that invokes [ReferenceFunction.apply] on [function].
  */
-internal fun Arena.allocateFunction(function: ReferenceFunction): MemorySegment {
+internal fun Arena.allocateReferenceFunction(function: ReferenceFunction): MemorySegment {
     val functionDescriptor = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
 
     val methodHandle = MethodHandles
@@ -129,32 +128,28 @@ internal inline fun <reified T> MemorySegment.toArrayOrEmpty(
 /**
  * Reads and returns an array of [count] String.
  */
-internal fun MemorySegment.toNullableStringArray(count: Int): Array<String?> {
-    return toArray(count) { it.toKStringFromUtf8OrNull() }
-}
+internal fun MemorySegment.toNullableStringArray(count: Int): Array<String?> =
+    toArray(count) { it.toKStringFromUtf8OrNull() }
 
 /**
  * Reads and returns an array of [count] String.
  * Returns an empty array if `this` is `null`.
  */
-internal fun MemorySegment.toNullableStringArrayOrEmpty(count: Int): Array<String?> {
-    return orNull?.toNullableStringArray(count) ?: emptyArray()
-}
+internal fun MemorySegment.toNullableStringArrayOrEmpty(count: Int): Array<String?> =
+    orNull?.toNullableStringArray(count) ?: emptyArray()
 
 /**
  * Reads and returns an array of [count] String.
  */
-internal fun MemorySegment.toStringArray(count: Int): Array<String> {
-    return this.toArray(count) { it.toKStringFromUtf8() }
-}
+internal fun MemorySegment.toStringArray(count: Int): Array<String> =
+    this.toArray(count) { it.toKStringFromUtf8() }
 
 /**
  * Reads and returns an array of [count] String.
  * Returns an empty array if `this` is `null`.
  */
-internal fun MemorySegment.toStringArrayOrEmpty(count: Int): Array<String> {
-    return orNull?.toStringArray(count) ?: emptyArray()
-}
+internal fun MemorySegment.toStringArrayOrEmpty(count: Int): Array<String> =
+    orNull?.toStringArray(count) ?: emptyArray()
 
 ///////////////////////////////////////////////////////////////////////////
 // Buffer
@@ -164,9 +159,7 @@ internal fun MemorySegment.toStringArrayOrEmpty(count: Int): Array<String> {
  * Returns a heap [MemorySegment] backed by the on-heap region of memory that holds the given byte
  * array.
  */
-internal fun ByteArray.backing(): MemorySegment {
-    return MemorySegment.ofArray(this)
-}
+internal fun ByteArray.backing(): MemorySegment = MemorySegment.ofArray(this)
 
 ///////////////////////////////////////////////////////////////////////////
 // Strings
@@ -178,9 +171,8 @@ internal fun ByteArray.backing(): MemorySegment {
  *
  * Returns [MemorySegment.NULL] if `this` is `null`.
  */
-internal fun String?.allocateUtf8(allocator: SegmentAllocator): MemorySegment {
-    return allocator.allocateFrom(this, Charsets.UTF_8)
-}
+internal fun String?.allocateUtf8(allocator: SegmentAllocator): MemorySegment =
+    allocator.allocateFrom(this, Charsets.UTF_8)
 
 /**
  * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
@@ -189,9 +181,7 @@ internal fun String?.allocateUtf8(allocator: SegmentAllocator): MemorySegment {
  * Returns [MemorySegment.NULL] if `this` is `null`.
  */
 context(allocator: SegmentAllocator)
-internal fun String?.allocateUtf8(): MemorySegment {
-    return allocateUtf8(allocator)
-}
+internal fun String?.allocateUtf8(): MemorySegment = allocateUtf8(allocator)
 
 /**
  * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
@@ -215,9 +205,8 @@ internal fun Array<String>?.allocateUtf8Array(): MemorySegment {
 /**
  * Reads and returns a null terminated String starting from [offset].
  */
-internal fun MemorySegment.toKStringFromUtf8(offset: Long = 0): String {
-    return checkNotNull(getString(offset, Charsets.UTF_8))
-}
+internal fun MemorySegment.toKStringFromUtf8(offset: Long = 0): String =
+    checkNotNull(getString(offset, Charsets.UTF_8))
 
 /**
  * Reads and returns a null terminated String starting from [offset] or returns `null` if `this`

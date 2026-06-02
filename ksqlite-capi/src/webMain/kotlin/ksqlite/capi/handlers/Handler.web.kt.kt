@@ -10,6 +10,9 @@ import ksqlite.capi.memory.stableRefDataHolder
  */
 internal abstract class Handler {
 
+    /**
+     * Manager owning the data associated to the reference pointer in [handle].
+     */
     lateinit var manager: MemoryManager
 
     /**

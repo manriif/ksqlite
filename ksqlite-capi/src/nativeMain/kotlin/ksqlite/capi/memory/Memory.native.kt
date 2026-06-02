@@ -49,32 +49,28 @@ internal inline fun <P : CPointer<*>, reified T> CPointer<CPointerVarOf<P>>?.toA
 /**
  * Reads and returns an array of [count] String.
  */
-internal fun CPointer<CPointerVar<ByteVar>>.toNullableStringArray(count: Int): Array<String?> {
-    return this.toArray(count) { it?.toKStringFromUtf8() }
-}
+internal fun CPointer<CPointerVar<ByteVar>>.toNullableStringArray(count: Int): Array<String?> =
+    this.toArray(count) { it?.toKStringFromUtf8() }
 
 /**
  * Reads and returns an array of [count] String.
  * Returns an empty array if `this` is `null`.
  */
-internal fun CPointer<CPointerVar<ByteVar>>?.toNullableStringArrayOrEmpty(count: Int): Array<String?> {
-    return this?.toNullableStringArray(count) ?: emptyArray()
-}
+internal fun CPointer<CPointerVar<ByteVar>>?.toNullableStringArrayOrEmpty(count: Int): Array<String?> =
+    this?.toNullableStringArray(count) ?: emptyArray()
 
 /**
  * Reads and returns an array of [count] String.
  */
-internal fun CPointer<CPointerVar<ByteVar>>.toStringArray(count: Int): Array<String> {
-    return this.toArray(count) { it!!.toKStringFromUtf8() }
-}
+internal fun CPointer<CPointerVar<ByteVar>>.toStringArray(count: Int): Array<String> =
+    this.toArray(count) { it!!.toKStringFromUtf8() }
 
 /**
  * Reads and returns an array of [count] String.
  * Returns an empty array if `this` is `null`.
  */
-internal fun CPointer<CPointerVar<ByteVar>>?.toStringArrayOrEmpty(count: Int): Array<String> {
-    return this?.toStringArray(count) ?: emptyArray()
-}
+internal fun CPointer<CPointerVar<ByteVar>>?.toStringArrayOrEmpty(count: Int): Array<String> =
+    this?.toStringArray(count) ?: emptyArray()
 
 ///////////////////////////////////////////////////////////////////////////
 // Buffer
@@ -98,9 +94,8 @@ internal fun COpaquePointer.copyBytes(destination: ByteArray): ByteArray {
 /**
  * Copies [count] bytes into a ByteArray and returns it.
  */
-internal fun COpaquePointer.copyBytes(count: Int): ByteArray {
-    return copyBytes(ByteArray(count))
-}
+internal fun COpaquePointer.copyBytes(count: Int): ByteArray =
+    copyBytes(ByteArray(count))
 
 ///////////////////////////////////////////////////////////////////////////
 // Strings
@@ -109,20 +104,17 @@ internal fun COpaquePointer.copyBytes(count: Int): ByteArray {
 /**
  * Reads [size] bytes from this pointer as [ByteArray] and then convert to string.
  */
-internal fun CPointer<ByteVar>.toKStringFromUtf8(size: Int): String {
-    return copyBytes(size).decodeToString()
-}
+internal fun CPointer<ByteVar>.toKStringFromUtf8(size: Int): String =
+    copyBytes(size).decodeToString()
 
 /**
  * Reads [size] bytes from this pointer as [ByteArray] and then convert to string.
  */
-internal fun COpaquePointer.toKStringFromUtf8(size: Int): String {
-    return reinterpret<ByteVar>().toKStringFromUtf8(size)
-}
+internal fun COpaquePointer.toKStringFromUtf8(size: Int): String =
+    reinterpret<ByteVar>().toKStringFromUtf8(size)
 
 /**
  * Reads bytes from this pointer as [ByteArray] and then convert to string.
  */
-internal fun COpaquePointer.toKStringFromUtf8(): String {
-    return reinterpret<ByteVar>().toKStringFromUtf8()
-}
+internal fun COpaquePointer.toKStringFromUtf8(): String =
+    reinterpret<ByteVar>().toKStringFromUtf8()
