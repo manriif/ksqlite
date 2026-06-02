@@ -830,28 +830,6 @@ public fun <AppData> sqlite3_create_module(
 /**
  * External API function used to create a new virtual-table module.
  *
- * [sqlite3_create_module()](https://sqlite.org/c3ref/create_module.html)
- *
- * -------------------------------------------------------------------------------------------------
- *
- * # Ksqlite
- *
- * Drop the module previously registered with [name].
- */
-public fun sqlite3_create_module(
-    db: sqlite3,
-    name: String,
-    module: Nothing?
-): Sqlite3Result = sqlite3_create_module(
-    db = db,
-    name = name,
-    module = module,
-    appData = null
-)
-
-/**
- * External API function used to create a new virtual-table module.
- *
  * [sqlite3_create_module_v2()](https://sqlite.org/c3ref/create_module.html)
  */
 public expect fun <AppData> sqlite3_create_module_v2(
@@ -861,29 +839,6 @@ public expect fun <AppData> sqlite3_create_module_v2(
     appData: AppData,
     destroy: Sqlite3DestroyCallback<AppData>?,
 ): Sqlite3Result
-
-/**
- * External API function used to create a new virtual-table module.
- *
- * [sqlite3_create_module_v2()](https://sqlite.org/c3ref/create_module.html)
- *
- * -------------------------------------------------------------------------------------------------
- *
- * # Ksqlite
- *
- * Drop the module previously registered with [name].
- */
-public fun sqlite3_create_module_v2(
-    db: sqlite3,
-    name: String,
-    module: Nothing?
-): Sqlite3Result = sqlite3_create_module_v2(
-    db = db,
-    name = name,
-    module = module,
-    appData = null,
-    destroy = null
-)
 
 /**
  * Create new user functions.
@@ -1140,7 +1095,7 @@ public expect fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result
  *
  * [sqlite3_free()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_free(buffer: Buffer?)
+public expect fun sqlite3_free(buffer: Buffer)
 
 /**
  * Test to see whether or not the database connection is in autocommit mode. Return TRUE if it is
@@ -1362,7 +1317,7 @@ public expect fun sqlite3_memory_highwater(resetFlag: Int): Long
  *
  * [sqlite3_msize()](https://sqlite.org/c3ref/free.html)
  */
-public expect fun sqlite3_msize(buffer: Buffer?): ULong
+public expect fun sqlite3_msize(buffer: Buffer): ULong
 
 /**
  * Return a pointer to the next prepared statement after pStmt associated with database connection
@@ -1373,7 +1328,7 @@ public expect fun sqlite3_msize(buffer: Buffer?): ULong
  */
 public expect fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt?
+    stmt: sqlite3_stmt
 ): sqlite3_stmt?
 
 /**

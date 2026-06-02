@@ -2,6 +2,7 @@ package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.memory.allocateUtf8
+import ksqlite.capi.memory.notNull
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -9,7 +10,7 @@ import java.lang.foreign.MemorySegment
  * Wrapper for [sqlite3_bind_pointer] and [sqlite3_result_pointer] data.
  */
 internal class NamedPointer<Data>(
-    val name: MemorySegment?,
+    val name: MemorySegment,
     private val arena: Arena?,
     private val destroy: Sqlite3DestroyCallback<Data>?
 ) {
@@ -41,7 +42,7 @@ internal inline fun <Data, R> allocateNamedPointer(
     val typePointer = arena?.run { name.allocateUtf8() }
 
     val pointer = NamedPointer(
-        name = typePointer,
+        name = typePointer.notNull,
         arena = arena,
         destroy = destroy
     )

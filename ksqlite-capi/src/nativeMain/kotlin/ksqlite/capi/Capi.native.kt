@@ -57,7 +57,6 @@ import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.copyBytes
-import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.memory
@@ -606,10 +605,10 @@ public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
     commonClearBindings(stmt, native_sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3): Sqlite3Result =
-    db.deallocateNullable { native_sqlite3_close(it?.pointer) }
+    db.deallocate { native_sqlite3_close(it.pointer) }
 
 public actual fun sqlite3_close_v2(db: sqlite3): Sqlite3Result =
-    db.deallocateNullable { native_sqlite3_close_v2(it?.pointer) }
+    db.deallocate { native_sqlite3_close_v2(it.pointer) }
 
 public actual fun <AppData> sqlite3_collation_needed(
     db: sqlite3,
@@ -1008,10 +1007,10 @@ public actual fun sqlite3_file_control(
 )
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result =
-    stmt.deallocateNullable { native_sqlite3_finalize(stmt?.pointer) }
+    stmt.deallocate { native_sqlite3_finalize(stmt.pointer) }
 
-public actual fun sqlite3_free(buffer: Buffer?): Unit =
-    native_sqlite3_free(buffer?.pointer)
+public actual fun sqlite3_free(buffer: Buffer): Unit =
+    native_sqlite3_free(buffer.pointer)
 
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     native_sqlite3_get_autocommit(db.pointer)
@@ -1097,13 +1096,13 @@ public actual fun sqlite3_memory_used(): Long =
 public actual fun sqlite3_memory_highwater(resetFlag: Int): Long =
     native_sqlite3_memory_highwater(resetFlag)
 
-public actual fun sqlite3_msize(buffer: Buffer?): ULong =
-    native_sqlite3_msize(buffer?.pointer)
+public actual fun sqlite3_msize(buffer: Buffer): ULong =
+    native_sqlite3_msize(buffer.pointer)
 
 public actual fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt?
-): sqlite3_stmt? = native_sqlite3_next_stmt(db.pointer, stmt?.pointer)
+    stmt: sqlite3_stmt
+): sqlite3_stmt? = native_sqlite3_next_stmt(db.pointer, stmt.pointer)
     ?.let(::sqlite3_stmt)
 
 public actual fun sqlite3_open(

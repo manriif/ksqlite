@@ -52,7 +52,7 @@ internal inline fun <T> memScoped(block: SegmentAllocator.() -> T): T {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Null
+// Segment
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -73,6 +73,27 @@ internal val MemorySegment.orNull: MemorySegment?
 internal val MemorySegment?.notNull: MemorySegment
     get() = this ?: MemorySegment.NULL
 
+/**
+ * Sets the pointer value of `this` pointer to pointer.
+ */
+internal fun MemorySegment.setPointer(pointer: MemorySegment) {
+    set(ValueLayout.ADDRESS, 0, pointer)
+}
+
+/**
+ * Sets the [Long] value of `this` pointer to long.
+ */
+internal fun MemorySegment.setValue(value: Long) {
+    set(ValueLayout.JAVA_LONG, 0, value)
+}
+
+/**
+ * Sets the [Int] value of `this` pointer to int.
+ */
+internal fun MemorySegment.setValue(value: Int) {
+    set(ValueLayout.JAVA_INT, 0, value)
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Arrays
 ///////////////////////////////////////////////////////////////////////////
@@ -89,6 +110,45 @@ internal inline fun <reified T> MemorySegment.toArray(
     }
 
     return Array(count) { transform(getAtIndex(ValueLayout.ADDRESS, it.toLong())) }
+}
+
+/**
+ * Returns an array of [count] item of type [T] obtained from [transform].
+ * Returns an empty array if `this` is `null`.
+ */
+internal inline fun <reified T> MemorySegment.toArrayOrEmpty(
+    count: Int,
+    transform: (MemorySegment) -> T
+): Array<T> = orNull?.toArray(count, transform) ?: emptyArray()
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun MemorySegment.toNullableStringArray(count: Int): Array<String?> {
+    return toArray(count) { it.toKStringFromUtf8OrNull() }
+}
+
+/**
+ * Reads and returns an array of [count] String.
+ * Returns an empty array if `this` is `null`.
+ */
+internal fun MemorySegment.toNullableStringArrayOrEmpty(count: Int): Array<String?> {
+    return orNull?.toNullableStringArray(count) ?: emptyArray()
+}
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun MemorySegment.toStringArray(count: Int): Array<String> {
+    return this.toArray(count) { it.toKStringFromUtf8() }
+}
+
+/**
+ * Reads and returns an array of [count] String.
+ * Returns an empty array if `this` is `null`.
+ */
+internal fun MemorySegment.toStringArrayOrEmpty(count: Int): Array<String> {
+    return orNull?.toStringArray(count) ?: emptyArray()
 }
 
 ///////////////////////////////////////////////////////////////////////////

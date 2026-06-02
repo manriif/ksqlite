@@ -48,8 +48,6 @@ import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.memory.deallocateNullable
-import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.types.Int32OutputParam
@@ -79,20 +77,20 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParams
+import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.ksqliteLoadLibrary
 import ksqlite.ksqlite_cancel_auto_extension
 import ksqlite.ksqlite_prepare_v2
@@ -564,10 +562,10 @@ public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
     commonClearBindings(stmt, jni_sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3): Sqlite3Result =
-    db.deallocateNullable { jni_sqlite3_close(it?.pointer ?: 0) }
+    db.deallocate { jni_sqlite3_close(it.pointer) }
 
 public actual fun sqlite3_close_v2(db: sqlite3): Sqlite3Result =
-    db.deallocateNullable { jni_sqlite3_close_v2(it?.pointer ?: 0) }
+    db.deallocate { jni_sqlite3_close_v2(it.pointer) }
 
 public actual fun <AppData> sqlite3_collation_needed(
     db: sqlite3,
@@ -912,10 +910,10 @@ public actual fun sqlite3_file_control(
 ): Sqlite3Result = convertResult(jni_sqlite3_file_control(db.pointer, name, opcode.code))
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result =
-    stmt.deallocateNullable { jni_sqlite3_finalize(stmt?.pointer.notNull) }
+    stmt.deallocate { jni_sqlite3_finalize(stmt.pointer) }
 
-public actual fun sqlite3_free(buffer: Buffer?): Unit =
-    jni_sqlite3_free(buffer?.pointer.notNull)
+public actual fun sqlite3_free(buffer: Buffer): Unit =
+    jni_sqlite3_free(buffer.pointer)
 
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     jni_sqlite3_get_autocommit(db.pointer)
@@ -989,13 +987,13 @@ public actual fun sqlite3_memory_used(): Long =
 public actual fun sqlite3_memory_highwater(resetFlag: Int): Long =
     jni_sqlite3_memory_highwater(resetFlag)
 
-public actual fun sqlite3_msize(buffer: Buffer?): ULong =
-    jni_sqlite3_msize(buffer?.pointer.notNull).toULong()
+public actual fun sqlite3_msize(buffer: Buffer): ULong =
+    jni_sqlite3_msize(buffer.pointer).toULong()
 
 public actual fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt?
-): sqlite3_stmt? = jni_sqlite3_next_stmt(db.pointer, stmt?.pointer.notNull)
+    stmt: sqlite3_stmt
+): sqlite3_stmt? = jni_sqlite3_next_stmt(db.pointer, stmt.pointer)
     .wrapOrNull(::sqlite3_stmt)
 
 public actual fun sqlite3_open(

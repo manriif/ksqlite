@@ -1,8 +1,7 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.ApplicationDefinedFunction
-import ksqlite.capi.memory.orNull
-import ksqlite.capi.memory.toArray
+import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.sqlite3.sqlite3_user_data
@@ -83,7 +82,7 @@ internal abstract class Function3ArgsHandler : FunctionHandler() {
         argv: MemorySegment,
         call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
     ) = handleFunction(context) { context ->
-        call(context, argv.orNull?.toArray(argc) { sqlite3_value(it) } ?: emptyArray())
+        call(context, argv.toArrayOrEmpty(argc, ::sqlite3_value))
     }
 }
 

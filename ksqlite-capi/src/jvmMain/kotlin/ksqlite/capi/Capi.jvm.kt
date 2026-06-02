@@ -48,9 +48,9 @@ import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.allocateUtf8
+import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.backing
 import ksqlite.capi.memory.bufferDisposer
-import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.memScoped
@@ -104,6 +104,8 @@ import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParamMemScoped
 import ksqlite.capi.types.useParams
 import ksqlite.capi.types.useParamsMemScoped
+import ksqlite.capi.vtab.createVTabModule
+import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.ksqliteLoadLibrary
 import java.lang.foreign.MemoryLayout
 import java.lang.foreign.MemorySegment
@@ -287,7 +289,7 @@ public actual fun <Data> sqlite3_bind_pointer(
             stmt.pointer,
             index,
             stableRefPointer(ptr, data, ptrDestroy),
-            ptr.name.notNull,
+            ptr.name,
             stableRefDisposer(ptr, ptrDestroy)
         )
     }
@@ -420,10 +422,10 @@ public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
     commonClearBindings(stmt, native.sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3): Sqlite3Result =
-    db.deallocateNullable { native.sqlite3_close(it?.pointer.notNull) }
+    db.deallocate { native.sqlite3_close(it.pointer) }
 
 public actual fun sqlite3_close_v2(db: sqlite3): Sqlite3Result =
-    db.deallocateNullable { native.sqlite3_close_v2(it?.pointer.notNull) }
+    db.deallocate { native.sqlite3_close_v2(it.pointer) }
 
 public actual fun <AppData> sqlite3_collation_needed(
     db: sqlite3,
@@ -621,7 +623,6 @@ public actual fun <AppData> sqlite3_create_function_v2(
     }
 })
 
-/*
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
@@ -630,16 +631,18 @@ public actual fun <AppData> sqlite3_create_module_v2(
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     memScoped {
-        native.sqlite3_create_module_v2(
-            db.pointer,
-            name.allocateUtf8(),
-            module?.pointer.notNull,
-            keyedStableRefPointer(moduleKey(name), appData, appData, destroy),
-            stableRefDisposer(appData, destroy)
-        )
+        createVTabModule(module?.callbacks, appData) { vTabModule ->
+            native.sqlite3_create_module_v2(
+                db.pointer,
+                name.allocateUtf8(),
+                module?.pointer.notNull,
+                keyedStableRefPointer(moduleKey(name), vTabModule, appData, destroy),
+                stableRefDisposer(vTabModule, destroy)
+            )
+        }
     }
 })
-*/
+
 public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
@@ -774,14 +777,13 @@ public actual fun sqlite3_deserialize(
     )
 })
 
-/*
 public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): Sqlite3Result = convertResult(memScoped {
     native.sqlite3_drop_modules(db.pointer, keep.allocateUtf8Array())
 })
-*/
+
 public actual fun sqlite3_errcode(db: sqlite3): Int =
     native.sqlite3_errcode(db.pointer)
 
@@ -843,10 +845,10 @@ public actual fun sqlite3_file_control(
 })
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result =
-    stmt.deallocate { native.sqlite3_finalize(stmt?.pointer.notNull) }
+    stmt.deallocate { native.sqlite3_finalize(stmt.pointer) }
 
-public actual fun sqlite3_free(buffer: Buffer?): Unit =
-    native.sqlite3_free(buffer?.pointer.notNull)
+public actual fun sqlite3_free(buffer: Buffer): Unit =
+    native.sqlite3_free(buffer.pointer)
 
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     native.sqlite3_get_autocommit(db.pointer)
@@ -938,13 +940,13 @@ public actual fun sqlite3_memory_used(): Long =
 public actual fun sqlite3_memory_highwater(resetFlag: Int): Long =
     native.sqlite3_memory_highwater(resetFlag)
 
-public actual fun sqlite3_msize(buffer: Buffer?): ULong =
-    native.sqlite3_msize(buffer?.pointer.notNull).toULong()
+public actual fun sqlite3_msize(buffer: Buffer): ULong =
+    native.sqlite3_msize(buffer.pointer).toULong()
 
 public actual fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt?
-): sqlite3_stmt? = native.sqlite3_next_stmt(db.pointer, stmt?.pointer.notNull)
+    stmt: sqlite3_stmt
+): sqlite3_stmt? = native.sqlite3_next_stmt(db.pointer, stmt.pointer)
     .orNull?.let(::sqlite3_stmt)
 
 public actual fun sqlite3_open(
@@ -1192,7 +1194,7 @@ public actual fun <Data> sqlite3_result_pointer(
         native.sqlite3_result_pointer(
             context.pointer,
             stableRefPointer(ptr, data, ptrDestroy),
-            ptr.name.notNull,
+            ptr.name,
             stableRefDisposer(ptr, ptrDestroy)
         )
     }
@@ -1209,7 +1211,7 @@ public actual fun sqlite3_result_text(
 ): Unit = memScoped {
     val cText = value.allocateUtf8()
     val nByte = cText.byteSize().toInt()
-    native.sqlite3_result_text(context.pointer, cText.notNull, nByte, SqliteTransient)
+    native.sqlite3_result_text(context.pointer, cText, nByte, SqliteTransient)
 }
 
 public actual fun sqlite3_result_text64(

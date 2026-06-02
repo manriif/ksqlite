@@ -2,6 +2,8 @@
 
 package ksqlite.capi
 
+import ksqlite.capi.VariadicValue.OfPointer
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
@@ -18,9 +20,9 @@ import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
+import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutoVacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationCompareHandler
@@ -37,7 +39,6 @@ import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
-import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
@@ -57,7 +58,6 @@ import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.bufferScoped
-import ksqlite.capi.memory.deallocateNullable
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.heapScoped
@@ -82,8 +82,8 @@ import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3Result
@@ -95,20 +95,20 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParamStackScoped
 import ksqlite.capi.types.useParamsStackScoped
+import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.vtab.sqlite3_index_info
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 
@@ -310,7 +310,7 @@ public actual fun <Data> sqlite3_bind_pointer(
             stmt.pointer,
             index,
             stableRefPointer(ptr, data, ptrDestroy),
-            ptr.name.notNull,
+            ptr.name,
             stableRefDisposer(ptr, ptrDestroy)
         )
     }
@@ -462,10 +462,10 @@ public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
     commonClearBindings(stmt, exports.sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3): Sqlite3Result =
-    db.deallocateNullable { exports.sqlite3_close(it?.pointer.notNull) }
+    db.deallocate { exports.sqlite3_close(it.pointer) }
 
 public actual fun sqlite3_close_v2(db: sqlite3): Sqlite3Result =
-    db.deallocateNullable { exports.sqlite3_close_v2(it?.pointer.notNull) }
+    db.deallocate { exports.sqlite3_close_v2(it.pointer) }
 
 public actual fun <AppData> sqlite3_collation_needed(
     db: sqlite3,
@@ -885,10 +885,10 @@ public actual fun sqlite3_file_control(
 })
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result =
-    stmt.deallocateNullable { exports.sqlite3_finalize(stmt?.pointer.notNull) }
+    stmt.deallocate { exports.sqlite3_finalize(stmt.pointer) }
 
-public actual fun sqlite3_free(buffer: Buffer?): Unit =
-    exports.sqlite3_free(buffer?.pointer.notNull)
+public actual fun sqlite3_free(buffer: Buffer): Unit =
+    exports.sqlite3_free(buffer.pointer)
 
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     exports.sqlite3_get_autocommit(db.pointer)
@@ -980,13 +980,13 @@ public actual fun sqlite3_memory_used(): Long =
 public actual fun sqlite3_memory_highwater(resetFlag: Int): Long =
     exports.sqlite3_memory_highwater(resetFlag).toLong()
 
-public actual fun sqlite3_msize(buffer: Buffer?): ULong =
-    exports.sqlite3_msize(buffer?.pointer.notNull).toLong().toULong()
+public actual fun sqlite3_msize(buffer: Buffer): ULong =
+    exports.sqlite3_msize(buffer.pointer).toLong().toULong()
 
 public actual fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt?
-): sqlite3_stmt? = exports.sqlite3_next_stmt(db.pointer, stmt?.pointer.notNull)
+    stmt: sqlite3_stmt
+): sqlite3_stmt? = exports.sqlite3_next_stmt(db.pointer, stmt.pointer)
     .orNull?.let(::sqlite3_stmt)
 
 public actual fun sqlite3_open(
@@ -1149,7 +1149,7 @@ public actual fun sqlite3_rekey(
     key: ByteArray,
     nKey: Int,
 ): Sqlite3Result = convertResult(bufferScoped(key) { keyPtr ->
-    exports.sqlite3_rekey(db.pointer, keyPtr, nKey )
+    exports.sqlite3_rekey(db.pointer, keyPtr, nKey)
 })
 
 public actual fun sqlite3_rekey_v2(
@@ -1244,7 +1244,7 @@ public actual fun <Data> sqlite3_result_pointer(
         exports.sqlite3_result_pointer(
             context.pointer,
             stableRefPointer(ptr, data, ptrDestroy),
-            ptr.name.notNull,
+            ptr.name,
             stableRefDisposer(ptr, ptrDestroy)
         )
     }
@@ -1428,7 +1428,11 @@ public actual fun sqlite3_strnicmp(
     second: String,
     maxCharacters: Int
 ): Int = heapScoped {
-    exports.sqlite3_strnicmp(first.allocateUtf8Pointer(), second.allocateUtf8Pointer(), maxCharacters)
+    exports.sqlite3_strnicmp(
+        first.allocateUtf8Pointer(),
+        second.allocateUtf8Pointer(),
+        maxCharacters
+    )
 }
 
 public actual fun sqlite3_system_errno(db: sqlite3): Int =
