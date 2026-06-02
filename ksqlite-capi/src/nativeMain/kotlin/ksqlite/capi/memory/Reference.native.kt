@@ -21,9 +21,7 @@ private val StableRefDisposer = staticCFunction { pointer: COpaquePointer? ->
 internal fun stableRefDisposer(
     data: Any?,
     destructor: Sqlite3DestroyCallback<*>? = null
-): Disposer? {
-    return StableRefDisposer.takeIf { data != null || destructor != null }
-}
+) = StableRefDisposer.takeIf { data != null || destructor != null }
 
 /**
  * Returns the [DataHolder] referenced by [pointer].

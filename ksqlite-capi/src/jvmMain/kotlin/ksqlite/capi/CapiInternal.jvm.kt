@@ -11,6 +11,7 @@ import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.stableRefAppData
 import ksqlite.capi.memory.stableRefData
+import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt

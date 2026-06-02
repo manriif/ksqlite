@@ -16,7 +16,7 @@ internal class WalHookHandler<AppData> :
         dbName: String,
         nPage: Int
     ): Int = handle { callback, appData ->
-        callback.handle(
+        callback.apply(
             appData = appData,
             db = sqlite3(db),
             dbName = dbName,

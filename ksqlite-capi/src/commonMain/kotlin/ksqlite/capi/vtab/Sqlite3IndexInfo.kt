@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 
 /**
  * The sqlite3_index_info structure and its substructures is used as part of the virtual table
@@ -11,7 +11,7 @@ import ksqlite.capi.memory.StructPointer
  *
  * [sqlite3_index_info](https://sqlite.org/c3ref/index_info.html)
  */
-public expect class sqlite3_index_info : StructPointer {
+public expect class sqlite3_index_info : Struct {
 
     ///////////////////////////////////////////////////////////////////////////
     // Inputs

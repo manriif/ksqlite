@@ -8,6 +8,7 @@ import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
+import kotlinx.cinterop.toLong
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 internal actual class MemoryManager : MemoryManagerBase() {
@@ -124,11 +125,11 @@ internal actual class MemoryManager : MemoryManagerBase() {
         val pointer = pinned.addressOf(0)
 
         init {
-            registerGlobalDisposable(pointer, this)
+            registerGlobalDisposable(pointer.toLong(), this)
         }
 
         override fun release() {
-            unregisterGlobalDisposable(pointer)
+            unregisterGlobalDisposable(pointer.toLong())
             pinned.unpin()
         }
     }

@@ -1,17 +1,31 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.handlers.ReferenceHandler
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.handlers.Handler
+import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
 /**
  * Handler that dispose reference to object.
  */
-internal class StableRefDisposerHandler : ReferenceHandler() {
+internal class StableRefDisposer : Handler(), ReferenceFunction {
+
+    override fun allocate(arena: Arena): MemorySegment = arena.allocateFunction(this)
 
     override fun apply(refPointer: MemorySegment) {
         manager.getStableRef<Nothing?>(refPointer).dispose()
     }
 }
+
+/**
+ * Returns the [StableRefDisposer] instance of `this` [MemoryManager] only if [data] != `null` or
+ * [destructor] != `null`. [MemorySegment.NULL] is returned otherwise.
+ */
+internal fun MemoryManager.stableRefDisposer(
+    data: Any?,
+    destructor: Sqlite3DestroyCallback<*>? = null
+): MemorySegment = stableRefDisposer.takeIf { data != null || destructor != null }
+    ?: MemorySegment.NULL
 
 /**
  * Returns the object [Data] backed by [pointer] with an optional app data pointer.

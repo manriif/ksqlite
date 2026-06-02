@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 
 /**
  * Every virtual table module implementation uses a subclass of the following structure to describe
@@ -22,4 +22,4 @@ import ksqlite.capi.memory.StructPointer
  *
  * Subclasser may pass the typed [sqlite3_vtab] as a constructor parameter if necessary.
  */
-public expect open class sqlite3_vtab_cursor() : StructPointer
+public expect open class sqlite3_vtab_cursor() : Struct

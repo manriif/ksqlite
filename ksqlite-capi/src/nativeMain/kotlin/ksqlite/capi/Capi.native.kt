@@ -48,11 +48,10 @@ import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
-import ksqlite.capi.handlers.SharedExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
-import ksqlite.capi.handlers.handle
+import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.bufferDisposer
@@ -354,7 +353,7 @@ private fun variadicArgumentsError(): Nothing {
 ///////////////////////////////////////////////////////////////////////////
 
 public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
-    autoExtensionRegister(callback) { ksqlite_auto_extension(SharedExtensionHandler) }
+    autoExtensionRegister(callback) { ksqlite_auto_extension(AutoExtensionHandler) }
 
 public actual fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
@@ -364,7 +363,7 @@ public actual fun <AppData> sqlite3_autovacuum_pages(
 ): Sqlite3Result = convertResult(
     native_sqlite3_autovacuum_pages(
         db.pointer,
-        AutoVacuumPagesHandler.handle(callback),
+        callbackHandler(callback, AutoVacuumPagesHandler),
         db.memory.keyedStableRefPointer(KEY_AUTOVACUUM_PAGES, callback, appData, destroy),
         stableRefDisposer(callback, destroy)
     )
@@ -582,7 +581,7 @@ public actual fun <AppData> sqlite3_busy_handler(
 ): Sqlite3Result = convertResult(
     native_sqlite3_busy_handler(
         db.pointer,
-        BusyHandlerHandler.handle(callback),
+        callbackHandler(callback, BusyHandlerHandler),
         db.memory.keyedStableRefPointer(KEY_BUSY_HANDLER, callback, appData)
     )
 )
@@ -593,7 +592,7 @@ public actual fun sqlite3_busy_timeout(
 ): Sqlite3Result = convertResult(native_sqlite3_busy_timeout(db.pointer, millis))
 
 public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int =
-    autoExtensionUnregister(callback) { ksqlite_cancel_auto_extension(SharedExtensionHandler) }
+    autoExtensionUnregister(callback) { ksqlite_cancel_auto_extension(AutoExtensionHandler) }
 
 public actual fun sqlite3_changes(db: sqlite3): Int =
     native_sqlite3_changes(db.pointer)
@@ -618,7 +617,7 @@ public actual fun <AppData> sqlite3_collation_needed(
     native_sqlite3_collation_needed(
         db.pointer,
         db.memory.keyedStableRefPointer(KEY_COLLATION_NEEDED, callback, appData),
-        CollationNeededHandler.handle(callback)
+        callbackHandler(callback, CollationNeededHandler)
     )
 )
 
@@ -709,7 +708,7 @@ public actual fun <AppData> sqlite3_commit_hook(
 ) {
     native_sqlite3_commit_hook(
         db.pointer,
-        CommitHookHandler.handle(callback),
+        callbackHandler(callback, CommitHookHandler),
         db.memory.keyedStableRefPointer(KEY_COMMIT_HOOK, callback, appData)
     )
 }
@@ -725,10 +724,10 @@ public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
 
 public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonConfig(
     option = option,
-    logFunctionPointer = { cb, _ -> ConfigLogHandler.handle(cb) },
-    sqllogFunctionPointer = { cb, _ -> ConfigSqlLogHandler.handle(cb) },
+    logFunctionPointer = { cb, _ -> callbackHandler(cb, ConfigLogHandler) },
+    sqllogFunctionPointer = { cb, _ -> callbackHandler(cb, ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
-    keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
+    keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     rowidInView = {
         useParamMemScoped(param) { paramPtr ->
             native_sqlite3_config(id, paramPtr)
@@ -763,7 +762,7 @@ public actual fun <AppData> sqlite3_create_collation_v2(
         name,
         encoding.utf8OrThrow().value,
         db.memory.keyedStableRefPointer(collationKey(name, encoding), callback, appData, destroy),
-        CollationCompareHandler.handle(callback),
+        callbackHandler(callback, CollationCompareHandler),
         stableRefDisposer(callback, destroy)
     )
 )
@@ -791,9 +790,9 @@ public actual fun <AppData> sqlite3_create_function_v2(
                 appData = appData,
                 destructor = fnDestroy
             ),
-            FunctionFuncHandler.handle(func),
-            FunctionStepHandler.handle(step),
-            FunctionFinalHandler.handle(final),
+            callbackHandler(func, FunctionFuncHandler),
+            callbackHandler(step, FunctionStepHandler),
+            callbackHandler(final, FunctionFinalHandler),
             stableRefDisposer(fn, destroy)
         )
     }
@@ -839,10 +838,10 @@ public actual fun <AppData> sqlite3_create_window_function(
                 appData = appData,
                 destructor = fnDestroy
             ),
-            FunctionStepHandler.handle(step),
-            FunctionFinalHandler.handle(final),
-            FunctionValueHandler.handle(value),
-            FunctionInverseHandler.handle(inverse),
+            callbackHandler(step, FunctionStepHandler),
+            callbackHandler(final, FunctionFinalHandler),
+            callbackHandler(value, FunctionValueHandler),
+            callbackHandler(inverse, FunctionInverseHandler),
             stableRefDisposer(fn, destroy)
         )
     }
@@ -975,7 +974,7 @@ public actual fun <AppData> sqlite3_exec(
             native_sqlite3_exec(
                 db.pointer,
                 sql.cstr.ptr,
-                ExecHandler.handle(callback),
+                callbackHandler(callback, ExecHandler),
                 stableRefPointer(callback, appData),
                 errorMessagePtr
             )
@@ -1193,7 +1192,7 @@ public actual fun <AppData> sqlite3_preupdate_hook(
 ) {
     native_sqlite3_preupdate_hook(
         db.pointer,
-        PreupdateHookHandler.handle(callback),
+        callbackHandler(callback, PreupdateHookHandler),
         db.memory.keyedStableRefPointer(KEY_PREUPDATE_HOOK, callback, appData)
     )
 }
@@ -1222,7 +1221,7 @@ public actual fun <AppData> sqlite3_progress_handler(
 ): Unit = native_sqlite3_progress_handler(
     db.pointer,
     nOps,
-    ProgressHandlerHandler.handle(callback),
+    callbackHandler(callback, ProgressHandlerHandler),
     db.memory.keyedStableRefPointer(KEY_PROGRESS_HANDLER, callback, appData)
 )
 
@@ -1394,7 +1393,7 @@ public actual fun <AppData> sqlite3_rollback_hook(
 ) {
     native_sqlite3_rollback_hook(
         db.pointer,
-        RollbackHookHandler.handle(callback),
+        callbackHandler(callback, RollbackHookHandler),
         db.memory.keyedStableRefPointer(KEY_ROLLBACK_HOOK, callback, appData)
     )
 }
@@ -1423,7 +1422,7 @@ public actual fun <AppData> sqlite3_set_authorizer(
 ): Sqlite3Result = convertResult(
     native_sqlite3_set_authorizer(
         db.pointer,
-        AuthorizerHandler.handle(callback),
+        callbackHandler(callback, AuthorizerHandler),
         db.memory.keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, appData)
     )
 )
@@ -1597,7 +1596,7 @@ public actual fun <AppData> sqlite3_trace_v2(
     native_sqlite3_trace_v2(
         db.pointer,
         mask?.value?.convert() ?: 0U,
-        TraceHandler.handle(callback),
+        callbackHandler(callback, TraceHandler),
         db.memory.keyedStableRefPointer(KEY_TRACE, callback, appData)
     )
 )
@@ -1614,7 +1613,7 @@ public actual fun <AppData> sqlite3_update_hook(
 ) {
     native_sqlite3_update_hook(
         db.pointer,
-        UpdateHookHandler.handle(callback),
+        callbackHandler(callback, UpdateHookHandler),
         db.memory.keyedStableRefPointer(KEY_UPDATE_HOOK, callback, appData)
     )
 }
@@ -1788,7 +1787,7 @@ public actual fun <AppData> sqlite3_wal_hook(
 ) {
     native_sqlite3_wal_hook(
         db.pointer,
-        WalHookHandler.handle(callback),
+        callbackHandler(callback, WalHookHandler),
         db.memory.keyedStableRefPointer(KEY_WAL_HOOK, callback, appData)
     )
 }

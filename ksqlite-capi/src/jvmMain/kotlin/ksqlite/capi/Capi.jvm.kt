@@ -41,7 +41,6 @@ import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.AuthorizerHandler
-import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
@@ -57,6 +56,7 @@ import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
+import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.memory.useMemoryManager
@@ -550,7 +550,7 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
     logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
-    keyedStableRefPointer = MemoryManager::keyedStableRefPointer,
+    keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     rowidInView = {
         useParamMemScoped(param) { paramPtr ->
             native.sqlite3_config

@@ -8,13 +8,12 @@ import kotlinx.cinterop.get
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.convertVTabConstraintOperatorCode
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 import ksqlite.sqlite3_free
 import ksqlite.sqlite3_mprintf
 
 public actual class sqlite3_index_info
-internal constructor(override val pointer: CPointer<s3_index_info>) :
-    StructPointer(pointer) {
+internal constructor(override val pointer: CPointer<s3_index_info>) : Struct(pointer) {
 
     private inline val info: s3_index_info
         get() = pointer.pointed

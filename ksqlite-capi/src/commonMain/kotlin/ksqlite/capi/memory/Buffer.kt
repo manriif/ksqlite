@@ -133,11 +133,10 @@ public abstract class BufferBase internal constructor(byteSize: Long) : Writable
     /**
      * Native address of the first byte.
      */
-    protected abstract val address: Long
+    internal abstract val address: Long
 
-    override fun toString(): String {
-        return "Buffer(address=0x${address.toHexString()}, size=$byteSize)"
-    }
+    override fun toString(): String =
+        "Buffer(address=0x${address.toHexString()}, size=$byteSize)"
 
     /**
      * Returns a readonly view of this [Buffer].

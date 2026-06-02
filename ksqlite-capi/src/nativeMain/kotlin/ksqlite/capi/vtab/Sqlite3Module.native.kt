@@ -3,10 +3,11 @@
 package ksqlite.capi.vtab
 
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.NativeFreeablePlacement
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.ptr
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 import ksqlite.capi.vtab.Sqlite3ModuleKind.Eponymous
 import ksqlite.capi.vtab.Sqlite3ModuleKind.EponymousOnly
 import ksqlite.capi.vtab.Sqlite3ModuleKind.Ordinal
@@ -14,8 +15,9 @@ import ksqlite.capi.vtab.Sqlite3ModuleKind.Ordinal
 public actual class sqlite3_module<AppData>
 internal constructor(
     internal val callbacks: VTabModuleCallbacks<AppData, *, *>,
-    override val pointer: CPointer<s3_module>
-) : StructPointer(pointer),
+    override val pointer: CPointer<s3_module>,
+    placement: NativeFreeablePlacement? = null
+) : Struct(pointer, placement),
     AutoCloseable {
 
     internal actual constructor(
@@ -52,7 +54,7 @@ internal constructor(
         xRelease = callbacks.release?.let { VTabReleaseHandler }
         xRollbackTo = callbacks.rollbackTo?.let { VTabRollbackToHandler }
         xIntegrity = callbacks.integrity?.let { VTabIntegrityHandler }
-    }.ptr)
+    }.ptr, nativeHeap)
 
     actual override fun close(): Unit = free()
 }

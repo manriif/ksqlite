@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 
 public actual open class sqlite3_vtab_cursor public actual constructor() :
-    StructPointer(allocate = { s3_vtab_cursor.allocate(this) })
+    Struct(allocate = { s3_vtab_cursor.allocate(this) })

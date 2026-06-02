@@ -559,13 +559,13 @@ public actual fun sqlite3_changes64(db: sqlite3): Long =
     jni_sqlite3_changes64(db.pointer)
 
 public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
-    commonClearBindings(stmt, jni_sqlite3_clear_bindings(stmt.pointer))
+   convertResult(jni_sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3): Sqlite3Result =
-    db.deallocate { jni_sqlite3_close(it.pointer) }
+    convertResult(jni_sqlite3_close(db.pointer))
 
 public actual fun sqlite3_close_v2(db: sqlite3): Sqlite3Result =
-    db.deallocate { jni_sqlite3_close_v2(it.pointer) }
+    convertResult(jni_sqlite3_close_v2(db.pointer))
 
 public actual fun <AppData> sqlite3_collation_needed(
     db: sqlite3,
@@ -910,7 +910,7 @@ public actual fun sqlite3_file_control(
 ): Sqlite3Result = convertResult(jni_sqlite3_file_control(db.pointer, name, opcode.code))
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result =
-    stmt.deallocate { jni_sqlite3_finalize(stmt.pointer) }
+    convertResult(jni_sqlite3_finalize(stmt.pointer))
 
 public actual fun sqlite3_free(buffer: Buffer): Unit =
     jni_sqlite3_free(buffer.pointer)

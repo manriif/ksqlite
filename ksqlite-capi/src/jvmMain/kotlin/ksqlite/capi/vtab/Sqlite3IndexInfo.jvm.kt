@@ -3,7 +3,7 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.convertVTabConstraintOperatorCode
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
 import ksqlite.sqlite3
@@ -14,7 +14,7 @@ import ksqlite.sqlite3_index_info.sqlite3_index_constraint_usage as s3_index_con
 import ksqlite.sqlite3_index_info.sqlite3_index_orderby as s3_index_orderby
 
 public actual class sqlite3_index_info internal constructor(pointer: MemorySegment) :
-    StructPointer(Arena.ofConfined(), { s3_index_info.reinterpret(pointer, this, null) }) {
+    Struct(Arena.ofConfined(), { s3_index_info.reinterpret(pointer, this, null) }) {
 
     private val constraints by lazy {
         val aConstraint = s3_index_info.aConstraint(this.pointer)

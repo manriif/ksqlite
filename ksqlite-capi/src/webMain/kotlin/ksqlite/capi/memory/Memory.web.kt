@@ -23,15 +23,15 @@ import ksqlite.capi.wasm
 import kotlin.js.JsAny
 import kotlin.js.toLong
 
-public actual open class StructPointer internal constructor(internal val pointer: WasmPointer) :
-    StructPointerBase() {
+public actual open class Struct internal constructor(internal val pointer: WasmPointer) :
+    StructBase() {
 
     actual override val address: Long
         get() = pointer.toLong()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is StructPointer) return false
+        if (other !is Struct) return false
 
         return pointer == other.pointer
 
@@ -39,6 +39,10 @@ public actual open class StructPointer internal constructor(internal val pointer
 
     override fun hashCode(): Int {
         return pointer.hashCode()
+    }
+
+    actual override fun free() {
+        TODO("Not yet implemented")
     }
 }
 

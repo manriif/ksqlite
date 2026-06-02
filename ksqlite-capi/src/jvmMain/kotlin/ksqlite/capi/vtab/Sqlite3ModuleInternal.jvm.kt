@@ -3,7 +3,8 @@ package ksqlite.capi.vtab
 import ksqlite.capi.createFunction
 import ksqlite.capi.functionKey
 import ksqlite.capi.handlers.FunctionFuncHandler
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.StaticMemoryAllocator
+import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.setPointer
 import ksqlite.capi.memory.setValue
@@ -38,13 +39,6 @@ import ksqlite.sqlite3_module.xRowid
 import ksqlite.sqlite3_module.xSavepoint
 import ksqlite.sqlite3_module.xSync
 import ksqlite.sqlite3_module.xUpdate
-import java.lang.foreign.Arena
-
-/**
- * Arena for all the top level VTab module handlers.
- * Arena is alive during all the application lifetime.
- */
-private val VTabModuleArena = Arena.ofShared()
 
 internal val VTabCreateHandler = xCreate.allocate({ db, refPointer, argc, argv, ppVtab, pzErr ->
     sqlite3(db).let { db ->
@@ -56,7 +50,7 @@ internal val VTabCreateHandler = xCreate.allocate({ db, refPointer, argc, argv, 
             setError = { pzErr.setPointer(sqlite3_mprintf(it)) }
         )
     }
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabConnectHandler = xConnect.allocate({ db, refPointer, argc, argv, ppVtab, pzErr ->
     sqlite3(db).let { db ->
@@ -68,45 +62,37 @@ internal val VTabConnectHandler = xConnect.allocate({ db, refPointer, argc, argv
             setError = { pzErr.setPointer(sqlite3_mprintf(it)) }
         )
     }
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabBestIndexHandler = xBestIndex.allocate({ vTab, info ->
     vTabBestIndex(
         vTab = vTab.address(),
         info = sqlite3_index_info(info)
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabDisconnectHandler = xDisconnect.allocate({ vTab ->
-    vTabDisconnect(
-        vTab = vTab.address(),
-        destroyMemory = true,
-        cleanup = StructPointer::free
-    )
-}, VTabModuleArena)
+    vTabDisconnect(vTab.address())
+}, StaticMemoryAllocator)
 
 internal val VTabDestroyHandler = xDestroy.allocate({ vTab ->
-    vTabDestroy(
-        vTab = vTab.address(),
-        destroyMemory = true,
-        cleanup = StructPointer::free
-    )
-}, VTabModuleArena)
+    vTabDestroy(vTab.address() )
+}, StaticMemoryAllocator)
 
 internal val VTabOpenHandler = xOpen.allocate({ vTab, outCursor ->
     vTabOpen(
         vTab = vTab.address(),
         setCursor = { outCursor.setPointer(it.pointer) }
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabCloseHandler = xClose.allocate({ cursor ->
     vTabClose(
         vTab = s3_vtab_cursor.pVtab(cursor).address(),
         cursor = cursor.address(),
-        cleanup = StructPointer::free
+        cleanup = Struct::free
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabFilterHandler = xFilter.allocate({ cursor, idxNum, idxStr, argc, argv ->
     vTabFilter(
@@ -116,21 +102,21 @@ internal val VTabFilterHandler = xFilter.allocate({ cursor, idxNum, idxStr, argc
         idxStr = idxStr?.toKStringFromUtf8(),
         arguments = argv.toArrayOrEmpty(argc, ::sqlite3_value)
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabNextHandler = xNext.allocate({ cursor ->
     vTabNext(
         vTab = s3_vtab_cursor.pVtab(cursor).address(),
         cursor = cursor.address()
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabEofHandler = xEof.allocate({ cursor ->
     vTabEof(
         vTab = s3_vtab_cursor.pVtab(cursor).address(),
         cursor = cursor.address()
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabColumnHandler = xColumn.allocate({ cursor, context, columnIndex ->
     vTabColumn(
@@ -139,7 +125,7 @@ internal val VTabColumnHandler = xColumn.allocate({ cursor, context, columnIndex
         context = sqlite3_context(context),
         columnIndex = columnIndex
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabRowidHandler = xRowid.allocate({ cursor, outRowId ->
     vTabRowid(
@@ -147,7 +133,7 @@ internal val VTabRowidHandler = xRowid.allocate({ cursor, outRowId ->
         cursor = cursor.address(),
         setRowid = outRowId::setValue
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabUpdateHandler = xUpdate.allocate({ vTab, argc, argv, outRowId ->
     vTabUpdate(
@@ -155,23 +141,23 @@ internal val VTabUpdateHandler = xUpdate.allocate({ vTab, argc, argv, outRowId -
         arguments = argv.toArrayOrEmpty(argc, ::sqlite3_value),
         setRowid = outRowId::setValue
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabBeginHandler = xBegin.allocate({ vTab ->
     vTabBegin(vTab.address())
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabSyncHandler = xSync.allocate({ vTab ->
     vTabSync(vTab.address())
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabCommitHandler = xCommit.allocate({ vTab ->
     vTabCommit(vTab.address())
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabRollbackHandler = xRollback.allocate({ vTab ->
     vTabRollback(vTab.address())
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabFindFunctionHandler = xFindFunction.allocate({ vTab, argc, name, outFn, outData ->
     val functionName = name.toKStringFromUtf8()
@@ -197,35 +183,35 @@ internal val VTabFindFunctionHandler = xFindFunction.allocate({ vTab, argc, name
             }
         }
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabRenameHandler = xRename.allocate({ vTab, newName ->
     vTabRename(
         vTab = vTab.address(),
         newName = newName.toKStringFromUtf8()
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabSavepointHandler = xSavepoint.allocate({ vTab, savepoint ->
     vTabSavepoint(
         vTab = vTab.address(),
         savepoint = savepoint
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabReleaseHandler = xRelease.allocate({ vTab, savepoint ->
     vTabRelease(
         vTab = vTab.address(),
         savepoint = savepoint
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabRollbackToHandler = xRollbackTo.allocate({ vTab, savepoint ->
     vTabRollbackTo(
         vTab = vTab.address(),
         savepoint = savepoint
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)
 
 internal val VTabIntegrityHandler = xIntegrity.allocate({ vtab, schema, tableName, flags, outErr ->
     vTabIntegrity(
@@ -235,4 +221,4 @@ internal val VTabIntegrityHandler = xIntegrity.allocate({ vtab, schema, tableNam
         flags = flags,
         setError = { outErr.setPointer(sqlite3_mprintf(it)) }
     )
-}, VTabModuleArena)
+}, StaticMemoryAllocator)

@@ -11,7 +11,7 @@ public fun interface Sqlite3WalHookCallback<AppData> {
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/wal_hook.html).
      */
-    public fun handle(
+    public fun apply(
         appData: AppData,
         db: sqlite3,
         dbName: String,

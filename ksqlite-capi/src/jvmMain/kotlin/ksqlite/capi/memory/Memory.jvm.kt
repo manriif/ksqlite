@@ -1,55 +1,12 @@
 package ksqlite.capi.memory
 
 import java.lang.foreign.Arena
+import java.lang.foreign.FunctionDescriptor
+import java.lang.foreign.Linker
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
-
-public actual open class StructPointer internal constructor(
-    internal val pointer: MemorySegment,
-    private val arena: Arena? = null
-) : StructPointerBase() {
-
-    internal constructor(
-        arena: Arena = Arena.ofShared(),
-        allocate: Arena.() -> MemorySegment
-    ) : this(arena.allocate(), arena)
-
-    actual override val address: Long
-        get() = pointer.address()
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is StructPointer) return false
-
-        return pointer == other.pointer
-    }
-
-    override fun hashCode(): Int {
-        return pointer.hashCode()
-    }
-
-    internal fun free() {
-        arena?.close()
-    }
-}
-
-/**
- * Memory manager that is never cleared.
- */
-internal val StaticMemoryManager = MemoryManager()
-
-///////////////////////////////////////////////////////////////////////////
-// Allocator
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Runs given [block] providing allocation of memory which will be automatically disposed at the end
- * of this scope.
- */
-internal inline fun <T> memScoped(block: SegmentAllocator.() -> T): T {
-    return Arena.ofConfined().use(block)
-}
+import java.lang.invoke.MethodHandles
 
 ///////////////////////////////////////////////////////////////////////////
 // Segment
@@ -92,6 +49,54 @@ internal fun MemorySegment.setValue(value: Long) {
  */
 internal fun MemorySegment.setValue(value: Int) {
     set(ValueLayout.JAVA_INT, 0, value)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Allocator
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Arena that is never cleared, used to allocate top level objects.
+ */
+internal val StaticMemoryAllocator = Arena.ofShared()
+
+/**
+ * Runs given [block] providing allocation of memory which will be automatically disposed at the end
+ * of this scope.
+ */
+internal inline fun <T> memScoped(block: SegmentAllocator.() -> T): T {
+    return Arena.ofConfined().use(block)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Function
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Function accepting a pointer.
+ */
+internal fun interface ReferenceFunction {
+
+    /**
+     * Handles the [refPointer].
+     */
+    fun apply(refPointer: MemorySegment)
+}
+
+/**
+ * Allocates a new upcall stub, that invokes [ReferenceFunction.apply] on [function].
+ */
+internal fun Arena.allocateFunction(function: ReferenceFunction): MemorySegment {
+    val functionDescriptor = FunctionDescriptor.ofVoid(ValueLayout.ADDRESS)
+
+    val methodHandle = MethodHandles
+        .lookup()
+        .findVirtual(ReferenceFunction::class.java, "apply", functionDescriptor.toMethodType())
+        .bindTo(function)
+
+    return Linker
+        .nativeLinker()
+        .upcallStub(methodHandle, functionDescriptor, this)
 }
 
 ///////////////////////////////////////////////////////////////////////////

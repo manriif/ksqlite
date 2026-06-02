@@ -3,13 +3,13 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.MemoryScope
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
 import ksqlite.sqlite3
 
 public actual abstract class sqlite3_vtab public actual constructor() :
-    StructPointer(allocate = { s3_vtab.allocate(this) }),
+    Struct(allocate = { s3_vtab.allocate(this) }),
     MemoryScope {
 
     public actual val nRef: Int

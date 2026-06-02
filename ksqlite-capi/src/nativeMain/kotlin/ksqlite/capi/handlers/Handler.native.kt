@@ -6,14 +6,17 @@ import kotlinx.cinterop.CPointer
 import ksqlite.capi.memory.stableRefDataHolder
 
 /**
- * Returns `this` [Pointer] to a [CFunction] only if [data] is not `null`.
+ * Returns [pointer] to a [CFunction] only if [data] is not `null`.
  */
-internal fun <Fun : CFunction<*>, Pointer : CPointer<Fun>> Pointer.handle(data: Any?): Pointer? {
+internal fun <Fun : CFunction<*>, Pointer : CPointer<Fun>> callbackHandler(
+    data: Any?,
+    pointer: Pointer
+): Pointer? {
     if (data == null) {
         return null
     }
 
-    return this
+    return pointer
 }
 
 /**

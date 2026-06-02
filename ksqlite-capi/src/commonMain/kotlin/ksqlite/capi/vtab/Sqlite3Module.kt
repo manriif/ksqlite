@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabBeginCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabBestIndexCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabCloseCallback
@@ -44,7 +44,7 @@ public expect class sqlite3_module<AppData>
 internal constructor(
     version: Int,
     callbacks: VTabModuleCallbacks<AppData, *, *>
-) : StructPointer,
+) : Struct,
     AutoCloseable {
 
     /**

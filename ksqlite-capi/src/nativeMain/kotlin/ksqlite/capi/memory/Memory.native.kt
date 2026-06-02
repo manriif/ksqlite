@@ -7,40 +7,11 @@ import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.CPointerVarOf
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
-import kotlinx.cinterop.free
 import kotlinx.cinterop.get
-import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKStringFromUtf8
-import kotlinx.cinterop.toLong
 import kotlinx.cinterop.usePinned
 import platform.posix.memcpy
-
-/**
- * Library managed pointer must be allocated using [nativeHeap] match [free].
- */
-public actual open class StructPointer internal constructor(
-    internal open val pointer: COpaquePointer
-) : StructPointerBase() {
-
-    actual override val address: Long
-        get() = pointer.toLong()
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is StructPointer) return false
-
-        return pointer == other.pointer
-    }
-
-    override fun hashCode(): Int {
-        return pointer.hashCode()
-    }
-
-    internal fun free() {
-        nativeHeap.free(pointer)
-    }
-}
 
 ///////////////////////////////////////////////////////////////////////////
 // Arrays

@@ -3,14 +3,17 @@
 package ksqlite.capi.vtab
 
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.NativeFreeablePlacement
+import kotlinx.cinterop.NativePlacement
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.ptr
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 
-public actual open class sqlite3_vtab_cursor
-internal constructor(override val pointer: CPointer<s3_vtab_cursor>) :
-    StructPointer(pointer) {
+public actual open class sqlite3_vtab_cursor internal constructor(
+    override val pointer: CPointer<s3_vtab_cursor>,
+    placement: NativeFreeablePlacement? = null
+) : Struct(pointer, placement) {
 
-    public actual constructor() : this(nativeHeap.alloc<s3_vtab_cursor>().ptr)
+    public actual constructor() : this(nativeHeap.alloc<s3_vtab_cursor>().ptr, nativeHeap)
 }

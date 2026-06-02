@@ -4,7 +4,7 @@ package ksqlite.capi.types
 
 import kotlinx.cinterop.CPointer
 import ksqlite.capi.memory.MemoryScope
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 
 ///////////////////////////////////////////////////////////////////////////
 // Aliases
@@ -25,30 +25,30 @@ internal typealias s3_vfs = ksqlite.sqlite3_vfs
 ///////////////////////////////////////////////////////////////////////////
 
 public actual class sqlite3 internal constructor(override val pointer: CPointer<s3>) :
-    StructPointer(pointer),
+    Struct(pointer),
     MemoryScope
 
 public actual class sqlite3_backup internal constructor(override val pointer: CPointer<s3_backup>) :
-    StructPointer(pointer)
+    Struct(pointer)
 
 public actual class sqlite3_blob internal constructor(override val pointer: CPointer<s3_blob>) :
-    StructPointer(pointer)
+    Struct(pointer)
 
 public actual class sqlite3_api_routines internal constructor(override val pointer: CPointer<s3_api>) :
-    StructPointer(pointer)
+    Struct(pointer)
 
 public actual class sqlite3_context internal constructor(override val pointer: CPointer<s3_context>) :
-    StructPointer(pointer)
+    Struct(pointer)
 
 public actual class sqlite3_snapshot internal constructor(override val pointer: CPointer<s3_snapshot>) :
-    StructPointer(pointer)
+    Struct(pointer)
 
 public actual class sqlite3_stmt internal constructor(override val pointer: CPointer<s3_stmt>) :
-    StructPointer(pointer),
+    Struct(pointer),
     MemoryScope
 
 public actual class sqlite3_value internal constructor(override val pointer: CPointer<s3_value>) :
-    StructPointer(pointer)
+    Struct(pointer)
 
 public actual class sqlite3_vfs internal constructor(override val pointer: CPointer<s3_vfs>) :
-    StructPointer(pointer)
+    Struct(pointer)

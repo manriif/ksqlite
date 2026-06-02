@@ -14,8 +14,8 @@ import kotlinx.cinterop.value
 import ksqlite.capi.createFunction
 import ksqlite.capi.functionKey
 import ksqlite.capi.handlers.FunctionFuncHandler
-import ksqlite.capi.handlers.handle
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.handlers.callbackHandler
+import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.toArrayOrEmpty
@@ -68,19 +68,11 @@ internal val VTabBestIndexHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
 }
 
 internal val VTabDisconnectHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
-    vTabDisconnect(
-        vTab = vTab.toLong(),
-        destroyMemory = true,
-        cleanup = StructPointer::free
-    )
+    vTabDisconnect(vTab.toLong())
 }
 
 internal val VTabDestroyHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
-    vTabDestroy(
-        vTab = vTab.toLong(),
-        destroyMemory = true,
-        cleanup = StructPointer::free
-    )
+    vTabDestroy(vTab.toLong())
 }
 
 internal val VTabOpenHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
@@ -95,7 +87,7 @@ internal val VTabCloseHandler = staticCFunction { cursor: CPointer<s3_vtab_curso
     vTabClose(
         vTab = cursor!!.pointed.pVtab!!.toLong(),
         cursor = cursor.toLong(),
-        cleanup = StructPointer::free
+        cleanup = Struct::free
     )
 }
 
@@ -189,7 +181,7 @@ internal val VTabFindFunctionHandler = staticCFunction { vTab: CPointer<s3_vtab>
             // Keep the same logic as regular function from C-API
             // The function is bound to the sqlite3_vtab lifecycle
             createFunction(appData, function, null, null, null) { fn, fnDestroy ->
-                outFunction!!.pointed.value = FunctionFuncHandler.handle(function)
+                outFunction!!.pointed.value = callbackHandler(function, FunctionFuncHandler)
 
                 outAppData!!.pointed.value = instance.memory.keyedStableRefPointer(
                     key = functionKey(functionName, argc, null),

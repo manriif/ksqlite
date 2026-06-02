@@ -23,7 +23,7 @@ internal class WalHookHandler :
         dbName: MemorySegment,
         nPage: Int,
     ): Int = handle(refPointer) { callback: Sqlite3WalHookCallback<Any?>, appData ->
-        callback.handle(
+        callback.apply(
             appData = appData,
             db = sqlite3(db),
             dbName = dbName.toKStringFromUtf8(),

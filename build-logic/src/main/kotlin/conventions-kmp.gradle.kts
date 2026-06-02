@@ -2,11 +2,6 @@ import com.android.build.api.withAndroid
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
-/**
- * Copyright (c) 2024 Maanrifa Bacar Ali.
- * Use of this source code is governed by the MIT license.
- */
-
 plugins {
     org.jetbrains.kotlin.multiplatform
     id("conventions-common")
@@ -19,23 +14,29 @@ kotlin {
 
     applyDefaultHierarchyTemplate {
         common {
-            group("wal") {
+            group("nonWeb") {
                 withAndroid()
                 withJvm()
                 group("native")
+            }
+
+            group("nonAndroid") {
+                withJvm()
+                group("native")
+                group("web")
             }
         }
     }
 
     var androidDeviceTest: KotlinSourceSet? = null
-    var walTest: KotlinSourceSet? = null
+    var nonWeb: KotlinSourceSet? = null
 
     fun configureAndroidDeviceTest() {
-        val android = androidDeviceTest
-        val wal = walTest
+        val androidDevTest = androidDeviceTest
+        val nonWeb = nonWeb
 
-        if (android != null && wal != null) {
-            android.dependsOn(wal)
+        if (androidDevTest != null && nonWeb != null) {
+            androidDevTest.dependsOn(nonWeb)
         }
     }
 
@@ -62,8 +63,8 @@ kotlin {
                     }
                 }
 
-                "walTest" -> {
-                    walTest = this
+                "nonWebTest" -> {
+                    nonWeb = this
                     configureAndroidDeviceTest()
                 }
             }

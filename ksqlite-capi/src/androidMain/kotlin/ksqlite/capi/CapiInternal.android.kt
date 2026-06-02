@@ -17,7 +17,7 @@ import ksqlite.sqlite3_value_buffer as jni_sqlite3_value_buffer
 import ksqlite.sqlite3_value_pointer as jni_sqlite3_value_pointer
 
 private inline fun toBuffer(block: (OutputPointer.OfInt64) -> Long): Buffer? {
-    val size = OutputPointer.OfInt64()
+    val size = OutputPointer.OfInt64(0)
     val pointer = block(size)
     return Buffer.from(pointer, size.value)
 }

@@ -2,14 +2,14 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
 
 public actual class sqlite3_module<AppData>
 internal actual constructor(
     version: Int,
     internal val callbacks: VTabModuleCallbacks<AppData, *, *>
-) : StructPointer(allocate = { s3_module.allocate(this) }),
+) : Struct(allocate = { s3_module.allocate(this) }),
     AutoCloseable {
 
     init {

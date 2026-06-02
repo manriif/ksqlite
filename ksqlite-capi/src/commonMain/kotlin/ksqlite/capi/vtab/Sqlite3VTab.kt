@@ -3,7 +3,7 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.MemoryScope
-import ksqlite.capi.memory.StructPointer
+import ksqlite.capi.memory.Struct
 
 /**
  * Every virtual table module implementation uses a subclass of this object to describe a particular
@@ -13,7 +13,7 @@ import ksqlite.capi.memory.StructPointer
  *
  * [sqlite3_vtab](https://sqlite.org/c3ref/vtab.html)
  */
-public expect abstract class sqlite3_vtab() : StructPointer, MemoryScope {
+public expect abstract class sqlite3_vtab() : Struct, MemoryScope {
 
     /**
      * Number of open cursor.

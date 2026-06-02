@@ -4,7 +4,6 @@ package ksqlite.capi.vtab
 
 import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
 import ksqlite.capi.memory.ConcurrentMap
-import ksqlite.capi.memory.destroyMemory
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
@@ -146,7 +145,6 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
      * Removes this state from [VTabStates].
      */
     private inline fun closeVTab(
-        destroyMemory: Boolean,
         cleanup: (sqlite3_vtab) -> Unit,
         callback: (VTab) -> Sqlite3Result
     ) = callback(vTab).code.also {
@@ -155,10 +153,6 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
         }
 
         cleanup(vTab)
-
-        if (destroyMemory) {
-            vTab.destroyMemory()
-        }
     }
 
     inline fun open(setCursor: (sqlite3_vtab_cursor) -> Unit) = callbacks.open.run {
@@ -191,15 +185,11 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
         }
     }
 
-    inline fun disconnect(
-        destroyMemory: Boolean,
-        cleanup: (sqlite3_vtab) -> Unit
-    ) = closeVTab(destroyMemory, cleanup, callbacks.disconnect::handle)
+    inline fun disconnect(cleanup: (sqlite3_vtab) -> Unit) =
+        closeVTab(cleanup, callbacks.disconnect::handle)
 
-    inline fun destroy(
-        destroyMemory: Boolean,
-        cleanup: (sqlite3_vtab) -> Unit
-    ) = closeVTab(destroyMemory, cleanup, callbacks.destroy::handle)
+    inline fun destroy(cleanup: (sqlite3_vtab) -> Unit) =
+        closeVTab(cleanup, callbacks.destroy::handle)
 
     inline fun bestIndex(info: sqlite3_index_info) = callbacks.bestIndex.handle(vTab, info).code
 
@@ -380,18 +370,16 @@ internal inline fun vTabBestIndex(
  */
 internal inline fun vTabDisconnect(
     vTab: Long,
-    destroyMemory: Boolean,
     cleanup: (sqlite3_vtab) -> Unit
-): Int = vTab.vTabState.disconnect(destroyMemory, cleanup)
+): Int = vTab.vTabState.disconnect(cleanup)
 
 /**
  * Invokes the [VTabModuleCallbacks.destroy].
  */
 internal inline fun vTabDestroy(
     vTab: Long,
-    destroyMemory: Boolean,
     cleanup: (sqlite3_vtab) -> Unit
-) = vTab.vTabState.destroy(destroyMemory, cleanup)
+) = vTab.vTabState.destroy(cleanup)
 
 /**
  * Invokes the [VTabModuleCallbacks.open].

@@ -7,19 +7,21 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 /**
- * Manages memory.
+ * Base for [MemoryManager].
  */
 @OptIn(ExperimentalAtomicApi::class)
 internal abstract class MemoryManagerBase : AutoCloseable {
 
-    private val disposables: MutableMap<Long, AutoDisposable<*>> by lazy(::mutableMapOf)
-    private val keyedDisposables: MutableMap<String, Long> by lazy(::mutableMapOf)
+    // Accessing the three next variable require synchronization
+    private val disposables = mutableMapOf<Long, AutoDisposable<*>>()
+    private val keyedDisposables = mutableMapOf<String, Long>()
     private var nextDisposableId = 0L
-
-    // Lock for all previous variable
     private val disposableLock = Lock()
 
     private val closed = AtomicBoolean(false)
+
+    internal val isEmpty: Boolean
+        get() = disposableLock.withLock { disposables.isEmpty() }
 
     ///////////////////////////////////////////////////////////////////////////
     // Clearing
@@ -181,6 +183,12 @@ internal abstract class MemoryManagerBase : AutoCloseable {
 }
 
 /**
- * Platform specific memory manager.
+ * Manages memory.
+ *
+ * Provides helper functions to obtain native pointers to long-lived object and ensuring no object
+ * leak.
+ *
+ * Note that this is meaningless on Android, but declaring it here reduce the source code
+ * complexity.
  */
 internal expect class MemoryManager() : MemoryManagerBase
