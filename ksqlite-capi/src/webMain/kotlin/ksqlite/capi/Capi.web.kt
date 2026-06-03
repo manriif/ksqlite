@@ -2,6 +2,7 @@
 
 package ksqlite.capi
 
+import ksqlite.capi.VariadicValue.OfPointer
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
@@ -40,18 +41,10 @@ import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
-import ksqlite.capi.interop.js.arrayForEachIndexed
-import ksqlite.capi.interop.js.arraySize
-import ksqlite.capi.interop.js.copyTo
-import ksqlite.capi.interop.js.plus
-import ksqlite.capi.interop.wasm.IR
-import ksqlite.capi.interop.wasm.NullPtr
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.size
-import ksqlite.capi.interop.wasm.sizeofIR
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.HeapAllocatorScope
 import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.allocateUtf8Pointer
@@ -111,6 +104,14 @@ import ksqlite.capi.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.vtab.createVTabModule
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
+import ksqlite.js.arrayForEachIndexed
+import ksqlite.js.arraySize
+import ksqlite.js.copyTo
+import ksqlite.js.plus
+import ksqlite.wasm.IR
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.size
+import ksqlite.wasm.sizeofIR
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 

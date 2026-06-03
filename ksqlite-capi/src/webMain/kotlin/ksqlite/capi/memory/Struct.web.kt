@@ -1,10 +1,15 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.structs.JaccwabytStruct
+import ksqlite.wasm.WasmPointer
 import kotlin.js.toLong
 
-public actual open class Struct internal constructor(internal val pointer: WasmPointer) :
-    StructBase() {
+public actual open class Struct internal constructor(
+    internal val pointer: WasmPointer,
+    private val struct: JaccwabytStruct? = null,
+) : StructBase() {
+
+    internal constructor(struct: JaccwabytStruct) : this(struct.pointer, struct)
 
     actual override val address: Long
         get() = pointer.toLong()
@@ -14,7 +19,6 @@ public actual open class Struct internal constructor(internal val pointer: WasmP
         if (other !is Struct) return false
 
         return pointer == other.pointer
-
     }
 
     override fun hashCode(): Int {
@@ -22,6 +26,6 @@ public actual open class Struct internal constructor(internal val pointer: WasmP
     }
 
     actual override fun free() {
-        TODO("Not yet implemented")
+        struct?.dispose()
     }
 }

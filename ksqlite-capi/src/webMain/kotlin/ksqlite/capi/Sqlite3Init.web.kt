@@ -1,8 +1,8 @@
 package ksqlite.capi
 
-import ksqlite.capi.interop.Sqlite3
-import ksqlite.capi.interop.Sqlite3Wasm
-import ksqlite.capi.interop.Sqlite3WasmExports
+import ksqlite.Sqlite3
+import ksqlite.Sqlite3Wasm
+import ksqlite.Sqlite3WasmExports
 import ksqlite.sqliteInitializer
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException

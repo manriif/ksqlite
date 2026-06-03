@@ -2,14 +2,11 @@
 
 package ksqlite.capi
 
+import ksqlite.Sqlite3WasmExports
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.interop.Sqlite3WasmExports
-import ksqlite.capi.interop.wasm.IR
-import ksqlite.capi.interop.wasm.NullPtr
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.sizeofIR
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.HeapAllocatorScope
+import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.heapScoped
@@ -22,6 +19,9 @@ import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.wasm.IR
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.sizeofIR
 import kotlin.js.toLong
 
 private val pointerSize = wasm.sizeofIR(IR.Ptr)

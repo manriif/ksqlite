@@ -16,24 +16,24 @@ import java.lang.invoke.MethodHandles
  * Whether `this` [MemorySegment] points to a null pointer.
  */
 internal val MemorySegment.isNull: Boolean
-    get() = this == MemorySegment.NULL || address() == MemorySegment.NULL.address()
+    inline get() = this == MemorySegment.NULL || address() == MemorySegment.NULL.address()
 
 /**
  * Returns `null` if `this` [MemorySegment] points to a null pointer.
  */
 internal val MemorySegment.orNull: MemorySegment?
-    get() = takeUnless { isNull }
+    inline get() = takeUnless { isNull }
 
 /**
  * Returns a non-null [MemorySegment].
  */
 internal val MemorySegment?.notNull: MemorySegment
-    get() = this ?: MemorySegment.NULL
+    inline get() = this ?: MemorySegment.NULL
 
 /**
  * Sets the pointer value of `this` pointer to pointer.
  */
-internal fun MemorySegment.setValue(value: MemorySegment) {
+internal fun MemorySegment.setPointerValue(value: MemorySegment) {
     set(ValueLayout.ADDRESS, 0, value)
 }
 

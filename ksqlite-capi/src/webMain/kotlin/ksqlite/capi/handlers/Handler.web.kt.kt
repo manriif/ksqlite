@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.interop.wasm.WasmFunctions
-import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.wasm.WasmFunctions
+import ksqlite.wasm.WasmPointer
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.stableRefDataHolder
 

@@ -2,9 +2,8 @@ package ksqlite.capi.memory
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.Handler
-import ksqlite.capi.interop.wasm.NullPtr
-import ksqlite.capi.interop.wasm.WasmFunctions
-import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.wasm.WasmFunctions
+import ksqlite.wasm.WasmPointer
 
 /**
  * Handler that dispose reference to object.

@@ -1,8 +1,28 @@
 plugins {
     alias(libs.plugins.android.multiplatformLibrary)
     alias(libs.plugins.conventions.kmp)
-    //alias(libs.plugins.opensavvy.resources.consumer)
-    //alias(libs.plugins.opensavvy.resources.producer)
+}
+
+val wasmResourcesDirectory = layout.buildDirectory.dir("generated/ksqlite/src/webTest/resources")
+
+@Suppress("UnstableApiUsage")
+val wasmResources by configurations.resolvable(WASM_RESOURCES_CONFIG_NAME_CONSUMER)  {
+    applyWasmResourcesAttributes(this)
+}
+
+val extractWasmResources by tasks.registering(Sync::class) {
+    dependsOn(wasmResources.buildDependencies)
+    from(wasmResources.map(::zipTree))
+    into(wasmResourcesDirectory)
+}
+
+dependencies {
+    project(
+        mapOf(
+            "path" to projects.ksqliteWeb.path,
+            "configuration" to WASM_RESOURCES_CONFIG_NAME_PRODUCER
+        )
+    )
 }
 
 kotlin {
@@ -38,14 +58,9 @@ kotlin {
             implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
             implementation(projects.ksqliteWeb)
         }
+
+        webTest {
+            resources.srcDir(extractWasmResources)
+        }
     }
 }
-
-/*kotlinJsResConsumer {
-    directory = ""
-}
-
-dependencies {
-    jsConsumedResources(projects.ksqliteWeb)
-    wasmConsumedResources(projects.ksqliteWeb)
-}*/

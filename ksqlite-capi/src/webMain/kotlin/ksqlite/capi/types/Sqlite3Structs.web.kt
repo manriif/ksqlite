@@ -2,7 +2,7 @@
 
 package ksqlite.capi.types
 
-import ksqlite.capi.interop.wasm.WasmPointer
+import ksqlite.wasm.WasmPointer
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.Struct
 

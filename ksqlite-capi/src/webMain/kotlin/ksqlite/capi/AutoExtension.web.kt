@@ -1,10 +1,10 @@
 package ksqlite.capi
 
-import ksqlite.capi.interop.wasm.FunctionSignature
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.installFunction
+import ksqlite.wasm.FunctionSignature
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.installFunction
 import ksqlite.capi.memory.isNull
-import ksqlite.capi.memory.setValue
+import ksqlite.capi.memory.setPointerValue
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
 
@@ -32,5 +32,5 @@ private fun autoExtensionHandler(
     api = sqlite3_api_routines(pApi),
     errorPointer = pzErrMsg.takeUnless(WasmPointer::isNull)
 ) { errorPointer, message ->
-    errorPointer.setValue(sqlite3_mprintf(message))
+    errorPointer.setPointerValue(sqlite3_mprintf(message))
 }

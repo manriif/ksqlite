@@ -7,6 +7,7 @@ import ksqlite.capi.memory.StaticMemoryAllocator
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.setValue
+import ksqlite.capi.memory.setPointerValue
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.memory.toKStringFromUtf8
@@ -45,8 +46,8 @@ internal val VTabCreateHandler = xCreate.allocate({ db, refPointer, argc, argv, 
             module = db.memory.stableRefData<VTabModule<*, *, *>>(refPointer),
             db = db,
             argv = argv.toStringArrayOrEmpty(argc),
-            setVTab = { ppVtab.setValue(it.pointer) },
-            setError = { pzErr.setValue(sqlite3_mprintf(it)) }
+            setVTab = { ppVtab.setPointerValue(it.pointer) },
+            setError = { pzErr.setPointerValue(sqlite3_mprintf(it)) }
         )
     }
 }, StaticMemoryAllocator)
@@ -57,8 +58,8 @@ internal val VTabConnectHandler = xConnect.allocate({ db, refPointer, argc, argv
             module = db.memory.stableRefData<VTabModule<*, *, *>>(refPointer),
             db = db,
             argv = argv.toStringArrayOrEmpty(argc),
-            setVTab = { ppVtab.setValue(it.pointer) },
-            setError = { pzErr.setValue(sqlite3_mprintf(it)) }
+            setVTab = { ppVtab.setPointerValue(it.pointer) },
+            setError = { pzErr.setPointerValue(sqlite3_mprintf(it)) }
         )
     }
 }, StaticMemoryAllocator)
@@ -81,7 +82,7 @@ internal val VTabDestroyHandler = xDestroy.allocate({ vTab ->
 internal val VTabOpenHandler = xOpen.allocate({ vTab, outCursor ->
     vTabOpen(
         vTab = vTab.address(),
-        setCursor = { outCursor.setValue(it.pointer) }
+        setCursor = { outCursor.setPointerValue(it.pointer) }
     )
 }, StaticMemoryAllocator)
 
@@ -169,9 +170,9 @@ internal val VTabFindFunctionHandler = xFindFunction.allocate({ vTab, argc, name
             // Keep the same logic as regular function from C-API
             // The function is bound to the sqlite3_vtab lifecycle
             createFunction(appData, function, null, null, null) { fn, fnDestroy ->
-                outFn.setValue(instance.memory.functionPointer(::FunctionFuncHandler))
+                outFn.setPointerValue(instance.memory.functionPointer(::FunctionFuncHandler))
 
-                outData.setValue(
+                outData.setPointerValue(
                     instance.memory.keyedStableRefPointer(
                         key = functionKey(functionName, argc, null),
                         data = fn,
@@ -218,6 +219,6 @@ internal val VTabIntegrityHandler = xIntegrity.allocate({ vtab, schema, tableNam
         schema = schema.toKStringFromUtf8(),
         tableName = tableName.toKStringFromUtf8(),
         flags = flags,
-        setError = { outErr.setValue(sqlite3_mprintf(it)) }
+        setError = { outErr.setPointerValue(sqlite3_mprintf(it)) }
     )
 }, StaticMemoryAllocator)

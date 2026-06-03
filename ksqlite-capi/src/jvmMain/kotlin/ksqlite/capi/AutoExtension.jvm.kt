@@ -2,7 +2,7 @@ package ksqlite.capi
 
 import ksqlite.capi.memory.StaticMemoryAllocator
 import ksqlite.capi.memory.isNull
-import ksqlite.capi.memory.setValue
+import ksqlite.capi.memory.setPointerValue
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
 import ksqlite.ksqlite_xEntryPoint
@@ -17,6 +17,6 @@ internal val AutoExtensionHandler = ksqlite_xEntryPoint.allocate({ db, pzErrMsg,
         api = sqlite3_api_routines(pThunk),
         errorPointer = pzErrMsg.takeUnless(MemorySegment::isNull)
     ) { errorPointer, message ->
-        errorPointer.setValue(sqlite3_mprintf(message))
+        errorPointer.setPointerValue(sqlite3_mprintf(message))
     }
 }, StaticMemoryAllocator)

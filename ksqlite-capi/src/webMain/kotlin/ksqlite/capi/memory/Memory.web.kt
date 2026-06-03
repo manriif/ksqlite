@@ -2,27 +2,27 @@
 
 package ksqlite.capi.memory
 
-import ksqlite.capi.interop.js.Int8Array
-import ksqlite.capi.interop.js.arrayForEachIndexed
-import ksqlite.capi.interop.js.arraySize
-import ksqlite.capi.interop.js.plus
-import ksqlite.capi.interop.js.toByteArray
-import ksqlite.capi.interop.js.toInt8Array
-import ksqlite.capi.interop.wasm.CString
-import ksqlite.capi.interop.wasm.FunctionSignature
-import ksqlite.capi.interop.wasm.IR
-import ksqlite.capi.interop.wasm.NullPtr
-import ksqlite.capi.interop.wasm.WasmFunctions
-import ksqlite.capi.interop.wasm.WasmMemory
-import ksqlite.capi.interop.wasm.WasmPStack
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.alloc
-import ksqlite.capi.interop.wasm.allocPtr
-import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.interop.wasm.scopedAllocCStringStruct
-import ksqlite.capi.interop.wasm.scopedAllocPtr
-import ksqlite.capi.interop.wasm.sizeofIR
+import js.typedarrays.Int8Array
+import ksqlite.capi.sqlite3
 import ksqlite.capi.wasm
+import ksqlite.js.arrayForEachIndexed
+import ksqlite.js.arraySize
+import ksqlite.js.plus
+import ksqlite.js.toByteArray
+import ksqlite.js.toInt8Array
+import ksqlite.wasm.CString
+import ksqlite.wasm.FunctionSignature
+import ksqlite.wasm.IR
+import ksqlite.wasm.WasmFunctions
+import ksqlite.wasm.WasmMemory
+import ksqlite.wasm.WasmPStack
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.alloc
+import ksqlite.wasm.allocPtr
+import ksqlite.wasm.installFunction
+import ksqlite.wasm.scopedAllocCStringStruct
+import ksqlite.wasm.scopedAllocPtr
+import ksqlite.wasm.sizeofIR
 import kotlin.js.JsAny
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
@@ -32,27 +32,33 @@ import kotlin.js.toLong
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Wasm null pointer.
+ */
+public val NullPtr: WasmPointer
+    get() = sqlite3.wasm.ptr.`null`
+
+/**
  * Whether `this` [WasmPointer] points to a null pointer.
  */
 internal val WasmPointer.isNull: Boolean
-    get() = this == NullPtr
+    inline get() = this == NullPtr
 
 /**
  * Returns `null` if `this` [WasmPointer] points to a null pointer.
  */
 internal val WasmPointer.orNull: WasmPointer?
-    get() = takeUnless { isNull }
+    inline get() = takeUnless { isNull }
 
 /**
  * Returns a non-null [WasmPointer].
  */
 internal val WasmPointer?.notNull: WasmPointer
-    get() = this ?: NullPtr
+    inline get() = this ?: NullPtr
 
 /**
  * Sets the pointer value of `this` pointer to pointer.
  */
-internal fun WasmPointer.setValue(
+internal fun WasmPointer.setPointerValue(
     value: WasmPointer,
     memory: WasmMemory = wasm
 ) {
@@ -353,7 +359,7 @@ internal inline fun <R> bufferScoped(
     buffer: ByteArray,
     memory: WasmMemory = wasm,
     size: Int? = null,
-    block: Int8Array.(buffer: WasmPointer) -> R
+    block: Int8Array<*>.(buffer: WasmPointer) -> R
 ): R {
     val typedArray = size?.let { toInt8Array(buffer, it) } ?: toInt8Array(buffer)
     val pointer = memory.allocFromTypedArray(typedArray)

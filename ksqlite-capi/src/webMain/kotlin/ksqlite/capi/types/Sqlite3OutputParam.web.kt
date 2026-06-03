@@ -1,15 +1,15 @@
 package ksqlite.capi.types
 
 import ksqlite.capi.exports
-import ksqlite.capi.interop.wasm.IR
-import ksqlite.capi.interop.wasm.NullPtr
-import ksqlite.capi.interop.wasm.WasmMemory
-import ksqlite.capi.interop.wasm.WasmPointer
 import ksqlite.capi.memory.MemoryAllocator
+import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.StackAllocatorScope
-import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.isNull
+import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.toKStringFromUtf8
+import ksqlite.wasm.IR
+import ksqlite.wasm.WasmMemory
+import ksqlite.wasm.WasmPointer
 import kotlin.js.toInt
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
@@ -230,35 +230,6 @@ internal inline fun <R> useParamStackScoped(
 
     return stackScoped {
         param.use(this, block)
-    }
-}
-
-/**
- * Allocates native memory to [param1] and [param2] into `this` [MemoryAllocator], invokes [block]
- * with pointers to them and returns [block]'s result.
- *
- * The pointers passed to [block] must not escape.
- */
-internal inline fun <R> MemoryAllocator.useParams(
-    param1: OutputParamBase<*>?,
-    param2: OutputParamBase<*>?,
-    block: (
-        pointer1: WasmPointer,
-        pointer2: WasmPointer
-    ) -> R
-): R {
-    if (param1 == null && param2 == null) {
-        return block(NullPtr, NullPtr)
-    }
-
-    val pointer1 = param1?.attach(this) ?: NullPtr
-    val pointer2 = param2?.attach(this) ?: NullPtr
-
-    return try {
-        block(pointer1, pointer2)
-    } finally {
-        param1?.detach(pointer1)
-        param2?.detach(pointer2)
     }
 }
 

@@ -4,17 +4,11 @@ import komple.tool.KompleTool
 import modules.compileSqliteWasm
 import modules.copySqliteWasmGeneratedResources
 import org.gradle.kotlin.dsl.support.serviceOf
-import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
-import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 
 plugins {
     alias(libs.plugins.conventions.kmp)
-    alias(libs.plugins.opensavvy.resources.producer)
     alias(kompleLibs.plugins.komple)
 }
-
-val generatedResourcesDirectory =
-    layout.buildDirectory.dir("generated/ksqlite/src/webMain/resources")
 
 val compileWasm by tasks.registeringKsqlite { context ->
     val requiredTools = komple.tools.run {
@@ -49,7 +43,7 @@ val compileWasm by tasks.registeringKsqlite { context ->
 val copyWasmResources by tasks.registeringKsqlite {
     val fileOperations = serviceOf<FileSystemOperations>()
     val inputDirectory = compileWasm.map { it.outputs.files.singleFile }
-    val outputDirectory = generatedResourcesDirectory
+    val outputDirectory = layout.buildDirectory.dir("generated/ksqlite/resources")
 
     inputs.dir(inputDirectory)
     outputs.dir(outputDirectory)
@@ -63,10 +57,30 @@ val copyWasmResources by tasks.registeringKsqlite {
     }
 }
 
-kotlin {
-    webTargets().forEach { target ->
-        target.configureJsTarget()
+val zipWasmResources by tasks.registering(Zip::class) {
+    from(copyWasmResources)
+    archiveClassifier = "resources"
+}
+
+@Suppress("UnstableApiUsage")
+val wasmResources by configurations.consumable(WASM_RESOURCES_CONFIG_NAME_PRODUCER) {
+    applyWasmResourcesAttributes(this)
+}
+
+artifacts {
+    add(wasmResources.name, zipWasmResources)
+}
+
+publishing {
+    publications {
+        register<MavenPublication>("wasmResources") {
+            artifact(zipWasmResources)
+        }
     }
+}
+
+kotlin {
+    webTargets()
 
     sourceSets {
         all {
@@ -74,19 +88,9 @@ kotlin {
         }
 
         webMain {
-            resources.srcDir(generatedResourcesDirectory)
-        }
-    }
-}
-
-fun KotlinJsTargetDsl.configureJsTarget() {
-    tasks.named<Zip>("${name}ResourceArchive") {
-        from(copyWasmResources.map { it.outputs.files })
-    }
-
-    compilations.named(KotlinCompilation.MAIN_COMPILATION_NAME) {
-        compileTaskProvider.configure {
-            dependsOn(compileWasm)
+            dependencies {
+                api(libs.kotlin.js)
+            }
         }
     }
 }

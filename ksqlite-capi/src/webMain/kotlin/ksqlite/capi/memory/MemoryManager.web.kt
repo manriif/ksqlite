@@ -2,16 +2,15 @@
 
 package ksqlite.capi.memory
 
+import ksqlite.Sqlite3Wasm
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.Handler
-import ksqlite.capi.interop.Sqlite3Wasm
-import ksqlite.capi.interop.js.toInt8Array
-import ksqlite.capi.interop.wasm.IR
-import ksqlite.capi.interop.wasm.NullPtr
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.allocCString
-import ksqlite.capi.interop.wasm.sizeofIR
 import ksqlite.capi.wasm
+import ksqlite.js.toInt8Array
+import ksqlite.wasm.IR
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.allocCString
+import ksqlite.wasm.sizeofIR
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 import kotlin.reflect.KClass
