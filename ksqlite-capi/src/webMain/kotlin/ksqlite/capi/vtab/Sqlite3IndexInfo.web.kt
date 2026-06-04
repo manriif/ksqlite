@@ -2,11 +2,17 @@
 
 package ksqlite.capi.vtab
 
+import ksqlite.capi.capi
+import ksqlite.capi.convertVTabConstraintOperatorCode
 import ksqlite.capi.exports
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
+import ksqlite.structs.invoke
+import ksqlite.structs.nthConstraint
+import ksqlite.structs.nthConstraintUsage
+import ksqlite.structs.nthOrderBy
 import ksqlite.wasm.WasmPointer
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
@@ -14,7 +20,12 @@ import kotlin.js.toLong
 public actual class sqlite3_index_info internal constructor(private val info: s3_index_info) :
     Struct(info.pointer) {
 
-    internal constructor(pointer: WasmPointer) : this(s3_index_info(pointer))
+    internal constructor(pointer: WasmPointer) : this(capi.sqlite3_index_info(pointer))
+
+    // Lists are used instead of arrays because Array is broken in webMain sourceSet
+    private val constraints by lazy { List(nConstraint, info::nthConstraint) }
+    private val constraintUsages by lazy { List(nConstraint, info::nthConstraintUsage) }
+    private val orderBys by lazy { List(nConstraint, info::nthOrderBy) }
 
     public actual val colUsed: ULong
         get() = info.colUsed.toLong().toULong()
@@ -26,19 +37,19 @@ public actual class sqlite3_index_info internal constructor(private val info: s3
         get() = info.nOrderBy
 
     public actual fun getConstraintColumn(index: Int): Int =
-        TODO()
+        constraints[index].iColumn
 
     public actual fun getConstraintOp(index: Int): Sqlite3VTabConstraintOperatorCode =
-        TODO()// convertVTabConstraintOperatorCode()
+        convertVTabConstraintOperatorCode(constraints[index].op)
 
     public actual fun getConstraintUsable(index: Int): Int =
-        TODO()
+        constraints[index].usable
 
     public actual fun getOrderByColumn(index: Int): Int =
-        TODO()
+        orderBys[index].iColumn
 
     public actual fun getOrderByDesc(index: Int): Int =
-        TODO()
+        orderBys[index].desc
 
     public actual var idxNum: Int
         get() = info.idxNum
@@ -84,10 +95,10 @@ public actual class sqlite3_index_info internal constructor(private val info: s3
         }
 
     public actual fun setConstraintUsageArgvIndex(index: Int, argvIndex: Int) {
-        TODO()
+        constraintUsages[index].argvIndex = argvIndex
     }
 
     public actual fun setConstraintUsageOmit(index: Int, omit: Int) {
-        TODO()
+        constraintUsages[index].omit = omit
     }
 }

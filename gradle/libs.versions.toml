@@ -62,7 +62,7 @@ androidx-testRunner = { module = "androidx.test:runner", version.ref = "androidx
 copyWebpackPlugin = { module = "npm:copy-webpack-plugin", version.ref = "copyWebpackPlugin" }
 dokka-gradlePlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
-kotlin-js = { module = "org.jetbrains.kotlin-wrappers:kotlin-js", version.ref = "kotlin-wrappers" }
+kotlin-wrappers-js = { module = "org.jetbrains.kotlin-wrappers:kotlin-js", version.ref = "kotlin-wrappers" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinx-coroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }

@@ -1,9 +1,10 @@
+@file:Suppress("NOTHING_TO_INLINE", "MISSING_DEPENDENCY_SUPERCLASS_WARNING")
+
 package ksqlite.js
 
 import js.array.ReadonlyArray
 import js.array.jsArrayOf
 import js.typedarrays.Int8Array
-import js.typedarrays.internal.castOrConvertToByteArray
 import js.typedarrays.toByteArray
 import js.typedarrays.toInt8Array
 import kotlin.js.JsAny
@@ -37,23 +38,18 @@ public inline fun <reified T : JsAny?> jsArrayOf(element: T): ReadonlyArray<T> =
 /**
  * Returns the [array] as [JsArray].
  */
-public inline fun <T : JsAny?> toJsArray(array: Array<T>): ReadonlyArray<T> {
-    return array.toJsArray().unsafeCast<ReadonlyArray<T>>()
-}
+public inline fun <T : JsAny?> toJsArray(array: Array<T>): ReadonlyArray<T> =
+    array.toJsArray().unsafeCast<ReadonlyArray<T>>()
 
 /**
  * [Array.size].
  */
-public inline fun arraySize(array: Array<*>): Int {
-    return array.size
-}
+public inline fun arraySize(array: Array<*>): Int = array.size
 
 /**
  * [ByteArray.size].
  */
-public inline fun arraySize(array: ByteArray): Int {
-    return array.size
-}
+public inline fun arraySize(array: ByteArray): Int = array.size
 
 /**
  * [Array.forEachIndexed].
@@ -72,7 +68,7 @@ public inline fun <T : Any> arrayJoinToString(
     array: Array<T>,
     separator: CharSequence,
     crossinline transform: (T) -> Any
-) : String = array.joinToString(separator) { item ->
+): String = array.joinToString(separator) { item ->
     transform(item).toString()
 }
 

@@ -1,15 +1,15 @@
 package ksqlite.capi.memory
 
-import ksqlite.structs.JaccwabytStruct
+import ksqlite.structs.StructType
 import ksqlite.wasm.WasmPointer
 import kotlin.js.toLong
 
 public actual open class Struct internal constructor(
     internal val pointer: WasmPointer,
-    private val struct: JaccwabytStruct? = null,
+    private val struct: StructType? = null,
 ) : StructBase() {
 
-    internal constructor(struct: JaccwabytStruct) : this(struct.pointer, struct)
+    internal constructor(struct: StructType) : this(struct.pointer, struct)
 
     actual override val address: Long
         get() = pointer.toLong()

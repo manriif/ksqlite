@@ -3,34 +3,82 @@
 package ksqlite.structs
 
 import ksqlite.wasm.WasmPointer
+import kotlin.js.JsName
 
 /**
  * JS wrapper around `sqlite3_module` C-struct.
  */
-public external class sqlite3_module : JaccwabytStruct {
+public external interface sqlite3_module : StructType {
 
-    public var iVersion: Int
-    public var xCreate: WasmPointer
-    public var xConnect: WasmPointer
-    public var xBestIndex: WasmPointer
-    public var xDisconnect: WasmPointer
-    public var xDestroy: WasmPointer
-    public var xOpen: WasmPointer
-    public var xClose: WasmPointer
-    public var xFilter: WasmPointer
-    public var xNext: WasmPointer
-    public var xEof: WasmPointer
-    public var xColumn: WasmPointer
-    public var xRowid: WasmPointer
-    public var xUpdate: WasmPointer
-    public var xBegin: WasmPointer
-    public var xSync: WasmPointer
-    public var xCommit: WasmPointer
-    public var xRollback: WasmPointer
-    public var xFindFunction: WasmPointer
-    public var xRename: WasmPointer
-    public var xSavepoint: WasmPointer
-    public var xRelease: WasmPointer
-    public var xRollbackTo: WasmPointer
-    public var xIntegrity: WasmPointer
+    @JsName($$"$iVersion")
+	public var iVersion: Int
+
+    @JsName($$"$xCreate")
+	public var xCreate: WasmPointer
+
+    @JsName($$"$xConnect")
+	public var xConnect: WasmPointer
+
+    @JsName($$"$xBestIndex")
+	public var xBestIndex: WasmPointer
+
+    @JsName($$"$xDisconnect")
+	public var xDisconnect: WasmPointer
+
+    @JsName($$"$xDestroy")
+	public var xDestroy: WasmPointer
+
+    @JsName($$"$xOpen")
+	public var xOpen: WasmPointer
+
+    @JsName($$"$xClose")
+	public var xClose: WasmPointer
+
+    @JsName($$"$xFilter")
+	public var xFilter: WasmPointer
+
+    @JsName($$"$xNext")
+	public var xNext: WasmPointer
+
+    @JsName($$"$xEof")
+	public var xEof: WasmPointer
+
+    @JsName($$"$xColumn")
+	public var xColumn: WasmPointer
+
+    @JsName($$"$xRowid")
+	public var xRowid: WasmPointer
+
+    @JsName($$"$xUpdate")
+	public var xUpdate: WasmPointer
+
+    @JsName($$"$xBegin")
+	public var xBegin: WasmPointer
+
+    @JsName($$"$xSync")
+	public var xSync: WasmPointer
+
+    @JsName($$"$xCommit")
+	public var xCommit: WasmPointer
+
+    @JsName($$"$xRollback")
+	public var xRollback: WasmPointer
+
+    @JsName($$"$xFindFunction")
+	public var xFindFunction: WasmPointer
+
+    @JsName($$"$xRename")
+	public var xRename: WasmPointer
+
+    @JsName($$"$xSavepoint")
+	public var xSavepoint: WasmPointer
+
+    @JsName($$"$xRelease")
+	public var xRelease: WasmPointer
+
+    @JsName($$"$xRollbackTo")
+	public var xRollbackTo: WasmPointer
+
+    @JsName($$"$xIntegrity")
+	public var xIntegrity: WasmPointer
 }

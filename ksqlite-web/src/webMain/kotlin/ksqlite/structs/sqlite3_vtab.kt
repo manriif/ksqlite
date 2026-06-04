@@ -3,13 +3,19 @@
 package ksqlite.structs
 
 import ksqlite.wasm.WasmPointer
+import kotlin.js.JsName
 
 /**
  * JS wrapper around `sqlite3_vtab` C-struct.
  */
-public external class sqlite3_vtab : JaccwabytStruct {
+public external interface sqlite3_vtab : StructType {
 
+    @JsName($$"$pModule")
     public var pModule: WasmPointer
-    public val nRef: Int
+
+    @JsName($$"$nRef")
+    public var nRef: Int
+
+    @JsName($$"$zErrMsg")
     public var zErrMsg: WasmPointer
 }

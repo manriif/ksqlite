@@ -61,7 +61,7 @@ val KsqliteFunctions = listOf(
 
 private const val KSQLITE_TASK_GROUP = "ksqlite"
 
-private fun Task.configureKsqliteTask(cacheable: Boolean) {
+fun Task.configureKsqliteTask(cacheable: Boolean) {
     group = KSQLITE_TASK_GROUP
 
     if (cacheable) {
@@ -85,24 +85,11 @@ fun TaskContainer.registeringKsqlite(
 /**
  * Property delegate for registering new elements in the container.
  */
-fun <T : Task> TaskContainer.registeringKsqlite(
-    type: KClass<T>,
-    cacheable: Boolean = true
-): RegisteringDomainObjectDelegateProviderWithTypeAndAction<out TaskContainer, T> {
-    return registering(type) {
-        configureKsqliteTask(cacheable)
-    }
-}
-
-/**
- * Property delegate for registering new elements in the container.
- */
-fun <T : Task> TaskContainer.registeringKsqlite(
-    type: KClass<T>,
+inline fun <reified T : Task> TaskContainer.registeringKsqlite(
     cacheable: Boolean = true,
-    action: T.(context: TaskContext) -> Unit
+    noinline action: T.(context: TaskContext) -> Unit
 ): RegisteringDomainObjectDelegateProviderWithTypeAndAction<out TaskContainer, T> {
-    return registering(type) {
+    return registering(T::class) {
         configureKsqliteTask(cacheable)
         configureWithContext(action)
     }

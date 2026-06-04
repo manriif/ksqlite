@@ -44,7 +44,7 @@ val generateFfmMetadata by tasks.registeringKsqlite {
     }
 }
 
-val generateFfmSources by tasks.registeringKsqlite(Copy::class) {
+val generateFfmSources by tasks.registeringKsqlite<Copy> {
     dependsOn(generateFfmMetadata)
     from(javaBindings.map { it.generateDirectory })
     into(generatedJavaSourceDirectory)

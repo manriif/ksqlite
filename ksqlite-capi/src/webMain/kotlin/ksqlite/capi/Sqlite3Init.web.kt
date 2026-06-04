@@ -1,6 +1,7 @@
 package ksqlite.capi
 
 import ksqlite.Sqlite3
+import ksqlite.Sqlite3Capi
 import ksqlite.Sqlite3Wasm
 import ksqlite.Sqlite3WasmExports
 import ksqlite.sqliteInitializer
@@ -27,13 +28,19 @@ internal val sqlite3: Sqlite3
     }
 
 /**
+ * Returns the [Sqlite3Capi] instance.
+ */
+internal inline val capi: Sqlite3Capi
+    get() = sqlite3.capi
+
+/**
  * Returns the [Sqlite3Wasm] instance.
  */
 internal inline val wasm: Sqlite3Wasm
     get() = sqlite3.wasm
 
 /**
- * Returns the [Sqlite3Wasm] instance.
+ * Returns the [Sqlite3WasmExports] instance.
  */
 internal inline val exports: Sqlite3WasmExports
     get() = wasm.exports

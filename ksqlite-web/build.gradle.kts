@@ -11,7 +11,7 @@ plugins {
 }
 
 val compileWasm by tasks.registeringKsqlite { context ->
-    val requiredTools = komple.tools.run {
+    val requiredTools = with(komple.tools) {
         listOf(emscripten, gnuSed, wabt)
             .map(KompleTool::installTaskProvider)
             .toTypedArray()
@@ -63,20 +63,12 @@ val zipWasmResources by tasks.registering(Zip::class) {
 }
 
 @Suppress("UnstableApiUsage")
-val wasmResources by configurations.consumable(WASM_RESOURCES_CONFIG_NAME_PRODUCER) {
-    applyWasmResourcesAttributes(this)
+val wasmResources by configurations.consumable(WASM_RESOURCES_CONFIGURATION) {
+    applyWasmResourcesAttributes()
 }
 
 artifacts {
     add(wasmResources.name, zipWasmResources)
-}
-
-publishing {
-    publications {
-        register<MavenPublication>("wasmResources") {
-            artifact(zipWasmResources)
-        }
-    }
 }
 
 kotlin {
@@ -89,7 +81,7 @@ kotlin {
 
         webMain {
             dependencies {
-                api(libs.kotlin.js)
+                api(libs.kotlin.wrappers.js)
             }
         }
     }

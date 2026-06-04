@@ -11,6 +11,7 @@ import ksqlite.capi.memory.setPointerValue
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.memory.toKStringFromUtf8
+import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.memory.toStringArrayOrEmpty
 import ksqlite.capi.sqlite3_mprintf
 import ksqlite.capi.types.sqlite3
@@ -99,7 +100,7 @@ internal val VTabFilterHandler = xFilter.allocate({ cursor, idxNum, idxStr, argc
         vTab = s3_vtab_cursor.pVtab(cursor).address(),
         cursor = cursor.address(),
         idxNum = idxNum,
-        idxStr = idxStr?.toKStringFromUtf8(),
+        idxStr = idxStr.toKStringFromUtf8OrNull(),
         arguments = argv.toArrayOrEmpty(argc, ::sqlite3_value)
     )
 }, StaticMemoryAllocator)

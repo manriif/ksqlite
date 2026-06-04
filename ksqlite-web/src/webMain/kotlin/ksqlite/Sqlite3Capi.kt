@@ -1,48 +1,36 @@
+@file:Suppress("PropertyName", "SpellCheckingInspection")
+
 package ksqlite
 
+import ksqlite.structs.StructCtor
+import ksqlite.structs.sqlite3_index_info
+import ksqlite.structs.sqlite3_module
+import ksqlite.structs.sqlite3_vtab
+import ksqlite.structs.sqlite3_vtab_cursor
 import kotlin.js.JsAny
 
 /**
- * SQLite C-API exposed functions.
+ * SQLite C-API exposed functions and objects.
  */
-@Suppress("FunctionName", "SpellCheckingInspection")
 public external interface Sqlite3Capi : JsAny {
 
-    /*fun sqlite3_preupdate_new_js()
+    /**
+     * Returns the constructor to [sqlite3_index_info].
+     */
+    public val sqlite3_index_info: StructCtor<sqlite3_index_info>
 
-    fun sqlite3_preupdate_old_js()
+    /**
+     * Returns the constructor to [sqlite3_module].
+     */
+    public val sqlite3_module: StructCtor<sqlite3_module>
 
-    fun sqlite3_js_aggregate_context()
+    /**
+     * Returns the constructor to [sqlite3_vtab].
+     */
+    public val sqlite3_vtab: StructCtor<sqlite3_vtab>
 
-    fun sqlite3_js_db_export()
-
-    fun sqlite3_js_db_uses_vfs()
-
-    fun sqlite3_js_db_vfs()
-
-    fun sqlite3_js_kvvfs_clear()
-
-    fun sqlite3_js_kvvfs_size()
-
-    fun sqlite3_js_posix_create_file()
-
-    fun sqlite3_js_rc_str()
-
-    fun sqlite3_js_sql_to_string()
-
-    fun sqlite3_js_vfs_create_file()
-
-    fun sqlite3_js_vfs_list()
-
-    fun sqlite3_value_to_js()
-
-    fun sqlite3_values_to_js()
-
-    fun sqlite3_vtab_config()
-
-    fun sqlite3_result_error_js()
-
-    fun sqlite3_result_js()
-
-    fun sqlite3_column_js()*/
+    /**
+     * Returns the constructor to [sqlite3_vtab_cursor].
+     */
+    public val sqlite3_vtab_cursor: StructCtor<sqlite3_vtab_cursor>
 }
