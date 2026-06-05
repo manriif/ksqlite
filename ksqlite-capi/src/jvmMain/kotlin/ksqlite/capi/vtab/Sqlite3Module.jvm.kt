@@ -7,8 +7,7 @@ import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
 import java.lang.foreign.MemorySegment
 
-public actual class sqlite3_module<AppData>
-internal actual constructor(
+public actual class sqlite3_module<AppData> internal actual constructor(
     version: Int,
     internal val callbacks: VTabModuleCallbacks<AppData, *, *>
 ) : Struct(allocate = { s3_module.allocate(this) }),

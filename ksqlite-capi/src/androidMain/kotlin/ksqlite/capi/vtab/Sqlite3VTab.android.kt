@@ -7,8 +7,8 @@ import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
 
-public actual abstract class sqlite3_vtab internal constructor(private val vTab: s3_vtab) :
-    Struct(vTab.pointer, vTab),
+public actual abstract class sqlite3_vtab private constructor(private val vTab: s3_vtab) :
+    Struct(vTab),
     MemoryScope {
 
     public actual constructor() : this(s3_vtab())

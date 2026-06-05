@@ -18,7 +18,7 @@ public abstract class JniStruct private constructor(
     /**
      * Wraps an existing instance.
      */
-    internal constructor(pointer: Long, layout: IntArray):
+    internal constructor(pointer: Long, layout: IntArray) :
             this(layout, structReinterpret(pointer), pointer)
 
     @Suppress("unused")
@@ -34,7 +34,7 @@ public abstract class JniStruct private constructor(
     internal constructor(
         layout: IntArray,
         allocate: (OutputPointer.OfPointer) -> ByteBuffer
-    ) : this(layout,  OutputPointer.OfPointer(0L), allocate)
+    ) : this(layout, OutputPointer.OfPointer(0L), allocate)
 
     /**
      * Invokes [block] passing it the offset of the field at [index].
@@ -62,6 +62,10 @@ public abstract class JniStruct private constructor(
 
         return buffer.block(offset)
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Primitives
+    ///////////////////////////////////////////////////////////////////////////
 
     /**
      * Reads one byte starting from the offset of the field at [index].
@@ -114,6 +118,24 @@ public abstract class JniStruct private constructor(
     protected fun writeDouble(index: Int, value: Double) {
         withOffsetAndLength(index, 1) { putDouble(it, value) }
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Arrays
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Returns the address of the item at index [itemIndex] of the array for which the first item
+     * index is located at [baseAddress]. The item size is obtained from [itemLayout].
+     */
+    protected fun arrayItemAddress(
+        baseAddress: Long,
+        itemIndex: Int,
+        itemLayout: IntArray
+    ): Long = baseAddress + itemIndex * itemLayout.last()
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Memory
+    ///////////////////////////////////////////////////////////////////////////
 
     /**
      * Releases the resources associated with this struct.

@@ -15,10 +15,10 @@ public class sqlite3_vtab_cursor : JniStruct(layout, { structMalloc(StructType.V
         get() = readInt(LAYOUT_INDEX_PVTAB)
         set(value) = writeInt(LAYOUT_INDEX_PVTAB, value)
 
-    private companion object Layout {
+    public companion object Layout {
 
-        val layout by lazy { structLayout(StructType.VtabCursor) }
+        internal val layout by lazy { structLayout(StructType.VtabCursor) }
 
-        const val LAYOUT_INDEX_PVTAB = 0
+        public const val LAYOUT_INDEX_PVTAB: Int = 0
     }
 }

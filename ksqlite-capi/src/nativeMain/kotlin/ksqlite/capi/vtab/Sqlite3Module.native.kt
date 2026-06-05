@@ -12,8 +12,7 @@ import ksqlite.capi.vtab.Sqlite3ModuleKind.Eponymous
 import ksqlite.capi.vtab.Sqlite3ModuleKind.EponymousOnly
 import ksqlite.capi.vtab.Sqlite3ModuleKind.Ordinal
 
-public actual class sqlite3_module<AppData>
-internal constructor(
+public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VTabModuleCallbacks<AppData, *, *>,
     override val pointer: CPointer<s3_module>,
     placement: NativeFreeablePlacement? = null

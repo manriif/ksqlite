@@ -13,10 +13,10 @@ internal enum class Sqlite3ModuleKind {
     /**
      * xCreate is referentially equals to xConnect.
      */
-    EponymousOnly,
+    Eponymous,
 
     /**
      * xCreate is null.
      */
-    Eponymous
+    EponymousOnly
 }

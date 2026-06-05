@@ -23,12 +23,12 @@ public class sqlite3_vtab : JniStruct(layout, { structMalloc(StructType.Vtab, it
         get() = readLong(LAYOUT_INDEX_ZERRMSG)
         set(value) = writeLong(LAYOUT_INDEX_ZERRMSG, value)
 
-    private companion object Layout {
+    public companion object Layout {
 
-        val layout by lazy { structLayout(StructType.Vtab) }
+        internal val layout by lazy { structLayout(StructType.Vtab) }
 
-        const val LAYOUT_INDEX_PMODULE = 0
-        const val LAYOUT_INDEX_NREF = 1
-        const val LAYOUT_INDEX_ZERRMSG = 2
+        public const val LAYOUT_INDEX_PMODULE: Int = 0
+        public const val LAYOUT_INDEX_NREF: Int = 1
+        public const val LAYOUT_INDEX_ZERRMSG: Int = 2
     }
 }

@@ -18,6 +18,7 @@ import ksqlite.callbacks.ProgressHandlerCallback
 import ksqlite.callbacks.RollbackHookCallback
 import ksqlite.callbacks.TraceCallback
 import ksqlite.callbacks.UpdateHookCallback
+import ksqlite.callbacks.VTabModuleCallbacks
 import ksqlite.callbacks.WalHookCallback
 import ksqlite.structs.StructType
 import java.nio.ByteBuffer
@@ -88,7 +89,9 @@ public external fun nativeFreeAndMprintf(
  * - array[P*2] = offset
  * - array[P*2+1] = length
  *
- * The offset and lentgh for a property index are written in the declared order in the C-struct.
+ * The struct's total size can be obtained by reading the last element of teh returned array.
+ *
+ * The offset and lentgh are written in the order they're declared in the C-struct.
  */
 private external fun nativeStructLayout(type: Int): IntArray
 
@@ -1112,3 +1115,16 @@ public external fun sqlite3_wal_hook(
 ///////////////////////////////////////////////////////////////////////////
 // Virtual Table
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Initiliazes the `sqlite3_module` [module] with the supplied [callbacks].
+ *
+ * The [methodMask] represents the callbacks to enable where the LSB is the first callback in the
+ * struct (xConnect) and the MSB the last (xIntegrity) in the order they're declared in the struct.
+ */
+public external fun nativeVTabModuleInit(
+    module: Long,
+    methodMask: Int,
+    eponymous: Boolean,
+    callbacks: VTabModuleCallbacks
+)

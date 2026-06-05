@@ -63,6 +63,27 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(pointer, layout) {
         set(value) = writeLong(LAYOUT_INDEX_COLUSED, value)
 
     /**
+     * Returns the [sqlite3_index_constraint] at [index].
+     */
+    public fun constraint(index: Int): sqlite3_index_constraint = sqlite3_index_constraint(
+        arrayItemAddress(aConstraint, index, sqlite3_index_constraint.layout)
+    )
+
+    /**
+     * Returns the [sqlite3_index_constraint_usage] at [index].
+     */
+    public fun constraintUsage(index: Int): sqlite3_index_constraint_usage =
+        sqlite3_index_constraint_usage(
+            arrayItemAddress(aConstraint, index, sqlite3_index_constraint_usage.layout)
+        )
+
+    /**
+     * Returns the [sqlite3_index_orderby] at [index].
+     */
+    public fun orderBy(index: Int): sqlite3_index_orderby =
+        sqlite3_index_orderby(arrayItemAddress(aConstraint, index, sqlite3_index_orderby.layout))
+
+    /**
      * Wraps an instance of `sqlite3_index_constraint` at address [pointer] and supplies getters and
      * setters for reading and writing the struct.
      */
@@ -84,14 +105,14 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(pointer, layout) {
             get() = readInt(LAYOUT_INDEX_ITERMOFFSET)
             set(value) = writeInt(LAYOUT_INDEX_ITERMOFFSET, value)
 
-        private companion object Layout {
+        public companion object Layout {
 
-            val layout by lazy { structLayout(StructType.IndexConstraint) }
+            internal val layout by lazy { structLayout(StructType.IndexConstraint) }
 
-            const val LAYOUT_INDEX_ICOLUMN = 0
-            const val LAYOUT_INDEX_OP = 1
-            const val LAYOUT_INDEX_USABLE = 2
-            const val LAYOUT_INDEX_ITERMOFFSET = 3
+            public const val LAYOUT_INDEX_ICOLUMN: Int = 0
+            public const val LAYOUT_INDEX_OP: Int = 1
+            public const val LAYOUT_INDEX_USABLE: Int = 2
+            public const val LAYOUT_INDEX_ITERMOFFSET: Int = 3
         }
     }
 
@@ -109,12 +130,12 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(pointer, layout) {
             get() = readByte(LAYOUT_INDEX_OMIT)
             set(value) = writeByte(LAYOUT_INDEX_OMIT, value)
 
-        private companion object Layout {
+        public companion object Layout {
 
-            val layout by lazy { structLayout(StructType.IndexConstraintUsage) }
+            internal val layout by lazy { structLayout(StructType.IndexConstraintUsage) }
 
-            const val LAYOUT_INDEX_ARGVINDEX = 0
-            const val LAYOUT_INDEX_OMIT = 1
+            public const val LAYOUT_INDEX_ARGVINDEX: Int = 0
+            public const val LAYOUT_INDEX_OMIT: Int = 1
         }
     }
 
@@ -132,31 +153,31 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(pointer, layout) {
             get() = readByte(LAYOUT_INDEX_DESC)
             set(value) = writeByte(LAYOUT_INDEX_DESC, value)
 
-        private companion object Layout {
+        public companion object Layout {
 
-            val layout by lazy { structLayout(StructType.IndexOrderby) }
+            internal val layout by lazy { structLayout(StructType.IndexOrderby) }
 
-            const val LAYOUT_INDEX_ICOLUMN = 0
-            const val LAYOUT_INDEX_DESC = 1
+            public const val LAYOUT_INDEX_ICOLUMN: Int = 0
+            public const val LAYOUT_INDEX_DESC: Int = 1
         }
     }
 
-    private companion object Layout {
+    public companion object Layout {
 
-        val layout by lazy { structLayout(StructType.IndexInfo) }
+        internal val layout by lazy { structLayout(StructType.IndexInfo) }
 
-        const val LAYOUT_INDEX_NCONSTRAINT = 0
-        const val LAYOUT_INDEX_ACONSTRAINT = 1
-        const val LAYOUT_INDEX_NORDERBY = 2
-        const val LAYOUT_INDEX_AORDERBY = 3
-        const val LAYOUT_INDEX_ACONSTRAINTUSAGE = 4
-        const val LAYOUT_INDEX_IDXNUM = 5
-        const val LAYOUT_INDEX_IDXSTR = 6
-        const val LAYOUT_INDEX_NEEDTOFREEIDXSTR = 7
-        const val LAYOUT_INDEX_ORDERBYCONSUMED = 8
-        const val LAYOUT_INDEX_ESTIMATEDCOST = 9
-        const val LAYOUT_INDEX_ESTIMATEDROWS = 10
-        const val LAYOUT_INDEX_IDXFLAGS = 11
-        const val LAYOUT_INDEX_COLUSED = 12
+        public const val LAYOUT_INDEX_NCONSTRAINT: Int = 0
+        public const val LAYOUT_INDEX_ACONSTRAINT: Int = 1
+        public const val LAYOUT_INDEX_NORDERBY: Int = 2
+        public const val LAYOUT_INDEX_AORDERBY: Int = 3
+        public const val LAYOUT_INDEX_ACONSTRAINTUSAGE: Int = 4
+        public const val LAYOUT_INDEX_IDXNUM: Int = 5
+        public const val LAYOUT_INDEX_IDXSTR: Int = 6
+        public const val LAYOUT_INDEX_NEEDTOFREEIDXSTR: Int = 7
+        public const val LAYOUT_INDEX_ORDERBYCONSUMED: Int = 8
+        public const val LAYOUT_INDEX_ESTIMATEDCOST: Int = 9
+        public const val LAYOUT_INDEX_ESTIMATEDROWS: Int = 10
+        public const val LAYOUT_INDEX_IDXFLAGS: Int = 11
+        public const val LAYOUT_INDEX_COLUSED: Int = 12
     }
 }

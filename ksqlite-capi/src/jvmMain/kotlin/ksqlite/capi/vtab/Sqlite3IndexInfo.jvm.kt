@@ -28,7 +28,7 @@ public actual class sqlite3_index_info internal constructor(pointer: MemorySegme
 
     private val orderBys by lazy {
         val aOrderBy = s3_index_info.aOrderBy(this.pointer)
-        Array(nConstraint) { s3_index_constraint_usage.asSlice(aOrderBy, it.toLong()) }
+        Array(nConstraint) { s3_index_orderby.asSlice(aOrderBy, it.toLong()) }
     }
 
     public actual val colUsed: ULong

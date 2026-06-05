@@ -9,7 +9,6 @@ public sealed class OutputPointer<Value>(initialValue: Value) {
      * Actual param value.
      */
     public var value: Value = initialValue
-        internal set
 
     /**
      * 32 bits signed integer output parameter.

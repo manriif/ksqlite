@@ -8,7 +8,7 @@ import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
 import ksqlite.structs.invoke
 
-public actual class sqlite3_module<AppData> internal constructor(
+public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VTabModuleCallbacks<AppData, *, *>,
     module: s3_module
 ) : Struct(module),

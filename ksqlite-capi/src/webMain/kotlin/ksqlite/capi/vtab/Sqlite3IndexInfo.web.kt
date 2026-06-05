@@ -17,7 +17,7 @@ import ksqlite.wasm.WasmPointer
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 
-public actual class sqlite3_index_info internal constructor(private val info: s3_index_info) :
+public actual class sqlite3_index_info private constructor(private val info: s3_index_info) :
     Struct(info.pointer) {
 
     internal constructor(pointer: WasmPointer) : this(capi.sqlite3_index_info(pointer))
