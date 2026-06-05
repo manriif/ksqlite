@@ -47,7 +47,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         destructor: Sqlite3DestroyCallback<AppData>?
     ): MemorySegment = notClosed {
         if (data == null && destructor == null) {
-            MemorySegment.NULL
+            NullPtr
         } else {
             registerDisposable(key) { StableRefReference(it, destructor, data, appData) }.pointer
         }
@@ -107,14 +107,14 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a pointer to a static function that will invoke the `handle` function of the
      * [Handler] returned by [factory].
      *
-     * Returns [MemorySegment.NULL] if [callback] is `null`.
+     * Returns [NullPtr] if [callback] is `null`.
      */
     inline fun <reified H : Handler> functionPointer(
         callback: Any?,
         noinline factory: () -> H
     ): MemorySegment = notClosed {
         if (callback == null) {
-            return MemorySegment.NULL
+            return NullPtr
         }
 
         return getOrCreateFunctionPointer(H::class, factory)

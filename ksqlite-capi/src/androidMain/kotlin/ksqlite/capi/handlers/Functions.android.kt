@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.FunctionCallback
+import ksqlite.callbacks.FunctionCallback
 import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
@@ -38,7 +38,7 @@ internal abstract class Function1ArgHandler : FunctionHandler(), FunctionCallbac
  */
 internal class FunctionFinalHandler : Function1ArgHandler(), FunctionCallback.Final {
 
-    override fun call(context: Long) =
+    override fun apply(context: Long) =
         handleFunction(context, ApplicationDefinedFunction<*>::callFinal)
 }
 
@@ -47,7 +47,7 @@ internal class FunctionFinalHandler : Function1ArgHandler(), FunctionCallback.Fi
  */
 internal class FunctionValueHandler : Function1ArgHandler(), FunctionCallback.Value {
 
-    override fun call(context: Long) =
+    override fun apply(context: Long) =
         handleFunction(context, ApplicationDefinedFunction<*>::callValue)
 }
 
@@ -78,7 +78,7 @@ internal abstract class Function3ArgsHandler : FunctionHandler(), FunctionCallba
  */
 internal class FunctionFuncHandler : Function3ArgsHandler(), FunctionCallback.Func {
 
-    override fun call(
+    override fun apply(
         context: Long,
         values: LongArray
     ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callFunc)
@@ -90,7 +90,7 @@ internal class FunctionFuncHandler : Function3ArgsHandler(), FunctionCallback.Fu
  */
 internal class FunctionStepHandler : Function3ArgsHandler(), FunctionCallback.Step {
 
-    override fun call(
+    override fun apply(
         context: Long,
         values: LongArray
     ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callStep)
@@ -101,7 +101,7 @@ internal class FunctionStepHandler : Function3ArgsHandler(), FunctionCallback.St
  */
 internal class FunctionInverseHandler : Function3ArgsHandler(), FunctionCallback.Inverse {
 
-    override fun call(
+    override fun apply(
         context: Long,
         values: LongArray
     ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callInverse)

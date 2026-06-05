@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.CollationNeededCallback
-import ksqlite.CollationCompareCallback
+import ksqlite.callbacks.CollationNeededCallback
+import ksqlite.callbacks.CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.convertTextEncoding
@@ -15,7 +15,7 @@ internal class CollationCompareHandler<AppData> :
     Handler<Sqlite3CollationCompareCallback<AppData>, AppData>(),
     CollationCompareCallback {
 
-    override fun call(
+    override fun apply(
         lhs: ByteArray,
         rhs: ByteArray
     ): Int = handle { callback, appData ->
@@ -34,7 +34,7 @@ internal class CollationNeededHandler<AppData> :
     Handler<Sqlite3CollationNeededCallback<AppData>, AppData>(),
     CollationNeededCallback {
 
-    override fun call(
+    override fun apply(
         db: Long,
         eTextRep: Int,
         name: String

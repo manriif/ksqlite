@@ -1,4 +1,4 @@
-package ksqlite
+package ksqlite.callbacks
 
 /**
  * Application data destructor.
@@ -8,5 +8,5 @@ public fun interface DestructorCallback {
     /**
      * Invoked from JNI.
      */
-    public fun destroy()
+    public fun apply()
 }

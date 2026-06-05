@@ -13,10 +13,16 @@ import java.lang.invoke.MethodHandles
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Represents the null pointer.
+ */
+internal val NullPtr: MemorySegment
+    inline get() = MemorySegment.NULL
+
+/**
  * Whether `this` [MemorySegment] points to a null pointer.
  */
 internal val MemorySegment.isNull: Boolean
-    inline get() = this == MemorySegment.NULL || address() == MemorySegment.NULL.address()
+    inline get() = this == NullPtr || address() == NullPtr.address()
 
 /**
  * Returns `null` if `this` [MemorySegment] points to a null pointer.
@@ -28,7 +34,7 @@ internal val MemorySegment.orNull: MemorySegment?
  * Returns a non-null [MemorySegment].
  */
 internal val MemorySegment?.notNull: MemorySegment
-    inline get() = this ?: MemorySegment.NULL
+    inline get() = this ?: NullPtr
 
 /**
  * Sets the pointer value of `this` pointer to pointer.
@@ -169,7 +175,7 @@ internal fun ByteArray.backing(): MemorySegment = MemorySegment.ofArray(this)
  * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
  * the result into a memory segment.
  *
- * Returns [MemorySegment.NULL] if `this` is `null`.
+ * Returns [NullPtr] if `this` is `null`.
  */
 internal fun String?.allocateUtf8(allocator: SegmentAllocator): MemorySegment =
     allocator.allocateFrom(this, Charsets.UTF_8)
@@ -178,7 +184,7 @@ internal fun String?.allocateUtf8(allocator: SegmentAllocator): MemorySegment =
  * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
  * the result into a memory segment.
  *
- * Returns [MemorySegment.NULL] if `this` is `null`.
+ * Returns [NullPtr] if `this` is `null`.
  */
 context(allocator: SegmentAllocator)
 internal fun String?.allocateUtf8(): MemorySegment = allocateUtf8(allocator)
@@ -190,7 +196,7 @@ internal fun String?.allocateUtf8(): MemorySegment = allocateUtf8(allocator)
 context(allocator: SegmentAllocator)
 internal fun Array<String>?.allocateUtf8Array(): MemorySegment {
     if (this == null) {
-        return MemorySegment.NULL
+        return NullPtr
     }
 
     val pointers = allocator.allocate(ValueLayout.ADDRESS, size.toLong())
@@ -210,12 +216,7 @@ internal fun MemorySegment.toKStringFromUtf8(offset: Long = 0): String =
 
 /**
  * Reads and returns a null terminated String starting from [offset] or returns `null` if `this`
- * [MemorySegment] is [MemorySegment.NULL].
+ * [MemorySegment] is [NullPtr].
  */
-internal fun MemorySegment.toKStringFromUtf8OrNull(offset: Long = 0): String? {
-    if (isNull) {
-        return null
-    }
-
-    return toKStringFromUtf8(offset)
-}
+internal fun MemorySegment.toKStringFromUtf8OrNull(offset: Long = 0): String? =
+    orNull?.toKStringFromUtf8(offset)

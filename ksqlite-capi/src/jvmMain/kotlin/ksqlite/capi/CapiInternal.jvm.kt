@@ -4,6 +4,7 @@ package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.memScoped
@@ -100,11 +101,11 @@ internal fun sqlite3_mprintf(text: String): MemorySegment = sqlite3.sqlite3_mpri
 
 /**
  * Returns a pointer to a string holding [text]'s content, obtained through
- * [sqlite3.sqlite3_mprintf]. Returns [MemorySegment.NULL] if [text] is `null`.
+ * [sqlite3.sqlite3_mprintf]. Returns [NullPtr] if [text] is `null`.
  */
 internal fun sqlite3_mprintf(text: String?): MemorySegment {
     if (text == null) {
-        return MemorySegment.NULL
+        return NullPtr
     }
 
     return Arena.ofConfined().use { arena ->

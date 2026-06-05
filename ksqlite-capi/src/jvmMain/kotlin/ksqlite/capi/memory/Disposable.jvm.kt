@@ -10,10 +10,10 @@ private val GlobalDisposer: MemorySegment =
     StaticMemoryAllocator.allocateReferenceFunction { disposeGlobal(it.orNull?.address()) }
 
 /**
- * Returns [GlobalDisposer] or [MemorySegment.NULL] if [data] is `null`.
+ * Returns [GlobalDisposer] or [NullPtr] if [data] is `null`.
  */
 internal fun globalDisposer(data: Any?) =
-    GlobalDisposer.takeIf { data != null } ?: MemorySegment.NULL
+    GlobalDisposer.takeIf { data != null } ?: NullPtr
 
 /**
  * Registers a [Disposable] which will invoke [destructor] when disposed.

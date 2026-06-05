@@ -41,7 +41,6 @@ import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
-import ksqlite.capi.handlers.SharedAutoExtensionHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
@@ -330,7 +329,7 @@ private fun Array<out VariadicValue<Any>?>.toJniJavaObjectArray(): Array<Any?> {
 ///////////////////////////////////////////////////////////////////////////
 
 public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
-    autoExtensionRegister(callback) { jni_ksqlite_auto_extension(SharedAutoExtensionHandler) }
+    autoExtensionRegister(callback) { jni_ksqlite_auto_extension(AutoExtensionHandler) }
 
 public actual fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
@@ -550,7 +549,7 @@ public actual fun sqlite3_busy_timeout(
 ): Sqlite3Result = convertResult(jni_sqlite3_busy_timeout(db.pointer, millis))
 
 public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int =
-    autoExtensionUnregister(callback) { ksqlite_cancel_auto_extension(SharedAutoExtensionHandler) }
+    autoExtensionUnregister(callback) { ksqlite_cancel_auto_extension(AutoExtensionHandler) }
 
 public actual fun sqlite3_changes(db: sqlite3): Int =
     jni_sqlite3_changes(db.pointer)

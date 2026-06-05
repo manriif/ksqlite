@@ -1,14 +1,14 @@
-package ksqlite
+package ksqlite.callbacks
 
 /**
- * Callback for use with the CONFIG_SQLLOG option of [sqlite3_config].
+ * Callback for use with the CONFIG_SQLLOG option of [ksqlite.sqlite3_config].
  */
 public fun interface ConfigSqlLogCallback {
 
     /**
      * Invoked from JNI.
      */
-    public fun call(
+    public fun apply(
         db: Long,
         message: String?,
         messageType: Int

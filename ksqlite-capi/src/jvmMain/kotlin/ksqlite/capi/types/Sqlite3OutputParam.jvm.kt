@@ -1,5 +1,6 @@
 package ksqlite.capi.types
 
+import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.isNull
@@ -203,7 +204,7 @@ internal inline fun <R> SegmentAllocator.useParam(
     block: (MemorySegment) -> R
 ): R {
     if (param == null) {
-        return block(MemorySegment.NULL)
+        return block(NullPtr)
     }
 
     return param.use(this, block)
@@ -220,7 +221,7 @@ internal inline fun <R> useParamMemScoped(
     block: (MemorySegment) -> R
 ): R {
     if (param == null) {
-        return block(MemorySegment.NULL)
+        return block(NullPtr)
     }
 
     return memScoped {
@@ -243,7 +244,7 @@ internal inline fun <R> SegmentAllocator.useParams(
     ) -> R
 ): R {
     if (param1 == null && param2 == null) {
-        return block(MemorySegment.NULL, MemorySegment.NULL)
+        return block(NullPtr, NullPtr)
     }
 
     val pointer1 = param1?.attach(this).notNull
@@ -272,7 +273,7 @@ internal inline fun <R> useParamsMemScoped(
     ) -> R
 ): R {
     if (param1 == null && param2 == null) {
-        return block(MemorySegment.NULL, MemorySegment.NULL)
+        return block(NullPtr, NullPtr)
     }
 
     return memScoped {

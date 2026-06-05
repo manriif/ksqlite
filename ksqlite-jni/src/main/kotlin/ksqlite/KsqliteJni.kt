@@ -3,6 +3,25 @@
 
 package ksqlite
 
+import ksqlite.callbacks.AuthorizerCallback
+import ksqlite.callbacks.AutoExtensionCallback
+import ksqlite.callbacks.AutoVacuumPagesCallback
+import ksqlite.callbacks.BusyHandlerCallback
+import ksqlite.callbacks.CollationCompareCallback
+import ksqlite.callbacks.CollationNeededCallback
+import ksqlite.callbacks.CommitHookCallback
+import ksqlite.callbacks.DestructorCallback
+import ksqlite.callbacks.ExecCallback
+import ksqlite.callbacks.FunctionCallback
+import ksqlite.callbacks.PreupdateHookCallback
+import ksqlite.callbacks.ProgressHandlerCallback
+import ksqlite.callbacks.RollbackHookCallback
+import ksqlite.callbacks.TraceCallback
+import ksqlite.callbacks.UpdateHookCallback
+import ksqlite.callbacks.WalHookCallback
+import ksqlite.structs.StructType
+import java.nio.ByteBuffer
+
 ///////////////////////////////////////////////////////////////////////////
 // Library
 ///////////////////////////////////////////////////////////////////////////
@@ -18,6 +37,9 @@ public fun ksqliteLoadLibrary() {
 // Buffer helpers
 ///////////////////////////////////////////////////////////////////////////
 
+/**
+ * Reads bytes into [destination].
+ */
 public external fun nativeBufferRead(
     buffer: Long,
     destination: ByteArray,
@@ -26,6 +48,9 @@ public external fun nativeBufferRead(
     destinationOffset: Int
 )
 
+/**
+ * Writes bytes from [source].
+ */
 public external fun nativeBufferWrite(
     buffer: Long,
     source: ByteArray,
@@ -33,6 +58,71 @@ public external fun nativeBufferWrite(
     sourceOffset: Int,
     destinationOffset: Long
 )
+
+///////////////////////////////////////////////////////////////////////////
+// String helpers
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Reads bytes until null termination marker is found and returns the bytes read as [String].
+ */
+public external fun nativeReadString(pointer: Long): String
+
+/**
+ * Frees [pointer] using [sqlite3_free] ands returns the result of [sqlite3_mprintf] on [message].
+ * If [message] is `null` then only [sqlite3_free] is called on [pointer] and `0` is returned
+ */
+public external fun nativeFreeAndMprintf(
+    pointer: Long,
+    message: String?
+): Long
+
+///////////////////////////////////////////////////////////////////////////
+// Structs
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the layout of the struct.
+ * For a property index P:
+ *
+ * - array[P*2] = offset
+ * - array[P*2+1] = length
+ *
+ * The offset and lentgh for a property index are written in the declared order in the C-struct.
+ */
+private external fun nativeStructLayout(type: Int): IntArray
+
+internal fun structLayout(type: StructType): IntArray = struct_layout(type.type)
+
+/**
+ * Returns a writable view of the struct as a [ByteBuffer] pointing to [pointer].
+ */
+private external fun nativeStructReinterpret(pointer: Long): ByteBuffer
+
+internal fun structReinterpret(pointer: Long): ByteBuffer = struct_reinterpret(pointer)
+
+/**
+ * Allocates a new struct depending on [type] and returns a writable view of the struct as a
+ * [ByteBuffer] pointing to the address of the struct.
+ *
+ * The allocated struct address is written into [pointer].
+ */
+private external fun struct_malloc(
+    type: Int,
+    pointer: OutputPointer.OfPointer
+): ByteBuffer
+
+internal fun structMalloc(
+    type: StructType,
+    pointer: OutputPointer.OfPointer
+): ByteBuffer = struct_malloc(type.type, pointer)
+
+/**
+ * Frees a struct at the address of [buffer].
+ */
+private external fun struct_free(buffer: ByteBuffer)
+
+internal fun structFree(buffer: ByteBuffer) = struct_free(buffer)
 
 ///////////////////////////////////////////////////////////////////////////
 // C-API
@@ -543,6 +633,8 @@ public external fun sqlite3_memory_used(): Long
 
 public external fun sqlite3_memory_highwater(resetFlag: Int): Long
 
+public external fun sqlite3_mprintf(messsage: String): Long
+
 public external fun sqlite3_msize(buffer: Long): Long
 
 public external fun sqlite3_next_stmt(
@@ -1016,3 +1108,7 @@ public external fun sqlite3_wal_hook(
     db: Long,
     callback: WalHookCallback?
 ): WalHookCallback?
+
+///////////////////////////////////////////////////////////////////////////
+// Virtual Table
+///////////////////////////////////////////////////////////////////////////

@@ -1,14 +1,14 @@
-package ksqlite
+package ksqlite.callbacks
 
 /**
- * Callback for use with [sqlite3_exec].
+ * Callback for use with [ksqlite.sqlite3_exec].
  */
 public fun interface ExecCallback {
 
     /**
      * Invoked from JNI.
      */
-    public fun call(
+    public fun apply(
         columnCount: Int,
         columnValues: Array<String?>,
         columnNames: Array<String>

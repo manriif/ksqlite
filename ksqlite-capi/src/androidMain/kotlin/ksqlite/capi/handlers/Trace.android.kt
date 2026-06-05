@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.TraceCallback
+import ksqlite.callbacks.TraceCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.dispatchTraceEvent
 import ksqlite.capi.types.sqlite3
@@ -13,7 +13,7 @@ internal class TraceHandler<AppData> :
     Handler<Sqlite3TraceCallback<AppData>, AppData>(),
     TraceCallback {
 
-    override fun call(
+    override fun apply(
         code: Int,
         pPointer: Long,
         xPointer: Any?

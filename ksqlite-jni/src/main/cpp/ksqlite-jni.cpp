@@ -15,6 +15,8 @@ typedef uint8_t jboolean;
 #define CONCAT(A, B) A##B
 #define UNDERSCORED(V) CONCAT(V, _)
 
+// TODO, callbacks package, callback call -> apply, structs
+
 ///////////////////////////////////////////////////////////////////////////
 // Exceptions
 ///////////////////////////////////////////////////////////////////////////
@@ -206,6 +208,8 @@ static inline jclass getClassOrDie(
     getClassOrDie(env, className, "Error getting reference to " className " class")
 
 #define RequireKsqliteClass(className) RequireClass("ksqlite/" className)
+
+#define RequireKsqliteClassCallback(className) RequireKsqliteClass("callbacks/" className)
 
 /**
  * Raises a fatal error when a method was not found on a given class.

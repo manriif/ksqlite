@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.ProgressHandlerCallback
+import ksqlite.callbacks.ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 
 /**
@@ -10,7 +10,7 @@ internal class ProgressHandlerHandler<AppData> :
     Handler<Sqlite3ProgressHandlerCallback<AppData>, AppData>(),
     ProgressHandlerCallback {
 
-    override fun call() = handle { callback, appData ->
+    override fun apply() = handle { callback, appData ->
         callback.apply(appData)
     }
 }

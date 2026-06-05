@@ -1,7 +1,7 @@
-package ksqlite
+package ksqlite.callbacks
 
 /**
- * Callback for use with [sqlite3_trace_v2].
+ * Callback for use with [ksqlite.sqlite3_trace_v2].
  */
 public fun interface TraceCallback {
 
@@ -11,7 +11,7 @@ public fun interface TraceCallback {
      * - [pPointer] is a [Long] pointing to a `sqlite3` or `sqlite3_stmt` depending on [code].
      * - [xPointer] is a [Long] or a [String] depending on [code].
      */
-    public fun call(
+    public fun apply(
         code: Int,
         pPointer: Long,
         xPointer: Any?

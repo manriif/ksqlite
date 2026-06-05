@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.ExecCallback
+import ksqlite.callbacks.ExecCallback
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
 
 /**
@@ -10,7 +10,7 @@ internal class ExecHandler<AppData> :
     Handler<Sqlite3ExecCallback<AppData>, AppData>(),
     ExecCallback {
 
-    override fun call(
+    override fun apply(
         columnCount: Int,
         columnValues: Array<String?>,
         columnNames: Array<String>

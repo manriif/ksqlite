@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.WalHookCallback
+import ksqlite.callbacks.WalHookCallback
 import ksqlite.capi.callbacks.Sqlite3WalHookCallback
 import ksqlite.capi.types.sqlite3
 
@@ -11,7 +11,7 @@ internal class WalHookHandler<AppData> :
     Handler<Sqlite3WalHookCallback<AppData>, AppData>(),
     WalHookCallback {
 
-    override fun call(
+    override fun apply(
         db: Long,
         dbName: String,
         nPage: Int

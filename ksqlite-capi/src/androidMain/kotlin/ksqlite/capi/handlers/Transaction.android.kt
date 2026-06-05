@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.CommitHookCallback
-import ksqlite.RollbackHookCallback
+import ksqlite.callbacks.CommitHookCallback
+import ksqlite.callbacks.RollbackHookCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
 
@@ -12,7 +12,7 @@ internal class CommitHookHandler<AppData> :
     Handler<Sqlite3CommitHookCallback<AppData>, AppData>(),
     CommitHookCallback {
 
-    override fun call(): Int = handle { callback, appData ->
+    override fun apply(): Int = handle { callback, appData ->
         callback.apply(appData)
     }
 }
@@ -24,7 +24,7 @@ internal class RollbackHookHandler<AppData> :
     Handler<Sqlite3RollbackHookCallback<AppData>, AppData>(),
     RollbackHookCallback {
 
-    override fun call() = handle { callback, appData ->
+    override fun apply() = handle { callback, appData ->
         callback.apply(appData)
     }
 }

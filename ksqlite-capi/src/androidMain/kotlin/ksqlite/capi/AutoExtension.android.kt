@@ -1,20 +1,19 @@
-package ksqlite.capi.handlers
+package ksqlite.capi
 
-import ksqlite.AutoExtensionCallback
+import ksqlite.callbacks.AutoExtensionCallback
 import ksqlite.KsqliteJniException
-import ksqlite.capi.autoExtensionHandle
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
 
 /**
  * Singleton handler for auto extensions.
  */
-internal val SharedAutoExtensionHandler by lazy {
+internal val AutoExtensionHandler by lazy {
     AutoExtensionCallback(::autoExtensionHandler)
 }
 
 /**
- * Handler for [ksqlite.capi.sqlite3_auto_extension].
+ * Handler for [sqlite3_auto_extension].
  * Dispatches sqlite3_auto_extension call to all registered extensions.
  */
 private fun autoExtensionHandler(

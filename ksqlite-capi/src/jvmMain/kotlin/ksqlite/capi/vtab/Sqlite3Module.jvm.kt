@@ -2,6 +2,7 @@
 
 package ksqlite.capi.vtab
 
+import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
 import java.lang.foreign.MemorySegment
@@ -19,7 +20,7 @@ internal actual constructor(
         s3_module.xCreate(
             pointer,
             when (callbacks.moduleKind) {
-                EponymousOnly -> MemorySegment.NULL
+                EponymousOnly -> NullPtr
                 Eponymous -> VTabConnectHandler
                 Ordinal -> VTabCreateHandler
             }

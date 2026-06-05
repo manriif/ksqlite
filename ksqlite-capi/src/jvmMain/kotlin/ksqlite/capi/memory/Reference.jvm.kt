@@ -19,13 +19,12 @@ internal class StableRefDisposerHandler : Handler(), ReferenceFunction {
 
 /**
  * Returns the [StableRefDisposerHandler] instance of `this` [MemoryManager] only if
- * [data] != `null` or [destructor] != `null`. [MemorySegment.NULL] is returned otherwise.
+ * [data] != `null` or [destructor] != `null`. [NullPtr] is returned otherwise.
  */
 internal fun MemoryManager.stableRefDisposer(
     data: Any?,
     destructor: Sqlite3DestroyCallback<*>? = null
-): MemorySegment = stableRefDisposer.takeIf { data != null || destructor != null }
-    ?: MemorySegment.NULL
+): MemorySegment = stableRefDisposer.takeIf { data != null || destructor != null } ?: NullPtr
 
 /**
  * Returns the object [Data] backed by [pointer] with an optional app data pointer.

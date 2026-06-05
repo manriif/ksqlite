@@ -1,7 +1,11 @@
 package ksqlite.capi.memory
 
-public actual open class Struct internal constructor(internal val pointer: Long) :
-    StructBase() {
+import ksqlite.structs.JniStruct
+
+public actual open class Struct internal constructor(
+    internal val pointer: JniPointer,
+    protected open val jniStruct: JniStruct? = null
+) : StructBase() {
 
     actual override val address: Long
         get() = pointer
@@ -17,5 +21,7 @@ public actual open class Struct internal constructor(internal val pointer: Long)
         return pointer.hashCode()
     }
 
-    actual override fun free() = Unit
+    actual override fun free() {
+        jniStruct?.free()
+    }
 }

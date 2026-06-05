@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.AutoVacuumPagesCallback
+import ksqlite.callbacks.AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 
 /**
@@ -10,7 +10,7 @@ internal class AutoVacuumPagesHandler<AppData> :
     Handler<Sqlite3AutoVacuumPagesCallback<AppData>, AppData>(),
     AutoVacuumPagesCallback {
 
-    override fun call(
+    override fun apply(
         zSchema: String,
         nDbPage: Int,
         nFreePage: Int,

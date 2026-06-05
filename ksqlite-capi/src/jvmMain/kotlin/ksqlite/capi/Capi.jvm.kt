@@ -46,6 +46,7 @@ import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.backing
@@ -147,7 +148,7 @@ private inline fun <Result> invokeVariadic(
 
     val arguments = Array(values.size) { index ->
         when (val value = values[index]) {
-            null -> MemorySegment.NULL
+            null -> NullPtr
             !is OfString -> value.value
             else -> manager().keyedStringPointer(value.key, value.value)
         }
@@ -838,7 +839,7 @@ public actual fun sqlite3_file_control(
         db.pointer,
         name.allocateUtf8(),
         opcode.code,
-        MemorySegment.NULL
+        NullPtr
     )
 })
 
@@ -993,7 +994,7 @@ public actual fun sqlite3_prepare_v2(
     useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
         val nByte = cSql.byteSize().toInt()
-        native.sqlite3_prepare_v2(db.pointer, cSql, nByte, stmtPtr, MemorySegment.NULL)
+        native.sqlite3_prepare_v2(db.pointer, cSql, nByte, stmtPtr, NullPtr)
     }
 })
 
@@ -1019,7 +1020,7 @@ public actual fun sqlite3_prepare_v3(
         val cSql = sql.allocateUtf8()
         val nByte = cSql.byteSize().toInt()
         val prepFlags = flags?.value ?: 0
-        native.sqlite3_prepare_v3(db.pointer, cSql, nByte, prepFlags, stmtPtr, MemorySegment.NULL)
+        native.sqlite3_prepare_v3(db.pointer, cSql, nByte, prepFlags, stmtPtr, NullPtr)
     }
 })
 

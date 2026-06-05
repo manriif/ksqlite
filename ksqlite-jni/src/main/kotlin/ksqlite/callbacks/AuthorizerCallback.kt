@@ -1,14 +1,14 @@
-package ksqlite
+package ksqlite.callbacks
 
 /**
- * Callback for use with [sqlite3_set_authorizer].
+ * Callback for use with [ksqlite.sqlite3_set_authorizer].
  */
 public fun interface AuthorizerCallback {
 
     /**
      * Invoked from JNI.
      */
-    public fun call(
+    public fun apply(
         opId: Int,
         string1: String?,
         string2: String?,

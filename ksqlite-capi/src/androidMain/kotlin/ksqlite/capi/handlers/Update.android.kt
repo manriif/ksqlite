@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.PreupdateHookCallback
-import ksqlite.UpdateHookCallback
+import ksqlite.callbacks.PreupdateHookCallback
+import ksqlite.callbacks.UpdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.convertActionCode
@@ -14,7 +14,7 @@ internal class PreupdateHookHandler<AppData> :
     Handler<Sqlite3PreupdateHookCallback<AppData>, AppData>(),
     PreupdateHookCallback {
 
-    override fun call(
+    override fun apply(
         db: Long,
         op: Int,
         dbName: String,
@@ -41,7 +41,7 @@ internal class UpdateHookHandler<AppData> :
     Handler<Sqlite3UpdateHookCallback<AppData>, AppData>(),
     UpdateHookCallback {
 
-    override fun call(
+    override fun apply(
         opId: Int,
         dbName: String,
         tableName: String,

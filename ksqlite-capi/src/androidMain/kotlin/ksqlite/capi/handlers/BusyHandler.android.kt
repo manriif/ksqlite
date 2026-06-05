@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.BusyHandlerCallback
+import ksqlite.callbacks.BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 
 /**
@@ -10,7 +10,7 @@ internal class BusyHandlerHandler<AppData> :
     Handler<Sqlite3BusyHandlerCallback<AppData>, AppData>(),
     BusyHandlerCallback {
 
-    override fun call(n: Int): Int = handle { callback, appData ->
+    override fun apply(n: Int): Int = handle { callback, appData ->
         callback.apply(appData, n)
     }
 }

@@ -1,4 +1,4 @@
-package ksqlite
+package ksqlite.callbacks
 
 /**
  * Base for function related callback.
@@ -13,7 +13,7 @@ public interface FunctionCallback {
         /**
          * Invoked from JNI.
          */
-        public fun call(context: Long)
+        public fun apply(context: Long)
     }
 
     /**
@@ -24,7 +24,7 @@ public interface FunctionCallback {
         /**
          * Invoked from JNI.
          */
-        public fun call(
+        public fun apply(
             context: Long,
             values: LongArray
         )

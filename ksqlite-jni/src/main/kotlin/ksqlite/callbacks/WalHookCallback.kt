@@ -1,14 +1,14 @@
-package ksqlite
+package ksqlite.callbacks
 
 /**
- * Callback for use with [sqlite3_wal_hook].
+ * Callback for use with [ksqlite.sqlite3_wal_hook].
  */
 public fun interface WalHookCallback {
 
     /**
      * Invoked from JNI.
      */
-    public fun call(
+    public fun apply(
         db: Long,
         dbName: String,
         nPage: Int
