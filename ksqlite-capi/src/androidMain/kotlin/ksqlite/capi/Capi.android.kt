@@ -2,8 +2,6 @@
 
 package ksqlite.capi
 
-//import ksqlite.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
-//import ksqlite.sqlite3_drop_modules as jni_sqlite3_drop_modules
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
@@ -47,6 +45,7 @@ import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.types.Int32OutputParam
@@ -89,7 +88,9 @@ import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParams
 import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.vtab.createVTabModule
 import ksqlite.capi.vtab.sqlite3_index_info
+import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.ksqliteLoadLibrary
 import ksqlite.ksqlite_cancel_auto_extension
 import ksqlite.ksqlite_prepare_v2
@@ -152,6 +153,7 @@ import ksqlite.sqlite3_config as jni_sqlite3_config
 import ksqlite.sqlite3_context_db_handle as jni_sqlite3_context_db_handle
 import ksqlite.sqlite3_create_collation_v2 as jni_sqlite3_create_collation_v2
 import ksqlite.sqlite3_create_function_v2 as jni_sqlite3_create_function_v2
+import ksqlite.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
 import ksqlite.sqlite3_create_window_function as jni_sqlite3_create_window_function
 import ksqlite.sqlite3_data_count as jni_sqlite3_data_count
 import ksqlite.sqlite3_db_cacheflush as jni_sqlite3_db_cacheflush
@@ -165,6 +167,7 @@ import ksqlite.sqlite3_db_status as jni_sqlite3_db_status
 import ksqlite.sqlite3_db_status64 as jni_sqlite3_db_status64
 import ksqlite.sqlite3_declare_vtab as jni_sqlite3_declare_vtab
 import ksqlite.sqlite3_deserialize as jni_sqlite3_deserialize
+import ksqlite.sqlite3_drop_modules as jni_sqlite3_drop_modules
 import ksqlite.sqlite3_errcode as jni_sqlite3_errcode
 import ksqlite.sqlite3_errmsg as jni_sqlite3_errmsg
 import ksqlite.sqlite3_error_offset as jni_sqlite3_error_offset
@@ -558,7 +561,7 @@ public actual fun sqlite3_changes64(db: sqlite3): Long =
     jni_sqlite3_changes64(db.pointer)
 
 public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
-   convertResult(jni_sqlite3_clear_bindings(stmt.pointer))
+    convertResult(jni_sqlite3_clear_bindings(stmt.pointer))
 
 public actual fun sqlite3_close(db: sqlite3): Sqlite3Result =
     convertResult(jni_sqlite3_close(db.pointer))
@@ -727,7 +730,6 @@ public actual fun <AppData> sqlite3_create_function_v2(
     }
 )
 
-/*
 public actual fun <AppData> sqlite3_create_module_v2(
     db: sqlite3,
     name: String,
@@ -735,15 +737,17 @@ public actual fun <AppData> sqlite3_create_module_v2(
     appData: AppData,
     destroy: Sqlite3DestroyCallback<AppData>?
 ): Sqlite3Result = convertResult(
-    jni_sqlite3_create_module_v2(
-        db.pointer,
-        name,
-        module?.pointer.notNull,
-        appData,
-        destructorHandler(appData, destroy)
-    )
+    createVTabModule(module?.callbacks, appData) { vTabModule ->
+        jni_sqlite3_create_module_v2(
+            db.pointer,
+            name,
+            module?.pointer.notNull,
+            vTabModule,
+            destructorHandler(appData, destroy)
+        )
+    }
 )
-*/
+
 public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
@@ -859,12 +863,10 @@ public actual fun sqlite3_deserialize(
     )
 )
 
-/*public actual fun sqlite3_drop_modules(
+public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
-): Sqlite3Result = convertResult(memScoped {
-    jni_sqlite3_drop_modules(db.pointer, keep.allocateUtf8Array())
-})*/
+): Sqlite3Result = convertResult(jni_sqlite3_drop_modules(db.pointer, keep))
 
 public actual fun sqlite3_errcode(db: sqlite3): Int = jni_sqlite3_errcode(db.pointer)
 

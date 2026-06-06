@@ -55,15 +55,15 @@ internal val VTabCreateHandler = vTabHandler(I64, I32, I64, I64, I64, I64) { db:
                                                                              refPointer: WasmPointer,
                                                                              argc: Int,
                                                                              argv: WasmPointer,
-                                                                             ppVtab: WasmPointer,
-                                                                             pzErr: WasmPointer ->
+                                                                             outVtab: WasmPointer,
+                                                                             outErr: WasmPointer ->
     sqlite3(db).let { db ->
         vTabCreate(
             module = db.memory.stableRefData<VTabModule<*, *, *>>(refPointer),
             db = db,
             argv = argv.toStringArrayOrEmpty(argc),
-            setVTab = { ppVtab.setPointerValue(it.pointer) },
-            setError = { pzErr.setPointerValue(sqlite3_mprintf(it)) }
+            setVTab = { outVtab.setPointerValue(it.pointer) },
+            setError = { outErr.setPointerValue(sqlite3_mprintf(it)) }
         )
     }
 }
@@ -72,15 +72,15 @@ internal val VTabConnectHandler = vTabHandler(I64, I32, I64, I64, I64, I64) { db
                                                                               refPointer: WasmPointer,
                                                                               argc: Int,
                                                                               argv: WasmPointer,
-                                                                              ppVtab: WasmPointer,
-                                                                              pzErr: WasmPointer ->
+                                                                              outVtab: WasmPointer,
+                                                                              outErr: WasmPointer ->
     sqlite3(db).let { db ->
         vTabCreate(
             module = db.memory.stableRefData<VTabModule<*, *, *>>(refPointer),
             db = db,
             argv = argv.toStringArrayOrEmpty(argc),
-            setVTab = { ppVtab.setPointerValue(it.pointer) },
-            setError = { pzErr.setPointerValue(sqlite3_mprintf(it)) }
+            setVTab = { outVtab.setPointerValue(it.pointer) },
+            setError = { outErr.setPointerValue(sqlite3_mprintf(it)) }
         )
     }
 }
@@ -168,22 +168,22 @@ internal val VTabColumnHandler = vTabHandler(I64, I64, I32) { cursor: WasmPointe
 }
 
 internal val VTabRowidHandler = vTabHandler(I64, I64) { cursor: WasmPointer,
-                                                        outRowId: WasmPointer ->
+                                                        outRowid: WasmPointer ->
     vTabRowid(
         vTab = vTabPointerAddressFromCursor(cursor),
         cursor = cursor.toLong(),
-        setRowid = outRowId::setValue
+        setRowid = outRowid::setValue
     )
 }
 
 internal val VTabUpdateHandler = vTabHandler(I64, I32, I64, I64) { vTab: WasmPointer,
                                                                    argc: Int,
                                                                    argv: WasmPointer,
-                                                                   outRowId: WasmPointer ->
+                                                                   outRowid: WasmPointer ->
     vTabUpdate(
         vTab = vTab.toLong(),
         arguments = argv.toArrayOrEmpty(argc) { sqlite3_value(it) },
-        setRowid = outRowId::setValue
+        setRowid = outRowid::setValue
     )
 }
 
@@ -261,13 +261,13 @@ internal val VTabRollbackToHandler = vTabHandler(I64, I32) { vTab: WasmPointer, 
     )
 }
 
-internal val VTabIntegrityHandler = vTabHandler(I64, I64, I64, I32, I64) { vtab: WasmPointer,
+internal val VTabIntegrityHandler = vTabHandler(I64, I64, I64, I32, I64) { vTab: WasmPointer,
                                                                            schema: WasmPointer,
                                                                            tableName: WasmPointer,
                                                                            flags: Int,
                                                                            outErr: WasmPointer ->
     vTabIntegrity(
-        vTab = vtab.toLong(),
+        vTab = vTab.toLong(),
         schema = schema.toKStringFromUtf8(),
         tableName = tableName.toKStringFromUtf8(),
         flags = flags,

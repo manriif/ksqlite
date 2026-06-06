@@ -2,6 +2,7 @@ package ksqlite.capi.handlers
 
 import ksqlite.callbacks.FunctionCallback
 import ksqlite.capi.ApplicationDefinedFunction
+import ksqlite.capi.memory.toArray
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
 
@@ -68,7 +69,7 @@ internal abstract class Function3ArgsHandler : FunctionHandler(), FunctionCallba
         values: LongArray,
         call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
     ) = handleFunction(context) { context ->
-        call(context, values.map(::sqlite3_value).toTypedArray())
+        call(context, values.toArray(::sqlite3_value))
     }
 }
 

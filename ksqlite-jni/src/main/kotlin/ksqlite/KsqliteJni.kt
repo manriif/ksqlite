@@ -70,7 +70,7 @@ public external fun nativeBufferWrite(
 public external fun nativeReadString(pointer: Long): String
 
 /**
- * Frees [pointer] using [sqlite3_free] ands returns the result of [sqlite3_mprintf] on [message].
+ * Frees [pointer] using `sqlite3_free` ands returns the result of `sqlite3_mprintf` on [message].
  * If [message] is `null` then only [sqlite3_free] is called on [pointer] and `0` is returned
  */
 public external fun nativeFreeAndMprintf(
@@ -451,7 +451,6 @@ public external fun sqlite3_create_function_v2(
     destroy: DestructorCallback?,
 ): Int
 
-/*
 public external fun sqlite3_create_module_v2(
     db: Long,
     name: String,
@@ -459,7 +458,7 @@ public external fun sqlite3_create_module_v2(
     appData: Any?,
     destroy: DestructorCallback?,
 ): Int
-*/
+
 public external fun sqlite3_create_window_function(
     db: Long,
     name: String,
@@ -534,12 +533,11 @@ public external fun sqlite3_deserialize(
     flags: Int,
 ): Int
 
-/*
 public external fun sqlite3_drop_modules(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    keep: Array<String>?
 ): Int
-*/
+
 public external fun sqlite3_errcode(db: Long): Int
 
 public external fun sqlite3_errmsg(db: Long): String?
@@ -635,8 +633,6 @@ public external fun sqlite3_malloc64(size: Long): Long
 public external fun sqlite3_memory_used(): Long
 
 public external fun sqlite3_memory_highwater(resetFlag: Int): Long
-
-public external fun sqlite3_mprintf(messsage: String): Long
 
 public external fun sqlite3_msize(buffer: Long): Long
 
@@ -1121,6 +1117,7 @@ public external fun sqlite3_wal_hook(
  *
  * The [methodMask] represents the callbacks to enable where the LSB is the first callback in the
  * struct (xConnect) and the MSB the last (xIntegrity) in the order they're declared in the struct.
+ * Mandatory callbacks are always enabled so they can be omitted in [methodMask].
  */
 public external fun nativeVTabModuleInit(
     module: Long,

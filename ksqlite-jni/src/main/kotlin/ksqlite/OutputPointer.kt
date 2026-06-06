@@ -29,4 +29,9 @@ public sealed class OutputPointer<Value>(initialValue: Value) {
      * String output parameter.
      */
     public class OfString(initialValue: String?): OutputPointer<String?>(initialValue)
+
+    /**
+     * [Value] output parameter.
+     */
+    public class OfObject<Value>(initialValue: Value?): OutputPointer<Value?>(initialValue)
 }

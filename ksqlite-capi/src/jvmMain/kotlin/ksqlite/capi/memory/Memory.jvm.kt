@@ -109,7 +109,7 @@ internal fun Arena.allocateReferenceFunction(function: ReferenceFunction): Memor
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns an array of [count] item of type [T] obtained from [transform].
+ * Returns an array of [count] items of type [T] obtained from [transform].
  */
 internal inline fun <reified T> MemorySegment.toArray(
     count: Int,
@@ -123,7 +123,7 @@ internal inline fun <reified T> MemorySegment.toArray(
 }
 
 /**
- * Returns an array of [count] item of type [T] obtained from [transform].
+ * Returns an array of [count] items of type [T] obtained from [transform].
  * Returns an empty array if `this` is `null`.
  */
 internal inline fun <reified T> MemorySegment.toArrayOrEmpty(

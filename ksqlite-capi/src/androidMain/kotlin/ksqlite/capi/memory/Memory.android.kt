@@ -42,6 +42,21 @@ internal fun <Pointer : Struct> JniPointer.wrapOrNull(factory: (Long) -> Pointer
     orNull?.let(factory)
 
 ///////////////////////////////////////////////////////////////////////////
+// Arrays
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns an array of [LongArray.size] items of type [T] obtained from [transform].
+ */
+internal inline fun <reified T> LongArray.toArray(transform: (Long) -> T): Array<T> {
+    if (isEmpty()) {
+        return emptyArray()
+    }
+
+    return Array(size) { transform(get(it)) }
+}
+
+///////////////////////////////////////////////////////////////////////////
 // String
 ///////////////////////////////////////////////////////////////////////////
 

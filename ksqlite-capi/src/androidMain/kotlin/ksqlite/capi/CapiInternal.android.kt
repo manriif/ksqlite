@@ -14,13 +14,10 @@ import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.nativeFreeAndMprintf
-import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
-import kotlin.reflect.KMutableProperty1
 import ksqlite.sqlite3_aggregate_context as jni_sqlite3_aggregate_context
 import ksqlite.sqlite3_column_buffer as jni_sqlite3_column_buffer
 import ksqlite.sqlite3_get_auxdata as jni_sqlite3_get_auxdata
-import ksqlite.sqlite3_mprintf as jni_sqlite3_mprintf
 import ksqlite.sqlite3_set_auxdata as jni_sqlite3_set_auxdata
 import ksqlite.sqlite3_user_data as jni_sqlite3_user_data
 import ksqlite.sqlite3_value_buffer as jni_sqlite3_value_buffer
@@ -80,9 +77,3 @@ internal fun sqlite3_mprintf(property: KMutableProperty0<JniPointer>, message: S
         property.set(nativeFreeAndMprintf(oldPointer, message))
     }
 }
-
-/**
- * Allocates a new string for [message] (if != `null`) using `sqlite3_mprintf` and returns the
- * address of the allocated content.
- */
-internal fun sqlite3_mprintf(message: String): Long = jni_sqlite3_mprintf(message)

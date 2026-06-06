@@ -46,14 +46,14 @@ internal val VTabCreateHandler = staticCFunction { db: CPointer<s3>?,
                                                    refPointer: COpaquePointer?,
                                                    argc: Int,
                                                    argv: CPointer<CPointerVar<ByteVar>>?,
-                                                   ppVtab: CPointer<CPointerVar<s3_vtab>>?,
-                                                   pzErrMsg: CPointer<CPointerVar<ByteVar>>? ->
+                                                   outVtab: CPointer<CPointerVar<s3_vtab>>?,
+                                                   outErrMsg: CPointer<CPointerVar<ByteVar>>? ->
     vTabCreate(
         module = stableRefData<VTabModule<*, *, *>>(refPointer),
         db = sqlite3(db!!),
         argv = argv.toStringArrayOrEmpty(argc),
-        setVTab = { ppVtab!!.pointed.value = it.pointer },
-        setError = { pzErrMsg!!.pointed.value = sqlite3_mprintf(it) }
+        setVTab = { outVtab!!.pointed.value = it.pointer },
+        setError = { outErrMsg!!.pointed.value = sqlite3_mprintf(it) }
     )
 }
 
@@ -61,14 +61,14 @@ internal val VTabConnectHandler = staticCFunction { db: CPointer<s3>?,
                                                     refPointer: COpaquePointer?,
                                                     argc: Int,
                                                     argv: CPointer<CPointerVar<ByteVar>>?,
-                                                    ppVtab: CPointer<CPointerVar<s3_vtab>>?,
-                                                    pzErrMsg: CPointer<CPointerVar<ByteVar>>? ->
+                                                    outVtab: CPointer<CPointerVar<s3_vtab>>?,
+                                                    outErrMsg: CPointer<CPointerVar<ByteVar>>? ->
     vTabConnect(
         module = stableRefData<VTabModule<*, *, *>>(refPointer),
         db = sqlite3(db!!),
         argv = argv.toStringArrayOrEmpty(argc),
-        setVTab = { ppVtab!!.pointed.value = it.pointer },
-        setError = { pzErrMsg!!.pointed.value = sqlite3_mprintf(it) }
+        setVTab = { outVtab!!.pointed.value = it.pointer },
+        setError = { outErrMsg!!.pointed.value = sqlite3_mprintf(it) }
     )
 }
 
@@ -144,22 +144,22 @@ internal val VTabColumnHandler = staticCFunction { cursor: CPointer<s3_vtab_curs
 }
 
 internal val VTabRowidHandler = staticCFunction { cursor: CPointer<s3_vtab_cursor>?,
-                                                  outRowId: CPointer<sqlite3_int64Var>? ->
+                                                  outRowid: CPointer<sqlite3_int64Var>? ->
     vTabRowid(
         vTab = cursor!!.pointed.pVtab!!.toLong(),
         cursor = cursor.toLong(),
-        setRowid = { outRowId!!.pointed.value = it }
+        setRowid = { outRowid!!.pointed.value = it }
     )
 }
 
 internal val VTabUpdateHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                    argc: Int,
                                                    argv: CPointer<CPointerVar<s3_value>>?,
-                                                   outRowId: CPointer<sqlite3_int64Var>? ->
+                                                   outRowid: CPointer<sqlite3_int64Var>? ->
     vTabUpdate(
         vTab = vTab.toLong(),
         arguments = argv.toArrayOrEmpty(argc) { sqlite3_value(it!!) },
-        setRowid = { outRowId!!.pointed.value = it }
+        setRowid = { outRowid!!.pointed.value = it }
     )
 }
 
@@ -239,13 +239,13 @@ internal val VTabRollbackToHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
     )
 }
 
-internal val VTabIntegrityHandler = staticCFunction { vtab: CPointer<s3_vtab>?,
+internal val VTabIntegrityHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
                                                       schema: CPointer<ByteVar>?,
                                                       tableName: CPointer<ByteVar>?,
                                                       flags: Int,
                                                       outError: CPointer<CPointerVar<ByteVar>>? ->
     vTabIntegrity(
-        vTab = vtab.toLong(),
+        vTab = vTab.toLong(),
         schema = schema!!.toKStringFromUtf8(),
         tableName = tableName!!.toKStringFromUtf8(),
         flags = flags,
