@@ -3,13 +3,12 @@
 package ksqlite.structs
 
 import ksqlite.structLayout
-import ksqlite.structMalloc
 
 /**
  * Allocates an instance of `sqlite3_module` and supplies getters and setters for reading and
  * writing the struct.
  */
-public class sqlite3_module : JniStruct(layout, { structMalloc(StructType.Module, it) }) {
+public class sqlite3_module : JniStruct(layout, StructType.Module) {
 
     public var iVersion: Int
         get() = readInt(LAYOUT_INDEX_IVERSION)
@@ -103,6 +102,10 @@ public class sqlite3_module : JniStruct(layout, { structMalloc(StructType.Module
         get() = readLong(LAYOUT_INDEX_XROLLBACKTO)
         set(value) = writeLong(LAYOUT_INDEX_XROLLBACKTO, value)
 
+    public var xShadowName: Long
+        get() = readLong(LAYOUT_INDEX_XSHADOWNAME)
+        set(value) = writeLong(LAYOUT_INDEX_XSHADOWNAME, value)
+
     public var xIntegrity: Long
         get() = readLong(LAYOUT_INDEX_XINTEGRITY)
         set(value) = writeLong(LAYOUT_INDEX_XINTEGRITY, value)
@@ -134,6 +137,7 @@ public class sqlite3_module : JniStruct(layout, { structMalloc(StructType.Module
         public const val LAYOUT_INDEX_XSAVEPOINT: Int = 20
         public const val LAYOUT_INDEX_XRELEASE: Int = 21
         public const val LAYOUT_INDEX_XROLLBACKTO: Int = 22
-        public const val LAYOUT_INDEX_XINTEGRITY: Int = 23
+        public const val LAYOUT_INDEX_XSHADOWNAME: Int = 23
+        public const val LAYOUT_INDEX_XINTEGRITY: Int = 24
     }
 }

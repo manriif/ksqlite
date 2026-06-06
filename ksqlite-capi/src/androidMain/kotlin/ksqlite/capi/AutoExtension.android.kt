@@ -1,7 +1,7 @@
 package ksqlite.capi
 
+import ksqlite.OutputPointer
 import ksqlite.callbacks.AutoExtensionCallback
-import ksqlite.KsqliteJniException
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_api_routines
 
@@ -18,22 +18,11 @@ internal val AutoExtensionHandler by lazy {
  */
 private fun autoExtensionHandler(
     dbPtr: Long,
-    apiPtr: Long
-): Int {
-    var errorMessage: String? = null
-
-    val resultCode = autoExtensionHandle(
-        db = sqlite3(dbPtr),
-        api = sqlite3_api_routines(apiPtr),
-        errorPointer = 0
-    ) { _, message ->
-        errorMessage = message
-    }
-
-    errorMessage?.let { message ->
-        // Exception is handled on JNI side
-        throw KsqliteJniException(resultCode, message)
-    }
-
-    return resultCode
-}
+    apiPtr: Long,
+    outErrMsg: OutputPointer.OfString
+): Int = autoExtensionHandle(
+    db = sqlite3(dbPtr),
+    api = sqlite3_api_routines(apiPtr),
+    errorPointer = outErrMsg,
+    setError = OutputPointer.OfString::value::set
+)

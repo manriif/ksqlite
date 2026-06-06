@@ -2,6 +2,7 @@ package ksqlite.structs
 
 import ksqlite.OutputPointer
 import ksqlite.structFree
+import ksqlite.structMalloc
 import ksqlite.structReinterpret
 import java.nio.ByteBuffer
 
@@ -18,23 +19,26 @@ public abstract class JniStruct private constructor(
     /**
      * Wraps an existing instance.
      */
-    internal constructor(pointer: Long, layout: IntArray) :
-            this(layout, structReinterpret(pointer), pointer)
+    internal constructor(
+        layout: IntArray,
+        type: StructType,
+        pointer: Long
+    ) : this(layout, structReinterpret(type, pointer), pointer)
 
     @Suppress("unused")
     private constructor(
         layout: IntArray,
-        outputPointer: OutputPointer.OfPointer,
-        allocate: (OutputPointer.OfPointer) -> ByteBuffer
-    ) : this(layout, allocate(outputPointer), outputPointer.value)
+        type: StructType,
+        outputPointer: OutputPointer.OfPointer
+    ) : this(layout, structMalloc(type, outputPointer), outputPointer.value)
 
     /**
      * Allocates a new instance.
      */
     internal constructor(
         layout: IntArray,
-        allocate: (OutputPointer.OfPointer) -> ByteBuffer
-    ) : this(layout, OutputPointer.OfPointer(0L), allocate)
+        type: StructType
+    ) : this(layout, type, OutputPointer.OfPointer(0L))
 
     /**
      * Invokes [block] passing it the offset of the field at [index].

@@ -3,13 +3,12 @@
 package ksqlite.structs
 
 import ksqlite.structLayout
-import ksqlite.structMalloc
 
 /**
  * Allocates an instance of `sqlite3_vtab` and supplies getters and setters for reading and writing
  * the struct.
  */
-public class sqlite3_vtab : JniStruct(layout, { structMalloc(StructType.Vtab, it) }) {
+public class sqlite3_vtab : JniStruct(layout, StructType.Vtab) {
 
     public var pModule: Long
         get() = readLong(LAYOUT_INDEX_PMODULE)

@@ -30,7 +30,7 @@ internal typealias s3_vtab_cursor = ksqlite.structs.sqlite3_vtab_cursor
 /**
  * Handles all callbacks of a Virtual Table module.
  */
-internal class VTabModuleHandler : JniVTabModuleCallbacks {
+internal object VTabModuleHandler : JniVTabModuleCallbacks {
 
     override fun create(
         db: Long,

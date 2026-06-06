@@ -13,7 +13,7 @@ import ksqlite.capi.memory.orNull
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.nativeFreeAndMprintf
+import ksqlite.nativeFreeAndMalloc
 import kotlin.reflect.KMutableProperty0
 import ksqlite.sqlite3_aggregate_context as jni_sqlite3_aggregate_context
 import ksqlite.sqlite3_column_buffer as jni_sqlite3_column_buffer
@@ -74,6 +74,6 @@ internal fun sqlite3_mprintf(property: KMutableProperty0<JniPointer>, message: S
     val oldPointer = property.get()
 
     if (message != null || !oldPointer.isNull) {
-        property.set(nativeFreeAndMprintf(oldPointer, message))
+        property.set(nativeFreeAndMalloc(oldPointer, message))
     }
 }

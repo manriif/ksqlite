@@ -38,7 +38,7 @@ public actual class sqlite3_module<AppData> private constructor(
             module = pointer,
             methodMask = mask.shr(1),
             eponymous = callbacks.moduleKind == Sqlite3ModuleKind.Eponymous,
-            callbacks = VTabModuleHandler()
+            callbacks = VTabModuleHandler
         )
     })
 

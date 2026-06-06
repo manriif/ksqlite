@@ -8,7 +8,8 @@ import ksqlite.structLayout
  * Wraps an instance of `sqlite3_index_info` at address [pointer] and supplies getters and setters
  * for reading and writing the struct.
  */
-public class sqlite3_index_info(pointer: Long) : JniStruct(pointer, layout) {
+public class sqlite3_index_info(pointer: Long) :
+    JniStruct(layout, StructType.IndexInfo, pointer) {
 
     public var nConstraint: Int
         get() = readInt(LAYOUT_INDEX_NCONSTRAINT)
@@ -87,7 +88,8 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(pointer, layout) {
      * Wraps an instance of `sqlite3_index_constraint` at address [pointer] and supplies getters and
      * setters for reading and writing the struct.
      */
-    public class sqlite3_index_constraint(pointer: Long) : JniStruct(pointer, layout) {
+    public class sqlite3_index_constraint(pointer: Long) :
+        JniStruct(layout, StructType.IndexConstraint, pointer) {
 
         public var iColumn: Int
             get() = readInt(LAYOUT_INDEX_ICOLUMN)
@@ -120,7 +122,8 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(pointer, layout) {
      * Wraps an instance of `sqlite3_index_constraint_usage` at address [pointer] and supplies
      * getters and setters for reading and writing the struct.
      */
-    public class sqlite3_index_constraint_usage(pointer: Long) : JniStruct(pointer, layout) {
+    public class sqlite3_index_constraint_usage(pointer: Long) :
+        JniStruct(layout, StructType.IndexConstraintUsage, pointer) {
 
         public var argvIndex: Int
             get() = readInt(LAYOUT_INDEX_ARGVINDEX)
@@ -143,7 +146,8 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(pointer, layout) {
      * Wraps an instance of `sqlite3_index_orderby` at address [pointer] and supplies getters and 
      * setters for reading and writing the struct.
      */
-    public class sqlite3_index_orderby(pointer: Long) : JniStruct(pointer, layout) {
+    public class sqlite3_index_orderby(pointer: Long) :
+        JniStruct(layout, StructType.IndexOrderby, pointer) {
 
         public var iColumn: Int
             get() = readInt(LAYOUT_INDEX_ICOLUMN)

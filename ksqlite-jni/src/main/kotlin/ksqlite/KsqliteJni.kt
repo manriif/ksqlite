@@ -73,7 +73,7 @@ public external fun nativeReadString(pointer: Long): String
  * Frees [pointer] using `sqlite3_free` ands returns the result of `sqlite3_mprintf` on [message].
  * If [message] is `null` then only [sqlite3_free] is called on [pointer] and `0` is returned
  */
-public external fun nativeFreeAndMprintf(
+public external fun nativeFreeAndMalloc(
     pointer: Long,
     message: String?
 ): Long
@@ -95,14 +95,20 @@ public external fun nativeFreeAndMprintf(
  */
 private external fun nativeStructLayout(type: Int): IntArray
 
-internal fun structLayout(type: StructType): IntArray = struct_layout(type.type)
+internal fun structLayout(type: StructType): IntArray = nativeStructLayout(type.type)
 
 /**
  * Returns a writable view of the struct as a [ByteBuffer] pointing to [pointer].
  */
-private external fun nativeStructReinterpret(pointer: Long): ByteBuffer
+private external fun nativeStructReinterpret(
+    type: Int,
+    pointer: Long
+): ByteBuffer
 
-internal fun structReinterpret(pointer: Long): ByteBuffer = struct_reinterpret(pointer)
+internal fun structReinterpret(
+    type: StructType,
+    pointer: Long
+): ByteBuffer = nativeStructReinterpret(type.type, pointer)
 
 /**
  * Allocates a new struct depending on [type] and returns a writable view of the struct as a
@@ -110,7 +116,7 @@ internal fun structReinterpret(pointer: Long): ByteBuffer = struct_reinterpret(p
  *
  * The allocated struct address is written into [pointer].
  */
-private external fun struct_malloc(
+private external fun nativeStructMalloc(
     type: Int,
     pointer: OutputPointer.OfPointer
 ): ByteBuffer
@@ -118,14 +124,14 @@ private external fun struct_malloc(
 internal fun structMalloc(
     type: StructType,
     pointer: OutputPointer.OfPointer
-): ByteBuffer = struct_malloc(type.type, pointer)
+): ByteBuffer = nativeStructMalloc(type.type, pointer)
 
 /**
  * Frees a struct at the address of [buffer].
  */
-private external fun struct_free(buffer: ByteBuffer)
+private external fun nativeStructFree(buffer: ByteBuffer)
 
-internal fun structFree(buffer: ByteBuffer) = struct_free(buffer)
+internal fun structFree(buffer: ByteBuffer) = nativeStructFree(buffer)
 
 ///////////////////////////////////////////////////////////////////////////
 // C-API
@@ -535,7 +541,7 @@ public external fun sqlite3_deserialize(
 
 public external fun sqlite3_drop_modules(
     db: Long,
-    keep: Array<String>?
+    modules: Array<String>?
 ): Int
 
 public external fun sqlite3_errcode(db: Long): Int

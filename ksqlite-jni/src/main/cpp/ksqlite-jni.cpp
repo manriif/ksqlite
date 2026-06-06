@@ -15,8 +15,6 @@ typedef uint8_t jboolean;
 #define CONCAT(A, B) A##B
 #define UNDERSCORED(V) CONCAT(V, _)
 
-// TODO, callbacks package, callback call -> apply, structs
-
 ///////////////////////////////////////////////////////////////////////////
 // Exceptions
 ///////////////////////////////////////////////////////////////////////////
@@ -208,7 +206,6 @@ static inline jclass getClassOrDie(
     getClassOrDie(env, className, "Error getting reference to " className " class")
 
 #define RequireKsqliteClass(className) RequireClass("ksqlite/" className)
-
 #define RequireKsqliteClassCallback(className) RequireKsqliteClass("callbacks/" className)
 
 /**
@@ -234,7 +231,7 @@ static inline jmethodID getMethodIdOrDie(
     RequireClassMethod(O.klass, name, signature, className)
 
 #define RequireKsqliteClassMethod(klass, name, signature, className) \
-    RequireClassMethod(klass, name, signature, "ksqlite." className)
+    RequireClassMethod(klass, name, signature, "ksqlite/" className)
 
 #define RequireKsqliteMethod(O, name, signature, className) \
     RequireKsqliteClassMethod(O.klass, name, signature, className)
@@ -349,7 +346,7 @@ struct HookDestroyable : Hook, Destroyable {
  */
 #define HookConfigure(hook, object, signature, className) \
     const auto klass = env->GetObjectClass(object); \
-    hook.call = RequireKsqliteClassMethod(klass, "call", signature, className); \
+    hook.call = RequireKsqliteClassMethod(klass, "apply", signature, "callbacks/" className); \
     hook.instance = GlobalRefCreate(object); \
     LocalRefDestroy(klass)
 
@@ -720,6 +717,13 @@ static void destroyDbState(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Common type for output pointer Java subclasses.
+ */
+struct OutputPointerSubclass : Class {
+    jmethodID constructor; // ()V
+};
+
+/**
  * Global state.
  */
 static struct {
@@ -776,16 +780,16 @@ static struct {
         } destructorCallback;
 
         struct : Class {
-            jmethodID call; // (I[Ljava/lang/String;[Ljava/lang/String;)I
+            jmethodID apply; // (I[Ljava/lang/String;[Ljava/lang/String;)I
         } execCallback;
 
         struct : Class {
-            jmethodID resultCode; // ()I
-            jmethodID message; // ()Ljava/lang/String;
-        } jniException;
-
-        struct : Class {
             jfieldID value; // Ljava/lang/Object;
+            OutputPointerSubclass ofInt32;
+            OutputPointerSubclass ofInt64;
+            OutputPointerSubclass ofPointer;
+            OutputPointerSubclass ofString;
+            OutputPointerSubclass ofObject;
         } outputPointer;
     } ksqlite;
 } KsqliteJniGlobalState;
@@ -803,8 +807,6 @@ static struct {
 #define KK K.ksqlite
 #define KKDC K.ksqlite.destructorCallback
 #define KKEC K.ksqlite.execCallback
-#define KKJE K.ksqlite.jniException
-#define KKOP K.ksqlite.outputPointer
 #define KKOP K.ksqlite.outputPointer
 
 ///////////////////////////////////////////////////////////////////////////
@@ -898,10 +900,17 @@ static void deinitializeJavaJniCache(JNIEnv* env) {
     GlobalRefDestroy(KJV.emptyByteArray);
 }
 
-#define KSQLITE_JNI_EXCEPTION "KsqliteJniException"
-#define DESTRUCTOR_CALLBACK "DestructorCallback"
-#define EXEC_CALLBACK "ExecCallback"
+#define DESTRUCTOR_CALLBACK "callbacks/DestructorCallback"
+#define EXEC_CALLBACK "callbacks/ExecCallback"
 #define OUTPUT_POINTER "OutputPointer"
+
+#define OutputPointerSubclassInit(S, name) \
+    KKOP.S.klass = RequireKsqliteClass(OUTPUT_POINTER "$" name); \
+    KKOP.S.constructor = RequireKsqliteMethod(KKOP.S, "<init>", "()V", OUTPUT_POINTER "$" name)
+
+#define OutputPointerSubclassDeInit(S) \
+    KKOP.S.constructor = nullptr; \
+    ClassClear(KKOP.S)
 
 /**
  * Initializes and caches the Ksqlite related classes and objects.
@@ -911,8 +920,8 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
     OutOfMemoryCheck(KK.emptyBufferPointer != nullptr);
 
     // Classes only
-    KK.configLogCallback = RequireKsqliteClass("ConfigLogCallback");
-    KK.configSqlLogCallback = RequireKsqliteClass("ConfigSqlLogCallback");
+    KK.configLogCallback = RequireKsqliteClassCallback("ConfigLogCallback");
+    KK.configSqlLogCallback = RequireKsqliteClassCallback("ConfigSqlLogCallback");
 
     // DestructorCallback
     KKDC.klass = RequireKsqliteClass(DESTRUCTOR_CALLBACK);
@@ -921,40 +930,39 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
     // ExecCallback
     KKEC.klass = RequireKsqliteClass(EXEC_CALLBACK);
 
-    KKEC.call = RequireKsqliteMethod(KKEC,
-        "call",
+    KKEC.apply = RequireKsqliteMethod(KKEC,
+        "apply",
         "(I[Ljava/lang/String;[Ljava/lang/String;)I",
         EXEC_CALLBACK
     );
 
-    // KsqliteJniException
-    KKJE.klass = RequireKsqliteClass(KSQLITE_JNI_EXCEPTION);
-    KKJE.resultCode = RequireKsqliteMethod(KKJE, "getResultCode", "()I", KSQLITE_JNI_EXCEPTION);
-
-    KKJE.message =
-        RequireKsqliteMethod(KKJE, "getMessage", "()Ljava/lang/String;", KSQLITE_JNI_EXCEPTION);
-
     // OutputPointer
     KKOP.klass = RequireKsqliteClass(OUTPUT_POINTER);
     KKOP.value = RequireKsqliteField(KKOP, "value", "Ljava/lang/Object;", OUTPUT_POINTER);
+    OutputPointerSubclassInit(ofInt32, "OfInt32");
+    OutputPointerSubclassInit(ofInt64, "OfInt64");
+    OutputPointerSubclassInit(ofPointer, "OfPointer");
+    OutputPointerSubclassInit(ofString, "OfString");
+    OutputPointerSubclassInit(ofObject, "OfObject");
 }
 
 /**
  * Deinitializes cached Ksqlite related classes and objects.
  */
 static void deinitializeKsqliteJniCache(JNIEnv* env) {
-    ClassClear(KKOP);
+    OutputPointerSubclassDeInit(ofObject);
+    OutputPointerSubclassDeInit(ofString);
+    OutputPointerSubclassDeInit(ofPointer);
+    OutputPointerSubclassDeInit(ofInt64);
+    OutputPointerSubclassDeInit(ofInt32);
     KKOP.value = nullptr;
+    ClassClear(KKOP);
 
-    ClassClear(KKJE);
-    KKJE.message = nullptr;
-    KKJE.resultCode = nullptr;
-
+    KKEC.apply = nullptr;
     ClassClear(KKEC);
-    KKEC.call = nullptr;
 
-    ClassClear(KKDC);
     KKDC.destroy = nullptr;
+    ClassClear(KKDC);
 
     GlobalRefDestroy(KK.configLogCallback);
     GlobalRefDestroy(KK.configSqlLogCallback);
@@ -1090,7 +1098,7 @@ static void hookDestroyer(void* pHook) {
 ///////////////////////////////////////////////////////////////////////////
 
 #define FunctionHookConfigure(hook, object, signature, className) \
-    { HookConfigure(function.hook, object, signature, "FunctionCallback." className); }
+    { HookConfigure(function.hook, object, signature, "FunctionCallback$" className); }
 
 #define Function1HookConfigure(hook, object, className) \
     FunctionHookConfigure(hook, object, "(J)V", className)
@@ -1694,7 +1702,7 @@ static char* jstringToUtf8(
     }
 
     const auto utf8 = static_cast<char*>(sqlite3_malloc(utf8Length + 1));
-    OutOfMemoryCheck(utf8);
+    OutOfMemoryCheck(utf8 != nullptr);
 
     utf16_to_utf8(
         reinterpret_cast<const char16_t*>(chars),
@@ -1802,6 +1810,29 @@ static jstring utf8ToJstring(
     WithStrings(string1, string2, const auto result = function); \
     return result
 
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_KsqliteJni_nativeReadString(
+    JNIEnv* env,
+    jclass clazz,
+    jlong pointer
+) {
+    return Utf8ToJstring(LongToPtr(pointer));
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_KsqliteJni_nativeFreeAndMalloc(
+    JNIEnv* env,
+    jclass clazz,
+    jlong pointer,
+    jstring message
+) {
+    sqlite3_free(LongToPtr(pointer));
+    WithString(message, const auto string = sqlite3_mprintf(message_));
+    return PtrToLong(string);
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Primitives helpers
 ///////////////////////////////////////////////////////////////////////////
@@ -1872,6 +1903,21 @@ static jobject getObjectFromArray(
 ///////////////////////////////////////////////////////////////////////////
 // Output pointers
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Instantiates a new instance of `klass`using `constructor`.
+ */
+static jobject outputPointerNew(
+    JNIEnv* env,
+    jclass klass,
+    jmethodID constructor
+) {
+    const auto instance = env->NewObject(klass, constructor);
+    OutOfMemoryCheck(instance != nullptr);
+    return instance;
+}
+
+#define OutputPointerNew(S) outputPointerNew(env, KKOP.S.klass, KKOP.S.constructor)
 
 /**
  * Gets the value of an OutputPointer.
@@ -2012,6 +2058,242 @@ static inline void outputPointerSetInt64Value(
     OutputPointerLeaveStringLength(jPointer, -1)
 
 ///////////////////////////////////////////////////////////////////////////
+// Structs
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Recognized struct types.
+ * To be synchronized with ksqlite.structs.StructType.
+ */
+enum StructType : u_char {
+    Sqlite3IndexInfo = 0,
+    Sqlite3IndexConstraint = 1,
+    Sqlite3IndexConstraintUsage = 2,
+    Sqlite3IndexOrderby = 3,
+    Sqlite3Module = 4,
+    Sqlite3Vtab = 5,
+    Sqlite3VtabCursor = 6
+};
+
+#define StructLayoutBegin(memberCount) \
+    constexpr auto arraySize = memberCount * 2 + 1; \
+    const auto layout = env->NewIntArray(arraySize); \
+    OutOfMemoryCheck(layout != nullptr);\
+    jint buffer[arraySize]; \
+    auto position = 0
+
+#define StructLayoutAppend(type, member) \
+    buffer[position++] = offsetof(type, member); \
+    buffer[position++] = sizeof(decltype(type::member))
+
+#define StructLayoutEnd(type) \
+    buffer[position] = sizeof(type); \
+    env->SetIntArrayRegion(layout, 0, arraySize, buffer); \
+    return layout
+
+/**
+ * Returns the layout for `sqlite3_index_info`.
+ */
+static jintArray structLayoutSqlite3IndexInfo(JNIEnv* env) {
+    StructLayoutBegin(13);
+    StructLayoutAppend(sqlite3_index_info, nConstraint);
+    StructLayoutAppend(sqlite3_index_info, aConstraint);
+    StructLayoutAppend(sqlite3_index_info, nOrderBy);
+    StructLayoutAppend(sqlite3_index_info, aOrderBy);
+    StructLayoutAppend(sqlite3_index_info, aConstraintUsage);
+    StructLayoutAppend(sqlite3_index_info, idxNum);
+    StructLayoutAppend(sqlite3_index_info, idxStr);
+    StructLayoutAppend(sqlite3_index_info, needToFreeIdxStr);
+    StructLayoutAppend(sqlite3_index_info, orderByConsumed);
+    StructLayoutAppend(sqlite3_index_info, estimatedCost);
+    StructLayoutAppend(sqlite3_index_info, estimatedRows);
+    StructLayoutAppend(sqlite3_index_info, idxFlags);
+    StructLayoutAppend(sqlite3_index_info, colUsed);
+    StructLayoutEnd(sqlite3_index_info);
+}
+
+/**
+ * Returns the layout for `sqlite3_index_info`.
+ */
+static jintArray structLayoutSqlite3IndexConstraint(JNIEnv* env) {
+    StructLayoutBegin(4);
+    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint, iColumn);
+    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint, op);
+    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint, usable);
+    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint, iTermOffset);
+    StructLayoutEnd(sqlite3_index_info::sqlite3_index_constraint);
+}
+
+/**
+ * Returns the layout for `sqlite3_index_info`.
+ */
+static jintArray structLayoutSqlite3IndexConstraintUsage(JNIEnv* env) {
+    StructLayoutBegin(2);
+    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint_usage, argvIndex);
+    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint_usage, omit);
+    StructLayoutEnd(sqlite3_index_info::sqlite3_index_constraint_usage);
+}
+
+/**
+ * Returns the layout for `sqlite3_index_info`.
+ */
+static jintArray structLayoutSqlite3IndexOrderby(JNIEnv* env) {
+    StructLayoutBegin(2);
+    StructLayoutAppend(sqlite3_index_info::sqlite3_index_orderby, iColumn);
+    StructLayoutAppend(sqlite3_index_info::sqlite3_index_orderby, desc);
+    StructLayoutEnd(sqlite3_index_info::sqlite3_index_orderby);
+}
+
+/**
+ * Returns the layout for `sqlite3_index_info`.
+ */
+static jintArray structLayoutSqlite3Module(JNIEnv* env) {
+    StructLayoutBegin(25);
+    StructLayoutAppend(sqlite3_module, iVersion);
+    StructLayoutAppend(sqlite3_module, xCreate);
+    StructLayoutAppend(sqlite3_module, xConnect);
+    StructLayoutAppend(sqlite3_module, xBestIndex);
+    StructLayoutAppend(sqlite3_module, xDisconnect);
+    StructLayoutAppend(sqlite3_module, xDestroy);
+    StructLayoutAppend(sqlite3_module, xOpen);
+    StructLayoutAppend(sqlite3_module, xClose);
+    StructLayoutAppend(sqlite3_module, xFilter);
+    StructLayoutAppend(sqlite3_module, xNext);
+    StructLayoutAppend(sqlite3_module, xEof);
+    StructLayoutAppend(sqlite3_module, xColumn);
+    StructLayoutAppend(sqlite3_module, xRowid);
+    StructLayoutAppend(sqlite3_module, xUpdate);
+    StructLayoutAppend(sqlite3_module, xBegin);
+    StructLayoutAppend(sqlite3_module, xSync);
+    StructLayoutAppend(sqlite3_module, xCommit);
+    StructLayoutAppend(sqlite3_module, xRollback);
+    StructLayoutAppend(sqlite3_module, xFindFunction);
+    StructLayoutAppend(sqlite3_module, xRename);
+    StructLayoutAppend(sqlite3_module, xSavepoint);
+    StructLayoutAppend(sqlite3_module, xRelease);
+    StructLayoutAppend(sqlite3_module, xRollbackTo);
+    StructLayoutAppend(sqlite3_module, xShadowName);
+    StructLayoutAppend(sqlite3_module, xIntegrity);
+    StructLayoutEnd(sqlite3_module);
+}
+
+/**
+ * Returns the layout for `sqlite3_index_info`.
+ */
+static jintArray structLayoutSqlite3Vtab(JNIEnv* env) {
+    StructLayoutBegin(3);
+    StructLayoutAppend(sqlite3_vtab, pModule);
+    StructLayoutAppend(sqlite3_vtab, nRef);
+    StructLayoutAppend(sqlite3_vtab, zErrMsg);
+    StructLayoutEnd(sqlite3_vtab);
+}
+
+/**
+ * Returns the layout for `sqlite3_index_info`.
+ */
+static jintArray structLayoutSqlite3VtabCursor(JNIEnv* env) {
+    StructLayoutBegin(1);
+    StructLayoutAppend(sqlite3_vtab_cursor, pVtab);
+    StructLayoutEnd(sqlite3_vtab_cursor);
+}
+
+/**
+ * Returns the size of the struct identified by `type`.
+ */
+static inline int structSize(
+    JNIEnv* env,
+    jint type
+) {
+    switch (type) {
+        case Sqlite3IndexInfo:
+            return sizeof(sqlite3_index_info);
+        case Sqlite3IndexConstraint:
+            return sizeof(sqlite3_index_info::sqlite3_index_constraint);
+        case Sqlite3IndexConstraintUsage:
+            return sizeof(sqlite3_index_info::sqlite3_index_constraint_usage);
+        case Sqlite3IndexOrderby:
+            return sizeof(sqlite3_index_info::sqlite3_index_orderby);
+        case Sqlite3Module:
+            return sizeof(sqlite3_module);
+        case Sqlite3Vtab:
+            return sizeof(sqlite3_vtab);
+        case Sqlite3VtabCursor:
+            return sizeof(sqlite3_vtab_cursor);
+        default:
+            FatalError(sqlite3_mprintf("Unknown struct type %d", type));
+            return 0;
+    }
+}
+
+extern "C"
+JNIEXPORT jintArray JNICALL
+Java_ksqlite_KsqliteJni_nativeStructLayout(
+    JNIEnv* env,
+    jclass clazz,
+    jint type
+) {
+    switch (type) {
+        case Sqlite3IndexInfo:
+            return structLayoutSqlite3IndexInfo(env);
+        case Sqlite3IndexConstraint:
+            return structLayoutSqlite3IndexConstraint(env);
+        case Sqlite3IndexConstraintUsage:
+            return structLayoutSqlite3IndexConstraintUsage(env);
+        case Sqlite3IndexOrderby:
+            return structLayoutSqlite3IndexOrderby(env);
+        case Sqlite3Module:
+            return structLayoutSqlite3Module(env);
+        case Sqlite3Vtab:
+            return structLayoutSqlite3Vtab(env);
+        case Sqlite3VtabCursor:
+            return structLayoutSqlite3VtabCursor(env);
+        default:
+            FatalError(sqlite3_mprintf("Unknown struct type %d", type));
+            return nullptr;
+    }
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_ksqlite_KsqliteJni_nativeStructReinterpret(
+    JNIEnv* env,
+    jclass clazz,
+    jint type,
+    jlong pointer
+) {
+    return env->NewDirectByteBuffer(LongToPtr(pointer), structSize(env, type));
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_ksqlite_KsqliteJni_nativeStructMalloc(
+    JNIEnv* env,
+    jclass clazz,
+    jint type,
+    jobject pointer
+) {
+    const auto size = structSize(env, type);
+    const auto address = sqlite3_malloc(size);
+    OutOfMemoryCheck(address != nullptr);
+
+    const auto buffer = env->NewDirectByteBuffer(address, size);
+    OutOfMemoryCheck(buffer != nullptr);
+
+    OutputPointerSetInt64Value(pointer, PtrToLong(address));
+    return buffer;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_nativeStructFree(
+    JNIEnv* env,
+    jclass clazz,
+    jobject buffer
+) {
+    sqlite3_free(env->GetDirectBufferAddress(buffer));
+}
+
+///////////////////////////////////////////////////////////////////////////
 // Ksqlite 1 to 1 mapping
 ///////////////////////////////////////////////////////////////////////////
 
@@ -2024,44 +2306,17 @@ static int autoExtensionCaller(
     const sqlite3_api_routines* pApi
 ) {
     JniEnvDeclare();
+
     const auto dbPtr = PtrToLong(pDb);
     const auto apiPtr = PtrToLong(pApi);
+    const auto outErrMsg = OutputPointerNew(ofString);
 
     HookEnterGlobal(autoExtension);
-    auto rc = env->CallIntMethod(instance, call, dbPtr, apiPtr);
+    const auto rc = env->CallIntMethod(instance, call, dbPtr, apiPtr, outErrMsg);
     HookLeave();
 
-    if (const auto exception = env->ExceptionOccurred(); exception != nullptr) {
-        env->ExceptionClear();
-
-        RequireObjectIsInstance(
-            exception,
-            KKJE.klass,
-            "Unexpected exception type thrown in AutoExtensionCallback#call"
-        );
-
-        const auto message = MethodStringCall(exception, KKJE.message);
-
-        // Let Java handle theses unexpected method call exceptions
-        IfExceptionThrown {
-            rc = SQLITE_ERROR;
-        } else {
-            const auto utf8 = JstringToUtf8(message);
-
-            if (utf8 != nullptr) {
-                *pzErr = sqlite3_mprintf(utf8);
-                sqlite3_free(message);
-            }
-
-            rc = env->CallIntMethod(exception, KKJE.resultCode);
-
-            IfExceptionThrown {
-                rc = SQLITE_ERROR;
-            }
-        }
-
-        LocalRefDestroy(exception);
-    }
+    *pzErr = OutputPointerGetStringValue(outErrMsg);
+    LocalRefDestroy(outErrMsg);
 
     return rc;
 }
@@ -2577,7 +2832,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1blob_1read(
 ) {
     const auto pBlob = LongTo_s3_blob(blob);
     const auto elements = env->GetByteArrayElements(buffer);
-    OutOfMemoryCheck(elements);
+    OutOfMemoryCheck(elements != nullptr);
 
     const auto rc = sqlite3_blob_read(pBlob, elements, size, offset);
 
@@ -3351,7 +3606,6 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1function_1v2(
     return rc;
 }
 
-/*
 extern "C"
 JNIEXPORT jint JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
@@ -3364,7 +3618,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
     jobject destroy
 ) {
     // TODO: implement sqlite3_create_module_v2()
-}*/
+}
 
 /**
  * Calls the `FunctionCallback.Inverse` hook.
@@ -3683,6 +3937,46 @@ Java_ksqlite_KsqliteJni_sqlite3_1deserialize(
 
 extern "C"
 JNIEXPORT jint JNICALL
+Java_ksqlite_KsqliteJni_sqlite3_1drop_1modules(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jobjectArray modules
+) {
+    const auto length = env->GetArrayLength(modules);
+    const char** azKeep = nullptr;
+    char** utf8s = nullptr;
+
+    if (length > 0) {
+        azKeep = new const char*[length + 1];
+        utf8s = new char*[length];
+
+        for (jsize i = 0; i < length; i++) {
+            const auto module = JstringCast(env->GetObjectArrayElement(modules, i));
+            utf8s[i] = JstringToUtf8(module);
+            azKeep[i] = utf8s[i];
+            env->DeleteLocalRef(module);
+        }
+
+        azKeep[length] = nullptr;
+    }
+
+    const auto rc = sqlite3_drop_modules(LongTo_s3(db), azKeep);
+
+    if (length > 0) {
+        for (jsize i = 0; i < length; i++) {
+            sqlite3_free(utf8s[i]);
+        }
+
+        delete[] azKeep;
+        delete[] utf8s;
+    }
+
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
 Java_ksqlite_KsqliteJni_sqlite3_1errcode(
     JNIEnv* env,
     jclass clazz,
@@ -3753,7 +4047,7 @@ static int execCaller(
         env->DeleteLocalRef(string);
     }
 
-    auto result = env->CallIntMethod(callback, KKEC.call, argc, values, names);
+    auto result = env->CallIntMethod(callback, KKEC.apply, argc, values, names);
 
     env->DeleteLocalRef(values);
     env->DeleteLocalRef(names);
@@ -5745,4 +6039,20 @@ Java_ksqlite_KsqliteJni_sqlite3_1wal_1hook(
         sqlite3_wal_hook(pDb, walHookCaller, pDbState),
         sqlite3_wal_hook(pDb, nullptr, nullptr)
     );
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Virtual Table
+///////////////////////////////////////////////////////////////////////////
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_nativeVTabModuleInit(
+    JNIEnv* env,
+    jclass clazz,
+    jlong module,
+    jint method_mask,
+    jboolean eponymous,
+    jobject callbacks
+) {
+    // TODO: implement nativeVTabModuleInit()
 }
