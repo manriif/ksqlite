@@ -11,23 +11,23 @@ import ksqlite.structLayout
 public class sqlite3_vtab : JniStruct(layout, StructType.Vtab) {
 
     public var pModule: Long
-        get() = readLong(LAYOUT_INDEX_PMODULE)
-        set(value) = writeLong(LAYOUT_INDEX_PMODULE, value)
+        get() = readLong(STRUCT_MEMBER_INDEX_PMODULE)
+        set(value) = writeLong(STRUCT_MEMBER_INDEX_PMODULE, value)
 
     public var nRef: Int
-        get() = readInt(LAYOUT_INDEX_NREF)
-        set(value) = writeInt(LAYOUT_INDEX_NREF, value)
+        get() = readInt(STRUCT_MEMBER_INDEX_NREF)
+        set(value) = writeInt(STRUCT_MEMBER_INDEX_NREF, value)
 
     public var zErrMsg: Long
-        get() = readLong(LAYOUT_INDEX_ZERRMSG)
-        set(value) = writeLong(LAYOUT_INDEX_ZERRMSG, value)
+        get() = readLong(STRUCT_MEMBER_INDEX_ZERRMSG)
+        set(value) = writeLong(STRUCT_MEMBER_INDEX_ZERRMSG, value)
 
     public companion object Layout {
 
         internal val layout by lazy { structLayout(StructType.Vtab) }
 
-        public const val LAYOUT_INDEX_PMODULE: Int = 0
-        public const val LAYOUT_INDEX_NREF: Int = 1
-        public const val LAYOUT_INDEX_ZERRMSG: Int = 2
+        public const val STRUCT_MEMBER_INDEX_PMODULE: Int = 0
+        public const val STRUCT_MEMBER_INDEX_NREF: Int = 1
+        public const val STRUCT_MEMBER_INDEX_ZERRMSG: Int = 2
     }
 }

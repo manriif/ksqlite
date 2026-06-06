@@ -457,11 +457,20 @@ public external fun sqlite3_create_function_v2(
     destroy: DestructorCallback?,
 ): Int
 
+/**
+ * The [callbackMask] represents the optional callbacks that are enabled where the LSB is the first
+ * callback in the struct (xConnect) and the MSB the last (xIntegrity) in the order they're declared
+ * in the struct. Only bits for optional callbacks are taken into account, others are ignored.
+ * See [ksqlite.structs.sqlite3_module.Layout] for per-bit symbols.
+ */
 public external fun sqlite3_create_module_v2(
     db: Long,
     name: String,
     module: Long,
     appData: Any?,
+    callbackMask: Int,
+    eponymous: Boolean,
+    callbacks: VTabModuleCallbacks,
     destroy: DestructorCallback?,
 ): Int
 
@@ -1113,21 +1122,3 @@ public external fun sqlite3_wal_hook(
     db: Long,
     callback: WalHookCallback?
 ): WalHookCallback?
-
-///////////////////////////////////////////////////////////////////////////
-// Virtual Table
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Initiliazes the `sqlite3_module` [module] with the supplied [callbacks].
- *
- * The [methodMask] represents the callbacks to enable where the LSB is the first callback in the
- * struct (xConnect) and the MSB the last (xIntegrity) in the order they're declared in the struct.
- * Mandatory callbacks are always enabled so they can be omitted in [methodMask].
- */
-public external fun nativeVTabModuleInit(
-    module: Long,
-    methodMask: Int,
-    eponymous: Boolean,
-    callbacks: VTabModuleCallbacks
-)

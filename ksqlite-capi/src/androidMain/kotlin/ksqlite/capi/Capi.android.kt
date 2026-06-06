@@ -87,7 +87,9 @@ import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParams
+import ksqlite.capi.vtab.Sqlite3ModuleKind
 import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.vtab.VTabModuleHandler
 import ksqlite.capi.vtab.createVTabModule
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
@@ -743,6 +745,9 @@ public actual fun <AppData> sqlite3_create_module_v2(
             name,
             module?.pointer.notNull,
             vTabModule,
+            module?.computeCallbackMask() ?: 0,
+            vTabModule?.callbacks?.moduleKind == Sqlite3ModuleKind.Eponymous,
+            VTabModuleHandler,
             destructorHandler(appData, destroy)
         )
     }

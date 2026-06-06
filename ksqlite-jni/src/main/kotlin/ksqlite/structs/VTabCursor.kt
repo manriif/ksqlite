@@ -11,13 +11,13 @@ import ksqlite.structLayout
 public class sqlite3_vtab_cursor : JniStruct(layout, StructType.VtabCursor) {
 
     public var pVtab: Int
-        get() = readInt(LAYOUT_INDEX_PVTAB)
-        set(value) = writeInt(LAYOUT_INDEX_PVTAB, value)
+        get() = readInt(STRUCT_MEMBER_INDEX_PVTAB)
+        set(value) = writeInt(STRUCT_MEMBER_INDEX_PVTAB, value)
 
     public companion object Layout {
 
         internal val layout by lazy { structLayout(StructType.VtabCursor) }
 
-        public const val LAYOUT_INDEX_PVTAB: Int = 0
+        public const val STRUCT_MEMBER_INDEX_PVTAB: Int = 0
     }
 }

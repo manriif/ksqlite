@@ -441,7 +441,7 @@ typedef std::unordered_map<void*, Freeable*> FreeableMap;
 
 /**
  * Allocates a new Freeable if at least one of pointer, data or destructor is not null. Returns
- * null if none of the supplied arguments is not null.
+ * null if all of the supplied arguments are null.
  */
 static Freeable* allocateFreeable(
     JNIEnv* env,
@@ -711,6 +711,22 @@ static void destroyDbState(
     MutexDestroy(state);
     delete pState;
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Virtual Table
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Initializes an `sqlite3_module`.
+ */
+static void initS3Module(
+    JNIEnv*,
+    sqlite3_module*,
+    int,
+    bool
+);
+
+static void moduleDestroyer(void*);
 
 ///////////////////////////////////////////////////////////////////////////
 // Global State
@@ -1048,6 +1064,7 @@ JNI_OnUnload(
 #define LongTo_s3_blob(L) LongCast(sqlite3_blob, (L))
 #define LongTo_s3_context(L) LongCast(sqlite3_context, (L))
 #define LongTo_s3_index_info(L) LongCast(sqlite3_index_info, (L))
+#define LongTo_s3_module(L) LongCast(sqlite3_module, (L))
 #define LongTo_s3_snapshot(L) LongCast(sqlite3_snapshot, (L))
 #define LongTo_s3_stmt(L) LongCast(sqlite3_stmt, (L))
 #define LongTo_s3_value(L) LongCast(sqlite3_value, (L))
@@ -2018,7 +2035,7 @@ static inline void outputPointerSetInt64Value(
 #define OutputPointerSetInt64Value(pointer, value) outputPointerSetInt64Value(env, pointer, value)
 
 #define OutputPointerEnter(T, jPointer, getValue, transform) \
-    const auto CONCAT(jPointer, _init) = transform(getValue(jPointer));                                                         \
+    const auto CONCAT(jPointer, _init) = transform(getValue(jPointer)); \
     T* UNDERSCORED(jPointer) = nullptr; \
     if (jPointer != nullptr) *UNDERSCORED(jPointer) = CONCAT(jPointer, _init)
 
@@ -2345,7 +2362,12 @@ Java_ksqlite_KsqliteJni_ksqlite_1auto_1extension(
         rc = ksqlite_auto_extension(autoExtensionCaller);
 
         if (rc == SQLITE_OK) {
-            HookConfigure(hook, callback, "(JJ)I", "AutoExtensionCallback");
+            HookConfigure(
+                hook,
+                callback,
+                "(JJLksqlite/OutputPointer$OfString;)I",
+                "AutoExtensionCallback"
+            );
         }
     }
 
@@ -3615,9 +3637,32 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
     jstring name,
     jlong module,
     jobject appData,
+    jint callbacksMask,
+    jboolean eponymous,
+    jobject callbacks,
     jobject destroy
 ) {
-    // TODO: implement sqlite3_create_module_v2()
+    const auto pDb = LongTo_s3(db);
+    const auto pModule = LongTo_s3_module(module);
+
+    if (pModule == nullptr) {
+        if (appData != nullptr || destroy != nullptr) {
+            return SQLITE_MISUSE;
+        }
+
+        ReturnWithString(name, sqlite3_create_module_v2(pDb, name_, nullptr, nullptr, nullptr));
+    }
+
+    const auto zName = JstringToUtf8(name);
+    const auto freeable = AllocateFreeable(pModule, appData, destroy);
+    const auto rc = sqlite3_create_module_v2(pDb, zName, pModule, freeable, moduleDestroyer);
+
+    if (rc == SQLITE_OK) {
+        initS3Module(env, pModule, callbacksMask, eponymous);
+    }
+
+    sqlite3_free(zName);
+    return rc;
 }
 
 /**
@@ -3678,6 +3723,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1window_1function(
         return SQLITE_MISUSE; // All parameters are required
     }
 
+    const auto pDb = LongTo_s3(db);
     const auto pFunction = allocateFunctionWindow(env, appData, destroy, KKDC.destroy);
     auto& function = *pFunction;
     const auto zName = JstringToUtf8(name);
@@ -3687,8 +3733,8 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1window_1function(
     FunctionValueHookConfigure(value)
     FunctionInverseHookConfigure(inverse)
 
-    auto rc = sqlite3_create_window_function(
-        LongTo_s3(db),
+    const auto rc = sqlite3_create_window_function(
+        pDb,
         zName,
         nArg,
         eTextRep,
@@ -3948,8 +3994,8 @@ Java_ksqlite_KsqliteJni_sqlite3_1drop_1modules(
     char** utf8s = nullptr;
 
     if (length > 0) {
-        azKeep = new const char*[length + 1];
-        utf8s = new char*[length];
+        azKeep = new const char* [length + 1];
+        utf8s = new char* [length];
 
         for (jsize i = 0; i < length; i++) {
             const auto module = JstringCast(env->GetObjectArrayElement(modules, i));
@@ -6042,17 +6088,300 @@ Java_ksqlite_KsqliteJni_sqlite3_1wal_1hook(
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Virtual Table
+// Virtual Table (implementation)
 ///////////////////////////////////////////////////////////////////////////
-extern "C"
-JNIEXPORT void JNICALL
-Java_ksqlite_KsqliteJni_nativeVTabModuleInit(
-    JNIEnv* env,
-    jclass clazz,
-    jlong module,
-    jint method_mask,
-    jboolean eponymous,
-    jobject callbacks
+
+// To be synced with ksqlite.structs.sqlite3_module.Layout
+constexpr auto StructMemberIndexXCreate = 1;
+constexpr auto StructMemberIndexXUpdate = 13;
+constexpr auto StructMemberIndexXBegin = 14;
+constexpr auto StructMemberIndexXSync = 15;
+constexpr auto StructMemberIndexXCommit = 16;
+constexpr auto StructMemberIndexXRollback = 17;
+constexpr auto StructMemberIndexXFindFunction = 18;
+constexpr auto StructMemberIndexXRename = 19;
+constexpr auto StructMemberIndexXSavepoint = 20;
+constexpr auto StructMemberIndexXRelease = 21;
+constexpr auto StructMemberIndexXRollbackTo = 22;
+constexpr auto StructMemberIndexXIntegrity = 24;
+
+/**
+ * Destroys a module.
+ */
+static void moduleDestroyer(void* pFreeable) {
+    // TODO nullify Freeable->pointer
+    freeableDestroyer(pFreeable);
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.create` hook.
+ */
+static int moduleXCreateCaller(
+    sqlite3* pDb,
+    void* pAux,
+    int argc,
+    const char* const* argv,
+    sqlite3_vtab** ppVTab,
+    char** pzErrMsg
 ) {
-    // TODO: implement nativeVTabModuleInit()
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.connect` hook.
+ */
+static int moduleXConnectCaller(
+    sqlite3* pDb,
+    void* pAux,
+    int argc,
+    const char* const* argv,
+    sqlite3_vtab** ppVTab,
+    char** pzErrMsg
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.bestIndex` hook.
+ */
+static int moduleXBestIndexCaller(
+    sqlite3_vtab* pVTab,
+    sqlite3_index_info* pInfo
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.disconnect` hook.
+ */
+static int moduleXDisconnectCaller(sqlite3_vtab* pVTab) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.destroy` hook.
+ */
+static int moduleXDestroyCaller(sqlite3_vtab* pVTab) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.open` hook.
+ */
+static int moduleXOpenCaller(
+    sqlite3_vtab* pVTab,
+    sqlite3_vtab_cursor** ppCursor
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.close` hook.
+ */
+static int moduleXCloseCaller(sqlite3_vtab_cursor* pCursor) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.filter` hook.
+ */
+static int moduleXFilterCaller(
+    sqlite3_vtab_cursor* pCursor,
+    int idxNum,
+    const char* idxStr,
+    int argc, sqlite3_value** argv
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.next` hook.
+ */
+static int moduleXNextCaller(sqlite3_vtab_cursor* pCursor) {
+    return 0;
+}
+
+
+/**
+ * Calls the `VTabModuleCallbacks.eof` hook.
+ */
+static int moduleXEofCaller(sqlite3_vtab_cursor* pCursor) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.column` hook.
+ */
+static int moduleXColumnCaller(
+    sqlite3_vtab_cursor* pCursor,
+    sqlite3_context* pContext,
+    int columnIndex
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.rowid` hook.
+ */
+static int moduleXRowidCaller(
+    sqlite3_vtab_cursor* pCursor,
+    sqlite3_int64* pRowid
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.update` hook.
+ */
+static int moduleXUpdateCaller(
+    sqlite3_vtab* pVtab,
+    int argc,
+    sqlite3_value** argv,
+    sqlite3_int64* pRowid
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.begin` hook.
+ */
+static int moduleXBeginCaller(sqlite3_vtab* pVTab) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.sync` hook.
+ */
+static int moduleXSyncCaller(sqlite3_vtab* pVTab) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.commit` hook.
+ */
+static int moduleXCommitCaller(sqlite3_vtab* pVTab) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.rollback` hook.
+ */
+static int moduleXRollbackCaller(sqlite3_vtab* pVTab) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.findFunction` hook.
+ */
+static int moduleXFindFunctionCaller(
+    sqlite3_vtab* pVtab,
+    int nArg,
+    const char* zName,
+    void (** pxFunc)(sqlite3_context*, int, sqlite3_value**),
+    void** ppArg
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.rename` hook.
+ */
+static int moduleXRenameCaller(
+    sqlite3_vtab* pVtab,
+    const char* zNew
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.savepoint` hook.
+ */
+static int moduleXSavepointCaller(
+    sqlite3_vtab* pVTab,
+    int savepoint
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.release` hook.
+ */
+static int moduleXReleaseCaller(
+    sqlite3_vtab* pVTab,
+    int savepoint
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.rollbackTo` hook.
+ */
+static int moduleXRollbackToCaller(
+    sqlite3_vtab* pVTab,
+    int savepoint
+) {
+    return 0;
+}
+
+/**
+ * Calls the `VTabModuleCallbacks.integrity` hook.
+ */
+static int moduleXIntegrityCaller(
+    sqlite3_vtab* pVTab,
+    const char* zSchema,
+    const char* zTabName,
+    int mFlags,
+    char** pzErr
+) {
+    return 0;
+}
+
+#define ModuleCallbackEnabled(index) ((mask & 1 << index) == 1 << index)
+
+#define ModuleCallbackSetIfEnabled(index, member, caller) \
+    pModule->member = ModuleCallbackEnabled(index) ? caller : nullptr
+
+static void initS3Module(
+    JNIEnv* env,
+    sqlite3_module* pModule,
+    int mask,
+    bool eponymous
+) {
+    if (ModuleCallbackEnabled(StructMemberIndexXCreate)) {
+        pModule->xCreate = moduleXCreateCaller;
+    } else if (eponymous) {
+        pModule->xCreate = moduleXConnectCaller;
+    } else {
+        pModule->xCreate = nullptr;
+    }
+    
+    pModule->xConnect = moduleXConnectCaller;
+    pModule->xBestIndex = moduleXBestIndexCaller;
+    pModule->xDisconnect = moduleXDisconnectCaller;
+    pModule->xDestroy = moduleXDestroyCaller;
+    pModule->xOpen = moduleXOpenCaller;
+    pModule->xClose = moduleXCloseCaller;
+    pModule->xFilter = moduleXFilterCaller;
+    pModule->xNext = moduleXNextCaller;
+    pModule->xEof = moduleXEofCaller;
+    pModule->xColumn = moduleXColumnCaller;
+    pModule->xRowid = moduleXRowidCaller;
+    
+    ModuleCallbackSetIfEnabled(StructMemberIndexXUpdate, xUpdate, moduleXUpdateCaller);
+    ModuleCallbackSetIfEnabled(StructMemberIndexXBegin, xBegin, moduleXBeginCaller);
+    ModuleCallbackSetIfEnabled(StructMemberIndexXSync, xSync, moduleXSyncCaller);
+    ModuleCallbackSetIfEnabled(StructMemberIndexXCommit, xCommit, moduleXCommitCaller);
+    ModuleCallbackSetIfEnabled(StructMemberIndexXRollback, xRollback, moduleXRollbackCaller);
+
+    ModuleCallbackSetIfEnabled(
+        StructMemberIndexXFindFunction,
+        xFindFunction,
+        moduleXFindFunctionCaller
+    );
+
+    ModuleCallbackSetIfEnabled(StructMemberIndexXRename, xRename, moduleXRenameCaller);
+    ModuleCallbackSetIfEnabled(StructMemberIndexXSavepoint, xSavepoint, moduleXSavepointCaller);
+    ModuleCallbackSetIfEnabled(StructMemberIndexXRelease, xRelease, moduleXReleaseCaller);
+    ModuleCallbackSetIfEnabled(StructMemberIndexXRollbackTo, xRollbackTo, moduleXRollbackToCaller);
+    ModuleCallbackSetIfEnabled(StructMemberIndexXIntegrity, xIntegrity, moduleXIntegrityCaller);
 }
