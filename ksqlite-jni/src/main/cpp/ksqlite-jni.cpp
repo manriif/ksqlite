@@ -6818,6 +6818,8 @@ Java_ksqlite_KsqliteJni_nativeVTabDeinit(
         for (const auto& pFunction: functions) {
             destroyFunction(env, pFunction);
         }
+
+        delete pVTab->pFunctions;
     }
 
     pVTab->pMutex = nullptr;
