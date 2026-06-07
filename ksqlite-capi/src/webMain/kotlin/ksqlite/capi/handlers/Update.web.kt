@@ -1,22 +1,21 @@
 package ksqlite.capi.handlers
 
+import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.convertActionCode
-import ksqlite.capi.interop.wasm.FunctionSignature
-import ksqlite.capi.interop.wasm.WasmFunctions
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.memory.MemoryManager
+import ksqlite.wasm.FunctionSignature
+import ksqlite.wasm.WasmFunctions
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.installFunction
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
-import ksqlite.capi.types.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.sqlite3
 
 /**
  * Handler for [ksqlite.capi.sqlite3_preupdate_hook].
  */
-internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
+internal class PreupdateHookHandler : Handler() {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Void(
             FunctionSignature.Pointer,
             FunctionSignature.Pointer,
@@ -26,26 +25,26 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
             FunctionSignature.Int64,
             FunctionSignature.Int64,
         ),
-        function = ::handle
+        function = this::apply
     )
 
-    fun handle(
+    fun apply(
         refPointer: WasmPointer,
         db: WasmPointer,
         action: Int,
         dbName: WasmPointer,
         tableName: WasmPointer,
-        oldRowId: Long,
-        newRowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3PreupdateHookCallback, userData ->
-        callback(
-            userData,
-            sqlite3(db),
-            convertActionCode(action),
-            dbName.toKStringFromUtf8(),
-            tableName.toKStringFromUtf8(),
-            oldRowId,
-            newRowId
+        iKey1: Long,
+        iKey2: Long
+    ): Unit = handle(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
+        callback.apply(
+            appData = appData,
+            db = sqlite3(db),
+            action = convertActionCode(action),
+            dbName = dbName.toKStringFromUtf8(),
+            tableName = tableName.toKStringFromUtf8(),
+            preRowId = iKey1,
+            postRowId = iKey2
         )
     }
 }
@@ -53,9 +52,9 @@ internal class PreupdateHookHandler(manager: MemoryManager) : Handler(manager) {
 /**
  * Handler for [ksqlite.capi.sqlite3_update_hook].
  */
-internal class UpdateHookHandler(manager: MemoryManager) : Handler(manager) {
+internal class UpdateHookHandler : Handler() {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Void(
             FunctionSignature.Pointer,
             FunctionSignature.Int32,
@@ -63,22 +62,22 @@ internal class UpdateHookHandler(manager: MemoryManager) : Handler(manager) {
             FunctionSignature.Pointer,
             FunctionSignature.Int64,
         ),
-        function = ::handle
+        function = this::apply
     )
 
-    fun handle(
+    fun apply(
         refPointer: WasmPointer,
         action: Int,
         dbName: WasmPointer,
         tableName: WasmPointer,
         rowId: Long
-    ): Unit = handler(refPointer) { callback: Sqlite3UpdateHookCallback, userData ->
-        callback(
-            userData,
-            convertActionCode(action),
-            dbName.toKStringFromUtf8(),
-            tableName.toKStringFromUtf8(),
-            rowId
+    ): Unit = handle(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
+        callback.apply(
+            appData = appData,
+            action = convertActionCode(action),
+            dbName = dbName.toKStringFromUtf8(),
+            tableName = tableName.toKStringFromUtf8(),
+            rowId = rowId
         )
     }
 }

@@ -8,8 +8,8 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.convertActionCode
-import ksqlite.capi.types.Sqlite3PreupdateHookCallback
-import ksqlite.capi.types.Sqlite3UpdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
+import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
 import ksqlite.sqlite3_int64
@@ -32,17 +32,17 @@ private fun preupdateHookHandler(
     action: Int,
     dbName: CPointer<ByteVar>?,
     tableName: CPointer<ByteVar>?,
-    oldRowId: sqlite3_int64,
-    newRowId: sqlite3_int64
-) = handler(refPointer) { callback: Sqlite3PreupdateHookCallback, userData ->
-    callback(
-        userData,
-        sqlite3(db!!),
-        convertActionCode(action),
-        dbName!!.toKStringFromUtf8(),
-        tableName!!.toKStringFromUtf8(),
-        oldRowId,
-        newRowId
+    iKey1: sqlite3_int64,
+    ikey2: sqlite3_int64
+) = handle(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
+    callback.apply(
+        appData = appData,
+        db = sqlite3(db!!),
+        action = convertActionCode(action),
+        dbName = dbName!!.toKStringFromUtf8(),
+        tableName = tableName!!.toKStringFromUtf8(),
+        preRowId = iKey1,
+        postRowId = ikey2
     )
 }
 
@@ -64,12 +64,12 @@ private fun updateHookHandler(
     dbName: CPointer<ByteVar>?,
     tableName: CPointer<ByteVar>?,
     rowId: sqlite3_int64
-) = handler(refPointer) { callback: Sqlite3UpdateHookCallback, userData ->
-    callback(
-        userData,
-        convertActionCode(action),
-        dbName!!.toKStringFromUtf8(),
-        tableName!!.toKStringFromUtf8(),
-        rowId
+) = handle(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
+    callback.apply(
+        appData = appData,
+        action = convertActionCode(action),
+        dbName = dbName!!.toKStringFromUtf8(),
+        tableName = tableName!!.toKStringFromUtf8(),
+        rowId = rowId
     )
 }

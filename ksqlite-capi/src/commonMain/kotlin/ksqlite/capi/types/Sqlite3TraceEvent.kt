@@ -3,7 +3,7 @@
 package ksqlite.capi.types
 
 /**
- * Event passed as parameter to [Sqlite3TraceCallback].
+ * Event passed as parameter to [ksqlite.capi.callbacks.Sqlite3TraceCallback].
  */
 public sealed interface Sqlite3TraceEvent {
 

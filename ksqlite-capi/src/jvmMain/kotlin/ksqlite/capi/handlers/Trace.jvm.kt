@@ -1,40 +1,37 @@
 package ksqlite.capi.handlers
 
+import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.dispatchTraceEvent
-import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3TraceCallback
+import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.memory.toKStringFromUtf8
-import java.lang.foreign.FunctionDescriptor
+import ksqlite.`sqlite3_trace_v2$xCallback`
+import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
 
 /**
  * Handler for [ksqlite.capi.sqlite3_trace_v2].
  */
-internal class TraceHandler(manager: MemoryManager) : Handler(manager) {
+internal class TraceHandler :
+    Handler(),
+    `sqlite3_trace_v2$xCallback`.Function {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
-        ValueLayout.JAVA_INT,
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-    )
+    override fun allocate(arena: Arena): MemorySegment =
+        `sqlite3_trace_v2$xCallback`.allocate(this, arena)
 
-    fun handle(
+    override fun apply(
         code: Int,
         refPointer: MemorySegment,
-        pointer1: MemorySegment,
-        pointer2: MemorySegment
-    ): Int = handler(refPointer) { callback: Sqlite3TraceCallback, userData ->
+        pPointer: MemorySegment,
+        xPointer: MemorySegment
+    ): Int = handle(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
         dispatchTraceEvent(
             callback = callback,
-            userData = userData,
+            appData = appData,
             code = code,
-            pointer1 = pointer1,
-            pointer2 = pointer2,
+            pPointer = pPointer,
+            xPointer = xPointer,
             toDb = ::sqlite3,
             toStatement = ::sqlite3_stmt,
             toString = { it.toKStringFromUtf8() },

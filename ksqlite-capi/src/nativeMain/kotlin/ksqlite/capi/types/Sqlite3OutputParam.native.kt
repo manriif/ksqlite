@@ -15,10 +15,7 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.value
 import ksqlite.capi.memory.toKStringFromUtf8
-
-///////////////////////////////////////////////////////////////////////////
-// Param
-///////////////////////////////////////////////////////////////////////////
+import ksqlite.sqlite3_free as native_sqlite3_free
 
 /**
  * Base for output parameter.
@@ -81,7 +78,6 @@ public abstract class PointerOutputParam<Value, Var : CPointed> :
 // Primitives
 ///////////////////////////////////////////////////////////////////////////
 
-
 public actual class Int32OutputParam actual constructor(initialValue: Int) :
     OutputParamBase<Int, IntVar>(initialValue) {
 
@@ -118,8 +114,19 @@ public actual class Utf8OutputParam actual constructor() :
      */
     internal var size: Int? = null
 
+    /**
+     * Whether to free the C-string after read.
+     */
+    internal var free: Boolean = true
+
     override fun create(pointer: CPointer<ByteVar>): String {
-        return size?.let { pointer.toKStringFromUtf8(it) } ?: pointer.toKStringFromUtf8()
+        val string = size?.let { pointer.toKStringFromUtf8(it) } ?: pointer.toKStringFromUtf8()
+
+        if (free) {
+            native_sqlite3_free(pointer)
+        }
+
+        return string
     }
 }
 

@@ -10,8 +10,6 @@ plugins {
     alias(libs.plugins.vanniktech.mavenPublish) apply false
     alias(libs.plugins.gradle.pluginPublish) apply false
 
-    alias(libs.plugins.ksqlite)
-
     alias(kompleLibs.plugins.komple)
     alias(kompleLibs.plugins.tool.androidNdk)
     alias(kompleLibs.plugins.tool.appleXcode)
@@ -20,6 +18,8 @@ plugins {
     alias(kompleLibs.plugins.tool.gnuSed)
     alias(kompleLibs.plugins.tool.jextract)
     alias(kompleLibs.plugins.tool.wabt)
+
+    alias(libs.plugins.ksqlite)
 }
 
 allprojects {
@@ -85,12 +85,12 @@ komple {
 
             headerFilters.from(
                 headerFile,
-                ksqlite.sqliteDirectory.file(cHeaderFile(SQLITE3_MC_AMALGAMATION))
+                ksqlite.sqliteDirectory.file(cHeaderFile(SQLITE3MC_AMALGAMATION))
             )
 
             sourceFiles.from(
                 ksqlite.ksqliteDirectory.file(cSourceFile(KSQLITE)),
-                ksqlite.sqliteDirectory.file(cSourceFile(SQLITE3_MC_AMALGAMATION))
+                ksqlite.sqliteDirectory.file(cSourceFile(SQLITE3MC_AMALGAMATION))
             )
 
             includeDirectories.from(

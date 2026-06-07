@@ -1,42 +1,29 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.CreateFunction
+import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.exports
-import ksqlite.capi.interop.wasm.FunctionSignature
-import ksqlite.capi.interop.wasm.WasmFunctions
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.memory.orNull
-import ksqlite.capi.memory.toArray
-import ksqlite.capi.types.Sqlite3CreateFunction1Callback
-import ksqlite.capi.types.Sqlite3CreateFunction3Callback
+import ksqlite.wasm.FunctionSignature
+import ksqlite.wasm.WasmFunctions
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.installFunction
+import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_value
-import kotlin.reflect.KProperty1
 
 /**
- * Base for create function [Handler]s.
+ * Base for function [Handler]s.
  */
-internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(manager) {
+internal abstract class FunctionHandler : Handler() {
 
     /**
-     * Handler for create function callback.
+     * Handler for function callback.
      */
-    protected inline fun functionHandler(
+    protected inline fun handleFunction(
         context: WasmPointer,
-        block: (
-            callbacks: CreateFunction,
-            userData: sqlite3_mutable_pointer?,
-            context: sqlite3_context
-        ) -> Unit
+        call: ApplicationDefinedFunction<*>.(sqlite3_context) -> Unit
     ) {
-        val refPointer = exports.sqlite3_user_data(context)
-        val context = sqlite3_context(context)
-
-        handler(refPointer) { callbacks: CreateFunction, userData ->
-            block(callbacks, userData, context)
+        handle(exports.sqlite3_user_data(context)) { function: ApplicationDefinedFunction<*>, _ ->
+            function.call(sqlite3_context(context))
         }
     }
 }
@@ -46,93 +33,114 @@ internal abstract class CreateFunctionHandler(manager: MemoryManager) : Handler(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Base for 1-arg create function [Handler]s.
+ * Base for 1-arg function [Handler]s.
  */
-internal abstract class CreateFunction1ArgHandler(
-    manager: MemoryManager,
-    private val selector: KProperty1<CreateFunction, Sqlite3CreateFunction1Callback?>
-) : CreateFunctionHandler(manager) {
+internal abstract class Function1ArgHandler : FunctionHandler() {
 
-    final override fun WasmFunctions.install(): WasmPointer = installFunction(
+    final override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Void(FunctionSignature.Pointer),
-        function = ::handle
+        function = this::apply
     )
 
     /**
-     * Handler for 1 arg create function callback.
+     * Handles the function call.
      */
-    private fun handle(
-        context: WasmPointer,
-    ) = functionHandler(context) { callbacks, userData, context ->
-        selector(callbacks)!!.invoke(userData, context)
-    }
+    protected abstract fun apply(context: WasmPointer)
 }
 
 /**
  * Handler for the `final` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class CreateFunctionFinalHandler(manager: MemoryManager) :
-    CreateFunction1ArgHandler(manager, CreateFunction::final)
+internal class FunctionFinalHandler : Function1ArgHandler() {
+
+    override fun apply(context: WasmPointer) =
+        handleFunction(context, ApplicationDefinedFunction<*>::callFinal)
+}
 
 /**
  * Handler for the `value` argument of  [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class CreateFunctionValueHandler(manager: MemoryManager) :
-    CreateFunction1ArgHandler(manager, CreateFunction::value)
+internal class FunctionValueHandler : Function1ArgHandler() {
+
+    override fun apply(context: WasmPointer) =
+        handleFunction(context, ApplicationDefinedFunction<*>::callValue)
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // 3 args
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Base for 3-args create function [Handler]s.
+ * Base for 3-args function [Handler]s.
  */
-internal abstract class CreateFunction3ArgsHandler(
-    manager: MemoryManager,
-    private val
-    selector: KProperty1<CreateFunction, Sqlite3CreateFunction3Callback?>
-) : CreateFunctionHandler(manager) {
+internal abstract class Function3ArgsHandler : FunctionHandler() {
 
-    final override fun WasmFunctions.install(): WasmPointer = installFunction(
+    final override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Void(
             FunctionSignature.Pointer,
             FunctionSignature.Int32,
             FunctionSignature.Pointer
         ),
-        function = ::handle
+        function = this::apply
     )
 
     /**
-     * Handler for 3-args create function callback.
+     * Handler for 3-args function callback.
      */
-    private fun handle(
+    protected fun handleFunction(
         context: WasmPointer,
         argc: Int,
         argv: WasmPointer,
-        selector: KProperty1<CreateFunction, Sqlite3CreateFunction3Callback?>
-    ) = functionHandler(context) { callbacks, userData, context ->
-        val values = argv.orNull?.toArray(argc) { sqlite3_value(it) } ?: emptyArray()
-        selector(callbacks)!!.invoke(userData, context, values)
+        call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
+    ) = handleFunction(context) { context ->
+        call(context, argv.toArrayOrEmpty(argc) { sqlite3_value(it) })
     }
+
+    /**
+     * Handles the function call.
+     */
+    protected abstract fun apply(
+        context: WasmPointer,
+        argc: Int,
+        argv: WasmPointer
+    )
 }
 
 /**
  * Handler for the `func` argument of [ksqlite.capi.sqlite3_create_function] and
  * [ksqlite.capi.sqlite3_create_function_v2].
  */
-internal class CreateFunctionFuncHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager, CreateFunction::func)
+internal class FunctionFuncHandler : Function3ArgsHandler() {
+
+    override fun apply(
+        context: WasmPointer,
+        argc: Int,
+        argv: WasmPointer
+    ) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callFunc)
+}
 
 /**
  * Handler for the `step` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class CreateFunctionStepHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager, CreateFunction::step)
+internal class FunctionStepHandler : Function3ArgsHandler() {
+
+    override fun apply(
+        context: WasmPointer,
+        argc: Int,
+        argv: WasmPointer
+    ) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callStep)
+}
 
 /**
  * Handler for the `inverse` argument of [ksqlite.capi.sqlite3_create_window_function].
  */
-internal class CreateFunctionInverseHandler(manager: MemoryManager) :
-    CreateFunction3ArgsHandler(manager, CreateFunction::inverse)
+internal class FunctionInverseHandler : Function3ArgsHandler() {
+
+    override fun apply(
+        context: WasmPointer,
+        argc: Int,
+        argv: WasmPointer
+    ) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callInverse)
+}

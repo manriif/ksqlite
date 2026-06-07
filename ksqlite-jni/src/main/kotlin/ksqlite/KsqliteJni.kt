@@ -1,8 +1,26 @@
 @file:JvmName("KsqliteJni")
-@file:Suppress("FunctionName")
+@file:Suppress("FunctionName", "SpellCheckingInspection")
 
 package ksqlite
 
+import ksqlite.callbacks.AuthorizerCallback
+import ksqlite.callbacks.AutoExtensionCallback
+import ksqlite.callbacks.AutoVacuumPagesCallback
+import ksqlite.callbacks.BusyHandlerCallback
+import ksqlite.callbacks.CollationCompareCallback
+import ksqlite.callbacks.CollationNeededCallback
+import ksqlite.callbacks.CommitHookCallback
+import ksqlite.callbacks.DestructorCallback
+import ksqlite.callbacks.ExecCallback
+import ksqlite.callbacks.FunctionCallback
+import ksqlite.callbacks.PreupdateHookCallback
+import ksqlite.callbacks.ProgressHandlerCallback
+import ksqlite.callbacks.RollbackHookCallback
+import ksqlite.callbacks.TraceCallback
+import ksqlite.callbacks.UpdateHookCallback
+import ksqlite.callbacks.VTabModuleCallbacks
+import ksqlite.callbacks.WalHookCallback
+import ksqlite.structs.StructType
 import java.nio.ByteBuffer
 
 ///////////////////////////////////////////////////////////////////////////
@@ -21,39 +39,99 @@ public fun ksqliteLoadLibrary() {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns a [ByteBuffer] wrapping [size] bytes from the memory region at the address [pointer].
- * Returns `null` if [pointer] points to `nullptr`.
+ * Reads bytes into [destination].
  */
-public external fun createByteBuffer(
-    pointer: Long,
-    size: Long
-): ByteBuffer?
-
-/**
- * Returns a [ByteBuffer] wrapping [size] bytes from the memory region at the address [pointer].
- */
-public fun requireBuffer(
-    pointer: Long,
-    size: Long
-): ByteBuffer = checkNotNull(createByteBuffer(pointer, size)) {
-    "Cannot create a ByteBuffer from a null pointer"
-}
-
 public external fun nativeBufferRead(
-    buffer: ByteBuffer,
+    buffer: Long,
+    destination: ByteArray,
     size: Int,
     sourceOffset: Long,
-    destinationOffset: Int,
-    destination: ByteArray
+    destinationOffset: Int
 )
 
+/**
+ * Writes bytes from [source].
+ */
 public external fun nativeBufferWrite(
-    buffer: ByteBuffer,
+    buffer: Long,
     source: ByteArray,
     size: Int,
     sourceOffset: Int,
     destinationOffset: Long
 )
+
+///////////////////////////////////////////////////////////////////////////
+// String helpers
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Reads bytes until null termination marker is found and returns the bytes read as [String].
+ */
+public external fun nativeReadString(pointer: Long): String
+
+/**
+ * Frees [pointer] using `sqlite3_free` ands returns the result of `sqlite3_mprintf` on [message].
+ * If [message] is `null` then only [sqlite3_free] is called on [pointer] and `0` is returned
+ */
+public external fun nativeFreeAndMalloc(
+    pointer: Long,
+    message: String?
+): Long
+
+///////////////////////////////////////////////////////////////////////////
+// Structs
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the layout of the struct.
+ * For a struct member index M:
+ *
+ * - array[M*2] = offset
+ * - array[M*2+1] = length
+ *
+ * The struct's total size can be obtained by reading the last element of teh returned array.
+ *
+ * The offset and lentgh are written in the order they're declared in the C-struct.
+ */
+private external fun nativeStructLayout(type: Int): IntArray
+
+internal fun structLayout(type: StructType): IntArray = nativeStructLayout(type.type)
+
+/**
+ * Returns a writable view of the struct as a [ByteBuffer] pointing to [pointer].
+ */
+private external fun nativeStructReinterpret(
+    type: Int,
+    pointer: Long
+): ByteBuffer
+
+internal fun structReinterpret(
+    type: StructType,
+    pointer: Long
+): ByteBuffer = nativeStructReinterpret(type.type, pointer)
+
+/**
+ * Allocates a new struct depending on [type] and returns a writable view of the struct as a
+ * [ByteBuffer] pointing to the address of the struct.
+ *
+ * The allocated struct address is written into [pointer].
+ */
+private external fun nativeStructMalloc(
+    type: Int,
+    pointer: OutputPointer.OfPointer
+): ByteBuffer
+
+internal fun structMalloc(
+    type: StructType,
+    pointer: OutputPointer.OfPointer
+): ByteBuffer = nativeStructMalloc(type.type, pointer)
+
+/**
+ * Frees a struct at the address of [buffer].
+ */
+private external fun nativeStructFree(buffer: ByteBuffer)
+
+internal fun structFree(buffer: ByteBuffer) = nativeStructFree(buffer)
 
 ///////////////////////////////////////////////////////////////////////////
 // C-API
@@ -66,9 +144,26 @@ public external fun ksqlite_auto_extension(callback: AutoExtensionCallback): Int
 
 public external fun ksqlite_cancel_auto_extension(callback: AutoExtensionCallback): Int
 
+public external fun ksqlite_prepare_v2(
+    db: Long,
+    sql: ByteArray,
+    maxBytes: Int,
+    outStmt: OutputPointer.OfPointer,
+    outOffset: OutputPointer.OfInt32?
+): Int
+
+public external fun ksqlite_prepare_v3(
+    db: Long,
+    sql: ByteArray,
+    maxBytes: Int,
+    flags: Int,
+    outStmt: OutputPointer.OfPointer,
+    outOffset: OutputPointer.OfInt32?
+): Int
+
 public external fun sqlite3_aggregate_context(
     context: Long,
-    nBytes: Int,
+    create: Boolean
 ): Long
 
 /**
@@ -102,7 +197,7 @@ public external fun sqlite3_backup_step(
 public external fun sqlite3_bind_blob(
     stmt: Long,
     index: Int,
-    data: ByteArray?,
+    bytes: ByteArray,
     size: Int,
     destructor: DestructorCallback?
 ): Int
@@ -110,7 +205,7 @@ public external fun sqlite3_bind_blob(
 public external fun sqlite3_bind_blob64(
     stmt: Long,
     index: Int,
-    data: ByteBuffer?,
+    buffer: Long,
     size: Long,
     destructor: DestructorCallback?
 ): Int
@@ -163,15 +258,13 @@ public external fun sqlite3_bind_pointer(
 public external fun sqlite3_bind_text(
     stmt: Long,
     index: Int,
-    text: String?,
-    size: Int,
-    computeSize: Boolean
+    value: String
 ): Int
 
 public external fun sqlite3_bind_text64(
     stmt: Long,
     index: Int,
-    data: ByteBuffer?,
+    buffer: Long,
     size: Long,
     destructor: DestructorCallback?,
     encoding: Int
@@ -258,6 +351,12 @@ public external fun sqlite3_column_blob(
     index: Int,
 ): ByteArray
 
+public external fun sqlite3_column_buffer(
+    stmt: Long,
+    index: Int,
+    outSize: OutputPointer.OfInt64
+): Long
+
 public external fun sqlite3_column_bytes(
     stmt: Long,
     index: Int,
@@ -320,816 +419,746 @@ public external fun sqlite3_column_value(
     index: Int,
 ): Long
 
-/*public external fun sqlite3_commit_hook(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-): Long
+public external fun sqlite3_commit_hook(
+    db: Long,
+    callback: CommitHookCallback?
+): CommitHookCallback?
 
-public external fun sqlite3_compileoption_get(
-    p0: Int,
-): Long
+public external fun sqlite3_compileoption_get(index: Int): String?
 
-public external fun sqlite3_compileoption_used(
-    p0: Long,
-): Int
+public external fun sqlite3_compileoption_used(optName: String): Int
 
-public external fun sqlite3_complete(
-    p0: Long,
-): Int
+public external fun sqlite3_complete(sql: String): Int
 
-/**
- * TODO variadic
- */
 public external fun sqlite3_config(
-    p0: Int,
-    p1: Long,
+    id: Int,
+    args: Array<*>
 ): Int
 
-public external fun sqlite3_context_db_handle(
-    p0: Long,
-): Long
-
-public external fun sqlite3_create_collation(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
-    p4: Long,
-): Int
+public external fun sqlite3_context_db_handle(context: Long): Long
 
 public external fun sqlite3_create_collation_v2(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
-    p4: Long,
-    p5: Long,
-): Int
-
-public external fun sqlite3_create_function(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
-    p4: Long,
-    p5: Long,
-    p6: Long,
-    p7: Long,
+    db: Long,
+    name: String,
+    eTextRep: Int,
+    destructor: DestructorCallback?,
+    callback: CollationCompareCallback?
 ): Int
 
 public external fun sqlite3_create_function_v2(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
-    p4: Long,
-    p5: Long,
-    p6: Long,
-    p7: Long,
-    p8: Long,
-): Int
-
-public external fun sqlite3_create_module(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
+    db: Long,
+    name: String,
+    nArg: Int,
+    eTextRep: Int,
+    appData: Any?,
+    func: FunctionCallback.Func?,
+    step: FunctionCallback.Step?,
+    final: FunctionCallback.Final?,
+    destroy: DestructorCallback?,
 ): Int
 
 public external fun sqlite3_create_module_v2(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
+    db: Long,
+    name: String,
+    module: Long,
+    appData: Any?,
+    destroy: DestructorCallback?,
 ): Int
 
 public external fun sqlite3_create_window_function(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
-    p4: Long,
-    p5: Long,
-    p6: Long,
-    p7: Long,
-    p8: Long,
-    p9: Long,
+    db: Long,
+    name: String,
+    nArg: Int,
+    eTextRep: Int,
+    appData: Any?,
+    step: FunctionCallback.Step?,
+    final: FunctionCallback.Final?,
+    value: FunctionCallback.Value?,
+    inverse: FunctionCallback.Inverse?,
+    destroy: DestructorCallback?,
 ): Int
 
-public external fun sqlite3_data_count(
-    p0: Long,
-): Int
+public external fun sqlite3_data_count(stmt: Long): Int
 
-public external fun sqlite3_db_cacheflush(
-    p0: Long,
-): Int
+public external fun sqlite3_db_cacheflush(db: Long): Int
 
-/**
- * TODO variadic
- */
 public external fun sqlite3_db_config(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    option: Int,
+    args: Array<*>
 ): Int
 
 public external fun sqlite3_db_filename(
-    p0: Long,
-    p1: Long,
-): Long
+    db: Long,
+    name: String
+): String?
 
-public external fun sqlite3_db_handle(
-    p0: Long,
-): Long
+public external fun sqlite3_db_handle(stmt: Long): Long
 
 public external fun sqlite3_db_name(
-    p0: Long,
-    p1: Int,
-): Long
+    db: Long,
+    index: Int
+): String?
 
 public external fun sqlite3_db_readonly(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    name: String
 ): Int
 
 public external fun sqlite3_db_release_memory(
-    p0: Long,
+    db: Long,
 ): Int
 
 public external fun sqlite3_db_status(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-    p4: Int,
+    db: Long,
+    option: Int,
+    outCurrent: OutputPointer.OfInt32?,
+    outHighwater: OutputPointer.OfInt32?,
+    resetFlag: Int,
 ): Int
 
 public external fun sqlite3_db_status64(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-    p4: Int,
+    db: Long,
+    option: Int,
+    outCurrent: OutputPointer.OfInt64?,
+    outHighwater: OutputPointer.OfInt64?,
+    resetFlag: Int,
 ): Int
 
 public external fun sqlite3_declare_vtab(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    sql: String
 ): Int
 
 public external fun sqlite3_deserialize(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
-    p5: Int,
+    db: Long,
+    schema: String?,
+    buffer: Long,
+    dbSize: Long,
+    bufferSize: Long,
+    flags: Int,
 ): Int
 
 public external fun sqlite3_drop_modules(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    modules: Array<String>?
 ): Int
 
-public external fun sqlite3_errcode(
-    p0: Long,
-): Int
+public external fun sqlite3_errcode(db: Long): Int
 
-public external fun sqlite3_errmsg(
-    p0: Long,
-): Long
+public external fun sqlite3_errmsg(db: Long): String?
 
-public external fun sqlite3_error_offset(
-    p0: Long,
-): Int
+public external fun sqlite3_error_offset(db: Long): Int
 
-public external fun sqlite3_errstr(
-    p0: Int,
-): Long
+public external fun sqlite3_errstr(resultCode: Int): String?
 
 public external fun sqlite3_exec(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
+    db: Long,
+    sql: String,
+    callback: ExecCallback?,
+    errorMessage: OutputPointer.OfString?
 ): Int
 
-public external fun sqlite3_expanded_sql(
-    p0: Long,
-): Long
+public external fun sqlite3_expanded_sql(stmt: Long): String?
 
-public external fun sqlite3_extended_errcode(
-    p0: Long,
-): Int
+public external fun sqlite3_extended_errcode(db: Long): Int
 
 public external fun sqlite3_extended_result_codes(
-    p0: Long,
-    p1: Int,
+    db: Long,
+    enabled: Int,
 ): Int
 
 public external fun sqlite3_file_control(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
+    db: Long,
+    name: String?,
+    opcode: Int,
 ): Int
 
-public external fun sqlite3_finalize(
-    p0: Long,
-): Int
+public external fun sqlite3_finalize(stmt: Long): Int
 
-public external fun sqlite3_free(
-    p0: Long,
-)
+public external fun sqlite3_free(buffer: Long)
 
-public external fun sqlite3_get_autocommit(
-    p0: Long,
-): Int
+public external fun sqlite3_get_autocommit(db: Long): Int
+
+public external fun sqlite3_hard_heap_limit64(limit: Long): Long
 
 public external fun sqlite3_get_auxdata(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    index: Int,
 ): Long
 
 public external fun sqlite3_initialize(): Int
 
-public external fun sqlite3_interrupt(
-    p0: Long,
-)
+public external fun sqlite3_interrupt(db: Long)
 
-public external fun sqlite3_is_interrupted(
-    p0: Long,
-): Int
+public external fun sqlite3_is_interrupted(db: Long): Int
 
 public external fun sqlite3_key(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    db: Long,
+    key: ByteArray,
+    nKey: Int,
 ): Int
 
 public external fun sqlite3_key_v2(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    db: Long,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int,
 ): Int
 
-public external fun sqlite3_keyword_check(
-    p0: Long,
-    p1: Int,
-): Int
+public external fun sqlite3_keyword_check(word: String): Int
 
 public external fun sqlite3_keyword_count(): Int
 
 public external fun sqlite3_keyword_name(
-    p0: Int,
-    p1: Long,
-    p2: Long,
+    index: Int,
+    name: OutputPointer.OfString?
 ): Int
 
-public external fun sqlite3_last_insert_rowid(
-    p0: Long,
-): Long
+public external fun sqlite3_last_insert_rowid(db: Long): Long
 
-public external fun sqlite3_libversion(): Long
+public external fun sqlite3_libversion(): String
 
 public external fun sqlite3_libversion_number(): Int
 
 public external fun sqlite3_limit(
-    p0: Long,
-    p1: Int,
-    p2: Int,
+    db: Long,
+    id: Int,
+    newVal: Int
 ): Int
 
-/**
- * TODO variadic
- */
 public external fun sqlite3_log(
-    p0: Int,
-    p1: Long,
-    p2: Long
+    errorCode: Int,
+    message: String
 )
 
-public external fun sqlite3_malloc(
-    p0: Int,
-): Long
+public external fun sqlite3_malloc(size: Int): Long
 
-public external fun sqlite3_malloc64(
-    p0: Long,
-): Long
+public external fun sqlite3_malloc64(size: Long): Long
 
-public external fun sqlite3_msize(
-    p0: Long,
-): Long
+public external fun sqlite3_memory_used(): Long
 
-public external fun sqlite3_memory_used(
-): Long
+public external fun sqlite3_memory_highwater(resetFlag: Int): Long
 
-public external fun sqlite3_memory_highwater(
-    p0: Int,
-): Long
+public external fun sqlite3_msize(buffer: Long): Long
 
 public external fun sqlite3_next_stmt(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    stmt: Long,
 ): Long
 
 public external fun sqlite3_open(
-    p0: Long,
-    p1: Long,
+    fileName: String,
+    outDb: OutputPointer.OfPointer,
 ): Int
 
 public external fun sqlite3_open_v2(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
+    fileName: String,
+    outDb: OutputPointer.OfPointer,
+    flags: Int,
+    vfs: String?,
 ): Int
 
 public external fun sqlite3_overload_function(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    db: Long,
+    name: String,
+    nArg: Int
 ): Int
 
 public external fun sqlite3_prepare_v2(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
-    p4: Long,
+    db: Long,
+    sql: String,
+    outStmt: OutputPointer.OfPointer
 ): Int
 
 public external fun sqlite3_prepare_v3(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Int,
-    p4: Long,
-    p5: Long,
+    db: Long,
+    sql: String,
+    flags: Int,
+    outStmt: OutputPointer.OfPointer
 ): Int
 
-public external fun sqlite3_preupdate_blobwrite(
-    p0: Long,
-): Int
+public external fun sqlite3_preupdate_blobwrite(db: Long): Int
 
-public external fun sqlite3_preupdate_count(
-    p0: Long,
-): Int
+public external fun sqlite3_preupdate_count(db: Long): Int
 
-public external fun sqlite3_preupdate_depth(
-    p0: Long,
-): Int
+public external fun sqlite3_preupdate_depth(db: Long): Int
 
 public external fun sqlite3_preupdate_hook(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-): Long
+    db: Long,
+    callback: PreupdateHookCallback?
+): PreupdateHookCallback?
 
 public external fun sqlite3_preupdate_new(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    index: Int,
+    outValue: OutputPointer.OfPointer,
 ): Int
 
 public external fun sqlite3_preupdate_old(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    index: Int,
+    outValue: OutputPointer.OfPointer,
 ): Int
 
 public external fun sqlite3_progress_handler(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
+    db: Long,
+    nOps: Int,
+    callback: ProgressHandlerCallback?
 )
 
 public external fun sqlite3_randomness(
-    p0: Int,
-    p1: Long,
+    size: Int,
+    buffer: Long,
 )
 
 public external fun sqlite3_realloc(
-    p0: Long,
-    p1: Int,
+    buffer: Long,
+    size: Int,
 ): Long
 
 public external fun sqlite3_realloc64(
-    p0: Long,
-    p1: Long,
+    buffer: Long,
+    size: Long,
 ): Long
 
 public external fun sqlite3_rekey(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    db: Long,
+    key: ByteArray,
+    nKey: Int,
 ): Int
 
 public external fun sqlite3_rekey_v2(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    db: Long,
+    dbName: String,
+    key: ByteArray,
+    nKey: Int,
 ): Int
 
-public external fun sqlite3_release_memory(
-    p0: Int,
-): Int
+public external fun sqlite3_release_memory(size: Int): Int
 
-public external fun sqlite3_reset(
-    p0: Long,
-): Int
+public external fun sqlite3_reset(stmt: Long): Int
 
 public external fun sqlite3_reset_auto_extension()
 
 public external fun sqlite3_result_blob(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
+    context: Long,
+    bytes: ByteArray,
+    size: Int,
+    destructor: DestructorCallback?
 )
 
 public external fun sqlite3_result_blob64(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,)
+    context: Long,
+    buffer: Long,
+    size: Long,
+    destructor: DestructorCallback?
+)
 
 public external fun sqlite3_result_double(
-    p0: Long,
-    p1: Double,
+    context: Long,
+    value: Double,
 )
 
 public external fun sqlite3_result_error(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    context: Long,
+    message: String
 )
 
 public external fun sqlite3_result_error_code(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    errorCode: Int,
 )
 
-public external fun sqlite3_result_error_nomem(
-    p0: Long,
-)
+public external fun sqlite3_result_error_nomem(context: Long)
 
-public external fun sqlite3_result_error_toobig(
-    p0: Long,
-)
+public external fun sqlite3_result_error_toobig(context: Long)
 
 public external fun sqlite3_result_int(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    value: Int,
 )
 
 public external fun sqlite3_result_int64(
-    p0: Long,
-    p1: Long,
+    context: Long,
+    value: Long,
 )
 
-public external fun sqlite3_result_null(
-    p0: Long,
-)
+public external fun sqlite3_result_null(context: Long)
 
 public external fun sqlite3_result_pointer(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
+    context: Long,
+    data: Any?,
+    type: String?,
+    destructor: DestructorCallback?
 )
 
 public external fun sqlite3_result_subtype(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    subtype: Int,
 )
 
 public external fun sqlite3_result_text(
-    p0: Long,
-    p1: Long,
-    p2: Int,
-    p3: Long,
+    context: Long,
+    value: String
 )
 
 public external fun sqlite3_result_text64(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Int,)
+    context: Long,
+    buffer: Long,
+    size: Long,
+    destructor: DestructorCallback?,
+    encoding: Int
+)
+
+public external fun sqlite3_result_value(
+    context: Long,
+    value: Long
+)
 
 public external fun sqlite3_result_zeroblob(
-    p0: Long,
-    p1: Int,
+    context: Long,
+    size: Int,
 )
 
 public external fun sqlite3_result_zeroblob64(
-    p0: Long,
-    p1: Long,
+    context: Long,
+    size: Long,
 ): Int
 
-public external fun sqlite3_result_value(
-    p0: Long,
-    p1: Long,)
-
 public external fun sqlite3_rollback_hook(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-): Long
+    db: Long,
+    callback: RollbackHookCallback?
+): RollbackHookCallback?
 
 public external fun sqlite3_serialize(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    db: Long,
+    schema: String?,
+    outSize: OutputPointer.OfInt64,
+    flags: Int,
 ): Long
 
 public external fun sqlite3_set_authorizer(
-    p0: Long,
-    p1: Long,
-    p2: Long,
+    db: Long,
+    callback: AuthorizerCallback?
 ): Int
 
 public external fun sqlite3_set_auxdata(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
-)
+    context: Long,
+    index: Int,
+    destructor: DestructorCallback?
+): Long
 
 public external fun sqlite3_set_errmsg(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    errorCode: Int,
+    message: String?
 ): Int
 
 public external fun sqlite3_set_last_insert_rowid(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    rowId: Long,
 )
 
 public external fun sqlite3_shutdown(): Int
 
-public external fun sqlite3_sourceid(): Long
+public external fun sqlite3_snapshot_cmp(
+    snapshot1: Long,
+    snapshot2: Long,
+): Int
 
-public external fun sqlite3_sql(
-    p0: Long,
-): Long
+public external fun sqlite3_snapshot_free(snapshot: Long)
+
+public external fun sqlite3_snapshot_get(
+    db: Long,
+    name: String?,
+    outSnapshot: OutputPointer.OfPointer
+): Int
+
+public external fun sqlite3_snapshot_open(
+    db: Long,
+    name: String?,
+    snapshot: Long
+): Int
+
+public external fun sqlite3_snapshot_recover(
+    db: Long,
+    name: String?
+): Int
+
+public external fun sqlite3_soft_heap_limit64(limit: Long): Long
+
+public external fun sqlite3_sourceid(): String
+
+public external fun sqlite3_sql(stmt: Long): String
 
 public external fun sqlite3_status(
-    p0: Int,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    option: Int,
+    outCurrent: OutputPointer.OfInt32,
+    outHighwater: OutputPointer.OfInt32,
+    resetFlag: Int,
 ): Int
 
 public external fun sqlite3_status64(
-    p0: Int,
-    p1: Long,
-    p2: Long,
-    p3: Int,
+    option: Int,
+    outCurrent: OutputPointer.OfInt64,
+    outHighwater: OutputPointer.OfInt64,
+    resetFlag: Int,
 ): Int
 
-public external fun sqlite3_step(
-    p0: Long,
+public external fun sqlite3_step(stmt: Long): Int
+
+public external fun sqlite3_stmt_busy(stmt: Long): Int
+
+public external fun sqlite3_stmt_explain(
+    stmt: Long,
+    mode: Int,
 ): Int
 
-public external fun Long_busy(
-    p0: Long,
-): Int
+public external fun sqlite3_stmt_isexplain(stmt: Long): Int
 
-public external fun Long_explain(
-    p0: Long,
-    p1: Int,
-): Int
+public external fun sqlite3_stmt_readonly(stmt: Long): Int
 
-public external fun Long_isexplain(
-    p0: Long,
-): Int
-
-public external fun Long_readonly(
-    p0: Long,
-): Int
-
-public external fun Long_status(
-    p0: Long,
-    p1: Int,
-    p2: Int,
+public external fun sqlite3_stmt_status(
+    stmt: Long,
+    counter: Int,
+    resetFlag: Int,
 ): Int
 
 public external fun sqlite3_strglob(
-    p0: Long,
-    p1: Long,
+    pattern: String,
+    input: String,
 ): Int
 
 public external fun sqlite3_stricmp(
-    p0: Long,
-    p1: Long,
+    first: String,
+    second: String
 ): Int
 
 public external fun sqlite3_strlike(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    pattern: String,
+    input: String,
+    escape: Int,
 ): Int
 
 public external fun sqlite3_strnicmp(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    first: String,
+    second: String,
+    maxChars: Int,
 ): Int
 
-public external fun sqlite3_system_errno(
-    p0: Long,
-): Int
+public external fun sqlite3_system_errno(db: Long): Int
 
 public external fun sqlite3_table_column_metadata(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-    p3: Long,
-    p4: Long,
-    p5: Long,
-    p6: Long,
-    p7: Long,
-    p8: Long,
+    db: Long,
+    dbName: String?,
+    tableName: String,
+    columnName: String,
+    outDataType: OutputPointer.OfString?,
+    outCollationName: OutputPointer.OfString?,
+    outNotNull: OutputPointer.OfInt32?,
+    outPrimaryKey: OutputPointer.OfInt32?,
+    outAutoIncrement: OutputPointer.OfInt32?
 ): Int
 
-public external fun sqlite3_total_changes(
-    p0: Long,
-): Int
+public external fun sqlite3_total_changes(db: Long): Int
 
-public external fun sqlite3_total_changes64(
-    p0: Long,
-): Long
+public external fun sqlite3_total_changes64(db: Long): Long
 
 public external fun sqlite3_trace_v2(
-    p0: Long,
-    p1: Int,
-    p2: Long,
-    p3: Long,
+    db: Long,
+    mask: Int,
+    callback: TraceCallback?
 ): Int
 
 public external fun sqlite3_txn_state(
-    p0: Long,
-    p1: Long,
+    db: Long,
+    schema: String?
 ): Int
 
 public external fun sqlite3_update_hook(
-    p0: Long,
-    p1: Long,
-    p2: Long,
-): Long
+    db: Long,
+    callback: UpdateHookCallback?
+): UpdateHookCallback?
 
 public external fun sqlite3_uri_boolean(
-    p0: Long,
-    p1: Long,
-    p2: Int,
+    fileName: String,
+    parameter: String,
+    def: Int
 ): Int
 
 public external fun sqlite3_uri_int64(
-    p0: Long,
-    p1: Long,
-    p2: Long,
+    fileName: String,
+    parameter: String,
+    def: Long
 ): Long
 
 public external fun sqlite3_uri_key(
-    p0: Long,
-    p1: Int,
-): Long
+    fileName: String,
+    index: Int
+): String?
 
 public external fun sqlite3_uri_parameter(
-    p0: Long,
-    p1: Long,
+    fileName: String,
+    parameter: String
+): String?
+
+public external fun sqlite3_user_data(context: Long): Any?
+
+public external fun sqlite3_value_blob(value: Long): ByteArray?
+
+public external fun sqlite3_value_buffer(
+    value: Long,
+    outSize: OutputPointer.OfInt64
 ): Long
 
-public external fun sqlite3_user_data(
-    p0: Long,
-): Long
+public external fun sqlite3_value_bytes(value: Long): Int
 
-public external fun Long_blob(
-    p0: Long,
-): Long
+public external fun sqlite3_value_double(value: Long): Double
 
-public external fun Long_bytes(
-    p0: Long,
-): Int
+public external fun sqlite3_value_dup(value: Long): Long
 
-public external fun Long_double(
-    p0: Long,
-): Double
+public external fun sqlite3_value_encoding(value: Long): Int
 
-public external fun Long_dup(
-    p0: Long,
-): Long
+public external fun sqlite3_value_free(value: Long)
 
-public external fun Long_encoding(
-    p0: Long,
-): Int
+public external fun sqlite3_value_frombind(value: Long): Int
 
-public external fun Long_free(
-    p0: Long,
-)
+public external fun sqlite3_value_int(value: Long): Int
 
-public external fun Long_frombind(
-    p0: Long,
-): Int
+public external fun sqlite3_value_int64(value: Long): Long
 
-public external fun Long_int(
-    p0: Long,
-): Int
+public external fun sqlite3_value_nochange(value: Long): Int
 
-public external fun Long_int64(
-    p0: Long,
-): Long
+public external fun sqlite3_value_numeric_type(value: Long): Int
 
-public external fun Long_nochange(
-    p0: Long,
-): Int
+public external fun sqlite3_value_pointer(
+    value: Long,
+    type: String?
+): Any?
 
-public external fun Long_numeric_type(
-    p0: Long,
-): Int
+public external fun sqlite3_value_subtype(value: Long): Int
 
-public external fun Long_pointer(
-    p0: Long,
-    p1: Long,
-): Long
+public external fun sqlite3_value_text(value: Long): String?
 
-public external fun Long_subtype(
-    p0: Long,
-): Int
+public external fun sqlite3_value_type(value: Long): Int
 
-public external fun Long_text(
-    p0: Long,
-): Long
-
-public external fun Long_type(
-    p0: Long,
-): Int
-
-public external fun sqlite3_vfs_find(
-    p0: Long,
-): Long
+public external fun sqlite3_vfs_find(name: String?): Long
 
 public external fun sqlite3_vfs_register(
-    p0: Long,
-    p1: Int,
+    vfs: Long,
+    makeDefault: Int
 ): Int
 
-public external fun sqlite3_vfs_unregister(
-    p0: Long,
-): Int
+public external fun sqlite3_vfs_unregister(vfs: Long): Int
 
 public external fun sqlite3_vtab_collation(
-    p0: Long,
-    p1: Int,
-): Long
+    info: Long,
+    index: Int,
+): String?
 
 public external fun sqlite3_vtab_config(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    db: Long,
+    option: Int,
+    args: Array<*>
 ): Int
 
-public external fun sqlite3_vtab_distinct(
-    p0: Long,
-): Int
+public external fun sqlite3_vtab_distinct(info: Long): Int
 
 public external fun sqlite3_vtab_in(
-    p0: Long,
-    p1: Int,
-    p2: Int,
+    info: Long,
+    index: Int,
+    handle: Int
 ): Int
 
 public external fun sqlite3_vtab_in_first(
-    p0: Long,
-    p1: Long,
+    value: Long,
+    outValue: OutputPointer.OfPointer?,
 ): Int
 
 public external fun sqlite3_vtab_in_next(
-    p0: Long,
-    p1: Long,
+    value: Long,
+    outValue: OutputPointer.OfPointer?,
 ): Int
 
-public external fun sqlite3_vtab_nochange(
-    p0: Long,
-): Int
+public external fun sqlite3_vtab_nochange(context: Long): Int
 
-public external fun sqlite3_vtab_on_conflict(
-    p0: Long,
-): Int
+public external fun sqlite3_vtab_on_conflict(db: Long): Int
 
 public external fun sqlite3_vtab_rhs_value(
-    p0: Long,
-    p1: Int,
-    p2: Long,
+    info: Long,
+    index: Int,
+    outValue: OutputPointer.OfPointer?,
 ): Int
+
+public external fun sqlite3_wal_autocheckpoint(
+    db: Long,
+    nFrame: Int
+): Int
+
+public external fun sqlite3_wal_checkpoint(
+    db: Long,
+    name: String?
+): Int
+
+public external fun sqlite3_wal_checkpoint_v2(
+    db: Long,
+    name: String?,
+    mode: Int,
+    outNLog: OutputPointer.OfInt32?,
+    outNCkpt: OutputPointer.OfInt32?
+): Int
+
+public external fun sqlite3_wal_hook(
+    db: Long,
+    callback: WalHookCallback?
+): WalHookCallback?
+
+///////////////////////////////////////////////////////////////////////////
+// Virtual Table
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Initializes a virtual table module.
+ *
+ * The [callbackMask] represents the optional callbacks that are enabled where the LSB is the first
+ * callback in the struct (xConnect) and the MSB the last (xIntegrity) in the order they're declared
+ * in the struct. Only bits for optional callbacks are taken into account, others are ignored.
+ * See [ksqlite.structs.sqlite3_module.Layout] for per-bit symbols.
  */
+private external fun nativeModuleInit(
+    module: Long,
+    callbackMask: Int,
+    eponymous: Boolean,
+    callbacks: VTabModuleCallbacks
+)
+
+internal fun moduleInit(
+    module: Long,
+    callbackMask: Int,
+    eponymous: Boolean,
+    callbacks: VTabModuleCallbacks
+) = nativeModuleInit(module, callbackMask, eponymous, callbacks)
+
+/**
+ * Deinitiliazes a virtual table module.
+ * This does not deallocates it, only clears associated Java resources.
+ */
+private external fun nativeModuleDeinit(module: Long)
+
+internal fun moduleDeinit(module: Long) = nativeModuleDeinit(module)
+
+/**
+ * Initializes a virtual table.
+ */
+private external fun nativeVTabInit(vTab: Long)
+
+internal fun vTabInit(vTab: Long) = nativeVTabInit(vTab)
+
+/**
+ * Deinitiliazes a virtual table.
+ * This does not deallocates it, only clears associated resources.
+ */
+private external fun nativeVTabDeinit(vTab: Long)
+
+internal fun vTabDeinit(vTab: Long) = nativeVTabDeinit(vTab)

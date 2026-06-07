@@ -50,18 +50,22 @@ public sealed class Sqlite3TextEncoding(internal open val value: Int) {
      */
     public data object UTF16_ALIGNED : Set0(8)
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Masking
+    ///////////////////////////////////////////////////////////////////////////
+
     /**
      * [Sqlite3TextEncoding] applying a mask and that can be used with create functions routines.
      */
     @ConsistentCopyVisibility
-    public data class Masked internal constructor(override val value: Int) :
+    public data class Mask internal constructor(override val value: Int) :
         Sqlite3TextEncoding(value)
 
     /**
      * Returns an [Sqlite3TextEncoding] which is ORed with [flag].
      */
     public infix fun or(flag: Sqlite3FunctionFlag): Sqlite3TextEncoding {
-        return Masked(value or flag.value)
+        return Mask(value or flag.value)
     }
 }
 

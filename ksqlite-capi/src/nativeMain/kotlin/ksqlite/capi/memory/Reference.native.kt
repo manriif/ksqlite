@@ -3,8 +3,7 @@ package ksqlite.capi.memory
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 /**
  * C-static function disposing a [Reference] from a [kotlinx.cinterop.StableRef].
@@ -12,7 +11,8 @@ import ksqlite.capi.types.sqlite3_mutable_pointer
  * Throws [IllegalStateException] if the [COpaquePointer] passed to the function is `null`.
  */
 private val StableRefDisposer = staticCFunction { pointer: COpaquePointer? ->
-    val _ = disposeStableRef(pointer)
+    checkNotNull(pointer)
+    pointer.asStableRef<Reference<*>>().get().dispose()
 }
 
 /**
@@ -20,35 +20,27 @@ private val StableRefDisposer = staticCFunction { pointer: COpaquePointer? ->
  */
 internal fun stableRefDisposer(
     data: Any?,
-    destructor: Sqlite3DestructorCallback? = null
-): Disposer? {
-    return StableRefDisposer.takeIf { data != null || destructor != null }
-}
+    destructor: Sqlite3DestroyCallback<*>? = null
+) = StableRefDisposer.takeIf { data != null || destructor != null }
 
 /**
- * Returns the object [Data] backed by [pointer] with an optional user data pointer.
- *
- * Throws [IllegalStateException] if [pointer] is `null`.
+ * Returns the [DataHolder] referenced by [pointer].
  */
-internal inline fun <reified Data : Any> stableRefData(pointer: COpaquePointer?): ReferencedData<Data> {
-    return checkNotNull(pointer) { "Pointer must not be null" }
-        .asStableRef<Reference>()
-        .get()
-        .getReferencedData()
-}
+internal inline fun <reified Data : Any, AppData> stableRefDataHolder(
+    pointer: COpaquePointer?
+): DataHolder<Data, AppData> = checkNotNull(pointer) { "Pointer must not be null" }
+    .asStableRef<Reference<AppData>>()
+    .get()
+    .cast()
 
 /**
- * Disposes the object referenced by [pointer] and returns the associated user data pointer if any.
- *
- * Throws [IllegalStateException] if `this` [COpaquePointer] is `null`.
+ * Returns the [Data] referenced by [pointer].
  */
-@IgnorableReturnValue
-internal fun disposeStableRef(pointer: COpaquePointer?): sqlite3_mutable_pointer? {
-    checkNotNull(pointer)
+internal inline fun <reified Data : Any> stableRefData(pointer: COpaquePointer?): Data =
+    stableRefDataHolder<Data, Any?>(pointer).data
 
-    return pointer.asStableRef<Reference>().get().run {
-        userData?.also {
-            dispose()
-        }
-    }
-}
+/**
+ * Returns the [AppData] referenced by [pointer].
+ */
+internal fun <AppData> stableRefAppData(pointer: COpaquePointer?): AppData =
+    stableRefDataHolder<Any, AppData>(pointer).appData

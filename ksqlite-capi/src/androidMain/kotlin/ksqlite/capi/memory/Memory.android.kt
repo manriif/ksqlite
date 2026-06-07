@@ -1,24 +1,67 @@
 package ksqlite.capi.memory
 
-public actual open class GenericPointer internal constructor(internal val pointer: Long)
+import ksqlite.nativeReadString
 
 ///////////////////////////////////////////////////////////////////////////
 // Pointer
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Alias to hte pointer type returned by JNI.
+ */
+internal typealias JniPointer = Long
+
+/**
+ * Alias to hte pointer type returned by JNI.
+ */
+internal val NullPtr: JniPointer
+    inline get() = 0L
+
+/**
  * Whether this long represents a null pointer.
  */
-internal val Long.isNullPointer: Boolean
-    get() = this == 0L
+internal val JniPointer.isNull: Boolean
+    inline get() = this == NullPtr
+
+/**
+ * Returns `null` if `this` [Long] points to a null pointer.
+ */
+internal val JniPointer.orNull: JniPointer?
+    inline get() = takeUnless { isNull }
+
+/**
+ * Returns `null` if `this` [Long] points to a null pointer.
+ */
+internal val JniPointer?.notNull: JniPointer
+    inline get() = this ?: NullPtr
 
 /**
  * Returns [Pointer] instantiated after [factory] which is passed `this` non-null pointing [Long].
  */
-internal fun <Pointer: GenericPointer> Long.wrapOrNull(factory: (Long) -> Pointer): Pointer? {
-    if (isNullPointer) {
-        return null
+internal fun <Pointer : Struct> JniPointer.wrapOrNull(factory: (Long) -> Pointer): Pointer? =
+    orNull?.let(factory)
+
+///////////////////////////////////////////////////////////////////////////
+// Arrays
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns an array of [LongArray.size] items of type [T] obtained from [transform].
+ */
+internal inline fun <reified T> LongArray.toArray(transform: (Long) -> T): Array<T> {
+    if (isEmpty()) {
+        return emptyArray()
     }
 
-    return factory(this)
+    return Array(size) { transform(get(it)) }
 }
+
+///////////////////////////////////////////////////////////////////////////
+// String
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Reads bytes until null termination marker is found and returns the bytes read as [String].
+ * If `this` pointer points to `null` then `null` is returned.
+ */
+internal fun JniPointer.toKStringFromUtf8OrNull(): String? = nativeReadString(orNull ?: return null)

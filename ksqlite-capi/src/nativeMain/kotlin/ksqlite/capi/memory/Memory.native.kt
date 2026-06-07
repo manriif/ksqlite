@@ -3,44 +3,15 @@ package ksqlite.capi.memory
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.CPointerVarOf
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.get
 import kotlinx.cinterop.reinterpret
+import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.usePinned
-import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import platform.posix.memcpy
-
-public actual open class GenericPointer internal constructor(
-    internal open val pointer: COpaquePointer
-)
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns a stable [COpaquePointer] to [data] available globally.
- * Returns `null` if [data] is `null`.
- *
- * [data] can later be accessed within a callback using [stableRefData] and disposed using
- * [stableRefDisposer].
- *
- * If a pointer was previously obtained using [key], it is disposed.
- */
-internal fun MemoryManager.keyedStableRefPointer(
-    key: String,
-    data: Any?,
-    userData: sqlite3_mutable_pointer? = null,
-    destructor: Sqlite3DestructorCallback? = null,
-): COpaquePointer? = stableRefPointer(
-    data = data,
-    userData = userData,
-    destructor = destructor,
-    key = key
-)
 
 ///////////////////////////////////////////////////////////////////////////
 // Arrays
@@ -59,6 +30,47 @@ internal inline fun <P : CPointer<*>, reified T> CPointer<CPointerVarOf<P>>.toAr
 
     return Array(count) { transform(get(it)) }
 }
+
+/**
+ * Returns an array of [count] item of type [T] [transform]ed from pointer [P].
+ * Returns an empty array if `this` is `null`.
+ */
+internal inline fun <P : CPointer<*>, reified T> CPointer<CPointerVarOf<P>>?.toArrayOrEmpty(
+    count: Int,
+    transform: (P?) -> T
+): Array<T> {
+    if (this == null) {
+        return emptyArray()
+    }
+
+    return toArray(count, transform)
+}
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun CPointer<CPointerVar<ByteVar>>.toNullableStringArray(count: Int): Array<String?> =
+    this.toArray(count) { it?.toKStringFromUtf8() }
+
+/**
+ * Reads and returns an array of [count] String.
+ * Returns an empty array if `this` is `null`.
+ */
+internal fun CPointer<CPointerVar<ByteVar>>?.toNullableStringArrayOrEmpty(count: Int): Array<String?> =
+    this?.toNullableStringArray(count) ?: emptyArray()
+
+/**
+ * Reads and returns an array of [count] String.
+ */
+internal fun CPointer<CPointerVar<ByteVar>>.toStringArray(count: Int): Array<String> =
+    this.toArray(count) { it!!.toKStringFromUtf8() }
+
+/**
+ * Reads and returns an array of [count] String.
+ * Returns an empty array if `this` is `null`.
+ */
+internal fun CPointer<CPointerVar<ByteVar>>?.toStringArrayOrEmpty(count: Int): Array<String> =
+    this?.toStringArray(count) ?: emptyArray()
 
 ///////////////////////////////////////////////////////////////////////////
 // Buffer
@@ -82,9 +94,8 @@ internal fun COpaquePointer.copyBytes(destination: ByteArray): ByteArray {
 /**
  * Copies [count] bytes into a ByteArray and returns it.
  */
-internal fun COpaquePointer.copyBytes(count: Int): ByteArray {
-    return copyBytes(ByteArray(count))
-}
+internal fun COpaquePointer.copyBytes(count: Int): ByteArray =
+    copyBytes(ByteArray(count))
 
 ///////////////////////////////////////////////////////////////////////////
 // Strings
@@ -93,13 +104,17 @@ internal fun COpaquePointer.copyBytes(count: Int): ByteArray {
 /**
  * Reads [size] bytes from this pointer as [ByteArray] and then convert to string.
  */
-internal fun CPointer<ByteVar>.toKStringFromUtf8(size: Int): String {
-    return copyBytes(size).decodeToString()
-}
+internal fun CPointer<ByteVar>.toKStringFromUtf8(size: Int): String =
+    copyBytes(size).decodeToString()
 
 /**
  * Reads [size] bytes from this pointer as [ByteArray] and then convert to string.
  */
-internal fun COpaquePointer.toKStringFromUtf8(size: Int): String {
-    return reinterpret<ByteVar>().toKStringFromUtf8(size)
-}
+internal fun COpaquePointer.toKStringFromUtf8(size: Int): String =
+    reinterpret<ByteVar>().toKStringFromUtf8(size)
+
+/**
+ * Reads bytes from this pointer as [ByteArray] and then convert to string.
+ */
+internal fun COpaquePointer.toKStringFromUtf8(): String =
+    reinterpret<ByteVar>().toKStringFromUtf8()

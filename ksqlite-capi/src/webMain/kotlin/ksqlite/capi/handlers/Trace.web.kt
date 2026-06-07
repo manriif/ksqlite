@@ -1,13 +1,12 @@
 package ksqlite.capi.handlers
 
+import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.dispatchTraceEvent
-import ksqlite.capi.interop.wasm.FunctionSignature
-import ksqlite.capi.interop.wasm.WasmFunctions
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.memory.MemoryManager
+import ksqlite.wasm.FunctionSignature
+import ksqlite.wasm.WasmFunctions
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.installFunction
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.Sqlite3TraceCallback
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_stmt
 import kotlin.js.toLong
@@ -15,34 +14,34 @@ import kotlin.js.toLong
 /**
  * Handler for [ksqlite.capi.sqlite3_trace_v2].
  */
-internal class TraceHandler(manager: MemoryManager) : Handler(manager) {
+internal class TraceHandler : Handler() {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Int32(
             FunctionSignature.Int32,
             FunctionSignature.Pointer,
             FunctionSignature.Pointer,
             FunctionSignature.Pointer,
         ),
-        function = ::handle
+        function = this::apply
     )
 
-    private fun handle(
+    private fun apply(
         code: Int,
         refPointer: WasmPointer,
-        pointer1: WasmPointer,
-        pointer2: WasmPointer
-    ): Int = handler(refPointer) { callback: Sqlite3TraceCallback, userData ->
+        pPointer: WasmPointer,
+        xPointer: WasmPointer
+    ): Int = handle(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
         dispatchTraceEvent(
             callback = callback,
-            userData = userData,
+            appData = appData,
             code = code,
-            pointer1 = pointer1,
-            pointer2 = pointer2,
+            pPointer = pPointer,
+            xPointer = xPointer,
             toDb = ::sqlite3,
             toStatement = ::sqlite3_stmt,
             toString = { it.toKStringFromUtf8() },
-            toLong = { memory.peek64(it).toLong() }
+            toLong = { manager.memory.peek64(it).toLong() }
         )
     }
 }

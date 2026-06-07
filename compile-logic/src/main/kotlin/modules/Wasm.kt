@@ -3,19 +3,23 @@ package modules
 import KSQLITE
 import KsqliteFunctions
 import SQLITE3
-import SQLITE3_MC_AMALGAMATION
+import SQLITE3MC_AMALGAMATION
 import cHeaderFile
 import cSourceFile
 import copyToTempDirectory
 import komple.exec.Command
 import komple.exec.CommandExecutor
 import org.gradle.api.file.FileSystemOperations
+import replaceFiles
 import sqlitePrefixed
 import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////
 // Sources
 ///////////////////////////////////////////////////////////////////////////
+
+private const val GENERATED_ARTIFACTS = "artifacts"
+private const val GENERATED_SOURCES = "sources"
 
 private const val KSQLITE_AMALGAMATION = "${KSQLITE}_amalgamation"
 
@@ -42,7 +46,7 @@ private val WasmExtraResourceFileNames = listOf(
  * Some aren't that meaningful to use in web platforms but are exported to align at maximum with
  * other platforms.
  */
-private val WasmExtraExportedFunctions = listOf(
+private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "autovacuum_pages",
     "backup_finish",
     "backup_init",
@@ -95,7 +99,7 @@ fun configureSqliteWasmTrunk(
     val defaultExportedFunctions = exportedFunctionFile.readText()
 
     sqliteDirectory.resolve(EXPORTED_FUNCTIONS).outputStream().bufferedWriter().use { output ->
-        (KsqliteFunctions + WasmExtraExportedFunctions).forEach { name ->
+        WasmExtraExportedFunctions.forEach { name ->
             output.appendLine("_$name")
         }
 
@@ -174,10 +178,10 @@ private fun generateKsqliteAmalgamation(
     ksqliteAmalgamationSourceFile: File,
 ) {
     val sqliteMcAmalgamationHeaderFile =
-        sqliteDirectory.resolve(cHeaderFile(SQLITE3_MC_AMALGAMATION))
+        sqliteDirectory.resolve(cHeaderFile(SQLITE3MC_AMALGAMATION))
 
     val sqliteMcAmalgamationSourceFile =
-        sqliteDirectory.resolve(cSourceFile(SQLITE3_MC_AMALGAMATION))
+        sqliteDirectory.resolve(cSourceFile(SQLITE3MC_AMALGAMATION))
 
     val ksqliteHeaderFile = ksqliteDirectory.resolve(cHeaderFile(KSQLITE))
     val ksqliteSourceFile = ksqliteDirectory.resolve(cSourceFile(KSQLITE))

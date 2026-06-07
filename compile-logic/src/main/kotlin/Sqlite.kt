@@ -12,13 +12,13 @@ const val SQLITE3 = "sqlite3"
  * Name of the SQLite Multiple Ciphers.
  * It is the name of the code source function prefix.
  */
-const val SQLITE3_MC = "${SQLITE3}mc"
+const val SQLITE3MC = "${SQLITE3}mc"
 
 /**
  * Name of the SQLite Multiple Ciphers amalgamation files.
  * It is the name of the C header file, C source file.
  */
-const val SQLITE3_MC_AMALGAMATION = "${SQLITE3_MC}_amalgamation"
+const val SQLITE3MC_AMALGAMATION = "${SQLITE3MC}_amalgamation"
 
 ///////////////////////////////////////////////////////////////////////////
 // Naming
@@ -56,9 +56,10 @@ val SqliteDefinitions = mapOf(
     "SQLITE_ENABLE_PERCENTILE" to "1",
     "SQLITE_ENABLE_PREUPDATE_HOOK" to "1",
     "SQLITE_ENABLE_RTREE" to "1",
-    "SQLITE_ENABLE_SESSION" to "1",
+    //"SQLITE_ENABLE_SESSION" to "1",
     "SQLITE_ENABLE_SQLLOG" to "1",
     "SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION" to "1",
+    "SQLITE_OMIT_AUTOINIT" to "1",
     "SQLITE_OMIT_DEPRECATED" to "1",
     "SQLITE_OMIT_LOAD_EXTENSION" to "1",
     "SQLITE_OMIT_UTF16" to "1",
@@ -67,10 +68,27 @@ val SqliteDefinitions = mapOf(
     "SQLITE_USE_URI" to "1",
 )
 
+/**
+ * Linker options for Unix based OS.
+ */
 val SqliteUnixLinkerOptions = listOf(
     "-lpthread",
     "-ldl"
 )
+
+///////////////////////////////////////////////////////////////////////////
+// Structs
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Structs that must be exported.
+ */
+val Sqlite3Structs = listOf(
+    "index_info",
+    "module",
+    "vtab",
+    "vtab_cursor"
+).sqlitePrefixed()
 
 ///////////////////////////////////////////////////////////////////////////
 // Functions
@@ -178,7 +196,7 @@ private val Sqlite3Functions = mapOf(
     "deserialize" to true,
 
     // Custom Functions & Aggregates
-    "create_function" to true,
+    "create_function" to false,
     "create_function_v2" to true,
     "create_function16" to false,
     "create_window_function" to true,
@@ -229,7 +247,7 @@ private val Sqlite3Functions = mapOf(
     "value_type" to true,
 
     // Collations
-    "create_collation" to true,
+    "create_collation" to false,
     "create_collation_v2" to true,
     "create_collation16" to false,
     "collation_needed" to true,
@@ -367,7 +385,7 @@ private val Sqlite3Functions = mapOf(
     "free_filename" to false,
 
     // Virtual Tables
-    "create_module" to true,
+    "create_module" to false,
     "create_module_v2" to true,
     "declare_vtab" to true,
     "drop_modules" to true,

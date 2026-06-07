@@ -24,6 +24,8 @@ val javaBindings by komple.projects.kotlinSqlite.jextract.bindingGenerators.regi
     options {
         headerClassName = SQLITE3
         includeFunctions = sqliteFunctions(true)
+        includeStructs = Sqlite3Structs
+        includeTypedefs = KsqliteTypedefs
     }
 }
 
@@ -42,7 +44,7 @@ val generateFfmMetadata by tasks.registeringKsqlite {
     }
 }
 
-val generateFfmSources by tasks.registeringKsqlite(Copy::class) {
+val generateFfmSources by tasks.registeringKsqlite<Copy> {
     dependsOn(generateFfmMetadata)
     from(javaBindings.map { it.generateDirectory })
     into(generatedJavaSourceDirectory)

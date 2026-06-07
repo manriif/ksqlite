@@ -3,34 +3,23 @@ package ksqlite.capi.handlers
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.CreateFunction
-import ksqlite.capi.types.Sqlite3CreateFunction1Callback
-import ksqlite.capi.types.Sqlite3CreateFunction3Callback
+import ksqlite.capi.ApplicationDefinedFunction
+import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.types.s3_context
 import ksqlite.capi.types.s3_value
 import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_mutable_pointer
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.memory.toArray
 import ksqlite.sqlite3_user_data
-import kotlin.reflect.KProperty1
 
 /**
- * Handler for create function callback.
+ * Handler for function callback.
  */
-private inline fun functionHandler(
+private inline fun handleFunction(
     context: CPointer<s3_context>?,
-    block: (
-        callbacks: CreateFunction,
-        userData: sqlite3_mutable_pointer?,
-        context: sqlite3_context
-    ) -> Unit
+    call: ApplicationDefinedFunction<*>.(sqlite3_context) -> Unit
 ) {
-    val refPointer = sqlite3_user_data(context)
-    val context = sqlite3_context(context!!)
-
-    handler(refPointer) { callbacks: CreateFunction, userData ->
-        block(callbacks, userData, context)
+    handle(sqlite3_user_data(context)) { function: ApplicationDefinedFunction<*>, _ ->
+        function.call(sqlite3_context(context!!))
     }
 }
 
@@ -39,95 +28,84 @@ private inline fun functionHandler(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Static C function for [createFunctionFinalHandler].
+ * Static C function for [functionFinalHandler].
  */
-internal val CreateFunctionFinalHandler = staticCFunction(::createFunctionFinalHandler)
+internal val FunctionFinalHandler = staticCFunction(::functionFinalHandler)
 
 /**
- * Static C function for [createFunctionValueHandler].
+ * Static C function for [functionValueHandler].
  */
-internal val CreateFunctionValueHandler = staticCFunction(::createFunctionValueHandler)
-
-/**
- * Handler for 1 arg create function callback.
- */
-private fun functionHandler1Arg(
-    context: CPointer<s3_context>?,
-    selector: KProperty1<CreateFunction, Sqlite3CreateFunction1Callback?>
-) = functionHandler(context) { callbacks, userData, context ->
-    selector(callbacks)!!.invoke(userData, context)
-}
+internal val FunctionValueHandler = staticCFunction(::functionValueHandler)
 
 /**
  * Handler for the `final` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-private fun createFunctionFinalHandler(context: CPointer<s3_context>?) =
-    functionHandler1Arg(context, CreateFunction::final)
+private fun functionFinalHandler(context: CPointer<s3_context>?) =
+    handleFunction(context, ApplicationDefinedFunction<*>::callFinal)
 
 /**
  * Handler for the `value` argument of  [ksqlite.capi.sqlite3_create_window_function].
  */
-private fun createFunctionValueHandler(context: CPointer<s3_context>?) =
-    functionHandler1Arg(context, CreateFunction::value)
+private fun functionValueHandler(context: CPointer<s3_context>?) =
+    handleFunction(context, ApplicationDefinedFunction<*>::callValue)
 
 ///////////////////////////////////////////////////////////////////////////
 // 3 args
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Static C function for [createFunctionFuncHandler].
+ * Static C function for [functionFuncHandler].
  */
-internal val CreateFunctionFuncHandler = staticCFunction(::createFunctionFuncHandler)
+internal val FunctionFuncHandler = staticCFunction(::functionFuncHandler)
 
 /**
- * Static C function for [createFunctionStepHandler].
+ * Static C function for [functionStepHandler].
  */
-internal val CreateFunctionStepHandler = staticCFunction(::createFunctionStepHandler)
+internal val FunctionStepHandler = staticCFunction(::functionStepHandler)
 
 /**
- * Static C function for [createFunctionInverseHandler].
+ * Static C function for [functionInverseHandler].
  */
-internal val CreateFunctionInverseHandler = staticCFunction(::createFunctionInverseHandler)
+internal val FunctionInverseHandler = staticCFunction(::functionInverseHandler)
 
 /**
- * Handler for 3 args create function callback.
+ * Handler for 3 args function callback.
  */
-private fun functionHandler3Args(
+private fun handleFunction(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?,
-    selector: KProperty1<CreateFunction, Sqlite3CreateFunction3Callback?>
-) = functionHandler(context) { callbacks, userData, context ->
-    val values = argv?.toArray(argc) { sqlite3_value(it!!) } ?: emptyArray()
-    selector(callbacks)!!.invoke(userData, context, values)
+    call: ApplicationDefinedFunction<*>.(sqlite3_context, Array<sqlite3_value>) -> Unit
+) = handleFunction(context) { context ->
+    call(context, argv.toArrayOrEmpty(argc) { sqlite3_value(it!!) })
 }
 
 /**
  * Handler for the `func` argument of [ksqlite.capi.sqlite3_create_function] and
  * [ksqlite.capi.sqlite3_create_function_v2].
  */
-private fun createFunctionFuncHandler(
+private fun functionFuncHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler3Args(context, argc, argv, CreateFunction::func)
+) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callFunc)
 
 /**
  * Handler for the `step` argument of [ksqlite.capi.sqlite3_create_function],
  * [ksqlite.capi.sqlite3_create_function_v2] and [ksqlite.capi.sqlite3_create_window_function].
  */
-private fun createFunctionStepHandler(
+private fun functionStepHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler3Args(context, argc, argv, CreateFunction::step)
+) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callStep)
 
 /**
  * Handler for the `inverse` argument of [ksqlite.capi.sqlite3_create_window_function].
  */
-private fun createFunctionInverseHandler(
+private fun functionInverseHandler(
     context: CPointer<s3_context>?,
     argc: Int,
     argv: CPointer<CPointerVar<s3_value>>?
-) = functionHandler3Args(context, argc, argv, CreateFunction::inverse)
+) = handleFunction(context, argc, argv, ApplicationDefinedFunction<*>::callInverse)

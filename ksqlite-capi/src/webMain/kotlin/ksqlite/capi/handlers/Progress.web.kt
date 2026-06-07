@@ -1,25 +1,24 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.interop.wasm.FunctionSignature
-import ksqlite.capi.interop.wasm.WasmFunctions
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3ProgressHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
+import ksqlite.wasm.FunctionSignature
+import ksqlite.wasm.WasmFunctions
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.installFunction
 
 /**
  * Handler for [ksqlite.capi.sqlite3_progress_handler].
  */
-internal class ProgressHandlerHandler(manager: MemoryManager) : Handler(manager) {
+internal class ProgressHandlerHandler : Handler() {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Int32(FunctionSignature.Pointer),
-        function = ::handle
+        function = this::apply
     )
 
-    private fun handle(
+    private fun apply(
         refPointer: WasmPointer
-    ): Int = handler(refPointer) { callback: Sqlite3ProgressHandlerCallback, userData ->
-        callback(userData)
+    ): Int = handle(refPointer) { callback: Sqlite3ProgressHandlerCallback<Any?>, appData ->
+        callback.apply(appData)
     }
 }

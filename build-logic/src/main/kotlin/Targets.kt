@@ -1,6 +1,7 @@
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.getByName
+import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -14,7 +15,7 @@ import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
  * Adds Android JVM targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
 fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAndroidLibraryTarget> {
-    return listOf(extensions.getByName<KotlinMultiplatformAndroidLibraryTarget>("android").apply {
+    val android = extensions.getByName<KotlinMultiplatformAndroidLibraryTarget>("android").apply {
         val libs = project.libs
         namespace = project.projectNamespace
 
@@ -32,6 +33,17 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
             targetSdk {
                 version = release(libs.versions.android.sdk.compile.get().toInt())
             }
+
+            @Suppress("UnstableApiUsage")
+            managedDevices {
+                localDevices {
+                    create("pixel2api30") {
+                        device = "Pixel 2"
+                        apiLevel = 30
+                        systemImageSource = "aosp"
+                    }
+                }
+            }
         }
 
         compilations.configureEach {
@@ -41,7 +53,21 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
                 }
             }
         }
-    })
+    }
+
+    // FIXME => w: Invalid Source Set Dependency Across Trees
+    //  Well instrumented tests on Android are only required to get the ksqlite-jni lib loaded.
+    //  Until the following moves from a warning to an error, or an acceptable workaround is
+    //  found, we still use it as testing should not be that complicated
+    val androidDeviceTest = sourceSets.named("androidDeviceTest")
+
+    sourceSets.whenObjectAdded {
+        if (name == "nonWebTest") {
+            androidDeviceTest.get().dependsOn(this)
+        }
+    }
+
+    return listOf(android)
 }
 
 /**

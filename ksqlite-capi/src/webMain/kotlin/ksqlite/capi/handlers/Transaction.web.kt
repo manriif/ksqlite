@@ -1,43 +1,42 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.interop.wasm.FunctionSignature
-import ksqlite.capi.interop.wasm.WasmFunctions
-import ksqlite.capi.interop.wasm.WasmPointer
-import ksqlite.capi.interop.wasm.installFunction
-import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3CommitHookCallback
-import ksqlite.capi.types.Sqlite3RollbackHookCallback
+import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
+import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
+import ksqlite.wasm.FunctionSignature
+import ksqlite.wasm.WasmFunctions
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.installFunction
 
 /**
  * Handler for [ksqlite.capi.sqlite3_commit_hook].
  */
-internal class CommitHookHandler(manager: MemoryManager) : Handler(manager) {
+internal class CommitHookHandler : Handler() {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Int32(FunctionSignature.Pointer),
-        function = ::handle
+        function = this::apply
     )
 
-    private fun handle(
+    private fun apply(
         refPointer: WasmPointer
-    ): Int = handler(refPointer) { callback: Sqlite3CommitHookCallback, userData ->
-        callback(userData)
+    ): Int = handle(refPointer) { callback: Sqlite3CommitHookCallback<Any?>, appData ->
+        callback.apply(appData)
     }
 }
 
 /**
  * Handler for [ksqlite.capi.sqlite3_rollback_hook].
  */
-internal class RollbackHookHandler(manager: MemoryManager) : Handler(manager) {
+internal class RollbackHookHandler : Handler() {
 
-    override fun WasmFunctions.install(): WasmPointer = installFunction(
+    override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
         signature = FunctionSignature.Void(FunctionSignature.Pointer),
-        function = ::handle
+        function = this::apply
     )
 
-    private fun handle(
+    private fun apply(
         refPointer: WasmPointer
-    ): Unit = handler(refPointer) { callback: Sqlite3RollbackHookCallback, userData ->
-        callback(userData)
+    ): Unit = handle(refPointer) { callback: Sqlite3RollbackHookCallback<Any?>, appData ->
+        callback.apply(appData)
     }
 }

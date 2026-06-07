@@ -2,6 +2,10 @@
 
 package ksqlite.capi.types
 
+import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
+import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.memory.Buffer
+
 /**
  * These constants are the available integer configuration options that can be passed as the first
  * argument to the sqlite3_config() interface.
@@ -65,7 +69,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * then SQLite goes to sqlite3_malloc() separately for each additional cache line.
      */
     public class PAGECACHE(
-        internal val pMem: sqlite3_mutable_pointer?,
+        internal val pMem: Buffer?,
         internal val sz: Int,
         internal val n: Int
     ) : Sqlite3ConfigOption(7)
@@ -86,7 +90,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * allocation size are 2**5 through 2**8.
      */
     public class HEAP(
-        internal val pMem: sqlite3_mutable_pointer?,
+        internal val pMem: Buffer?,
         internal val nBytes: Int,
         internal val min: Int
     ) : Sqlite3ConfigOption(8)
@@ -135,9 +139,9 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * invoke any SQLite interface. In a multi-threaded application, the application-defined logger
      * function must be threadsafe.
      */
-    public class LOG(
-        internal val callback: Sqlite3ConfigLogCallback?,
-        internal val userData: sqlite3_mutable_pointer?
+    public class LOG<AppData>(
+        internal val appData: AppData,
+        internal val callback: Sqlite3ConfigLogCallback<AppData>?
     ) : Sqlite3ConfigOption(16)
 
     /**
@@ -178,9 +182,9 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * is passed NULL In this case. An example of using this configuration option can be seen in the
      * "test_sqllog.c" source file in the canonical SQLite source tree.
      */
-    public class SQLLOG(
-        internal val callback: Sqlite3ConfigSqlLogCallback?,
-        internal val userData: sqlite3_mutable_pointer?
+    public class SQLLOG<AppData>(
+        internal val appData: AppData,
+        internal val callback: Sqlite3ConfigSqlLogCallback<AppData>?
     ) : Sqlite3ConfigOption(21)
 
     /**

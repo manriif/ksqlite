@@ -1,5 +1,6 @@
 package ksqlite.capi.types
 
+import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.isNull
@@ -7,10 +8,6 @@ import ksqlite.capi.memory.notNull
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
-
-///////////////////////////////////////////////////////////////////////////
-// Param
-///////////////////////////////////////////////////////////////////////////
 
 /**
  * Base for output parameter.
@@ -111,12 +108,20 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
      */
     internal var size: Int? = null
 
-    override fun create(pointer: MemorySegment): String {
-        val size = size ?: return pointer.toKStringFromUtf8()
+    /**
+     * Whether to free the C-string after read.
+     */
+    internal var free: Boolean = true
 
-        return pointer
-            .asSlice(0, size.toLong())
-            .toKStringFromUtf8()
+    override fun create(pointer: MemorySegment): String {
+        val part = size?.let { pointer.asSlice(0, it.toLong()) } ?: pointer
+        val string = part.toKStringFromUtf8()
+
+        if (free) {
+            ksqlite.sqlite3.sqlite3_free(pointer)
+        }
+
+        return string
     }
 }
 
@@ -199,7 +204,7 @@ internal inline fun <R> SegmentAllocator.useParam(
     block: (MemorySegment) -> R
 ): R {
     if (param == null) {
-        return block(MemorySegment.NULL)
+        return block(NullPtr)
     }
 
     return param.use(this, block)
@@ -216,7 +221,7 @@ internal inline fun <R> useParamMemScoped(
     block: (MemorySegment) -> R
 ): R {
     if (param == null) {
-        return block(MemorySegment.NULL)
+        return block(NullPtr)
     }
 
     return memScoped {
@@ -239,7 +244,7 @@ internal inline fun <R> SegmentAllocator.useParams(
     ) -> R
 ): R {
     if (param1 == null && param2 == null) {
-        return block(MemorySegment.NULL, MemorySegment.NULL)
+        return block(NullPtr, NullPtr)
     }
 
     val pointer1 = param1?.attach(this).notNull
@@ -268,7 +273,7 @@ internal inline fun <R> useParamsMemScoped(
     ) -> R
 ): R {
     if (param1 == null && param2 == null) {
-        return block(MemorySegment.NULL, MemorySegment.NULL)
+        return block(NullPtr, NullPtr)
     }
 
     return memScoped {

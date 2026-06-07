@@ -5,7 +5,7 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 
 /**
  * Static C function for [autoVacuumPagesHandler].
@@ -21,12 +21,12 @@ private fun autoVacuumPagesHandler(
     nDbPage: UInt,
     nFreePage: UInt,
     nBytePerPage: UInt
-) = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback, userData ->
-    callback(
-        userData,
-        zSchema!!.toKStringFromUtf8(),
-        nDbPage,
-        nFreePage,
-        nBytePerPage
+) = handle(refPointer) { callback: Sqlite3AutoVacuumPagesCallback<Any?>, appData ->
+    callback.apply(
+        appData = appData,
+        schemaName = zSchema!!.toKStringFromUtf8(),
+        dbPage = nDbPage,
+        freePage = nFreePage,
+        bytePerPage = nBytePerPage
     )
 }

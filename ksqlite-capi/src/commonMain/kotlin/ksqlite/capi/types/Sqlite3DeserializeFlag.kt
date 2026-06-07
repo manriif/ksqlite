@@ -37,17 +37,21 @@ public sealed class Sqlite3DeserializeFlag(internal open val value: Int) {
      */
     public data object READONLY : Constant(4)
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Masking
+    ///////////////////////////////////////////////////////////////////////////
+
     /**
      * Holder for the flags to be passed to the deserialize API function.
      */
     @ConsistentCopyVisibility
-    public data class Masked internal constructor(override val value: Int) :
+    public data class Mask internal constructor(override val value: Int) :
         Sqlite3DeserializeFlag(value)
 
     /**
      * Returns an [Sqlite3DeserializeFlag] which is ORed with [flag].
      */
     public infix fun or(flag: Sqlite3DeserializeFlag): Sqlite3DeserializeFlag {
-        return Masked(value or flag.value)
+        return Mask(value or flag.value)
     }
 }

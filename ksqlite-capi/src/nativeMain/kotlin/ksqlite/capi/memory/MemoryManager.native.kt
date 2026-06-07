@@ -1,14 +1,15 @@
 package ksqlite.capi.memory
 
+import kotlinx.cinterop.Arena
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.Pinned
 import kotlinx.cinterop.StableRef
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
-import ksqlite.capi.types.Sqlite3DestructorCallback
-import ksqlite.capi.types.sqlite3_mutable_pointer
+import kotlinx.cinterop.toLong
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
@@ -20,25 +21,52 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
      * `null`.
      *
-     * The resulting reference data can be accessed using [stableRefData] and it can be disposed
-     * using [stableRefDisposer].
+     * The returned reference data can later be accessed using [stableRefDataHolder] and it can be
+     * disposed using [stableRefDisposer].
      */
-    fun stableRefPointer(
+    private fun <AppData> commonStableRefPointer(
+        key: String?,
         data: Any?,
-        userData: sqlite3_mutable_pointer? = null,
-        destructor: Sqlite3DestructorCallback? = null,
-        key: String? = null
+        appData: AppData,
+        destructor: Sqlite3DestroyCallback<AppData>?
     ): COpaquePointer? = notClosed {
         if (data == null && destructor == null) {
-            return null
+            null
+        } else {
+            registerDisposable(key) { StableRefReference(it, destructor, data, appData) }
+                .stableRef
+                .asCPointer()
         }
-
-        val reference = registerDisposable(key) { id ->
-            StableRefReference(id, destructor, data, userData)
-        }
-
-        return reference.stableRef.asCPointer()
     }
+
+    /**
+     * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
+     * `null`.
+     *
+     * The returned reference data can be accessed using [stableRefDataHolder] and it can be
+     * disposed using [stableRefDisposer].
+     */
+    fun <AppData> stableRefPointer(
+        data: Any?,
+        appData: AppData,
+        destructor: Sqlite3DestroyCallback<AppData>? = null,
+    ): COpaquePointer? = commonStableRefPointer(null, data, appData, destructor)
+
+    /**
+     * Returns a stable [COpaquePointer] to [data] or `null` if both [data] and [destructor] are
+     * `null`.
+     *
+     * The returned reference data can be accessed using [stableRefDataHolder] and it can be
+     * disposed using [stableRefDisposer].
+     *
+     * If a pointer was previously obtained using [key], it is disposed.
+     */
+    fun <AppData> keyedStableRefPointer(
+        key: String,
+        data: Any?,
+        appData: AppData,
+        destructor: Sqlite3DestroyCallback<AppData>? = null
+    ): COpaquePointer? = commonStableRefPointer(key, data, appData, destructor)
 
     /**
      * Returns a [CPointer] to [value]'s content or `null` if [value] is `null`.
@@ -46,18 +74,20 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * The resulting disposable can be disposed using [globalDisposer].
      */
     internal fun byteArrayPointer(
-        value: ByteArray?,
-        destructor: Sqlite3DestructorCallback? = null
-    ): CPointer<ByteVar>? = notClosed {
-        val pinned = value?.pin() ?: return null
-        val pointer = pinned.addressOf(0)
+        value: ByteArray,
+        destructor: Sqlite3DestroyCallback<ByteArray>? = null
+    ): CPointer<ByteVar> = notClosed {
+        registerDisposable { ByteArrayDisposable(it, destructor, value) }.pointer
+    }
 
-        val disposable = registerDisposable { id ->
-            ByteArrayDisposable(id, destructor, pinned, pointer)
-        }
-
-        registerGlobalDisposable(pointer, disposable)
-        return pointer
+    /**
+     * Allocates a C-string with [value]'s content and returns a [CPointer] to the content.
+     */
+    fun keyedStringPointer(
+        key: String,
+        value: String
+    ): CPointer<ByteVar> = notClosed {
+        registerDisposable(key) { StringDisposable(it, value) }.pointer
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -67,13 +97,13 @@ internal actual class MemoryManager : MemoryManagerBase() {
     /**
      * Reference to [data].
      */
-    private inner class StableRefReference(
-        id: ULong,
-        destructor: Sqlite3DestructorCallback?,
+    private inner class StableRefReference<AppData>(
+        id: Long,
+        destructor: Sqlite3DestroyCallback<AppData>?,
         override val data: Any?,
-        override val userData: sqlite3_mutable_pointer?
-    ) : AutoDisposable(id, destructor),
-        Reference {
+        override val appData: AppData
+    ) : AutoDisposable<AppData>(id, destructor),
+        Reference<AppData> {
 
         val stableRef = StableRef.create(this)
 
@@ -86,19 +116,37 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * Reference to [ByteArray].
      */
     private inner class ByteArrayDisposable(
-        id: ULong,
-        destructor: Sqlite3DestructorCallback?,
-        private val pinned: Pinned<ByteArray>,
-        private val pointer: COpaquePointer,
-    ) : AutoDisposable(id, destructor) {
+        id: Long,
+        destructor: Sqlite3DestroyCallback<ByteArray>?,
+        override val appData: ByteArray
+    ) : AutoDisposable<ByteArray>(id, destructor) {
 
-        override val userData: sqlite3_mutable_pointer? by lazy {
-            sqlite3_mutable_pointer.from(pointer, pinned.get().size.toLong())
+        private val pinned = appData.pin()
+        val pointer = pinned.addressOf(0)
+
+        init {
+            registerGlobalDisposable(pointer.toLong(), this)
         }
 
         override fun release() {
-            unregisterGlobalDisposable(pointer)
+            unregisterGlobalDisposable(pointer.toLong())
             pinned.unpin()
+        }
+    }
+
+    /**
+     * Reference to [String].
+     */
+    private inner class StringDisposable(
+        id: Long,
+        override val appData: String,
+    ) : AutoDisposable<String>(id, null) {
+
+        private val arena = Arena()
+        val pointer = appData.cstr.getPointer(arena)
+
+        override fun release() {
+            arena.clear()
         }
     }
 }

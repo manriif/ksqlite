@@ -1,11 +1,7 @@
 package ksqlite.capi.types
 
 import ksqlite.OutputPointer
-import ksqlite.capi.memory.isNullPointer
-
-///////////////////////////////////////////////////////////////////////////
-// Param
-///////////////////////////////////////////////////////////////////////////
+import ksqlite.capi.memory.isNull
 
 /**
  * Base for output parameter.
@@ -59,7 +55,7 @@ public abstract class PointerOutputParam<Value> :
     protected abstract fun create(pointer: Long): Value
 
     final override fun readValue(pointer: OutputPointer.OfPointer): Value? {
-        return pointer.value.takeUnless(Long::isNullPointer)?.let(::create)
+        return pointer.value.takeUnless(Long::isNull)?.let(::create)
     }
 }
 

@@ -1,39 +1,34 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.memory.MemoryManager
-import ksqlite.capi.types.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.memory.toKStringFromUtf8
-import java.lang.foreign.FunctionDescriptor
+import ksqlite.`sqlite3_autovacuum_pages$x0`
+import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
-import java.lang.foreign.ValueLayout
 
 /**
  * Handler for [ksqlite.capi.sqlite3_autovacuum_pages].
  */
-internal class AutoVacuumPagesHandler(manager: MemoryManager) : Handler(manager) {
+internal class AutoVacuumPagesHandler :
+    Handler(),
+    `sqlite3_autovacuum_pages$x0`.Function {
 
-    override fun createFunctionDescriptor(): FunctionDescriptor = FunctionDescriptor.of(
-        ValueLayout.JAVA_INT,
-        ValueLayout.ADDRESS,
-        ValueLayout.ADDRESS,
-        ValueLayout.JAVA_INT,
-        ValueLayout.JAVA_INT,
-        ValueLayout.JAVA_INT,
-    )
+    override fun allocate(arena: Arena): MemorySegment =
+        `sqlite3_autovacuum_pages$x0`.allocate(this, arena)
 
-    fun handle(
+    override fun apply(
         refPointer: MemorySegment,
         zSchema: MemorySegment,
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = handler(refPointer) { callback: Sqlite3AutoVacuumPagesCallback, userData ->
-        callback(
-            userData,
-            zSchema.toKStringFromUtf8(),
-            nDbPage.toUInt(),
-            nFreePage.toUInt(),
-            nBytePerPage.toUInt()
+    ): Int = handle(refPointer) { callback: Sqlite3AutoVacuumPagesCallback<Any?>, appData ->
+        callback.apply(
+            appData = appData,
+            schemaName = zSchema.toKStringFromUtf8(),
+            dbPage = nDbPage.toUInt(),
+            freePage = nFreePage.toUInt(),
+            bytePerPage = nBytePerPage.toUInt()
         ).toInt()
     }
 }

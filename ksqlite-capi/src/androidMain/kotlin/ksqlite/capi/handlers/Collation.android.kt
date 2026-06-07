@@ -1,27 +1,49 @@
 package ksqlite.capi.handlers
 
-import ksqlite.CollationNeededCallback
+import ksqlite.callbacks.CollationNeededCallback
+import ksqlite.callbacks.CollationCompareCallback
+import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
+import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.convertTextEncoding
-import ksqlite.capi.types.Sqlite3CollationNeededCallback
 import ksqlite.capi.types.sqlite3
+
+/**
+ * Handler for [ksqlite.capi.sqlite3_create_collation] and
+ * [ksqlite.capi.sqlite3_create_collation_v2].
+ */
+internal class CollationCompareHandler<AppData> :
+    Handler<Sqlite3CollationCompareCallback<AppData>, AppData>(),
+    CollationCompareCallback {
+
+    override fun apply(
+        lhs: ByteArray,
+        rhs: ByteArray
+    ): Int = handle { callback, appData ->
+        callback.apply(
+            appData = appData,
+            lhs = lhs,
+            rhs = rhs
+        )
+    }
+}
 
 /**
  * Handler for [ksqlite.capi.sqlite3_collation_needed].
  */
-internal class CollationNeededHandler(holder: Holder<Sqlite3CollationNeededCallback>) :
-    Handler<Sqlite3CollationNeededCallback>(holder),
+internal class CollationNeededHandler<AppData> :
+    Handler<Sqlite3CollationNeededCallback<AppData>, AppData>(),
     CollationNeededCallback {
 
-    override fun call(
+    override fun apply(
         db: Long,
         eTextRep: Int,
         name: String
-    ) = handler { callback, userData ->
-        callback(
-            userData,
-            sqlite3(db),
-            convertTextEncoding(eTextRep),
-            name
+    ) = handle { callback, appData ->
+        callback.apply(
+            appData = appData,
+            db = sqlite3(db),
+            eTextRep = convertTextEncoding(eTextRep),
+            name = name
         )
     }
 }

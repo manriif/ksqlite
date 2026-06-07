@@ -62,3 +62,20 @@ fun FileSystemOperations.clearAndGetFile(directory: Provider<Directory>): File {
 fun Provider<RegularFile>.writeContent(content: String) {
     get().asFile.apply { parentFile.mkdirs() }.writeText(content)
 }
+
+/**
+ * Replaces files described by relative [paths] from [sourceDirectory] to [destinationDirectory].
+ */
+fun replaceFiles(
+    sourceDirectory: File,
+    destinationDirectory: File,
+    vararg paths: String
+) {
+    paths.forEach { filePath ->
+        destinationDirectory.resolve(filePath).outputStream().use { output ->
+            sourceDirectory.resolve(filePath).inputStream().use { input ->
+                input.copyTo(output)
+            }
+        }
+    }
+}

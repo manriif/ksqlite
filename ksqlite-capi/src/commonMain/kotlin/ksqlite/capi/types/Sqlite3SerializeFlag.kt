@@ -23,17 +23,21 @@ public sealed class Sqlite3SerializeFlag(internal open val value: Int) {
      */
     public data object NOCOPY : Constant(0x001)
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Masking
+    ///////////////////////////////////////////////////////////////////////////
+
     /**
      * Holder for the flags to be passed to the serialize API function.
      */
     @ConsistentCopyVisibility
-    public data class Masked internal constructor(override val value: Int) :
+    public data class Mask internal constructor(override val value: Int) :
         Sqlite3SerializeFlag(value)
 
     /**
      * Returns an [Sqlite3SerializeFlag] which is ORed with [flag].
      */
     public infix fun or(flag: Sqlite3SerializeFlag): Sqlite3SerializeFlag {
-        return Masked(value or flag.value)
+        return Mask(value or flag.value)
     }
 }

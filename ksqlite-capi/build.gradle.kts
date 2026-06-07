@@ -1,9 +1,9 @@
 plugins {
     alias(libs.plugins.android.multiplatformLibrary)
     alias(libs.plugins.conventions.kmp)
-    //alias(libs.plugins.opensavvy.resources.consumer)
-    //alias(libs.plugins.opensavvy.resources.producer)
 }
+
+val extractWasmResources = registerExtractWasmResourcesTask(projects.ksqliteWeb)
 
 kotlin {
     androidJvmTargets()
@@ -13,6 +13,10 @@ kotlin {
     webTargets()
 
     sourceSets {
+        commonMain.dependencies {
+            implementation(libs.stately.concurrentCollections)
+        }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutinesTest)
@@ -34,14 +38,9 @@ kotlin {
             implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
             implementation(projects.ksqliteWeb)
         }
+
+        webTest {
+            resources.srcDir(extractWasmResources)
+        }
     }
 }
-
-/*kotlinJsResConsumer {
-    directory = ""
-}
-
-dependencies {
-    jsConsumedResources(projects.ksqliteWeb)
-    wasmConsumedResources(projects.ksqliteWeb)
-}*/

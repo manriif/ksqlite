@@ -1150,6 +1150,22 @@ public sealed class Sqlite3Result(public val code: Int) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the primary result code for `this` result.
+ */
+public val Sqlite3Result.primaryResultCode: Int
+    get() = code and 0xFF
+
+/**
+ * Whether `this` result is a subclass of [Sqlite3Result.OK].
+ */
+public val Sqlite3Result.isOk: Boolean
+    get() = this is Sqlite3Result.OK
+
+///////////////////////////////////////////////////////////////////////////
 // Values
 ///////////////////////////////////////////////////////////////////////////
 
@@ -1263,19 +1279,3 @@ internal fun sqlite3Results(): Set<Sqlite3Result> = setOf(
     Sqlite3Result.WARNING,
     Sqlite3Result.WARNING.AUTOINDEX,
 )
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns the primary result code for `this` result.
- */
-public val Sqlite3Result.primaryResultCode: Int
-    get() = code and 0xFF
-
-/**
- * Whether `this` result is a subclass of [Sqlite3Result.OK].
- */
-public val Sqlite3Result.isOk: Boolean
-    get() = this is Sqlite3Result.OK

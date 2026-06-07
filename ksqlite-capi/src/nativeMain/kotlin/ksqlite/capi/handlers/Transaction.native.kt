@@ -2,8 +2,8 @@ package ksqlite.capi.handlers
 
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.types.Sqlite3CommitHookCallback
-import ksqlite.capi.types.Sqlite3RollbackHookCallback
+import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
+import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
 
 ///////////////////////////////////////////////////////////////////////////
 // Commit
@@ -19,8 +19,8 @@ internal val CommitHookHandler = staticCFunction(::commitHookHandler)
  */
 private fun commitHookHandler(
     refPointer: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3CommitHookCallback, userData ->
-    callback(userData)
+) = handle(refPointer) { callback: Sqlite3CommitHookCallback<Any?>, appData ->
+    callback.apply(appData)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -37,6 +37,6 @@ internal val RollbackHookHandler = staticCFunction(::rollbackHookHandler)
  */
 private fun rollbackHookHandler(
     refPointer: COpaquePointer?
-) = handler(refPointer) { callback: Sqlite3RollbackHookCallback, userData ->
-    callback(userData)
+) = handle(refPointer) { callback: Sqlite3RollbackHookCallback<Any?>, appData ->
+    callback.apply(appData)
 }
