@@ -468,6 +468,8 @@ static Freeable* allocateFreeable(
     return new Freeable { { globalDestructor, destroy }, pointer, globalData };
 }
 
+#define FreeableDeclare(pFreeable) const auto freeablePtr = reinterpret_cast<Freeable*>(pFreeable)
+
 /**
  * Calls the Java destructor for the given Freeable and releases associated resources.
  * The pointer must have been allocated with `new`.
@@ -480,7 +482,7 @@ static void destroyFreeable(
         return;
     }
 
-    const auto freeablePtr = reinterpret_cast<Freeable*>(pFreeable);
+    FreeableDeclare(pFreeable);
     auto& freeable = *freeablePtr;
 
     jobject destructor = LocalRefCreate(freeable.destructor);
@@ -717,16 +719,16 @@ static void destroyDbState(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Initializes an `sqlite3_module`.
+ * Extension of `sqlite3_module` adding an extra member to store the Java callbacks.
  */
-static void initS3Module(
-    JNIEnv*,
-    sqlite3_module*,
-    int,
-    bool
-);
+struct Module : sqlite3_module {
+    jobject callbacks;
+};
 
-static void moduleDestroyer(void*);
+/**
+ * Destroys the instance of module appData referenced by `pFreeable`.
+ */
+static void moduleAppDataDestroyer(void*);
 
 ///////////////////////////////////////////////////////////////////////////
 // Global State
@@ -771,17 +773,17 @@ static struct {
         jclass string;
 
         struct : Class {
-            jmethodID getName; // ()Ljava/lang/String;
+            jmethodID getName;
         } jClass; // Class
 
         struct : Class {
-            jmethodID constructor; // (I)V
-            jmethodID intValue; // ()I
+            jmethodID constructor;
+            jmethodID intValue;
         } int32; // Integer
 
         struct : Class {
-            jmethodID constructor; //(J)V
-            jmethodID longValue; // ()J
+            jmethodID constructor;
+            jmethodID longValue;
         } int64; // Long
     } java;
 
@@ -792,21 +794,47 @@ static struct {
         jclass configSqlLogCallback;
 
         struct : Class {
-            jmethodID destroy; // ()V
+            jmethodID destroy;
         } destructorCallback;
 
         struct : Class {
-            jmethodID apply; // (I[Ljava/lang/String;[Ljava/lang/String;)I
+            jmethodID apply;
         } execCallback;
 
         struct : Class {
-            jfieldID value; // Ljava/lang/Object;
+            jfieldID value;
             OutputPointerSubclass ofInt32;
             OutputPointerSubclass ofInt64;
             OutputPointerSubclass ofPointer;
             OutputPointerSubclass ofString;
             OutputPointerSubclass ofObject;
         } outputPointer;
+
+        struct : Class {
+            jmethodID create;
+            jmethodID connect;
+            jmethodID bestIndex;
+            jmethodID disconnect;
+            jmethodID destroy;
+            jmethodID open;
+            jmethodID close;
+            jmethodID filter;
+            jmethodID next;
+            jmethodID eof;
+            jmethodID column;
+            jmethodID rowid;
+            jmethodID update;
+            jmethodID begin;
+            jmethodID sync;
+            jmethodID commit;
+            jmethodID rollback;
+            jmethodID findFunction;
+            jmethodID rename;
+            jmethodID savepoint;
+            jmethodID release;
+            jmethodID rollbackTo;
+            jmethodID integrity;
+        } vTabModuleCallbacks;
     } ksqlite;
 } KsqliteJniGlobalState;
 
@@ -824,6 +852,8 @@ static struct {
 #define KKDC K.ksqlite.destructorCallback
 #define KKEC K.ksqlite.execCallback
 #define KKOP K.ksqlite.outputPointer
+#define KKOP K.ksqlite.outputPointer
+#define KKVC K.ksqlite.vTabModuleCallbacks
 
 ///////////////////////////////////////////////////////////////////////////
 // JNI Environment
@@ -918,6 +948,7 @@ static void deinitializeJavaJniCache(JNIEnv* env) {
 
 #define DESTRUCTOR_CALLBACK "callbacks/DestructorCallback"
 #define EXEC_CALLBACK "callbacks/ExecCallback"
+#define VTAB_MODULE_CALLBACKS "callbacks/VTabModuleCallbacks"
 #define OUTPUT_POINTER "OutputPointer"
 
 #define OutputPointerSubclassInit(S, name) \
@@ -960,12 +991,114 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
     OutputPointerSubclassInit(ofPointer, "OfPointer");
     OutputPointerSubclassInit(ofString, "OfString");
     OutputPointerSubclassInit(ofObject, "OfObject");
+
+    // VTabCallbacks
+    KKVC.klass = RequireKsqliteClass(VTAB_MODULE_CALLBACKS);
+
+    KKVC.create = RequireKsqliteMethod(
+        KKVC,
+        "create",
+        "(JLjava/lang/Object;[Ljava/lang/String;Lksqlite/OutputPointer$OfPointer;Lksqlite/OutputPointer$OfString;)I",
+        VTAB_MODULE_CALLBACKS
+    );
+
+    KKVC.connect = RequireKsqliteMethod(
+        KKVC,
+        "connect",
+        "(JLjava/lang/Object;[Ljava/lang/String;Lksqlite/OutputPointer$OfPointer;Lksqlite/OutputPointer$OfString;)I",
+        VTAB_MODULE_CALLBACKS
+    );
+
+    KKVC.bestIndex = RequireKsqliteMethod(KKVC, "bestIndex", "(JJ)I", VTAB_MODULE_CALLBACKS);
+    KKVC.disconnect = RequireKsqliteMethod(KKVC, "disconnect", "(J)I", VTAB_MODULE_CALLBACKS);
+    KKVC.destroy = RequireKsqliteMethod(KKVC, "destroy", "(J)I", VTAB_MODULE_CALLBACKS);
+
+    KKVC.open = RequireKsqliteMethod(
+        KKVC,
+        "open",
+        "(JLksqlite/OutputPointer$OfPointer;)I",
+        VTAB_MODULE_CALLBACKS
+    );
+
+    KKVC.close = RequireKsqliteMethod(KKVC, "close", "(JJ)I", VTAB_MODULE_CALLBACKS);
+
+    KKVC.filter =
+        RequireKsqliteMethod(KKVC, "filter", "(JJILjava/lang/String;[J)I", VTAB_MODULE_CALLBACKS);
+
+    KKVC.next = RequireKsqliteMethod(KKVC, "next", "(JJ)I", VTAB_MODULE_CALLBACKS);
+    KKVC.eof = RequireKsqliteMethod(KKVC, "eof", "(JJ)I", VTAB_MODULE_CALLBACKS);
+    KKVC.column = RequireKsqliteMethod(KKVC, "column", "(JJJI)I", VTAB_MODULE_CALLBACKS);
+
+    KKVC.rowid = RequireKsqliteMethod(
+        KKVC,
+        "rowid",
+        "(JJLksqlite/OutputPointer$OfInt64;)I",
+        VTAB_MODULE_CALLBACKS
+    );
+
+    KKVC.update = RequireKsqliteMethod(
+        KKVC,
+        "update",
+        "(J[JLksqlite/OutputPointer$OfInt64;)I",
+        VTAB_MODULE_CALLBACKS
+    );
+
+    KKVC.begin = RequireKsqliteMethod(KKVC, "begin", "(J)I", VTAB_MODULE_CALLBACKS);
+    KKVC.sync = RequireKsqliteMethod(KKVC, "sync", "(J)I", VTAB_MODULE_CALLBACKS);
+    KKVC.commit = RequireKsqliteMethod(KKVC, "commit", "(J)I", VTAB_MODULE_CALLBACKS);
+    KKVC.rollback = RequireKsqliteMethod(KKVC, "rollback", "(J)I", VTAB_MODULE_CALLBACKS);
+
+    KKVC.findFunction = RequireKsqliteMethod(
+        KKVC,
+        "findFunction",
+        "(JILjava/lang/String;Lksqlite/OutputPointer$OfObject;Lksqlite/OutputPointer$OfObject;Lksqlite/OutputPointer$OfObject;)I",
+        VTAB_MODULE_CALLBACKS
+    );
+
+    KKVC.rename =
+        RequireKsqliteMethod(KKVC, "rename", "(JLjava/lang/String;)I", VTAB_MODULE_CALLBACKS);
+
+    KKVC.savepoint = RequireKsqliteMethod(KKVC, "savepoint", "(JI)I", VTAB_MODULE_CALLBACKS);
+    KKVC.release = RequireKsqliteMethod(KKVC, "release", "(JI)I", VTAB_MODULE_CALLBACKS);
+    KKVC.rollbackTo = RequireKsqliteMethod(KKVC, "rollbackTo", "(JI)I", VTAB_MODULE_CALLBACKS);
+
+    KKVC.integrity = RequireKsqliteMethod(
+        KKVC,
+        "integrity",
+        "(JLjava/lang/String;Ljava/lang/String;ILksqlite/OutputPointer$OfString;)I",
+        VTAB_MODULE_CALLBACKS
+    );
 }
 
 /**
  * Deinitializes cached Ksqlite related classes and objects.
  */
 static void deinitializeKsqliteJniCache(JNIEnv* env) {
+    KKVC.integrity = nullptr;
+    KKVC.rollbackTo = nullptr;
+    KKVC.release = nullptr;
+    KKVC.savepoint = nullptr;
+    KKVC.rename = nullptr;
+    KKVC.findFunction = nullptr;
+    KKVC.rollback = nullptr;
+    KKVC.commit = nullptr;
+    KKVC.sync = nullptr;
+    KKVC.begin = nullptr;
+    KKVC.update = nullptr;
+    KKVC.rowid = nullptr;
+    KKVC.column = nullptr;
+    KKVC.eof = nullptr;
+    KKVC.next = nullptr;
+    KKVC.filter = nullptr;
+    KKVC.close = nullptr;
+    KKVC.open = nullptr;
+    KKVC.destroy = nullptr;
+    KKVC.disconnect = nullptr;
+    KKVC.bestIndex = nullptr;
+    KKVC.connect = nullptr;
+    KKVC.create = nullptr;
+    ClassClear(KKVC);
+
     OutputPointerSubclassDeInit(ofObject);
     OutputPointerSubclassDeInit(ofString);
     OutputPointerSubclassDeInit(ofPointer);
@@ -1064,7 +1197,7 @@ JNI_OnUnload(
 #define LongTo_s3_blob(L) LongCast(sqlite3_blob, (L))
 #define LongTo_s3_context(L) LongCast(sqlite3_context, (L))
 #define LongTo_s3_index_info(L) LongCast(sqlite3_index_info, (L))
-#define LongTo_s3_module(L) LongCast(sqlite3_module, (L))
+#define LongTo_s3_module(L) LongCast(Module, (L))
 #define LongTo_s3_snapshot(L) LongCast(sqlite3_snapshot, (L))
 #define LongTo_s3_stmt(L) LongCast(sqlite3_stmt, (L))
 #define LongTo_s3_value(L) LongCast(sqlite3_value, (L))
@@ -3637,9 +3770,6 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
     jstring name,
     jlong module,
     jobject appData,
-    jint callbacksMask,
-    jboolean eponymous,
-    jobject callbacks,
     jobject destroy
 ) {
     const auto pDb = LongTo_s3(db);
@@ -3654,12 +3784,11 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1module_1v2(
     }
 
     const auto zName = JstringToUtf8(name);
-    const auto freeable = AllocateFreeable(pModule, appData, destroy);
-    const auto rc = sqlite3_create_module_v2(pDb, zName, pModule, freeable, moduleDestroyer);
 
-    if (rc == SQLITE_OK) {
-        initS3Module(env, pModule, callbacksMask, eponymous);
-    }
+    // pModule is used as Freeable->pointer but a custom destructor is used to prevent the default
+    // one from invoking `sqlite3_free` on it
+    const auto freeable = AllocateFreeable(pModule, appData, destroy);
+    const auto rc = sqlite3_create_module_v2(pDb, zName, pModule, freeable, moduleAppDataDestroyer);
 
     sqlite3_free(zName);
     return rc;
@@ -6092,25 +6221,50 @@ Java_ksqlite_KsqliteJni_sqlite3_1wal_1hook(
 ///////////////////////////////////////////////////////////////////////////
 
 // To be synced with ksqlite.structs.sqlite3_module.Layout
-constexpr auto StructMemberIndexXCreate = 1;
-constexpr auto StructMemberIndexXUpdate = 13;
-constexpr auto StructMemberIndexXBegin = 14;
-constexpr auto StructMemberIndexXSync = 15;
-constexpr auto StructMemberIndexXCommit = 16;
-constexpr auto StructMemberIndexXRollback = 17;
-constexpr auto StructMemberIndexXFindFunction = 18;
-constexpr auto StructMemberIndexXRename = 19;
-constexpr auto StructMemberIndexXSavepoint = 20;
-constexpr auto StructMemberIndexXRelease = 21;
-constexpr auto StructMemberIndexXRollbackTo = 22;
-constexpr auto StructMemberIndexXIntegrity = 24;
+constexpr auto ModuleMemberIndexXCreate = 1;
+constexpr auto ModuleMemberIndexXUpdate = 13;
+constexpr auto ModuleMemberIndexXBegin = 14;
+constexpr auto ModuleMemberIndexXSync = 15;
+constexpr auto ModuleMemberIndexXCommit = 16;
+constexpr auto ModuleMemberIndexXRollback = 17;
+constexpr auto ModuleMemberIndexXFindFunction = 18;
+constexpr auto ModuleMemberIndexXRename = 19;
+constexpr auto ModuleMemberIndexXSavepoint = 20;
+constexpr auto ModuleMemberIndexXRelease = 21;
+constexpr auto ModuleMemberIndexXRollbackTo = 22;
+constexpr auto ModuleMemberIndexXIntegrity = 24;
+
+static void moduleAppDataDestroyer(void* pFreeable) {
+    JniEnvDeclare();
+    FreeableDeclare(pFreeable);
+    // Set pointer to null as `destroyFreeable` will invoke `sqlite3_free` on it
+    freeablePtr->pointer = nullptr;
+    destroyFreeable(env, pFreeable);
+}
 
 /**
- * Destroys a module.
+ * Common handling of xCreate and xConnect.
  */
-static void moduleDestroyer(void* pFreeable) {
-    // TODO nullify Freeable->pointer
-    freeableDestroyer(pFreeable);
+static int moduleXCreateOrXConnect(
+    sqlite3* pDb,
+    void* pFreeable,
+    int argc,
+    const char* const* argv,
+    sqlite3_vtab** ppVTab,
+    char** pzErrMsg
+) {
+    JniEnvDeclare();
+    FreeableDeclare(pFreeable);
+
+    const auto pModule = reinterpret_cast<Module*>(freeablePtr->pointer);
+
+    jstring* arguments = nullptr;
+
+    if (argc > 0) {
+        arguments =
+    }
+
+    return 0;
 }
 
 /**
@@ -6118,13 +6272,12 @@ static void moduleDestroyer(void* pFreeable) {
  */
 static int moduleXCreateCaller(
     sqlite3* pDb,
-    void* pAux,
+    void* pFreeable,
     int argc,
     const char* const* argv,
     sqlite3_vtab** ppVTab,
     char** pzErrMsg
 ) {
-    return 0;
 }
 
 /**
@@ -6336,25 +6489,35 @@ static int moduleXIntegrityCaller(
     return 0;
 }
 
-#define ModuleCallbackEnabled(index) ((mask & 1 << index) == 1 << index)
+#define ModuleCallbackEnabled(index) ((callbackMask & 1 << index) == 1 << index)
 
 #define ModuleCallbackSetIfEnabled(index, member, caller) \
     pModule->member = ModuleCallbackEnabled(index) ? caller : nullptr
 
-static void initS3Module(
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_nativeModuleInit(
     JNIEnv* env,
-    sqlite3_module* pModule,
-    int mask,
-    bool eponymous
+    jclass clazz,
+    jlong module,
+    jint callbackMask,
+    jboolean eponymous,
+    jobject callbacks
 ) {
-    if (ModuleCallbackEnabled(StructMemberIndexXCreate)) {
+    const auto pModule = LongTo_s3_module(module);
+
+    GlobalRefDestroy(pModule->callbacks);
+    pModule->callbacks = GlobalRefCreate(callbacks);
+
+    if (ModuleCallbackEnabled(ModuleMemberIndexXCreate)) {
         pModule->xCreate = moduleXCreateCaller;
     } else if (eponymous) {
         pModule->xCreate = moduleXConnectCaller;
     } else {
+        // Eponymous only
         pModule->xCreate = nullptr;
     }
-    
+
     pModule->xConnect = moduleXConnectCaller;
     pModule->xBestIndex = moduleXBestIndexCaller;
     pModule->xDisconnect = moduleXDisconnectCaller;
@@ -6366,22 +6529,33 @@ static void initS3Module(
     pModule->xEof = moduleXEofCaller;
     pModule->xColumn = moduleXColumnCaller;
     pModule->xRowid = moduleXRowidCaller;
-    
-    ModuleCallbackSetIfEnabled(StructMemberIndexXUpdate, xUpdate, moduleXUpdateCaller);
-    ModuleCallbackSetIfEnabled(StructMemberIndexXBegin, xBegin, moduleXBeginCaller);
-    ModuleCallbackSetIfEnabled(StructMemberIndexXSync, xSync, moduleXSyncCaller);
-    ModuleCallbackSetIfEnabled(StructMemberIndexXCommit, xCommit, moduleXCommitCaller);
-    ModuleCallbackSetIfEnabled(StructMemberIndexXRollback, xRollback, moduleXRollbackCaller);
+
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXUpdate, xUpdate, moduleXUpdateCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXBegin, xBegin, moduleXBeginCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXSync, xSync, moduleXSyncCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXCommit, xCommit, moduleXCommitCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXRollback, xRollback, moduleXRollbackCaller);
 
     ModuleCallbackSetIfEnabled(
-        StructMemberIndexXFindFunction,
+        ModuleMemberIndexXFindFunction,
         xFindFunction,
         moduleXFindFunctionCaller
     );
 
-    ModuleCallbackSetIfEnabled(StructMemberIndexXRename, xRename, moduleXRenameCaller);
-    ModuleCallbackSetIfEnabled(StructMemberIndexXSavepoint, xSavepoint, moduleXSavepointCaller);
-    ModuleCallbackSetIfEnabled(StructMemberIndexXRelease, xRelease, moduleXReleaseCaller);
-    ModuleCallbackSetIfEnabled(StructMemberIndexXRollbackTo, xRollbackTo, moduleXRollbackToCaller);
-    ModuleCallbackSetIfEnabled(StructMemberIndexXIntegrity, xIntegrity, moduleXIntegrityCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXRename, xRename, moduleXRenameCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXSavepoint, xSavepoint, moduleXSavepointCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXRelease, xRelease, moduleXReleaseCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXRollbackTo, xRollbackTo, moduleXRollbackToCaller);
+    ModuleCallbackSetIfEnabled(ModuleMemberIndexXIntegrity, xIntegrity, moduleXIntegrityCaller);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_nativeModuleDeinit(
+    JNIEnv* env,
+    jclass clazz,
+    jlong module
+) {
+    const auto pModule = LongTo_s3_module(module);
+    GlobalRefDestroy(pModule->callbacks);
 }

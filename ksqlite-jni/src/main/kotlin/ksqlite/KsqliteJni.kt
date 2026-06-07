@@ -84,10 +84,10 @@ public external fun nativeFreeAndMalloc(
 
 /**
  * Returns the layout of the struct.
- * For a property index P:
+ * For a struct member index M:
  *
- * - array[P*2] = offset
- * - array[P*2+1] = length
+ * - array[M*2] = offset
+ * - array[M*2+1] = length
  *
  * The struct's total size can be obtained by reading the last element of teh returned array.
  *
@@ -457,20 +457,11 @@ public external fun sqlite3_create_function_v2(
     destroy: DestructorCallback?,
 ): Int
 
-/**
- * The [callbackMask] represents the optional callbacks that are enabled where the LSB is the first
- * callback in the struct (xConnect) and the MSB the last (xIntegrity) in the order they're declared
- * in the struct. Only bits for optional callbacks are taken into account, others are ignored.
- * See [ksqlite.structs.sqlite3_module.Layout] for per-bit symbols.
- */
 public external fun sqlite3_create_module_v2(
     db: Long,
     name: String,
     module: Long,
     appData: Any?,
-    callbackMask: Int,
-    eponymous: Boolean,
-    callbacks: VTabModuleCallbacks,
     destroy: DestructorCallback?,
 ): Int
 
@@ -1122,3 +1113,37 @@ public external fun sqlite3_wal_hook(
     db: Long,
     callback: WalHookCallback?
 ): WalHookCallback?
+
+///////////////////////////////////////////////////////////////////////////
+// Virtual Table
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Initializes a virtual table module.
+ *
+ * The [callbackMask] represents the optional callbacks that are enabled where the LSB is the first
+ * callback in the struct (xConnect) and the MSB the last (xIntegrity) in the order they're declared
+ * in the struct. Only bits for optional callbacks are taken into account, others are ignored.
+ * See [ksqlite.structs.sqlite3_module.Layout] for per-bit symbols.
+ */
+private external fun nativeModuleInit(
+    module: Long,
+    callbackMask: Int,
+    eponymous: Boolean,
+    callbacks: VTabModuleCallbacks
+)
+
+internal fun moduleInit(
+    module: Long,
+    callbackMask: Int,
+    eponymous: Boolean,
+    callbacks: VTabModuleCallbacks
+) = nativeModuleInit(module, callbackMask, eponymous, callbacks)
+
+/**
+ * Deinitiliazes a virtual table module.
+ * This does not deallocates it, only clears associated Java reesources.
+ */
+private external fun nativeModuleDeinit(module: Long)
+
+internal fun moduleDeinit(module: Long) = nativeModuleDeinit(module)

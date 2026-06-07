@@ -144,7 +144,7 @@ public abstract class JniStruct private constructor(
     /**
      * Releases the resources associated with this struct.
      */
-    public fun free() {
+    public open fun free() {
         structFree(buffer)
     }
 }

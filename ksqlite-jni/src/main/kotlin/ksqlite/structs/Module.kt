@@ -2,13 +2,24 @@
 
 package ksqlite.structs
 
+import ksqlite.callbacks.VTabModuleCallbacks
+import ksqlite.moduleDeinit
+import ksqlite.moduleInit
 import ksqlite.structLayout
 
 /**
  * Allocates an instance of `sqlite3_module` and supplies getters and setters for reading and
  * writing the struct.
  */
-public class sqlite3_module : JniStruct(layout, StructType.Module) {
+public class sqlite3_module(
+    callbacks: VTabModuleCallbacks,
+    callbackMask: Int,
+    eponymous: Boolean
+) : JniStruct(layout, StructType.Module) {
+
+    init {
+        moduleInit(pointer, callbackMask, eponymous, callbacks)
+    }
 
     public var iVersion: Int
         get() = readInt(STRUCT_MEMBER_INDEX_IVERSION)
@@ -109,6 +120,11 @@ public class sqlite3_module : JniStruct(layout, StructType.Module) {
     public var xIntegrity: Long
         get() = readLong(STRUCT_MEMBER_INDEX_XINTEGRITY)
         set(value) = writeLong(STRUCT_MEMBER_INDEX_XINTEGRITY, value)
+
+    override fun free() {
+        moduleDeinit(pointer)
+        super.free()
+    }
 
     public companion object Layout {
 
