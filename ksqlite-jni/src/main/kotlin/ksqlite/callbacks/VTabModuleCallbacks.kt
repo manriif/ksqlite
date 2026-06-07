@@ -11,7 +11,7 @@ public interface VTabModuleCallbacks {
     public fun create(
         db: Long,
         appData: Any?,
-        argv: Array<String>,
+        arguments: Array<String>,
         outVtab: OutputPointer.OfPointer,
         outErrMsg: OutputPointer.OfString,
     ): Int
@@ -19,7 +19,7 @@ public interface VTabModuleCallbacks {
     public fun connect(
         db: Long,
         appData: Any?,
-        argv: Array<String>,
+        arguments: Array<String>,
         outVtab: OutputPointer.OfPointer,
         outErrMsg: OutputPointer.OfString,
     ): Int

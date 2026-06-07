@@ -1142,8 +1142,23 @@ internal fun moduleInit(
 
 /**
  * Deinitiliazes a virtual table module.
- * This does not deallocates it, only clears associated Java reesources.
+ * This does not deallocates it, only clears associated Java resources.
  */
 private external fun nativeModuleDeinit(module: Long)
 
 internal fun moduleDeinit(module: Long) = nativeModuleDeinit(module)
+
+/**
+ * Initializes a virtual table.
+ */
+private external fun nativeVTabInit(vTab: Long)
+
+internal fun vTabInit(vTab: Long) = nativeVTabInit(vTab)
+
+/**
+ * Deinitiliazes a virtual table.
+ * This does not deallocates it, only clears associated resources.
+ */
+private external fun nativeVTabDeinit(vTab: Long)
+
+internal fun vTabDeinit(vTab: Long) = nativeVTabDeinit(vTab)

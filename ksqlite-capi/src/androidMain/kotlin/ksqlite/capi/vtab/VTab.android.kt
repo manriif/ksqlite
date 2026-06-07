@@ -35,13 +35,13 @@ internal object VTabModuleHandler : JniVTabModuleCallbacks {
     override fun create(
         db: Long,
         appData: Any?,
-        argv: Array<String>,
+        arguments: Array<String>,
         outVtab: OutputPointer.OfPointer,
         outErrMsg: OutputPointer.OfString
     ): Int = vTabCreate(
         module = appData as VTabModule<*, *, *>,
         db = sqlite3(db),
-        argv = argv,
+        argv = arguments,
         setVTab = { outVtab.value = it.pointer },
         setError = outErrMsg::value::set
     )
@@ -49,13 +49,13 @@ internal object VTabModuleHandler : JniVTabModuleCallbacks {
     override fun connect(
         db: Long,
         appData: Any?,
-        argv: Array<String>,
+        arguments: Array<String>,
         outVtab: OutputPointer.OfPointer,
         outErrMsg: OutputPointer.OfString
     ): Int = vTabCreate(
         module = appData as VTabModule<*, *, *>,
         db = sqlite3(db),
-        argv = argv,
+        argv = arguments,
         setVTab = { outVtab.value = it.pointer },
         setError = outErrMsg::value::set
     )

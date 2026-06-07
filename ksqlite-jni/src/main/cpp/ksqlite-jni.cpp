@@ -7,6 +7,7 @@
 #include "utils/Unicode.h"
 
 #include <unordered_map>
+#include <vector>
 
 // FIXME I do not know if the IDE is broken but this is declared in <jni.h> but IDE complain that
 //  it does not exists
@@ -180,6 +181,13 @@ struct Class {
 };
 
 /**
+ * Common type for a java class with a constructor.
+ */
+struct ClassWithConstructor : Class {
+    jmethodID constructor;
+};
+
+/**
  * Clears a Class.
  */
 static inline void clearClass(
@@ -279,16 +287,16 @@ static inline jfieldID getFieldIdOrDie(
  * Common type for object guarded by a mutex.
  */
 struct MutexGuarded {
-    sqlite3_mutex* mutex;
+    sqlite3_mutex* pMutex;
 };
 
 #define MutexAllocate(O) \
-    O.mutex = sqlite3_mutex_alloc(SQLITE_MUTEX_FAST); \
-    OutOfMemoryCheck(O.mutex)
+    O.pMutex = sqlite3_mutex_alloc(SQLITE_MUTEX_FAST); \
+    OutOfMemoryCheck(O.pMutex)
 
-#define MutexDestroy(O) sqlite3_mutex_free(O.mutex)
-#define MutexEnter(O) sqlite3_mutex_enter(O.mutex)
-#define MutexLeave(O) sqlite3_mutex_leave(O.mutex)
+#define MutexDestroy(O) sqlite3_mutex_free(O.pMutex)
+#define MutexEnter(O) sqlite3_mutex_enter(O.pMutex)
+#define MutexLeave(O) sqlite3_mutex_leave(O.pMutex)
 
 ///////////////////////////////////////////////////////////////////////////
 // Destructor
@@ -398,7 +406,7 @@ static void destroyHook(
     const auto pGuard = hook.pGuard;
 
     if (pGuard != nullptr) {
-        sqlite3_mutex_enter(pGuard->mutex);
+        sqlite3_mutex_enter(pGuard->pMutex);
     }
 
     if (hook.instance != nullptr) {
@@ -415,7 +423,7 @@ static void destroyHook(
     }
 
     if (pGuard != nullptr) {
-        sqlite3_mutex_leave(pGuard->mutex);
+        sqlite3_mutex_leave(pGuard->pMutex);
     }
 
     if (destructor != nullptr) {
@@ -719,10 +727,19 @@ static void destroyDbState(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Extension of `sqlite3_module` adding an extra member to store the Java callbacks.
+ * Subclass of `sqlite3_module` adding an extra member to store the Java callbacks.
  */
 struct Module : sqlite3_module {
     jobject callbacks;
+};
+
+/**
+ * Subclass of `sqlite3_vtab` adding extra members to store overloaded functions pointers and safely
+ * accessing them.
+ */
+struct VTab : sqlite3_vtab {
+    sqlite3_mutex* pMutex;
+    std::vector<Function*>* pFunctions;
 };
 
 /**
@@ -733,13 +750,6 @@ static void moduleAppDataDestroyer(void*);
 ///////////////////////////////////////////////////////////////////////////
 // Global State
 ///////////////////////////////////////////////////////////////////////////
-
-/**
- * Common type for output pointer Java subclasses.
- */
-struct OutputPointerSubclass : Class {
-    jmethodID constructor; // ()V
-};
 
 /**
  * Global state.
@@ -776,13 +786,11 @@ static struct {
             jmethodID getName;
         } jClass; // Class
 
-        struct : Class {
-            jmethodID constructor;
+        struct : ClassWithConstructor {
             jmethodID intValue;
         } int32; // Integer
 
-        struct : Class {
-            jmethodID constructor;
+        struct : ClassWithConstructor {
             jmethodID longValue;
         } int64; // Long
     } java;
@@ -803,11 +811,11 @@ static struct {
 
         struct : Class {
             jfieldID value;
-            OutputPointerSubclass ofInt32;
-            OutputPointerSubclass ofInt64;
-            OutputPointerSubclass ofPointer;
-            OutputPointerSubclass ofString;
-            OutputPointerSubclass ofObject;
+            ClassWithConstructor ofInt32;
+            ClassWithConstructor ofInt64;
+            ClassWithConstructor ofPointer;
+            ClassWithConstructor ofString;
+            ClassWithConstructor ofObject;
         } outputPointer;
 
         struct : Class {
@@ -1201,6 +1209,7 @@ JNI_OnUnload(
 #define LongTo_s3_snapshot(L) LongCast(sqlite3_snapshot, (L))
 #define LongTo_s3_stmt(L) LongCast(sqlite3_stmt, (L))
 #define LongTo_s3_value(L) LongCast(sqlite3_value, (L))
+#define LongTo_s3_vtab(L) LongCast(VTab, (L))
 #define LongTo_s3_vfs(L) LongCast(sqlite3_vfs, (L))
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1292,59 +1301,6 @@ static void hookDestroyer(void* pHook) {
     const auto call = hook.call
 
 #define FunctionHookLeave() LocalRefDestroy(instance)
-
-/**
- * Calls an instance of `FunctionCallback.Func1` hook.
- */
-static void callFunctionFunc1(
-    Hook& hook,
-    sqlite3_context* pContext
-) {
-    JniEnvDeclare();
-    const auto context = PtrToLong(pContext);
-
-    FunctionHookEnter();
-    env->CallVoidMethod(instance, call, context);
-    FunctionHookLeave();
-}
-
-/**
- * Calls an instance of `FunctionCallback.Func2` hook.
- */
-static void callFunctionFunc2(
-    Hook& hook,
-    sqlite3_context* pContext,
-    int argc,
-    sqlite3_value** argv
-) {
-    JniEnvDeclare();
-
-    const auto context = PtrToLong(pContext);
-    const auto longArray = env->NewLongArray(argc);
-    OutOfMemoryCheck(longArray != nullptr);
-
-    constexpr auto maxStackArgs = 32;
-    jlong stackBuffer[maxStackArgs];
-    jlong* buffer = stackBuffer;
-
-    if (argc > maxStackArgs) {
-        buffer = new jlong[argc];
-    }
-
-    for (int i = 0; i < argc; ++i) {
-        buffer[i] = reinterpret_cast<jlong>(argv[i]);
-    }
-
-    FunctionHookEnter();
-    env->CallVoidMethod(instance, call, context, longArray);
-    FunctionHookLeave();
-
-    if (buffer != stackBuffer) {
-        delete[] buffer;
-    }
-
-    env->DeleteLocalRef(longArray);
-}
 
 /**
  * Destroys an aggregate or scalar function.
@@ -2050,6 +2006,51 @@ static jobject getObjectFromArray(
 #define ArrayLongGet(array, index)  \
     PrimitiveUnboxLong(RequireNonNullJobject(ArrayObjectGet(array, index, KJVL.klass)))
 
+/**
+ * Fills a jlongArray wirth argv's pointers and write the jlongArray to `outLongArray`.
+ * The returned buffer must be freed using delete[] if not null.
+ */
+static inline jlong* longArrayFill(
+    JNIEnv* env,
+    int argc,
+    sqlite3_value** argv,
+    jlongArray* outLongArray
+) {
+    const auto longArray = env->NewLongArray(argc);
+    OutOfMemoryCheck(longArray != nullptr);
+
+    constexpr auto maxStackArgs = 32;
+    jlong stackBuffer[maxStackArgs];
+    jlong* buffer = stackBuffer;
+
+    if (argc > maxStackArgs) {
+        buffer = new jlong[argc];
+    }
+
+    OutOfMemoryCheck(buffer != nullptr);
+
+    for (int i = 0; i < argc; ++i) {
+        buffer[i] = reinterpret_cast<jlong>(argv[i]);
+    }
+
+    env->SetLongArrayRegion(longArray, 0, argc, buffer);
+    *outLongArray = longArray;
+
+    if (buffer == stackBuffer) {
+        return nullptr;
+    }
+
+    return buffer;
+}
+
+#define LongArrayFillEnter(argc, argv) \
+    jlongArray longArray = nullptr; \
+    const auto longArrayBuffer = longArrayFill(env, argc, argv, &longArray)
+
+#define LongArrayFillLeave() \
+    delete[] longArrayBuffer; \
+    env->DeleteLocalRef(longArray)
+
 ///////////////////////////////////////////////////////////////////////////
 // Output pointers
 ///////////////////////////////////////////////////////////////////////////
@@ -2167,41 +2168,47 @@ static inline void outputPointerSetInt64Value(
 #define OutputPointerGetInt64Value(pointer) outputPointerGetInt64Value(env, pointer)
 #define OutputPointerSetInt64Value(pointer, value) outputPointerSetInt64Value(env, pointer, value)
 
-#define OutputPointerEnter(T, jPointer, getValue, transform) \
-    const auto CONCAT(jPointer, _init) = transform(getValue(jPointer)); \
+#define OutputPointerGetPointerValue(T, pointer) \
+    reinterpret_cast<T>(OutputPointerGetInt64Value(pointer))
+
+#define OutputPointerSetPointerValue(pointer, value) \
+    OutputPointerSetInt64Value(pointer, PtrToLong(value))
+
+#define OutputPointerEnter(T, jPointer, getValue, ...) \
+    const auto CONCAT(jPointer, _init) = getValue(__VA_ARGS__  __VA_OPT__(,) jPointer); \
     T* UNDERSCORED(jPointer) = nullptr; \
     if (jPointer != nullptr) *UNDERSCORED(jPointer) = CONCAT(jPointer, _init)
 
 #define OutputPointerEnterInt32(jPointer) \
-    OutputPointerEnter(jint, jPointer, OutputPointerGetInt32Value,)
+    OutputPointerEnter(jint, jPointer, OutputPointerGetInt32Value)
 
 #define OutputPointerEnterInt64(jPointer) \
-    OutputPointerEnter(jlong, jPointer, OutputPointerGetInt64Value,)
+    OutputPointerEnter(jlong, jPointer, OutputPointerGetInt64Value)
 
 #define OutputPointerEnterPointer(T, jPointer) \
-    OutputPointerEnter(T, jPointer, OutputPointerGetInt64Value, reinterpret_cast<T>)
+    OutputPointerEnter(T, jPointer, OutputPointerGetPointerValue, T)
 
 #define OutputPointerEnterString(jPointer, ...) \
-    OutputPointerEnter(__VA_ARGS__ char*, jPointer, OutputPointerGetStringValue,)
+    OutputPointerEnter(__VA_ARGS__ char*, jPointer, OutputPointerGetStringValue)
 
 #define OutputPointerEnterStringConst(jPointer) \
     OutputPointerEnterString(jPointer, const)
 
-#define OutputPointerLeave(jPointer, setValue, transform, ...) \
+#define OutputPointerLeave(jPointer, setValue, ...) \
     if (jPointer != nullptr && rc == SQLITE_OK) \
-        setValue(jPointer, transform(*UNDERSCORED(jPointer)) __VA_OPT__(,) __VA_ARGS__)
+        setValue(jPointer, *UNDERSCORED(jPointer) __VA_OPT__(,) __VA_ARGS__)
 
 #define OutputPointerLeaveInt32(jPointer) \
-    OutputPointerLeave(jPointer, OutputPointerSetInt32Value,)
+    OutputPointerLeave(jPointer, OutputPointerSetInt32Value)
 
 #define OutputPointerLeaveInt64(jPointer) \
-    OutputPointerLeave(jPointer, OutputPointerSetInt64Value,)
+    OutputPointerLeave(jPointer, OutputPointerSetInt64Value)
 
 #define OutputPointerLeavePointer(jPointer) \
-    OutputPointerLeave(jPointer, OutputPointerSetInt64Value, PtrToLong,)
+    OutputPointerLeave(jPointer, OutputPointerSetPointerValue)
 
 #define OutputPointerLeaveStringLength(jPointer, length) \
-    OutputPointerLeave(jPointer, OutputPointerSetStringValue,,length); \
+    OutputPointerLeave(jPointer, OutputPointerSetStringValue, length); \
     sqlite3_free(CONCAT(jPointer, _init))
 
 #define OutputPointerLeaveString(jPointer) \
@@ -2364,9 +2371,11 @@ static inline int structSize(
         case Sqlite3IndexOrderby:
             return sizeof(sqlite3_index_info::sqlite3_index_orderby);
         case Sqlite3Module:
-            return sizeof(sqlite3_module);
+            // Use the Module subclass instead of `sqlite3_module` to store additional member(s)
+            return sizeof(Module);
         case Sqlite3Vtab:
-            return sizeof(sqlite3_vtab);
+            // Use the VTab subclass instead of `sqlite3_vtab` to store additional member(s)
+            return sizeof(VTab);
         case Sqlite3VtabCursor:
             return sizeof(sqlite3_vtab_cursor);
         default:
@@ -2466,7 +2475,7 @@ static int autoExtensionCaller(
     HookLeave();
 
     *pzErr = OutputPointerGetStringValue(outErrMsg);
-    LocalRefDestroy(outErrMsg);
+    env->DeleteLocalRef(outErrMsg);
 
     return rc;
 }
@@ -3514,7 +3523,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1config(
             // [OutputPointer.OfInt32]
         case SQLITE_CONFIG_ROWID_IN_VIEW: {
             ArrayLengthEnsure(args, 1);
-            const auto jPointer = ArrayObjectGet(args, 0, KKOP.klass);
+            const auto jPointer = ArrayObjectGet(args, 0, KKOP.ofInt32.klass);
             OutputPointerEnterInt32(jPointer);
             const auto rc = sqlite3_config(id, jPointer_);
             OutputPointerLeaveInt32(jPointer);
@@ -3633,6 +3642,40 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1collation_1v2(
         sqlite3_create_collation_v2(pDb, zName, eTextRep, nullptr, nullptr, nullptr),
         sqlite3_free(zName);
     );
+}
+
+/**
+ * Calls an instance of `FunctionCallback.Func1` hook.
+ */
+static void callFunctionFunc1(
+    Hook& hook,
+    sqlite3_context* pContext
+) {
+    JniEnvDeclare();
+    const auto context = PtrToLong(pContext);
+
+    FunctionHookEnter();
+    env->CallVoidMethod(instance, call, context);
+    FunctionHookLeave();
+}
+
+/**
+ * Calls an instance of `FunctionCallback.Func2` hook.
+ */
+static void callFunctionFunc2(
+    Hook& hook,
+    sqlite3_context* pContext,
+    int argc,
+    sqlite3_value** argv
+) {
+    JniEnvDeclare();
+    const auto context = PtrToLong(pContext);
+
+    LongArrayFillEnter(argc, argv);
+    FunctionHookEnter();
+    env->CallVoidMethod(instance, call, context, longArray);
+    FunctionHookLeave();
+    LongArrayFillLeave();
 }
 
 /**
@@ -3973,7 +4016,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1db_1config(
         case SQLITE_DBCONFIG_ENABLE_COMMENTS: {
             ArrayLengthEnsure(args, 2);
             const auto value = ArrayIntGet(args, 0);
-            const auto jPointer = ArrayObjectGet(args, 1, KKOP.klass);
+            const auto jPointer = ArrayObjectGet(args, 1, KKOP.ofInt32.klass);
             OutputPointerEnterInt32(jPointer);
             const auto rc = sqlite3_db_config(pDb, option, value, jPointer_);
             OutputPointerLeaveInt32(jPointer);
@@ -6242,29 +6285,58 @@ static void moduleAppDataDestroyer(void* pFreeable) {
     destroyFreeable(env, pFreeable);
 }
 
+#define ModuleCall(method, ...) env->CallIntMethod(pModule->callbacks, method, __VA_ARGS__)
+
+#define ModuleDeclareVtab() \
+    const auto pModule = reinterpret_cast<const Module*>(pVTab->pModule); \
+    const auto vTab = PtrToLong(pVTab)
+
+#define ModuleDeclareCursor() \
+    const auto pVTab = pCursor->pVtab; \
+    ModuleDeclareVtab(); \
+    const auto cursor = PtrToLong(pCursor)
+
 /**
  * Common handling of xCreate and xConnect.
  */
-static int moduleXCreateOrXConnect(
+static int callModuleXCreateOrXConnect(
     sqlite3* pDb,
-    void* pFreeable,
+    void* pAux,
     int argc,
     const char* const* argv,
     sqlite3_vtab** ppVTab,
-    char** pzErrMsg
+    char** pzErrMsg,
+    jmethodID method
 ) {
     JniEnvDeclare();
-    FreeableDeclare(pFreeable);
+    FreeableDeclare(pAux);
 
-    const auto pModule = reinterpret_cast<Module*>(freeablePtr->pointer);
+    const auto pModule = static_cast<Module*>(freeablePtr->pointer);
+    const auto arguments = env->NewObjectArray(argc, KJV.string, nullptr);
 
-    jstring* arguments = nullptr;
-
-    if (argc > 0) {
-        arguments =
+    for (int i = 0; i < argc; ++i) {
+        if (argv[i] != nullptr) {
+            const auto argument = Utf8ToJstring(argv[i]);
+            env->SetObjectArrayElement(arguments, i, argument);
+            env->DeleteLocalRef(argument);
+        }
     }
 
-    return 0;
+    const auto db = PtrToLong(pDb);
+    const auto appData = freeablePtr->data;
+    const auto outVtab = OutputPointerNew(ofPointer);
+    const auto outErrMsg = OutputPointerNew(ofString);
+    const auto rc = ModuleCall(method, db, appData, arguments, outVtab, outErrMsg);
+
+    *ppVTab = OutputPointerGetPointerValue(sqlite3_vtab*, outVtab);
+    *pzErrMsg = OutputPointerGetStringValue(outErrMsg);
+
+    env->DeleteLocalRef(appData);
+    env->DeleteLocalRef(arguments);
+    env->DeleteLocalRef(outVtab);
+    env->DeleteLocalRef(outErrMsg);
+
+    return rc;
 }
 
 /**
@@ -6272,12 +6344,13 @@ static int moduleXCreateOrXConnect(
  */
 static int moduleXCreateCaller(
     sqlite3* pDb,
-    void* pFreeable,
+    void* pAux,
     int argc,
     const char* const* argv,
     sqlite3_vtab** ppVTab,
     char** pzErrMsg
 ) {
+    return callModuleXCreateOrXConnect(pDb, pAux, argc, argv, ppVTab, pzErrMsg, KKVC.create);
 }
 
 /**
@@ -6291,7 +6364,7 @@ static int moduleXConnectCaller(
     sqlite3_vtab** ppVTab,
     char** pzErrMsg
 ) {
-    return 0;
+    return callModuleXCreateOrXConnect(pDb, pAux, argc, argv, ppVTab, pzErrMsg, KKVC.connect);
 }
 
 /**
@@ -6301,21 +6374,38 @@ static int moduleXBestIndexCaller(
     sqlite3_vtab* pVTab,
     sqlite3_index_info* pInfo
 ) {
-    return 0;
+    JniEnvDeclare();
+    ModuleDeclareVtab();
+    const auto info = PtrToLong(pInfo);
+
+    return ModuleCall(KKVC.bestIndex, vTab, info);
+}
+
+/**
+ * Common handling for hooks accepting only an `sqlite3_vtab` as parameter.
+ */
+static inline int callModuleVtab(
+    sqlite3_vtab* pVTab,
+    jmethodID method
+) {
+    JniEnvDeclare();
+    ModuleDeclareVtab();
+
+    return ModuleCall(method, vTab);
 }
 
 /**
  * Calls the `VTabModuleCallbacks.disconnect` hook.
  */
 static int moduleXDisconnectCaller(sqlite3_vtab* pVTab) {
-    return 0;
+    return callModuleVtab(pVTab, KKVC.disconnect);
 }
 
 /**
  * Calls the `VTabModuleCallbacks.destroy` hook.
  */
 static int moduleXDestroyCaller(sqlite3_vtab* pVTab) {
-    return 0;
+    return callModuleVtab(pVTab, KKVC.destroy);
 }
 
 /**
@@ -6325,14 +6415,36 @@ static int moduleXOpenCaller(
     sqlite3_vtab* pVTab,
     sqlite3_vtab_cursor** ppCursor
 ) {
-    return 0;
+    JniEnvDeclare();
+    ModuleDeclareVtab();
+
+    const auto outCursor = OutputPointerNew(ofPointer);
+    const auto rc = ModuleCall(KKVC.open, vTab, outCursor);
+
+    *ppCursor = OutputPointerGetPointerValue(sqlite3_vtab_cursor*, outCursor);
+    env->DeleteLocalRef(outCursor);
+
+    return rc;
+}
+
+/**
+ * Common handling for hooks accepting an `sqlite3_vtab` and an `sqlite3_vtab_cursor` as parameters.
+ */
+static inline int callModuleVTabAndCursor(
+    sqlite3_vtab_cursor* pCursor,
+    jmethodID method
+) {
+    JniEnvDeclare();
+    ModuleDeclareCursor();
+
+    return ModuleCall(method, vTab, cursor);
 }
 
 /**
  * Calls the `VTabModuleCallbacks.close` hook.
  */
 static int moduleXCloseCaller(sqlite3_vtab_cursor* pCursor) {
-    return 0;
+    return callModuleVTabAndCursor(pCursor, KKVC.close);
 }
 
 /**
@@ -6341,17 +6453,28 @@ static int moduleXCloseCaller(sqlite3_vtab_cursor* pCursor) {
 static int moduleXFilterCaller(
     sqlite3_vtab_cursor* pCursor,
     int idxNum,
-    const char* idxStr,
-    int argc, sqlite3_value** argv
+    const char* zIdxStr,
+    int argc,
+    sqlite3_value** argv
 ) {
-    return 0;
+    JniEnvDeclare();
+    ModuleDeclareCursor();
+
+    LongArrayFillEnter(argc, argv);
+    const auto idxStr = Utf8ToJstring(zIdxStr);
+    const auto rc = ModuleCall(KKVC.filter, vTab, cursor, idxNum, idxStr, longArray);
+
+    LocalRefDestroy(idxStr);
+    LongArrayFillLeave();
+
+    return rc;
 }
 
 /**
  * Calls the `VTabModuleCallbacks.next` hook.
  */
 static int moduleXNextCaller(sqlite3_vtab_cursor* pCursor) {
-    return 0;
+    return callModuleVTabAndCursor(pCursor, KKVC.next);
 }
 
 
@@ -6359,7 +6482,7 @@ static int moduleXNextCaller(sqlite3_vtab_cursor* pCursor) {
  * Calls the `VTabModuleCallbacks.eof` hook.
  */
 static int moduleXEofCaller(sqlite3_vtab_cursor* pCursor) {
-    return 0;
+    return callModuleVTabAndCursor(pCursor, KKVC.eof);
 }
 
 /**
@@ -6370,7 +6493,11 @@ static int moduleXColumnCaller(
     sqlite3_context* pContext,
     int columnIndex
 ) {
-    return 0;
+    JniEnvDeclare();
+    ModuleDeclareCursor();
+    const auto context = PtrToLong(pContext);
+
+    return ModuleCall(KKVC.column, vTab, cursor, context, columnIndex);
 }
 
 /**
@@ -6380,70 +6507,152 @@ static int moduleXRowidCaller(
     sqlite3_vtab_cursor* pCursor,
     sqlite3_int64* pRowid
 ) {
-    return 0;
+    JniEnvDeclare();
+    ModuleDeclareCursor();
+
+    const auto outRowid = OutputPointerNew(ofInt64);
+    const auto rc = ModuleCall(KKVC.rowid, vTab, cursor, outRowid);
+
+    *pRowid = OutputPointerGetInt64Value(outRowid);
+    env->DeleteLocalRef(outRowid);
+
+    return rc;
 }
 
 /**
  * Calls the `VTabModuleCallbacks.update` hook.
  */
 static int moduleXUpdateCaller(
-    sqlite3_vtab* pVtab,
+    sqlite3_vtab* pVTab,
     int argc,
     sqlite3_value** argv,
     sqlite3_int64* pRowid
 ) {
-    return 0;
+    JniEnvDeclare();
+    ModuleDeclareVtab();
+
+    LongArrayFillEnter(argc, argv);
+    const auto outRowid = OutputPointerNew(ofInt64);
+    const auto rc = ModuleCall(KKVC.update, vTab, longArray, outRowid);
+
+    *pRowid = OutputPointerGetInt64Value(outRowid);
+    env->DeleteLocalRef(outRowid);
+    LongArrayFillLeave();
+
+    return rc;
 }
 
 /**
  * Calls the `VTabModuleCallbacks.begin` hook.
  */
 static int moduleXBeginCaller(sqlite3_vtab* pVTab) {
-    return 0;
+    return callModuleVtab(pVTab, KKVC.begin);
 }
 
 /**
  * Calls the `VTabModuleCallbacks.sync` hook.
  */
 static int moduleXSyncCaller(sqlite3_vtab* pVTab) {
-    return 0;
+    return callModuleVtab(pVTab, KKVC.sync);
 }
 
 /**
  * Calls the `VTabModuleCallbacks.commit` hook.
  */
 static int moduleXCommitCaller(sqlite3_vtab* pVTab) {
-    return 0;
+    return callModuleVtab(pVTab, KKVC.commit);
 }
 
 /**
  * Calls the `VTabModuleCallbacks.rollback` hook.
  */
 static int moduleXRollbackCaller(sqlite3_vtab* pVTab) {
-    return 0;
+    return callModuleVtab(pVTab, KKVC.rollback);
 }
 
 /**
  * Calls the `VTabModuleCallbacks.findFunction` hook.
  */
 static int moduleXFindFunctionCaller(
-    sqlite3_vtab* pVtab,
+    sqlite3_vtab* pVTab,
     int nArg,
     const char* zName,
     void (** pxFunc)(sqlite3_context*, int, sqlite3_value**),
     void** ppArg
 ) {
-    return 0;
+    JniEnvDeclare();
+    ModuleDeclareVtab();
+
+    const auto name = Utf8ToJstring(zName);
+    const auto outAppData = OutputPointerNew(ofObject);
+    const auto outCallback = OutputPointerNew(ofObject);
+    const auto outDestroy = OutputPointerNew(ofObject);
+    const auto rc = ModuleCall(KKVC.findFunction, nArg, name, outAppData, outCallback, outDestroy);
+    const auto appData = OutputPointerGetValue(outAppData);
+    const auto callback = OutputPointerGetValue(outCallback);
+    const auto destroy = OutputPointerGetValue(outDestroy);
+
+    if (callback != nullptr) {
+        // Keep the same logic as regular function from C-API
+        // The function is bound to the sqlite3_vtab lifecycle
+        const auto pFunction = allocateFunction(env, appData, destroy, KKDC.destroy);
+        const auto vTabPtr = reinterpret_cast<VTab*>(pVTab);
+
+        sqlite3_mutex_enter(vTabPtr->pMutex);
+
+        if (vTabPtr->pFunctions == nullptr) {
+            vTabPtr->pFunctions = new std::vector<Function*>();
+        }
+
+        vTabPtr->pFunctions->push_back(pFunction);
+        sqlite3_mutex_leave(vTabPtr->pMutex);
+
+        auto& function = *pFunction;
+        FunctionFuncHookConfigure(callback)
+        *ppArg = pFunction;
+        *pxFunc = functionFuncCaller;
+    } else {
+        RequireNull(destroy);
+        RequireNull(appData);
+    }
+
+    env->DeleteLocalRef(name);
+    env->DeleteLocalRef(outAppData);
+    env->DeleteLocalRef(outCallback);
+    env->DeleteLocalRef(outDestroy);
+
+    return rc;
 }
 
 /**
  * Calls the `VTabModuleCallbacks.rename` hook.
  */
 static int moduleXRenameCaller(
-    sqlite3_vtab* pVtab,
+    sqlite3_vtab* pVTab,
     const char* zNew
 ) {
+    JniEnvDeclare();
+    ModuleDeclareVtab();
+
+    const auto newName = Utf8ToJstring(zNew);
+    const auto rc = ModuleCall(KKVC.rename, vTab, newName);
+
+    env->DeleteLocalRef(newName);
     return 0;
+}
+
+/**
+ * Common handling for savepoint based hooks.
+ */
+static inline int callModuleSavepoint(
+    sqlite3_vtab* pVTab,
+    int savepoint,
+    jmethodID method
+) {
+    JniEnvDeclare();
+    ModuleDeclareVtab();
+
+    return ModuleCall(method, vTab, savepoint);
 }
 
 /**
@@ -6453,7 +6662,7 @@ static int moduleXSavepointCaller(
     sqlite3_vtab* pVTab,
     int savepoint
 ) {
-    return 0;
+    return callModuleSavepoint(pVTab, savepoint, KKVC.savepoint);
 }
 
 /**
@@ -6463,7 +6672,7 @@ static int moduleXReleaseCaller(
     sqlite3_vtab* pVTab,
     int savepoint
 ) {
-    return 0;
+    return callModuleSavepoint(pVTab, savepoint, KKVC.release);
 }
 
 /**
@@ -6473,7 +6682,7 @@ static int moduleXRollbackToCaller(
     sqlite3_vtab* pVTab,
     int savepoint
 ) {
-    return 0;
+    return callModuleSavepoint(pVTab, savepoint, KKVC.rollbackTo);
 }
 
 /**
@@ -6486,7 +6695,21 @@ static int moduleXIntegrityCaller(
     int mFlags,
     char** pzErr
 ) {
-    return 0;
+    JniEnvDeclare();
+    ModuleDeclareVtab();
+
+    const auto schema = Utf8ToJstring(zSchema);
+    const auto tableName = Utf8ToJstring(zTabName);
+    const auto outErrMsg = OutputPointerNew(ofString);
+    const auto rc = ModuleCall(KKVC.integrity, vTab, schema, tableName, mFlags, outErrMsg);
+
+    *pzErr = OutputPointerGetStringValue(outErrMsg);
+
+    env->DeleteLocalRef(schema);
+    env->DeleteLocalRef(tableName);
+    env->DeleteLocalRef(outErrMsg);
+
+    return rc;
 }
 
 #define ModuleCallbackEnabled(index) ((callbackMask & 1 << index) == 1 << index)
@@ -6506,7 +6729,7 @@ Java_ksqlite_KsqliteJni_nativeModuleInit(
 ) {
     const auto pModule = LongTo_s3_module(module);
 
-    GlobalRefDestroy(pModule->callbacks);
+    RequireNull(pModule->callbacks);
     pModule->callbacks = GlobalRefCreate(callbacks);
 
     if (ModuleCallbackEnabled(ModuleMemberIndexXCreate)) {
@@ -6557,5 +6780,49 @@ Java_ksqlite_KsqliteJni_nativeModuleDeinit(
     jlong module
 ) {
     const auto pModule = LongTo_s3_module(module);
-    GlobalRefDestroy(pModule->callbacks);
+
+    GlobalRefDestroy(RequireNonNullJobject(pModule->callbacks));
+    pModule->callbacks = nullptr;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_nativeVTabInit(
+    JNIEnv* env,
+    jclass clazz,
+    jlong vTab
+) {
+    const auto pVTab = LongTo_s3_vtab(vTab);
+
+    RequireNull(pVTab->pMutex);
+    pVTab->pMutex = sqlite3_mutex_alloc(SQLITE_MUTEX_FAST);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_KsqliteJni_nativeVTabDeinit(
+    JNIEnv* env,
+    jclass clazz,
+    jlong vTab
+) {
+    const auto pVTab = LongTo_s3_vtab(vTab);
+    const auto pMutex = reinterpret_cast<sqlite3_mutex*>(RequireNonNull(pVTab->pMutex));
+
+    sqlite3_mutex_enter(pMutex);
+
+    const auto pFunctions = pVTab->pFunctions;
+
+    if (pFunctions != nullptr) {
+        const auto &functions = *pFunctions;
+
+        for (const auto& pFunction: functions) {
+            destroyFunction(env, pFunction);
+        }
+    }
+
+    pVTab->pMutex = nullptr;
+    pVTab->pFunctions = nullptr;
+
+    sqlite3_mutex_leave(pMutex);
+    sqlite3_mutex_free(pMutex);
 }

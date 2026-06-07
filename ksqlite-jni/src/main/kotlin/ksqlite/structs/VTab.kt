@@ -3,12 +3,18 @@
 package ksqlite.structs
 
 import ksqlite.structLayout
+import ksqlite.vTabDeinit
+import ksqlite.vTabInit
 
 /**
  * Allocates an instance of `sqlite3_vtab` and supplies getters and setters for reading and writing
  * the struct.
  */
 public class sqlite3_vtab : JniStruct(layout, StructType.Vtab) {
+
+    init {
+        vTabInit(pointer)
+    }
 
     public var pModule: Long
         get() = readLong(STRUCT_MEMBER_INDEX_PMODULE)
@@ -21,6 +27,11 @@ public class sqlite3_vtab : JniStruct(layout, StructType.Vtab) {
     public var zErrMsg: Long
         get() = readLong(STRUCT_MEMBER_INDEX_ZERRMSG)
         set(value) = writeLong(STRUCT_MEMBER_INDEX_ZERRMSG, value)
+
+    override fun free() {
+        vTabDeinit(pointer)
+        super.free()
+    }
 
     public companion object Layout {
 
