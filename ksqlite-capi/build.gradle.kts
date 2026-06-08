@@ -3,13 +3,12 @@ plugins {
     alias(libs.plugins.conventions.kmp)
 }
 
-val extractWasmResources = registerExtractWasmResourcesTask(projects.ksqliteWeb)
+val extractWasmResources = registerExtractWasmResourcesTask(projects.ksqliteWasm)
 
 kotlin {
     androidJvmTargets()
     jvmTargets()
-    macosArm64()
-    //nativeTargets()
+    nativeTargets()
     webTargets()
 
     sourceSets {
@@ -31,16 +30,19 @@ kotlin {
         }
 
         nativeMain.dependencies {
-            implementation(projects.ksqliteNative)
+            implementation(projects.ksqliteCinterop)
         }
 
         webMain.dependencies {
-            implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
-            implementation(projects.ksqliteWeb)
+            implementation(projects.ksqliteWasm)
         }
 
         webTest {
             resources.srcDir(extractWasmResources)
+
+            dependencies {
+                implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
+            }
         }
     }
 }

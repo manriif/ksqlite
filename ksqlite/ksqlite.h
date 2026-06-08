@@ -2,9 +2,7 @@
 #define KSQLITE_H
 
 #ifndef __WASM__
-
 #include "sqlite3mc_amalgamation.h"
-
 #endif
 
 #ifdef __cplusplus

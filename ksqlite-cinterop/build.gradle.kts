@@ -8,7 +8,7 @@ plugins {
 }
 
 kotlin {
-    listOf(macosArm64()).forEach { target ->
+    nativeTargets().forEach { target ->
         target.configureNativeTarget()
     }
 }

@@ -10,6 +10,11 @@ import org.jetbrains.kotlin.gradle.plugin.HasProject
  */
 val SourceSetMainNatives = listOf(
     "nativeMain",
+    "androidNativeMain",
+    "androidNativeArm32Main",
+    "androidNativeArm64Main",
+    "androidNativeX86Main",
+    "androidNativeX64Main",
     "appleMain",
     "macosMain",
     "macosX64Main",

@@ -2,6 +2,14 @@
 #include "ksqlite.h"
 #endif
 
+#ifdef SQLITE_ENABLE_SQLLOG
+// Requirement of SQLITE_ENABLE_SQLLOG
+void sqlite3_init_sqllog(void) {
+    // No logging by default, it is up to the application to set its own logging interceptor using
+    // sqlite3_config
+}
+#endif
+
 int ksqlite_auto_extension(ksqlite_xEntryPoint callback) {
     return sqlite3_auto_extension((void (*)(void)) callback);
 }

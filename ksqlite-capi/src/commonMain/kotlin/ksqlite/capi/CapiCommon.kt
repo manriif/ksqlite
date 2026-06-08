@@ -35,7 +35,6 @@ internal sealed interface VariadicValue<out Pointer : Any> {
      * For now, [Sqlite3DbConfigOption.MAINDBNAME] is the only string that must stay alive until the
      * database connection is closed.
      */
-    @JvmInline
     data class OfString(override val value: String, val key: String) : VariadicValue<Nothing>
 }
 

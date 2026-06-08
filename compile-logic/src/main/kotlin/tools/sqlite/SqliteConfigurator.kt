@@ -74,6 +74,10 @@ abstract class SqliteConfigurator @Inject constructor(toolName: String) :
                     from(sqliteMcDirectory)
                     from(context.extractDirectory.directory)
                     into(context.outputDirectory)
+
+                    // This file is problematic with C++ as some headers include a <version> header
+                    // which is resolved as this file due to case insensitivity on some file systems
+                    exclude("VERSION")
                 }
 
                 val sqliteDir = context.outputDirectory.asFile

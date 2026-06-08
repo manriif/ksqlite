@@ -52,8 +52,12 @@ dependencyResolutionManagement {
 }
 
 include(":ksqlite-capi")
+include(":ksqlite-capi-proxy:client")
+include(":ksqlite-capi-proxy:core")
+include(":ksqlite-capi-proxy:internal")
+include(":ksqlite-capi-proxy:server")
+include(":ksqlite-cinterop")
 include(":ksqlite-ffm")
 include(":ksqlite-jni")
 //include(":ksqlite-kapi")
-include(":ksqlite-native")
-include(":ksqlite-web")
+include(":ksqlite-wasm")

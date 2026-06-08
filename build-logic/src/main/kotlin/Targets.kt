@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.kotlin.dsl.assign
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -15,8 +16,9 @@ import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
  * Adds Android JVM targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
 fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAndroidLibraryTarget> {
+    val libs = project.libs
+
     val android = extensions.getByName<KotlinMultiplatformAndroidLibraryTarget>("android").apply {
-        val libs = project.libs
         namespace = project.projectNamespace
 
         compileSdk {
@@ -29,6 +31,7 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
 
         withDeviceTest {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            execution = "HOST"
 
             targetSdk {
                 version = release(libs.versions.android.sdk.compile.get().toInt())
@@ -55,12 +58,19 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
         }
     }
 
+    val androidDeviceTest = sourceSets.named("androidDeviceTest").apply {
+        // Well this is added here to keep other build files look cleaner
+        configure {
+            dependencies {
+                implementation(libs.androidx.testRunner)
+            }
+        }
+    }
+
     // FIXME => w: Invalid Source Set Dependency Across Trees
     //  Well instrumented tests on Android are only required to get the ksqlite-jni lib loaded.
     //  Until the following moves from a warning to an error, or an acceptable workaround is
     //  found, we still use it as testing should not be that complicated
-    val androidDeviceTest = sourceSets.named("androidDeviceTest")
-
     sourceSets.whenObjectAdded {
         if (name == "nonWebTest") {
             androidDeviceTest.get().dependsOn(this)
@@ -173,10 +183,12 @@ fun KotlinMultiplatformExtension.webTargets() = buildList {
  * Adds Native targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
 @Suppress("DEPRECATION")
+// TODO uncomment targets
 fun KotlinMultiplatformExtension.nativeTargets(
 ): List<KotlinNativeTarget> = buildList {
-    addAll(androidNativeTargets())
+    /*addAll(androidNativeTargets())
     addAll(appleTargets())
     addAll(linuxTargets())
-    addAll(windowsTargets())
+    addAll(windowsTargets())*/
+    add(macosArm64())
 }

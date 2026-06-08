@@ -1,0 +1,15 @@
+package ksqlite.capi.proxy.client
+
+import ksqlite.capi.proxy.Transport
+
+public interface CapiProxyClient {
+
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Factory
+///////////////////////////////////////////////////////////////////////////
+
+public fun CapiProxyClient(transport: Transport): CapiProxyClient {
+    TODO()
+}

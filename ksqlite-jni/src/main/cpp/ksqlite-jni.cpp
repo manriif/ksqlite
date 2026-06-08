@@ -93,29 +93,6 @@ static inline void exceptionClearAndAbort(
  */
 #define OutOfMemoryCheck(E) if (!(E)) FatalError("KSQLite JNI is out of memory.")
 
-/**
- * Returns true if an exception has been reported.
- */
-static inline bool reportException(
-    JNIEnv* const env,
-    bool clear
-) {
-    if (env->ExceptionCheck()) {
-        env->ExceptionDescribe();
-
-        if (clear) {
-            env->ExceptionClear();
-        }
-
-        return true;
-    }
-
-    return false;
-}
-
-#define IfExceptionThrownClear(clear) if (reportException(env, clear))
-#define IfExceptionThrown IfExceptionThrownClear(false)
-
 ///////////////////////////////////////////////////////////////////////////
 // JNI reference management helpers
 ///////////////////////////////////////////////////////////////////////////
@@ -272,13 +249,6 @@ static inline jfieldID getFieldIdOrDie(
 #define RequireKsqliteField(O, name, signature, className) \
     RequireKsqliteClassField(O.klass, name, signature, className)
 
-/**
- * Ensures that an object is an instance of a given type.
- */
-#define RequireObjectIsInstance(instance, klass, message, ...) \
-    if (!env->IsInstanceOf(instance, klass))                   \
-        FatalError(sqlite3_mprintf(message __VA_OPT__(,) __VA_ARGS__))
-
 ///////////////////////////////////////////////////////////////////////////
 // Mutex
 ///////////////////////////////////////////////////////////////////////////
@@ -334,11 +304,11 @@ static inline void clearDestroyable(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Holder for a Java object with a call method.
+ * Holder for a Java object with an apply method.
  */
 struct Hook {
     jobject instance;
-    jmethodID call;
+    jmethodID apply;
 };
 
 /**
@@ -354,7 +324,7 @@ struct HookDestroyable : Hook, Destroyable {
  */
 #define HookConfigure(hook, object, signature, className) \
     const auto klass = env->GetObjectClass(object); \
-    hook.call = RequireKsqliteClassMethod(klass, "apply", signature, "callbacks/" className); \
+    hook.apply = RequireKsqliteClassMethod(klass, "apply", signature, "callbacks/" className); \
     hook.instance = GlobalRefCreate(object); \
     LocalRefDestroy(klass)
 
@@ -373,7 +343,7 @@ struct HookDestroyable : Hook, Destroyable {
 #define HookEnter(guard, hook) \
     MutexEnter(guard); \
     const auto instance = LocalRefCreate(RequireNonNullJobject(hook.instance)); \
-    const auto call = hook.call; \
+    const auto apply = hook.apply; \
     MutexLeave(guard)
 
 #define HookLeave() LocalRefDestroy(instance)
@@ -389,7 +359,7 @@ static inline void clearHook(
 ) {
     GlobalRefDestroy(pHook->instance);
     pHook->instance = nullptr;
-    pHook->call = nullptr;
+    pHook->apply = nullptr;
 }
 
 #define HookClear(hook) clearHook(env, &hook)
@@ -404,9 +374,11 @@ static void destroyHook(
     const auto hookPtr = reinterpret_cast<HookDestroyable*>(pHook);
     auto& hook = *hookPtr;
     const auto pGuard = hook.pGuard;
+    auto mutexEntered = false;
 
     if (pGuard != nullptr) {
         sqlite3_mutex_enter(pGuard->pMutex);
+        mutexEntered = true;
     }
 
     if (hook.instance != nullptr) {
@@ -422,7 +394,7 @@ static void destroyHook(
         DestroyableClear(hook);
     }
 
-    if (pGuard != nullptr) {
+    if (mutexEntered) {
         sqlite3_mutex_leave(pGuard->pMutex);
     }
 
@@ -867,15 +839,14 @@ static struct {
 // JNI Environment
 ///////////////////////////////////////////////////////////////////////////
 
-#define JNI_VERSION_1_8 0x00010008
-#define JNI_VERSION JNI_VERSION_1_8
+#define JNI_VERSION JNI_VERSION_1_6
 
 /**
  * Returns the current JNIEnv object or abort if it cannot find the object.
  */
 static JNIEnv* retrieveJniEnv() {
     JNIEnv* env = nullptr;
-    const auto result = K.jvm->GetEnv(reinterpret_cast<void**>(env), JNI_VERSION);
+    const auto result = K.jvm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION);
 
     if (result != JNI_OK) {
         if (result == JNI_EDETACHED) {
@@ -908,7 +879,7 @@ static JNIEnv* retrieveJniEnv() {
  */
 static void initializeJavaJniCache(JNIEnv* env) {
     const auto byteArray = env->NewByteArray(0);
-    OutOfMemoryCheck(KJV.emptyByteArray != nullptr);
+    OutOfMemoryCheck(byteArray != nullptr);
     KJV.emptyByteArray = reinterpret_cast<jbyteArray>(GlobalRefCreate(byteArray));
 
     // Classes only
@@ -980,7 +951,7 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
 
     // DestructorCallback
     KKDC.klass = RequireKsqliteClass(DESTRUCTOR_CALLBACK);
-    KKDC.destroy = RequireKsqliteMethod(KKDC, "destroy", "()V", DESTRUCTOR_CALLBACK);
+    KKDC.destroy = RequireKsqliteMethod(KKDC, "apply", "()V", DESTRUCTOR_CALLBACK);
 
     // ExecCallback
     KKEC.klass = RequireKsqliteClass(EXEC_CALLBACK);
@@ -1154,14 +1125,19 @@ JNI_OnLoad(
     JavaVM* vm,
     void* reserved
 ) {
+    JNIEnv* env;
+
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION) != JNI_OK) {
+        return JNI_ERR;
+    }
+
     K.jvm = vm;
     KDS.map = new DbStateMap();
     KFS.map = new FreeableMap();
 
-    JniEnvDeclare();
+    sqlite3_initialize();
     initializeJavaJniCache(env);
     initializeKsqliteJniCache(env);
-    sqlite3_initialize();
     initializeMutexes(env);
     sqlite3_shutdown();
 
@@ -1298,7 +1274,7 @@ static void hookDestroyer(void* pHook) {
 
 #define FunctionHookEnter() \
     const auto instance = LocalRefCreate(RequireNonNullJobject(hook.instance)); \
-    const auto call = hook.call
+    const auto apply = hook.apply
 
 #define FunctionHookLeave() LocalRefDestroy(instance)
 
@@ -2180,10 +2156,10 @@ static inline void outputPointerSetInt64Value(
     if (jPointer != nullptr) *UNDERSCORED(jPointer) = CONCAT(jPointer, _init)
 
 #define OutputPointerEnterInt32(jPointer) \
-    OutputPointerEnter(jint, jPointer, OutputPointerGetInt32Value)
+    OutputPointerEnter(int, jPointer, OutputPointerGetInt32Value)
 
 #define OutputPointerEnterInt64(jPointer) \
-    OutputPointerEnter(jlong, jPointer, OutputPointerGetInt64Value)
+    OutputPointerEnter(sqlite3_int64, jPointer, OutputPointerGetInt64Value)
 
 #define OutputPointerEnterPointer(T, jPointer) \
     OutputPointerEnter(T, jPointer, OutputPointerGetPointerValue, T)
@@ -2471,7 +2447,7 @@ static int autoExtensionCaller(
     const auto outErrMsg = OutputPointerNew(ofString);
 
     HookEnterGlobal(autoExtension);
-    const auto rc = env->CallIntMethod(instance, call, dbPtr, apiPtr, outErrMsg);
+    const auto rc = env->CallIntMethod(instance, apply, dbPtr, apiPtr, outErrMsg);
     HookLeave();
 
     *pzErr = OutputPointerGetStringValue(outErrMsg);
@@ -2642,7 +2618,7 @@ static unsigned int autoVacuumPagesCaller(
     const auto schema = Utf8ToJstring(zSchema);
 
     HookEnterDbState(autoVacuumPages);
-    uint result = env->CallIntMethod(instance, call, schema, nDbPage, nFreePage, nBytePerPage);
+    uint result = env->CallIntMethod(instance, apply, schema, nDbPage, nFreePage, nBytePerPage);
     HookLeave();
 
     LocalRefDestroy(schema);
@@ -2995,7 +2971,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1blob_1read(
     jint offset
 ) {
     const auto pBlob = LongTo_s3_blob(blob);
-    const auto elements = env->GetByteArrayElements(buffer);
+    const auto elements = env->GetByteArrayElements(buffer, nullptr);
     OutOfMemoryCheck(elements != nullptr);
 
     const auto rc = sqlite3_blob_read(pBlob, elements, size, offset);
@@ -3048,7 +3024,7 @@ static int busyHandlerCaller(
     DbStateDeclareDirect(pDbStateHook);
 
     HookEnterDbState(busyHandler);
-    jint result = env->CallIntMethod(instance, call, n);
+    jint result = env->CallIntMethod(instance, apply, n);
     HookLeave();
 
     return result;
@@ -3162,7 +3138,7 @@ static void collationNeededCaller(
     const auto name = Utf8ToJstring(zName);
 
     HookEnterDbState(collationNeeded);
-    env->CallVoidMethod(instance, call, db, eTextRep, zName);
+    env->CallVoidMethod(instance, apply, db, eTextRep, zName);
     HookLeave();
 
     LocalRefDestroy(name);
@@ -3383,7 +3359,7 @@ static int commitHookCaller(void* pDbStateHook) {
     DbStateDeclareDirect(pDbStateHook);
 
     HookEnterDbState(commitHook);
-    jint result = env->CallIntMethod(instance, call);
+    jint result = env->CallIntMethod(instance, apply);
     HookLeave();
 
     return result;
@@ -3448,7 +3424,7 @@ static void configLogCaller(
     const auto message = Utf8ToJstring(z);
 
     HookEnter(K.hooks, K.hooks.log);
-    env->CallVoidMethod(instance, call, errCode, message);
+    env->CallVoidMethod(instance, apply, errCode, message);
     HookLeave();
 
     LocalRefDestroy(message);
@@ -3468,7 +3444,7 @@ static void configSqlLogCaller(
     const auto message = Utf8ToJstring(z);
 
     HookEnter(K.hooks, K.hooks.sqlLog);
-    env->CallVoidMethod(instance, call, db, message, op);
+    env->CallVoidMethod(instance, apply, db, message, op);
     HookLeave();
 
     LocalRefDestroy(message);
@@ -3605,7 +3581,7 @@ static int collationCompareCaller(
     const auto rhsByteArray = BufferToByteArray(rhs, nRhs);
 
     HookEnterDbState(collationCompare);
-    jint result = env->CallIntMethod(instance, call, lhsByteArray, rhsByteArray);
+    jint result = env->CallIntMethod(instance, apply, lhsByteArray, rhsByteArray);
     HookLeave();
 
     env->DeleteLocalRef(lhsByteArray);
@@ -3655,7 +3631,7 @@ static void callFunctionFunc1(
     const auto context = PtrToLong(pContext);
 
     FunctionHookEnter();
-    env->CallVoidMethod(instance, call, context);
+    env->CallVoidMethod(instance, apply, context);
     FunctionHookLeave();
 }
 
@@ -3673,7 +3649,7 @@ static void callFunctionFunc2(
 
     LongArrayFillEnter(argc, argv);
     FunctionHookEnter();
-    env->CallVoidMethod(instance, call, context, longArray);
+    env->CallVoidMethod(instance, apply, context, longArray);
     FunctionHookLeave();
     LongArrayFillLeave();
 }
@@ -4112,11 +4088,13 @@ Java_ksqlite_KsqliteJni_sqlite3_1db_1status64(
     jint resetFlag
 ) {
     const auto pDb = LongTo_s3(db);
+
     OutputPointerEnterInt64(outCurrent);
     OutputPointerEnterInt64(outHighwater);
     const auto rc = sqlite3_db_status64(pDb, option, outCurrent_, outHighwater_, resetFlag);
     OutputPointerLeaveInt64(outCurrent);
     OutputPointerLeaveInt64(outHighwater);
+
     return rc;
 }
 
@@ -4770,7 +4748,7 @@ static void preupdateHookCaller(
     const auto dbTable = Utf8ToJstring(zName);
 
     HookEnterDbState(preupdateHook);
-    env->CallVoidMethod(instance, call, pDb, op, dbName, dbTable, iKey1, iKey2);
+    env->CallVoidMethod(instance, apply, pDb, op, dbName, dbTable, iKey1, iKey2);
     HookLeave();
 
     LocalRefDestroy(dbName);
@@ -4834,7 +4812,7 @@ static int progressHandlerCaller(void* pDbStateHook) {
     DbStateDeclareDirect(pDbStateHook);
 
     HookEnterDbState(progressHandler);
-    const auto result = env->CallIntMethod(instance, call);
+    const auto result = env->CallIntMethod(instance, apply);
     HookLeave();
 
     return result;
@@ -5179,7 +5157,7 @@ static void rollbackHookCaller(void* pDbStateHook) {
     DbStateDeclareDirect(pDbStateHook);
 
     HookEnterDbState(rollbackHook);
-    env->CallVoidMethod(instance, call);
+    env->CallVoidMethod(instance, apply);
     HookLeave();
 }
 
@@ -5210,15 +5188,13 @@ Java_ksqlite_KsqliteJni_sqlite3_1serialize(
     jobject outSize,
     jint flags
 ) {
-    const auto zSchema = JstringToUtf8(schema);
-
     OutputPointerEnterInt64(outSize);
+    const auto zSchema = JstringToUtf8(schema);
     const auto buffer = sqlite3_serialize(LongTo_s3(db), zSchema, outSize_, flags);
     const auto rc = (buffer == nullptr) ? SQLITE_NOMEM : SQLITE_OK;
     OutputPointerLeaveInt64(outSize);
 
     sqlite3_free(zSchema);
-
     return PtrToLong(buffer);
 }
 
@@ -5242,7 +5218,7 @@ static int authorizerHookCaller(
     const auto string4 = Utf8ToJstring(pString4);
 
     HookEnterDbState(authorizer);
-    jint result = env->CallIntMethod(instance, call, opId, string1, string2, string3, string4);
+    jint result = env->CallIntMethod(instance, apply, opId, string1, string2, string3, string4);
     HookLeave();
 
     LocalRefDestroy(string1);
@@ -5647,7 +5623,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1total_1changes64(
  * Calls the `TraceCallback` hook.
  */
 static int traceCaller(
-    unsigned int code,
+    unsigned int flag,
     void* pDbStateHook,
     void* pP,
     void* pX
@@ -5656,6 +5632,7 @@ static int traceCaller(
     DbStateDeclareDirect(pDbStateHook);
 
     const auto pPointer = PtrToLong(pP);
+    jint code = static_cast<jint>(flag);
     jobject xPointer = nullptr;
 
     switch (code) {
@@ -5673,18 +5650,10 @@ static int traceCaller(
     }
 
     HookEnterDbState(trace);
-
-    const auto rc = env->CallIntMethod(
-        instance,
-        call,
-        static_cast<jint>(code),
-        pPointer,
-        xPointer
-    );
-
+    const auto rc = env->CallIntMethod(instance,apply, code, pPointer, xPointer);
     HookLeave();
-    LocalRefDestroy(xPointer);
 
+    LocalRefDestroy(xPointer);
     return rc;
 }
 
@@ -5734,7 +5703,7 @@ static void updateHookCaller(
     const auto dbTable = Utf8ToJstring(zName);
 
     HookEnterDbState(updateHook);
-    env->CallVoidMethod(instance, call, op, dbName, dbTable, rowId);
+    env->CallVoidMethod(instance, apply, op, dbName, dbTable, rowId);
     HookLeave();
 
     LocalRefDestroy(dbName);
@@ -6235,7 +6204,7 @@ static int walHookCaller(
     const auto dbName = Utf8ToJstring(zDb);
 
     HookEnterDbState(walHook);
-    const auto rc = env->CallIntMethod(instance, call, db, dbName, nPage);
+    const auto rc = env->CallIntMethod(instance, apply, db, dbName, nPage);
     HookLeave();
 
     LocalRefDestroy(dbName);

@@ -11,3 +11,4 @@ add_library(${KSQLITE_LIB_NAME} SHARED
 
 target_include_directories(${KSQLITE_LIB_NAME} PRIVATE ${KSQLITE_INCLUDES})
 target_compile_definitions(${KSQLITE_LIB_NAME} PRIVATE ${KSQLITE_DEFINITIONS})
+target_link_libraries(${KSQLITE_LIB_NAME} PRIVATE log)

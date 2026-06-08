@@ -57,6 +57,7 @@ val SqliteDefinitions = mapOf(
     "SQLITE_ENABLE_PREUPDATE_HOOK" to "1",
     "SQLITE_ENABLE_RTREE" to "1",
     //"SQLITE_ENABLE_SESSION" to "1",
+    "SQLITE_ENABLE_SNAPSHOT" to "1",
     "SQLITE_ENABLE_SQLLOG" to "1",
     "SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION" to "1",
     "SQLITE_OMIT_AUTOINIT" to "1",
