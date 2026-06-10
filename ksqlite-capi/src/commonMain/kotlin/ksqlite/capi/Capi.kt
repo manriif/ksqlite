@@ -2,23 +2,23 @@
 
 package ksqlite.capi
 
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.memory.Buffer
@@ -35,8 +35,8 @@ import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3Result
@@ -48,17 +48,17 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
+import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
 
 /**
@@ -72,10 +72,12 @@ import ksqlite.capi.vtab.sqlite3_module
  * # Ksqlite
  *
  * The [Data] instance is created on the first call and is returned on subsequent calls.
- * The [Data] instance, if created, is then made eligible for GC after Xfinalize() is getting called
+ * The [Data] instance, if created, is then made eligible for GC after xFinal() is getting called
  * by SQLite.
  *
  * If the [Data] instance must not be instantiated, then [factory] must be set to `null`.
+ *
+ * If `null` is returned while [factory] is not `null` then the system have run out of memory.
  */
 public inline fun <reified Data : Any> sqlite3_aggregate_context(
     context: sqlite3_context,
@@ -511,7 +513,7 @@ public fun sqlite3_column_buffer(
 
 /**
  * The following routines are used to access elements of the current row in the result set.
- * Return the ize of a BLOB or a UTF-8 TEXT result in bytes.
+ * Return the size of a BLOB or a UTF-8 TEXT result in bytes.
  *
  * [sqlite3_column_bytes()](https://sqlite.org/c3ref/column_blob.html)
  */
@@ -704,7 +706,7 @@ public expect fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
  *
  * [sqlite3_context_db_handle()](https://sqlite.org/c3ref/context_db_handle.html)
  */
-public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
+public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3
 
 /**
  * Register a new collation sequence with the database handle [db].
@@ -2180,7 +2182,7 @@ public expect fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value?
  *
  * [sqlite3_value_encoding()](https://sqlite.org/c3ref/value_encoding.html)
  */
-public expect fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2?
+public expect fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2
 
 /**
  * Free an sqlite3_value object previously obtained from sqlite3_value_dup().
@@ -2231,7 +2233,7 @@ public expect fun sqlite3_value_numeric_type(value: sqlite3_value): Sqlite3DataT
  *
  * [sqlite3_value_pointer()](https://sqlite.org/c3ref/value_blob.html)
  */
-public inline fun <reified Data> sqlite3_value_pointer(
+public inline fun <reified Data : Any> sqlite3_value_pointer(
     value: sqlite3_value,
     type: String?
 ): Data? = castOrThrows(valuePointerInternal(value, type))

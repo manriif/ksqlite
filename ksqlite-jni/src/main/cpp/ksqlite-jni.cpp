@@ -3482,6 +3482,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1config(
             // [Int]
         case SQLITE_CONFIG_MEMSTATUS:
         case SQLITE_CONFIG_URI:
+        case SQLITE_CONFIG_PCACHE_HDRSZ:
         case SQLITE_CONFIG_COVERING_INDEX_SCAN:
         case SQLITE_CONFIG_STMTJRNL_SPILL:
         case SQLITE_CONFIG_SMALL_MALLOC:

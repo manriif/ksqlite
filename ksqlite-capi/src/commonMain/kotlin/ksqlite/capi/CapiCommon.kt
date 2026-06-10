@@ -98,6 +98,7 @@ internal fun <Pointer : Any> commonConfig(
                 VariadicValue.OfInt(n)
             )
 
+            is PCACHE_HDRSZ -> arrayOf(VariadicValue.OfInt(psz))
             is PMASZ -> arrayOf(VariadicValue.OfUInt(szPma))
             is SMALL_MALLOC -> arrayOf(VariadicValue.OfInt(enabled))
             is SORTERREF_SIZE -> arrayOf(VariadicValue.OfInt(nByte))

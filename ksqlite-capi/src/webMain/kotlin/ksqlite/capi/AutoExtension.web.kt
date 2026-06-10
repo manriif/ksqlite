@@ -1,12 +1,11 @@
 package ksqlite.capi
 
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.installFunction
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.setPointerValue
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_api_routines
+import ksqlite.wasm.FunctionSignature
+import ksqlite.wasm.WasmPointer
+import ksqlite.wasm.installFunction
 
 /**
  * Singleton handler for auto extensions.
@@ -29,7 +28,7 @@ private fun autoExtensionHandler(
     pApi: WasmPointer
 ): Int = autoExtensionHandle(
     db = sqlite3(db),
-    api = sqlite3_api_routines(pApi),
+    api = pApi,
     errorPointer = pzErrMsg.takeUnless(WasmPointer::isNull)
 ) { errorPointer, message ->
     errorPointer.setPointerValue(sqlite3_mprintf(message))

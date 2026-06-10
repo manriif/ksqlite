@@ -15,6 +15,11 @@ import ksqlite.capi.memory.Buffer
 public sealed class Sqlite3ConfigOption(internal val id: Int) {
 
     /**
+     * Configuration options that can be set at any time.
+     */
+    public sealed class AnyTime(id: Int) : Sqlite3ConfigOption(id)
+
+    /**
      * This option sets the threading mode to Single-thread. In other words, it disables all
      * mutexing and puts SQLite into a mode where it can only be used by a single thread. If SQLite
      * is compiled with the SQLITE_THREADSAFE=0 compile-time option then it is not possible to
@@ -142,7 +147,7 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
     public class LOG<AppData>(
         internal val appData: AppData,
         internal val callback: Sqlite3ConfigLogCallback<AppData>?
-    ) : Sqlite3ConfigOption(16)
+    ) : AnyTime(16)
 
     /**
      * The SQLITE_CONFIG_URI option takes a single argument of type int. If non-zero, then URI
@@ -208,6 +213,14 @@ public sealed class Sqlite3ConfigOption(internal val id: Int) {
      * a 32-bit unsigned integer value that specifies the maximum size of the created heap.
      */
     public class WIN32_HEAPSIZE(internal val nByte: UInt) : Sqlite3ConfigOption(23)
+
+    /**
+     * The SQLITE_CONFIG_PCACHE_HDRSZ option takes a single parameter which is a pointer to an
+     * integer and writes into that integer the number of extra bytes per page required for each
+     * page in SQLITE_CONFIG_PAGECACHE. The amount of extra space required can change depending on
+     * the compiler, target platform, and SQLite version.
+     */
+    public class PCACHE_HDRSZ(internal val psz: Int) : AnyTime(24)
 
     /**
      * The SQLITE_CONFIG_PMASZ option takes a single parameter which is an unsigned integer and sets

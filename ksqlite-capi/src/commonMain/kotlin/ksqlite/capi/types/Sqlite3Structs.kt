@@ -14,14 +14,6 @@ import ksqlite.capi.memory.Struct
 public expect class sqlite3 : Struct, MemoryScope
 
 /**
- * A pointer to the opaque sqlite3_api_routines structure is passed as the third parameter to entry
- * points of loadable extensions.
- *
- * [sqlite3_api_routines](https://sqlite.org/c3ref/api_routines.html)
- */
-public expect class sqlite3_api_routines : Struct
-
-/**
  * The [sqlite3_backup] object records state information about an ongoing online backup operation.
  * The [sqlite3_backup] object is created by a call to [ksqlite.capi.sqlite3_backup_init] and is
  * destroyed by a call to [ksqlite.capi.sqlite3_backup_finish].

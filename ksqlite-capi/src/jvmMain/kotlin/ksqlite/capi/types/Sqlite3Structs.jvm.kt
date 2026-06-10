@@ -16,9 +16,6 @@ public actual class sqlite3_backup internal constructor(pointer: MemorySegment) 
 public actual class sqlite3_blob internal constructor(pointer: MemorySegment) :
     Struct(pointer)
 
-public actual class sqlite3_api_routines internal constructor(pointer: MemorySegment) :
-    Struct(pointer)
-
 public actual class sqlite3_context internal constructor(pointer: MemorySegment) :
     Struct(pointer)
 

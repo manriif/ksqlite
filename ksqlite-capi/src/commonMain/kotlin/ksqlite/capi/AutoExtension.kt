@@ -6,7 +6,6 @@ import ksqlite.capi.callbacks.AutoExtensionSuccessResult
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_api_routines
 
 /**
  * All registered [Sqlite3AutoExtensionCallback].
@@ -68,7 +67,7 @@ internal inline fun autoExtensionReset(invoke: () -> Unit) {
  */
 internal fun <Pointer> autoExtensionHandle(
     db: sqlite3,
-    api: sqlite3_api_routines,
+    @Suppress("unused") api: Any?,
     errorPointer: Pointer?,
     setError: (pointer: Pointer, message: String) -> Unit
 ): Int {
@@ -83,7 +82,7 @@ internal fun <Pointer> autoExtensionHandle(
 
     while (iterator.hasNext() && result == Sqlite3Result.OK) {
         result = iterator.next().run {
-            when (val result = AutoExtensionCallbackScope.apply(db, api)) {
+            when (val result = AutoExtensionCallbackScope.apply(db)) {
                 AutoExtensionSuccessResult -> Sqlite3Result.OK
 
                 is AutoExtensionFailureResult -> result.result.also {

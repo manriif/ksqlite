@@ -10,9 +10,6 @@ public actual class sqlite3 internal constructor(pointer: WasmPointer) :
     Struct(pointer),
     MemoryScope
 
-public actual class sqlite3_api_routines internal constructor(pointer: WasmPointer) :
-    Struct(pointer)
-
 public actual class sqlite3_backup internal constructor(pointer: WasmPointer) :
     Struct(pointer)
 

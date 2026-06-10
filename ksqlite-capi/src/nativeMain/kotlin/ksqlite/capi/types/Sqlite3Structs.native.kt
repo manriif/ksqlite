@@ -34,9 +34,6 @@ public actual class sqlite3_backup internal constructor(override val pointer: CP
 public actual class sqlite3_blob internal constructor(override val pointer: CPointer<s3_blob>) :
     Struct(pointer)
 
-public actual class sqlite3_api_routines internal constructor(override val pointer: CPointer<s3_api>) :
-    Struct(pointer)
-
 public actual class sqlite3_context internal constructor(override val pointer: CPointer<s3_context>) :
     Struct(pointer)
 

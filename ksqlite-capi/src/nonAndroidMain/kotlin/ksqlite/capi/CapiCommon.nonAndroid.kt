@@ -13,9 +13,7 @@ import ksqlite.capi.types.sqlite3_value
  * Returns the [sqlite3] associated with `this` [sqlite3_context].
  */
 internal val sqlite3_context.db: sqlite3
-    get() = checkNotNull(sqlite3_context_db_handle(this)) {
-        "Database pointer not retrieved from context"
-    }
+    get() = sqlite3_context_db_handle(this)
 
 ///////////////////////////////////////////////////////////////////////////
 // Memory

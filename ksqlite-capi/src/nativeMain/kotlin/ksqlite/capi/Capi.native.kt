@@ -746,8 +746,8 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
     }
 )
 
-public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3? =
-    native_sqlite3_context_db_handle(context.pointer)?.let(::sqlite3)
+public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3 =
+    sqlite3(native_sqlite3_context_db_handle(context.pointer)!!)
 
 public actual fun <AppData> sqlite3_create_collation_v2(
     db: sqlite3,
@@ -1658,7 +1658,7 @@ public actual fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value? =
     native_sqlite3_value_dup(value.pointer)
         ?.let(::sqlite3_value)
 
-public actual fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2? =
+public actual fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2 =
     convertTextEncoding(native_sqlite3_value_encoding(value.pointer))
 
 public actual fun sqlite3_value_free(value: sqlite3_value): Unit =

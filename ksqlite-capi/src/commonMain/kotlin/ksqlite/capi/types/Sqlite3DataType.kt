@@ -9,24 +9,29 @@ package ksqlite.capi.types
 public sealed class Sqlite3DataType(internal val code: Int) {
 
     /**
+     * Any data type different from [NULL].
+     */
+    public sealed class NotNull(code: Int): Sqlite3DataType(code)
+
+    /**
      * 64-bit signed integer.
      */
-    public data object INTEGER : Sqlite3DataType(1)
+    public data object INTEGER : NotNull(1)
 
     /**
      * 64-bit IEEE floating point number.
      */
-    public data object FLOAT : Sqlite3DataType(2)
+    public data object FLOAT : NotNull(2)
 
     /**
      * String.
      */
-    public data object TEXT : Sqlite3DataType(3)
+    public data object TEXT : NotNull(3)
 
     /**
      * BLOB.
      */
-    public data object BLOB : Sqlite3DataType(4)
+    public data object BLOB : NotNull(4)
 
     /**
      * NULL.

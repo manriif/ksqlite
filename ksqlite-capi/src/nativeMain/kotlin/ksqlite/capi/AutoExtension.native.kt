@@ -9,7 +9,6 @@ import kotlinx.cinterop.value
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.s3_api
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_api_routines
 import ksqlite.sqlite3_mprintf
 
 /**
@@ -26,7 +25,7 @@ private fun autoExtensionHandler(
     pApi: CPointer<s3_api>?
 ) = autoExtensionHandle(
     db = sqlite3(db!!),
-    api = sqlite3_api_routines(pApi!!),
+    api = pApi,
     errorPointer = pzErrMsg
 ) { errorPointer, message ->
     errorPointer.pointed.value = sqlite3_mprintf(message)

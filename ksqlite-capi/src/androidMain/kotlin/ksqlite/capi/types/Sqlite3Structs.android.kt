@@ -16,9 +16,6 @@ public actual class sqlite3_backup internal constructor(pointer: JniPointer) :
 public actual class sqlite3_blob internal constructor(pointer: JniPointer) :
     Struct(pointer)
 
-public actual class sqlite3_api_routines internal constructor(pointer: JniPointer) :
-    Struct(pointer)
-
 public actual class sqlite3_context internal constructor(pointer: JniPointer) :
     Struct(pointer)
 

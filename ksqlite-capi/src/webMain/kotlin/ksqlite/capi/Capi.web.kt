@@ -2,7 +2,6 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.VariadicValue.OfPointer
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
@@ -606,8 +605,8 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
     }
 )
 
-public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3? =
-    exports.sqlite3_context_db_handle(context.pointer).orNull?.let(::sqlite3)
+public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3 =
+    sqlite3(exports.sqlite3_context_db_handle(context.pointer))
 
 public actual fun <AppData> sqlite3_create_collation_v2(
     db: sqlite3,
@@ -1571,7 +1570,7 @@ public actual fun sqlite3_value_double(value: sqlite3_value): Double =
 public actual fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value? =
     exports.sqlite3_value_dup(value.pointer).orNull?.let(::sqlite3_value)
 
-public actual fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2? =
+public actual fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2 =
     convertTextEncoding(exports.sqlite3_value_encoding(value.pointer))
 
 public actual fun sqlite3_value_free(value: sqlite3_value): Unit =
