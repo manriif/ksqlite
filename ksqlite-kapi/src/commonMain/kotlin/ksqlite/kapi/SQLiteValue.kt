@@ -135,7 +135,7 @@ public class SQLiteValue private constructor(
      * Duplicates the value.
      */
     public fun duplicate(): SQLiteValue = notClosed {
-        val duplicate = checkOutOfMemory(sqlite3_value_dup(value)) {
+        val duplicate = sqliteOutOfMemoryCheck(sqlite3_value_dup(value)) {
             "There is not enough memory available to duplicate the value"
         }
 

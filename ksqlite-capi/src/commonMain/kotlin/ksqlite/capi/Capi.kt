@@ -1657,7 +1657,7 @@ public expect fun sqlite3_result_error(
  */
 public expect fun sqlite3_result_error_code(
     context: sqlite3_context,
-    errorCode: Int
+    result: Sqlite3Result.Failure
 )
 
 /**

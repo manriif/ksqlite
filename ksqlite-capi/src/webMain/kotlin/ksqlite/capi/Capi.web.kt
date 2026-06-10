@@ -1213,8 +1213,8 @@ public actual fun sqlite3_result_error(
 
 public actual fun sqlite3_result_error_code(
     context: sqlite3_context,
-    errorCode: Int
-): Unit = exports.sqlite3_result_error_code(context.pointer, errorCode)
+    result: Sqlite3Result.Failure
+): Unit = exports.sqlite3_result_error_code(context.pointer, result.code)
 
 public actual fun sqlite3_result_error_nomem(context: sqlite3_context): Unit =
     exports.sqlite3_result_error_nomem(context.pointer)

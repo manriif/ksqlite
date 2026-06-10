@@ -15,12 +15,9 @@ public class AggregateFunctionFinalScope internal constructor(
 ) : FunctionResultScope by scope {
 
     /**
-     * Returns the aggregate context as [Data].
-     *
-     * The context is created the first time the function is called and is returned on subsequent
-     * call.
+     * Returns the aggregate context, if any, as [Ctx].
      */
-    public inline fun <reified Data : Any> getContextOrNull(): Data? {
+    public inline fun <reified Ctx : Any> getContextOrNull(): Ctx? {
         return scope.notClosed { sqlite3_aggregate_context(scope.context, null) }
     }
 }

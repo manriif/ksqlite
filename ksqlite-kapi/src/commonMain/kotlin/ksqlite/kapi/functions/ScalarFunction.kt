@@ -10,5 +10,5 @@ public fun interface ScalarFunction : Function {
     /**
      * This method is invoked to handle a function call.
      */
-    public fun FunctionResultScope.func(arguments: Array<SQLiteValue?>)
+    public fun ScalarFunctionFuncScope.func(arguments: Array<SQLiteValue?>)
 }

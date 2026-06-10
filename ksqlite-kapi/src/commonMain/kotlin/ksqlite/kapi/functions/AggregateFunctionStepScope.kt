@@ -1,7 +1,7 @@
 package ksqlite.kapi.functions
 
 import ksqlite.capi.sqlite3_aggregate_context
-import ksqlite.kapi.checkOutOfMemory
+import ksqlite.kapi.sqliteOutOfMemoryCheck
 import ksqlite.kapi.impl.functions.FunctionScopeImpl
 
 /**
@@ -16,14 +16,14 @@ public class AggregateFunctionStepScope internal constructor(
 ) : FunctionScope by scope {
 
     /**
-     * Returns the aggregate context as [Data].
+     * Returns the aggregate context as [Ctx].
      *
-     * The context is created the first time the function is called and is returned on subsequent
-     * call.
+     * The [Ctx] is created the first time the function is called using [compute] and is returned
+     * on subsequent call.
      */
-    public inline fun <reified Data : Any> getOrCreateContext(noinline compute: () -> Data): Data {
+    public inline fun <reified Ctx : Any> getOrCreateContext(noinline compute: () -> Ctx): Ctx {
         return scope.notClosed {
-            checkOutOfMemory(sqlite3_aggregate_context(scope.context, compute)) {
+            sqliteOutOfMemoryCheck(sqlite3_aggregate_context(scope.context, compute)) {
                 "There is not enough memory available to allocate an aggregate context"
             }
         }

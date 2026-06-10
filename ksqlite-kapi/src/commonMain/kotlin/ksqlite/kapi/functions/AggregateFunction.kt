@@ -4,7 +4,6 @@ import ksqlite.kapi.SQLiteValue
 
 /**
  * [Aggregate function](https://sqlite.org/appfunc.html#the_aggregate_function_callbacks).
- * TODO get/set auxdata
  */
 public interface AggregateFunction : Function {
 
