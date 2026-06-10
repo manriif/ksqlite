@@ -6,7 +6,9 @@ package ksqlite.kapi.helpers
 @PublishedApi
 internal abstract class ClosableScope : AutoCloseable {
 
-    protected var closed = false
+    @PublishedApi
+    internal var closed = false
+        private set
 
     /**
      * Returns [block]'s result or throws [IllegalStateException] if [closed] is `true`.

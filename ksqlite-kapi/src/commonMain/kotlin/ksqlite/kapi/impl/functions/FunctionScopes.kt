@@ -23,12 +23,22 @@ import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.kapi.SQLiteConnection
+import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.SQLiteValue
 import ksqlite.kapi.functions.FunctionResultScope
 import ksqlite.kapi.functions.FunctionScope
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.impl.retrieveConnection
-import ksqlite.kapi.sqliteResultCheck
+import ksqlite.kapi.impl.sqliteResultCheck
+import ksqlite.kapi.throwSQLiteException
+
+/**
+ * Special exception types used to set the result of a function call.
+ */
+private sealed class ResultException : SQLiteException(Sqlite3Result.ERROR, "") {
+    class NoMem : ResultException()
+    class TooBig : ResultException()
+}
 
 @PublishedApi
 internal open class FunctionScopeImpl(
@@ -39,6 +49,29 @@ internal open class FunctionScopeImpl(
 
     final override val connection: SQLiteConnection
         get() = notClosed { retrieveConnection(sqlite3_context_db_handle(context)) }
+
+    override fun setResultError(
+        message: String,
+        result: Sqlite3Result.Failure
+    ): Nothing = notClosed { throwSQLiteException(message, result) }
+
+    override fun setResultErrorNoMem(): Nothing = notClosed { throw ResultException.NoMem() }
+
+    override fun setResultErrorTooBig(): Nothing = notClosed { throw ResultException.TooBig() }
+
+    fun handleError(exception: SQLiteException) {
+        when (exception) {
+            is ResultException -> when (exception) {
+                is ResultException.NoMem -> sqlite3_result_error_nomem(context)
+                is ResultException.TooBig -> sqlite3_result_error_toobig(context)
+            }
+
+            else -> {
+                sqlite3_result_error(context, exception.message)
+                sqlite3_result_error_code(context, exception.result)
+            }
+        }
+    }
 }
 
 @PublishedApi
@@ -62,6 +95,19 @@ internal open class FunctionResultScopeImpl(context: sqlite3_context) :
     override fun setResult(value: ByteArray, size: Int) =
         notClosed { sqlite3_result_blob(context, value, size, null) }
 
+    override fun setResult(
+        value: Buffer,
+        size: Long,
+        cleanup: ((Buffer) -> Unit)?
+    ) = notClosed {
+        sqlite3_result_blob64(
+            context = context,
+            buffer = value,
+            size = size,
+            destroy = cleanup?.let(::Sqlite3DestroyCallback)
+        )
+    }
+
     override fun setResult(value: Int) =
         notClosed { sqlite3_result_int(context, value) }
 
@@ -76,17 +122,17 @@ internal open class FunctionResultScopeImpl(context: sqlite3_context) :
 
     override fun setResult(
         value: Buffer,
-        encoding: Sqlite3TextEncoding.Set1?,
+        encoding: Sqlite3TextEncoding.Set1,
         size: Long,
         cleanup: ((Buffer) -> Unit)?
     ) = notClosed {
-        val destructor = cleanup?.let(::Sqlite3DestroyCallback)
-
-        if (encoding != null) {
-            sqlite3_result_text64(context, value, size, encoding, destructor)
-        } else {
-            sqlite3_result_blob64(context, value, size, destructor)
-        }
+        sqlite3_result_text64(
+            context = context,
+            buffer = value,
+            size = size,
+            encoding = encoding,
+            destroy = cleanup?.let(::Sqlite3DestroyCallback)
+        )
     }
 
     override fun setResult(value: SQLiteValue) =
@@ -94,16 +140,4 @@ internal open class FunctionResultScopeImpl(context: sqlite3_context) :
 
     override fun setResult(value: Any, type: String?) =
         notClosed { sqlite3_result_pointer(context, value, type, autoClosableDestructor(value)) }
-
-    override fun setResultError(
-        message: String,
-        result: Sqlite3Result.Failure?
-    ): Unit = notClosed {
-        sqlite3_result_error(context, message)
-        result?.let { sqlite3_result_error_code(context, it) }
-    }
-
-    override fun setResultErrorNoMem() = notClosed { sqlite3_result_error_nomem(context) }
-
-    override fun setResultErrorTooBig() = notClosed { sqlite3_result_error_toobig(context) }
 }

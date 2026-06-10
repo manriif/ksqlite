@@ -20,6 +20,7 @@ import ksqlite.capi.sqlite3_value_type
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.kapi.impl.sqliteOutOfMemoryCheck
 import kotlin.concurrent.Volatile
 
 /**
@@ -183,15 +184,27 @@ public class SQLiteValue private constructor(
     public companion object {
 
         /**
-         * Creates a new [SQLiteValue] wrapping [value] or returns `null` if the type of [value] is
-         * [Sqlite3DataType.NULL].
+         * Creates a new [SQLiteValue] wrapping `this` [sqlite3_value] or returns `null` if the type
+         * of `this` value is [Sqlite3DataType.NULL].
          */
-        internal fun from(
-            value: sqlite3_value,
-            isDuplicate: Boolean = false
-        ): SQLiteValue? = when (val type = sqlite3_value_type(value)) {
-            is NotNull -> SQLiteValue(value, type, isDuplicate)
-            NULL -> null
+        internal fun sqlite3_value.toSQLiteValue(isDuplicate: Boolean = false): SQLiteValue? {
+            return when (val type = sqlite3_value_type(this)) {
+                is NotNull -> SQLiteValue(this, type, isDuplicate)
+                NULL -> null
+            }
+        }
+
+        /**
+         * Map `this` array of [sqlite3_value] to an array of [SQLiteValue].
+         */
+        internal fun Array<sqlite3_value>.toSQLiteValues(): Array<SQLiteValue?> {
+            return if (isEmpty()) {
+                emptyArray()
+            } else {
+                Array(size) { index ->
+                    this[index].toSQLiteValue()
+                }
+            }
         }
     }
 }

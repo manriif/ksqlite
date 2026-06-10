@@ -187,8 +187,8 @@ public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback)
 public actual fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?,
-    callback: Sqlite3AutoVacuumPagesCallback<AppData>?
+    destroy: Sqlite3DestroyCallback<in AppData>?,
+    callback: Sqlite3AutoVacuumPagesCallback<in AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     exports.sqlite3_autovacuum_pages(
         db.pointer,
@@ -613,8 +613,8 @@ public actual fun <AppData> sqlite3_create_collation_v2(
     name: String,
     encoding: Sqlite3TextEncoding.Set0,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?,
-    callback: Sqlite3CollationCompareCallback<AppData>?
+    destroy: Sqlite3DestroyCallback<in AppData>?,
+    callback: Sqlite3CollationCompareCallback<in AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
         exports.sqlite3_create_collation_v2(
@@ -634,10 +634,10 @@ public actual fun <AppData> sqlite3_create_function_v2(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    func: Sqlite3FunctionFuncCallback<AppData>?,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?
+    func: Sqlite3FunctionFuncCallback<in AppData>?,
+    step: Sqlite3FunctionStepCallback<in AppData>?,
+    final: Sqlite3FunctionFinalCallback<in AppData>?,
+    destroy: Sqlite3DestroyCallback<in AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
         createFunction(appData, func, step, final, destroy) { fn, fnDestroy ->
@@ -687,11 +687,11 @@ public actual fun <AppData> sqlite3_create_window_function(
     nArg: Int,
     encoding: Sqlite3TextEncoding,
     appData: AppData,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    value: Sqlite3FunctionValueCallback<AppData>?,
-    inverse: Sqlite3FunctionInverseCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?
+    step: Sqlite3FunctionStepCallback<in AppData>?,
+    final: Sqlite3FunctionFinalCallback<in AppData>?,
+    value: Sqlite3FunctionValueCallback<in AppData>?,
+    inverse: Sqlite3FunctionInverseCallback<in AppData>?,
+    destroy: Sqlite3DestroyCallback<in AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
         createWindowFunction(appData, step, final, value, inverse, destroy) { fn, fnDestroy ->

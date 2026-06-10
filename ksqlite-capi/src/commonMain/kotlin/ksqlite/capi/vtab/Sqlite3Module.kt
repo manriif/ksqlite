@@ -90,7 +90,6 @@ public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqli
     savepoint: Sqlite3VTabSavepointCallback<VTab>?,
     release: Sqlite3VTabReleaseCallback<VTab>?,
     rollbackTo: Sqlite3VTabRollbackToCallback<VTab>?,
-    //shadowName: Sqlite3VTabShadowNameCallback?,
     integrity: Sqlite3VTabIntegrityCallback<VTab>?
 ): sqlite3_module<AppData> = sqlite3_module(
     version = version.iVersion,

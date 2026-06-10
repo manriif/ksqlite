@@ -1,5 +1,6 @@
 package ksqlite.kapi
 
+import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.kapi.callbacks.AutoVacuumPages
 import ksqlite.kapi.functions.AggregateFunction
 import ksqlite.kapi.functions.ScalarFunction
@@ -12,11 +13,29 @@ public interface SQLiteConnectionInitializer {
 
     public fun createCollation()
 
-    public fun createFunction(function: ScalarFunction)
+    public fun createFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: Sqlite3TextEncoding,
+        function: ScalarFunction
+    )
 
-    public fun createFunction(function: AggregateFunction)
+    public fun createFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: Sqlite3TextEncoding,
+        function: AggregateFunction
+    )
 
-    public fun createFunction(function: WindowFunction)
+    public fun createFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: Sqlite3TextEncoding,
+        function: WindowFunction
+    )
 
-    public fun createModule(module: VirtualTableModule)
+    public fun createModule(
+        name: String,
+        module: VirtualTableModule
+    )
 }

@@ -1,7 +1,7 @@
 package ksqlite.kapi.functions
 
 import ksqlite.capi.sqlite3_aggregate_context
-import ksqlite.kapi.sqliteOutOfMemoryCheck
+import ksqlite.kapi.impl.sqliteOutOfMemoryCheck
 import ksqlite.kapi.impl.functions.FunctionScopeImpl
 
 /**

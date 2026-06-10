@@ -7,6 +7,7 @@ import ksqlite.kapi.impl.functions.autoClosableDestructor
 
 /**
  * Scope for use with [ScalarFunction.func] and [WindowFunction.inverse].
+ * Also see [FunctionResultScope] for error handling.
  *
  * Internal note: [ScalarFunctionFuncScope] is exposed as a class because of [getOrCreateAuxData]
  * which is required to be an inline function with a reified type.

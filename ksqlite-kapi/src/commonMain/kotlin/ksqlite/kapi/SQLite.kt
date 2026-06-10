@@ -1,11 +1,9 @@
 package ksqlite.kapi
 
-import co.touchlab.stately.concurrency.Lock
-import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.kapi.callbacks.AutoExtension
-import ksqlite.kapi.impl.SQLiteImpl
+import ksqlite.kapi.impl.createSQLiteInstance
 
 /**
  * SQLite instance is used to obtains [SQLiteConnection].
@@ -67,9 +65,8 @@ public interface SQLite : AutoCloseable {
  * Only a single instance of [SQLite] exists at a time and an [IllegalStateException] is thrown if
  * a previously delivered instance of [SQLite] was not closed.
  */
-public fun SQLite(options: Iterable<Sqlite3ConfigOption> = emptyList()): SQLite {
-    return
-}
+public fun SQLite(options: Iterable<Sqlite3ConfigOption> = emptyList()): SQLite =
+    createSQLiteInstance(options.toList())
 
 /**
  * Initializes SQLite with given [options] and returns an [SQLite] instance used to initiate
@@ -83,5 +80,6 @@ public fun SQLite(options: Iterable<Sqlite3ConfigOption> = emptyList()): SQLite 
  * Only a single instance of [SQLite] exists at a time and an [IllegalStateException] is thrown if
  * a previously delivered instance of [SQLite] was not closed.
  */
-public fun SQLite(vararg options: Sqlite3ConfigOption): SQLite = SQLite(options.toList())
+public fun SQLite(vararg options: Sqlite3ConfigOption): SQLite =
+    createSQLiteInstance(options.toList())
 

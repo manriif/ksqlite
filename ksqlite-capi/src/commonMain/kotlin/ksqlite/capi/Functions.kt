@@ -19,12 +19,12 @@ import ksqlite.capi.types.sqlite3_value
 @PublishedApi
 internal class ApplicationDefinedFunction<AppData>(
     val appData: AppData,
-    private val destroy: Sqlite3DestroyCallback<AppData>?,
-    private val func: Sqlite3FunctionFuncCallback<AppData>?,
-    private val step: Sqlite3FunctionStepCallback<AppData>?,
-    private val final: Sqlite3FunctionFinalCallback<AppData>?,
-    private val value: Sqlite3FunctionValueCallback<AppData>?,
-    private val inverse: Sqlite3FunctionInverseCallback<AppData>?
+    private val destroy: Sqlite3DestroyCallback<in AppData>?,
+    private val func: Sqlite3FunctionFuncCallback<in AppData>?,
+    private val step: Sqlite3FunctionStepCallback<in AppData>?,
+    private val final: Sqlite3FunctionFinalCallback<in AppData>?,
+    private val value: Sqlite3FunctionValueCallback<in AppData>?,
+    private val inverse: Sqlite3FunctionInverseCallback<in AppData>?
 ) {
 
     /**
@@ -213,10 +213,10 @@ private inline fun <AppData, R> appFunction(
  */
 internal inline fun <AppData, R> createFunction(
     appData: AppData,
-    func: Sqlite3FunctionFuncCallback<AppData>?,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?,
+    func: Sqlite3FunctionFuncCallback<in AppData>?,
+    step: Sqlite3FunctionStepCallback<in AppData>?,
+    final: Sqlite3FunctionFinalCallback<in AppData>?,
+    destroy: Sqlite3DestroyCallback<in AppData>?,
     block: (
         fn: ApplicationDefinedFunction<Any?>,
         funDestroy: Sqlite3DestroyCallback<Any?>
@@ -240,11 +240,11 @@ internal inline fun <AppData, R> createFunction(
  */
 internal inline fun <AppData, R> createWindowFunction(
     appData: AppData,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    value: Sqlite3FunctionValueCallback<AppData>?,
-    inverse: Sqlite3FunctionInverseCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?,
+    step: Sqlite3FunctionStepCallback<in AppData>?,
+    final: Sqlite3FunctionFinalCallback<in AppData>?,
+    value: Sqlite3FunctionValueCallback<in AppData>?,
+    inverse: Sqlite3FunctionInverseCallback<in AppData>?,
+    destroy: Sqlite3DestroyCallback<in AppData>?,
     block: (
         fn: ApplicationDefinedFunction<Any?>,
         fnDestroy: Sqlite3DestroyCallback<Any?>
