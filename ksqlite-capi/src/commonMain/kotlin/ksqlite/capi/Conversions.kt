@@ -2,6 +2,7 @@ package ksqlite.capi
 
 import ksqlite.capi.types.Sqlite3ActionCode
 import ksqlite.capi.types.Sqlite3CompleteResult
+import ksqlite.capi.types.Sqlite3ConflictResolutionMode
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3Result
@@ -85,6 +86,25 @@ internal fun convertCompleteResult(code: Int): Sqlite3CompleteResult = when (cod
     else -> Sqlite3CompleteResult.Failure(
         checkNotNull(convertResult(code) as? Sqlite3Result.Failure)
     )
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Conflict resolution mode
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * [Sqlite3ConflictResolutionMode]s associated by their integer mode.
+ */
+private val Sqlite3ConflictResolutionModeMap =
+    Sqlite3ConflictResolutionMode.entries.associateBy(Sqlite3ConflictResolutionMode::code)
+
+/**
+ * Converts [code] to [Sqlite3ConflictResolutionMode].
+ */
+internal fun convertConflictResolutionMode(code: Int): Sqlite3ConflictResolutionMode {
+    return checkNotNull(Sqlite3ConflictResolutionModeMap[code]) {
+        "Unknown sqlite3 conflict resolution mode $code"
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////

@@ -1,16 +1,13 @@
-package ksqlite.kapi.functions
+package ksqlite.kapi.value
 
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.Sqlite3TextEncoding
-import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.throwSQLiteException
-import ksqlite.kapi.SQLiteValue
 
 /**
- * Scope for use with [ScalarFunction.func], [AggregateFunction.final] and [WindowFunction.value].
+ * Scope used in functions where SQLite is expecting a value to be returned using one of
+ * `sqlite3_result_xx` APIs.
  */
-public interface FunctionResultScope : FunctionScope {
+public interface ValueReturnScope {
 
     /**
      * Sets the result as `null`.
@@ -112,5 +109,5 @@ public interface FunctionResultScope : FunctionScope {
      *
      * The [value] can be a protected or unprotected SQLite value.
      */
-    public fun setResult(value: SQLiteValue)
+    public fun setResult(value: Value)
 }

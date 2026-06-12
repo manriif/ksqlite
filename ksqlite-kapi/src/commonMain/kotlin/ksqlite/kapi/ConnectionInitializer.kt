@@ -7,7 +7,7 @@ import ksqlite.kapi.functions.ScalarFunction
 import ksqlite.kapi.functions.WindowFunction
 import ksqlite.kapi.vtab.VirtualTableModule
 
-public interface SQLiteConnectionInitializer {
+public interface ConnectionInitializer {
 
     public fun autoVacuumPages(autoVacuumPages: AutoVacuumPages)
 

@@ -10,20 +10,20 @@ package ksqlite.capi.types
  * 
  * [Authorizer Return Codes](https://sqlite.org/c3ref/c_deny.html).
  */
-public sealed class Sqlite3AuthorizerCode(internal val code: Int) {
+public enum class Sqlite3AuthorizerCode(internal val code: Int) {
 
     /**
      * Same semantic and value as [Sqlite3Result.OK].
      */
-    public data object OK : Sqlite3AuthorizerCode(Sqlite3Result.OK.code)
+    OK(Sqlite3Result.OK.code),
 
     /**
      * Abort the SQL statement with an error.
      */
-    public data object DENY : Sqlite3AuthorizerCode(1)
+    DENY(1),
 
     /**
      * Don't allow access, but don't generate an error.
      */
-    public data object IGNORE : Sqlite3AuthorizerCode(2)
+    IGNORE(2)
 }

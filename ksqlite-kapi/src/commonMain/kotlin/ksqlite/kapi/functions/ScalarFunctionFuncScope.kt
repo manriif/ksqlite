@@ -2,20 +2,23 @@ package ksqlite.kapi.functions
 
 import ksqlite.capi.sqlite3_get_auxdata
 import ksqlite.capi.sqlite3_set_auxdata
-import ksqlite.kapi.impl.functions.FunctionResultScopeImpl
+import ksqlite.kapi.impl.functions.FunctionScopeImpl
 import ksqlite.kapi.impl.functions.autoClosableDestructor
+import ksqlite.kapi.impl.value.ValueReturnScopeImpl
+import ksqlite.kapi.value.ValueReturnScope
 
 /**
  * Scope for use with [ScalarFunction.func] and [WindowFunction.inverse].
- * Also see [FunctionResultScope] for error handling.
+ * Also see [FunctionScope] for error handling.
  *
  * Internal note: [ScalarFunctionFuncScope] is exposed as a class because of [getOrCreateAuxData]
  * which is required to be an inline function with a reified type.
  */
 public class ScalarFunctionFuncScope internal constructor(
     @PublishedApi
-    internal val scope: FunctionResultScopeImpl
-) : FunctionResultScope by scope {
+    internal val scope: FunctionScopeImpl
+) : FunctionScope by scope,
+    ValueReturnScope by ValueReturnScopeImpl(scope) {
 
     /**
      * Returns the auxiliary data for the argument at [index] as [Data].

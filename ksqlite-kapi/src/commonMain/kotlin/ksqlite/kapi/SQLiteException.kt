@@ -8,6 +8,9 @@ import ksqlite.capi.types.Sqlite3Result
  *
  * This exception can also be thrown in an SQLite callback, the [result] and the error [message]
  * are then forwarded to SQLite.
+ *
+ * The helper function [throwSQLiteException] can be used to construct and throw an instance of
+ * [SQLiteException].
  */
 public open class SQLiteException(
     /**

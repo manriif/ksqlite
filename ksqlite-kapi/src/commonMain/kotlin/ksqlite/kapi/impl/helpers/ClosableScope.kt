@@ -1,10 +1,10 @@
-package ksqlite.kapi.helpers
+package ksqlite.kapi.impl.helpers
 
 /**
  * Helper for objects implementing [AutoCloseable].
  */
 @PublishedApi
-internal abstract class ClosableScope : AutoCloseable {
+internal open class ClosableScope : AutoCloseable {
 
     @PublishedApi
     internal var closed = false
@@ -15,7 +15,7 @@ internal abstract class ClosableScope : AutoCloseable {
      */
     @PublishedApi
     internal inline fun <R> notClosed(
-        lazyMessage: () -> String = { "Instance is closed" },
+        lazyMessage: () -> String = { "Scope is closed" },
         block: () -> R
     ): R {
         check(!closed, lazyMessage)

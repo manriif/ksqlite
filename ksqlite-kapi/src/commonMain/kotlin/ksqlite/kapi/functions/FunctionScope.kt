@@ -1,15 +1,14 @@
 package ksqlite.kapi.functions
 
 import ksqlite.capi.types.Sqlite3Result
-import ksqlite.kapi.SQLiteConnection
+import ksqlite.kapi.Connection
 import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.throwSQLiteException
 
 /**
  * Supplies the necessary APIs during the invocation of a function hook.
  *
- * If an error is detected, an [SQLiteException] can be thrown (optionally using
- * [throwSQLiteException] helper function). The error is then returned to SQLite.
+ * If an error is detected, an [SQLiteException] can be thrown. The error is then returned to
+ * SQLite.
  * Only [SQLiteException] are recognized as normal error and other exceptions types are not caught.
  * It is also possible to use any of [setResultError], [setResultErrorNoMem] or
  * [setResultErrorTooBig].
@@ -19,7 +18,7 @@ public interface FunctionScope {
     /**
      * Returns the database connection associated with the hook.
      */
-    public val connection: SQLiteConnection
+    public val connection: Connection
 
     /**
      * Causes SQLite to throw an exception with [message].

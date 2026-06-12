@@ -6,7 +6,7 @@ import ksqlite.kapi.callbacks.AutoExtension
 import ksqlite.kapi.impl.createSQLiteInstance
 
 /**
- * SQLite instance is used to obtains [SQLiteConnection].
+ * SQLite instance is used to obtains [Connection].
  */
 public interface SQLite : AutoCloseable {
 
@@ -30,15 +30,15 @@ public interface SQLite : AutoCloseable {
     /**
      * Opens a new database connection using `sqlite3_open_v2(), forwarding [flag] and [vfs].
      *
-     * Once opened, [configure] is immediately invoked before the [SQLiteConnection] is getting
+     * Once opened, [configure] is immediately invoked before the [Connection] is getting
      * returned.
      */
     public fun open(
         fileName: String,
         flag: Sqlite3OpenFlag.Db? = null,
         vfs: String? = null,
-        initialize: (SQLiteConnectionInitializer.() -> Unit)? = null
-    ): SQLiteConnection
+        initialize: (ConnectionInitializer.() -> Unit)? = null
+    ): Connection
 
     /**
      * Invokes `sqlite3_shutdown()` and resets global SQLite state.

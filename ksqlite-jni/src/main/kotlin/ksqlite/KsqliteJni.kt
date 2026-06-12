@@ -1055,7 +1055,7 @@ public external fun sqlite3_vfs_unregister(vfs: Long): Int
 public external fun sqlite3_vtab_collation(
     info: Long,
     index: Int,
-): String?
+): String
 
 public external fun sqlite3_vtab_config(
     db: Long,

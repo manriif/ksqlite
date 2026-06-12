@@ -68,6 +68,7 @@ import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3ConfigOption
+import ksqlite.capi.types.Sqlite3ConflictResolutionMode
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
@@ -1615,8 +1616,8 @@ public actual fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): Sqlite3Result =
 public actual fun sqlite3_vtab_collation(
     info: sqlite3_index_info,
     index: Int
-): String? = exports.sqlite3_vtab_collation(info.pointer, index)
-    .toKStringFromUtf8OrNull()
+): String = exports.sqlite3_vtab_collation(info.pointer, index)
+    .toKStringFromUtf8()
 
 public actual fun sqlite3_vtab_config(
     db: sqlite3,
@@ -1653,8 +1654,8 @@ public actual fun sqlite3_vtab_in_next(
 public actual fun sqlite3_vtab_nochange(context: sqlite3_context): Int =
     exports.sqlite3_vtab_nochange(context.pointer)
 
-public actual fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result =
-    convertResult(exports.sqlite3_vtab_on_conflict(db.pointer))
+public actual fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3ConflictResolutionMode =
+    convertConflictResolutionMode(exports.sqlite3_vtab_on_conflict(db.pointer))
 
 public actual fun sqlite3_vtab_rhs_value(
     info: sqlite3_index_info,

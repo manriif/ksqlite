@@ -29,6 +29,7 @@ import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3BlobOutputParam
 import ksqlite.capi.types.Sqlite3CompleteResult
 import ksqlite.capi.types.Sqlite3ConfigOption
+import ksqlite.capi.types.Sqlite3ConflictResolutionMode
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
@@ -2292,7 +2293,7 @@ public expect fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): Sqlite3Result
 public expect fun sqlite3_vtab_collation(
     info: sqlite3_index_info,
     index: Int
-): String?
+): String
 
 /**
  * Call from within the xCreate() or xConnect() methods to provide the SQLite core with additional
@@ -2369,9 +2370,9 @@ public expect fun sqlite3_vtab_nochange(context: sqlite3_context): Int
  *
  * The results of this routine are undefined unless it is called from  within an xUpdate method.
  *
- * [sqlite3_vtab_on_conflict()](https://sqlite.org/c3ref/vtab_on_conflict.html)
+ * [sqlite3_vtab_on_conflict()](https://sOnqlite.org/c3ref/vtab_on_conflict.html)
  */
-public expect fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result
+public expect fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3ConflictResolutionMode
 
 /**
  * This interface is callable from within the xBestIndex callback only.
