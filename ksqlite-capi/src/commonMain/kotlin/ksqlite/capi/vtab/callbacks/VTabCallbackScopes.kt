@@ -1,8 +1,9 @@
 package ksqlite.capi.vtab.callbacks
 
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
 import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.vtab.Sqlite3VTabConstraintOperatorCode
+import ksqlite.capi.types.vtab.Sqlite3VTabConstraintOperatorCode
 import ksqlite.capi.vtab.sqlite3_vtab
 import ksqlite.capi.vtab.sqlite3_vtab_cursor
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabCreateOrConnectCallback as CreateOrConnect
@@ -134,7 +135,8 @@ internal fun vTabUpdateScope(): Update.Scope = VTabUpdateCallbackScope
 internal class VTabFindFunctionOverloadResult(
     val result: Int,
     val appData: Any?,
-    val function: Sqlite3FunctionFuncCallback<Any?>
+    val function: Sqlite3FunctionFuncCallback<Any?>,
+    val destroy: Sqlite3DestroyCallback<Any?>?
 ) : FindFunction.Result
 
 internal object VTabFindFunctionDoNotOverloadResult : FindFunction.Result
@@ -148,11 +150,13 @@ private object VTabFindFunctionCallbackScope : FindFunction.Scope {
     private fun overload(
         result: Int,
         appData: Any?,
-        function: Sqlite3FunctionFuncCallback<*>
+        function: Sqlite3FunctionFuncCallback<*>,
+        destroy: Sqlite3DestroyCallback<*>? = null
     ) = VTabFindFunctionOverloadResult(
         result = result,
         appData = appData,
-        function = function as Sqlite3FunctionFuncCallback<Any?>
+        function = function as Sqlite3FunctionFuncCallback<Any?>,
+        destroy = destroy as? Sqlite3DestroyCallback<Any?>
     )
 
     override fun overload(function: Sqlite3FunctionFuncCallback<Nothing?>): FindFunction.Result =
@@ -160,8 +164,9 @@ private object VTabFindFunctionCallbackScope : FindFunction.Scope {
 
     override fun <AppData> overload(
         appData: AppData,
-        function: Sqlite3FunctionFuncCallback<AppData>
-    ): FindFunction.Result = overload(1, appData, function)
+        function: Sqlite3FunctionFuncCallback<in AppData>,
+        destroy: Sqlite3DestroyCallback<in AppData>?
+    ): FindFunction.Result = overload(1, appData, function, destroy)
 
     override fun overload(
         constraintOp: Sqlite3VTabConstraintOperatorCode.Custom,
@@ -171,8 +176,9 @@ private object VTabFindFunctionCallbackScope : FindFunction.Scope {
     override fun <AppData> overload(
         constraintOp: Sqlite3VTabConstraintOperatorCode.Custom,
         appData: AppData,
-        function: Sqlite3FunctionFuncCallback<AppData>
-    ): FindFunction.Result = overload(constraintOp.code, appData, function)
+        function: Sqlite3FunctionFuncCallback<in AppData>,
+        destroy: Sqlite3DestroyCallback<in AppData>?
+    ): FindFunction.Result = overload(constraintOp.code, appData, function, destroy)
 
     override fun doNotOverload(): FindFunction.Result = VTabFindFunctionDoNotOverloadResult
 }

@@ -157,14 +157,6 @@ internal object VTabModuleHandler : JniVTabModuleCallbacks {
         setRowid = outRowid::value::set
     )
 
-    override fun begin(vTab: Long): Int = vTabBegin(vTab)
-
-    override fun sync(vTab: Long): Int = vTabSync(vTab)
-
-    override fun commit(vTab: Long): Int = vTabCommit(vTab)
-
-    override fun rollback(vTab: Long): Int = vTabRollback(vTab)
-
     override fun findFunction(
         vTab: Long,
         argc: Int,
@@ -176,14 +168,22 @@ internal object VTabModuleHandler : JniVTabModuleCallbacks {
         vTab = vTab,
         argumentCount = argc,
         functionName = name,
-        setFunction = { _, appData, function ->
-            createFunction(appData, function, null, null, null) { fn, fnDestroy ->
+        setFunction = { _, appData, function, destroy ->
+            createFunction(appData, function, null, null, destroy) { fn, fnDestroy ->
                 outAppData.value = fn
                 outFunction.value = callbackHandler(fn, null, ::FunctionFuncHandler)
                 outDestroy.value = destructorHandler(fn, fnDestroy)
             }
         }
     )
+
+    override fun begin(vTab: Long): Int = vTabBegin(vTab)
+
+    override fun sync(vTab: Long): Int = vTabSync(vTab)
+
+    override fun commit(vTab: Long): Int = vTabCommit(vTab)
+
+    override fun rollback(vTab: Long): Int = vTabRollback(vTab)
 
     override fun rename(
         vTab: Long,

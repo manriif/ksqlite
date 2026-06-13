@@ -187,6 +187,36 @@ internal val VTabUpdateHandler = vTabHandler(I64, I32, I64, I64) { vTab: WasmPoi
     )
 }
 
+internal val VTabFindFunctionHandler = vTabHandler(I64, I32, I64, I64, I64) { vTab: WasmPointer,
+                                                                              argc: Int,
+                                                                              name: WasmPointer,
+                                                                              outFn: WasmPointer,
+                                                                              outData: WasmPointer ->
+    val functionName = name.toKStringFromUtf8()
+
+    vTabFindFunction(
+        vTab = vTab.toLong(),
+        argumentCount = argc,
+        functionName = functionName,
+        setFunction = { instance, appData, function, destroy ->
+            // Keep the same logic as regular function from C-API
+            // The function is bound to the sqlite3_vtab lifecycle
+            createFunction(appData, function, null, null, destroy) { fn, fnDestroy ->
+                outFn.setPointerValue(instance.memory.functionPointer(::FunctionFuncHandler))
+
+                outData.setPointerValue(
+                    instance.memory.keyedStableRefPointer(
+                        key = functionKey(functionName, argc, null),
+                        data = fn,
+                        appData = appData,
+                        destructor = fnDestroy
+                    )
+                )
+            }
+        }
+    )
+}
+
 internal val VTabBeginHandler = vTabHandler(I64) { vTab: WasmPointer ->
     vTabBegin(vTab.toLong())
 }
@@ -201,36 +231,6 @@ internal val VTabCommitHandler = vTabHandler(I64) { vTab: WasmPointer ->
 
 internal val VTabRollbackHandler = vTabHandler(I64) { vTab: WasmPointer ->
     vTabRollback(vTab.toLong())
-}
-
-internal val VTabFindFunctionHandler = vTabHandler(I64, I32, I64, I64, I64) { vTab: WasmPointer,
-                                                                              argc: Int,
-                                                                              name: WasmPointer,
-                                                                              outFn: WasmPointer,
-                                                                              outData: WasmPointer ->
-    val functionName = name.toKStringFromUtf8()
-
-    vTabFindFunction(
-        vTab = vTab.toLong(),
-        argumentCount = argc,
-        functionName = functionName,
-        setFunction = { instance, appData, function ->
-            // Keep the same logic as regular function from C-API
-            // The function is bound to the sqlite3_vtab lifecycle
-            createFunction(appData, function, null, null, null) { fn, fnDestroy ->
-                outFn.setPointerValue(instance.memory.functionPointer(::FunctionFuncHandler))
-
-                outData.setPointerValue(
-                    instance.memory.keyedStableRefPointer(
-                        key = functionKey(functionName, argc, null),
-                        data = fn,
-                        appData = appData,
-                        destructor = fnDestroy
-                    )
-                )
-            }
-        }
-    )
 }
 
 internal val VTabRenameHandler = vTabHandler(I64, I64) { vTab: WasmPointer, newName: WasmPointer ->

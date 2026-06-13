@@ -3,7 +3,7 @@ package ksqlite.kapi.functions
 import ksqlite.capi.sqlite3_get_auxdata
 import ksqlite.capi.sqlite3_set_auxdata
 import ksqlite.kapi.impl.functions.FunctionScopeImpl
-import ksqlite.kapi.impl.functions.autoClosableDestructor
+import ksqlite.kapi.impl.helpers.autoCloser
 import ksqlite.kapi.impl.value.ValueReturnScopeImpl
 import ksqlite.kapi.value.ValueReturnScope
 
@@ -35,7 +35,7 @@ public class ScalarFunctionFuncScope internal constructor(
     ): Data = scope.notClosed {
         sqlite3_get_auxdata<Data>(scope.context, index) ?: run {
             compute().also { data ->
-                sqlite3_set_auxdata(scope.context, index, data, autoClosableDestructor(data))
+                sqlite3_set_auxdata(scope.context, index, data, autoCloser(data))
             }
         }
     }

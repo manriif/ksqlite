@@ -1,6 +1,6 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 
 /**
  * Scope to use with [VirtualTableModule.connect] and [VirtualTableModule.Regular.create].

@@ -4,6 +4,7 @@ package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.Struct
+import ksqlite.capi.types.vtab.Sqlite3VTab
 
 /**
  * Every virtual table module implementation uses a subclass of this object to describe a particular
@@ -13,16 +14,7 @@ import ksqlite.capi.memory.Struct
  *
  * [sqlite3_vtab](https://sqlite.org/c3ref/vtab.html)
  */
-public expect abstract class sqlite3_vtab() : Struct, MemoryScope {
-
-    /**
-     * Number of open cursor.
-     */
-    public val nRef: Int
-
-    /**
-     * Error message that can be set from virtual table methods.
-     * Setting a value to this field automatically free any previously existing value.
-     */
-    public var errMsg: String?
+public expect open class sqlite3_vtab() : Struct, MemoryScope, Sqlite3VTab {
+    override val nRef: Int
+    override var errMsg: String?
 }

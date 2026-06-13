@@ -58,7 +58,7 @@ import ksqlite.capi.types.sqlite3_filename
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
 
@@ -840,7 +840,7 @@ public expect fun <AppData> sqlite3_create_module_v2(
     name: String,
     module: sqlite3_module<AppData>?,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?,
+    destroy: Sqlite3DestroyCallback<in AppData>?,
 ): Sqlite3Result
 
 /**

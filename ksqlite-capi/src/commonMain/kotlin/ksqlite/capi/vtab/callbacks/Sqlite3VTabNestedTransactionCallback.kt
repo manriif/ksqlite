@@ -16,14 +16,14 @@ import ksqlite.capi.vtab.sqlite3_vtab
  *
  * [The xBegin Method](https://sqlite.org/vtab.html#the_xsavepoint_xrelease_and_xrollbackto_methods)
  */
-public fun interface Sqlite3VTabSavepointOrReleaseOrRollbackToCallback<VTab : sqlite3_vtab> {
+public fun interface Sqlite3VTabNestedTransactionCallback<VTab : sqlite3_vtab> {
 
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/vtab.html#the_xsavepoint_xrelease_and_xrollbackto_methods).
      */
     public fun handle(
         vTab: VTab,
-        savepoint: Int
+        id: Int
     ): Sqlite3Result.OkOrFailure
 }
 
@@ -34,18 +34,14 @@ public fun interface Sqlite3VTabSavepointOrReleaseOrRollbackToCallback<VTab : sq
 /**
  * xSavepoint callback.
  */
-public typealias Sqlite3VTabSavepointCallback<VTab> =
-        Sqlite3VTabSavepointOrReleaseOrRollbackToCallback<VTab>
-
+public typealias Sqlite3VTabSavepointCallback<VTab> = Sqlite3VTabNestedTransactionCallback<VTab>
 
 /**
  * xRelease callback.
  */
-public typealias Sqlite3VTabReleaseCallback<VTab> =
-        Sqlite3VTabSavepointOrReleaseOrRollbackToCallback<VTab>
+public typealias Sqlite3VTabReleaseCallback<VTab> = Sqlite3VTabNestedTransactionCallback<VTab>
 
 /**
  * xRollbackTo callback.
  */
-public typealias Sqlite3VTabRollbackToCallback<VTab> =
-        Sqlite3VTabSavepointOrReleaseOrRollbackToCallback<VTab>
+public typealias Sqlite3VTabRollbackToCallback<VTab> = Sqlite3VTabNestedTransactionCallback<VTab>

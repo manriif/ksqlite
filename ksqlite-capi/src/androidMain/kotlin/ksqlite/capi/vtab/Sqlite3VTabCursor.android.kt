@@ -3,9 +3,11 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.Struct
+import ksqlite.capi.types.vtab.Sqlite3VTabCursor
 
 public actual open class sqlite3_vtab_cursor private constructor(cursor: s3_vtab_cursor) :
-    Struct(cursor) {
+    Struct(cursor),
+    Sqlite3VTabCursor {
 
     public actual constructor() : this(s3_vtab_cursor())
 }

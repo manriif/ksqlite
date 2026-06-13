@@ -3,6 +3,7 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.Struct
+import ksqlite.capi.types.vtab.Sqlite3ModuleVersion
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabBeginCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabBestIndexCallback
 import ksqlite.capi.vtab.callbacks.Sqlite3VTabCloseCallback
@@ -61,15 +62,15 @@ internal constructor(
  * Returns an instance of [sqlite3_module].
  * For an eponymous virtual table, [create] and [connect] must be referentially equals (===).
  *
- * See [Sqlite3ModuleVersion.VERSION_3] for explanation about why xShadowName is not supported.
+ * See [ksqlite.capi.types.vtab.Sqlite3ModuleVersion.VERSION_3] for explanation about why xShadowName is not supported.
  *
  * The caller take the ownership of the returned [sqlite3_module] and is responsible to release it
  * by invoking [sqlite3_module.close].
  */
 public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqlite3_module(
     version: Sqlite3ModuleVersion,
-    create: Sqlite3VTabCreateCallback<AppData, VTab>?,
-    connect: Sqlite3VTabConnectCallback<AppData, VTab>,
+    create: Sqlite3VTabCreateCallback<in AppData, VTab>?,
+    connect: Sqlite3VTabConnectCallback<in AppData, VTab>,
     bestIndex: Sqlite3VTabBestIndexCallback<VTab>,
     disconnect: Sqlite3VTabDisconnectCallback<VTab>,
     destroy: Sqlite3VTabDestroyCallback<VTab>,
@@ -81,11 +82,11 @@ public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqli
     column: Sqlite3VTabColumnCallback<VTabCursor>,
     rowid: Sqlite3VTabRowidCallback<VTabCursor>,
     update: Sqlite3VTabUpdateCallback<VTab>?,
+    findFunction: Sqlite3VTabFindFunctionCallback<VTab>?,
     begin: Sqlite3VTabBeginCallback<VTab>?,
     sync: Sqlite3VTabSyncCallback<VTab>?,
     commit: Sqlite3VTabCommitCallback<VTab>?,
     rollback: Sqlite3VTabRollbackCallback<VTab>?,
-    findFunction: Sqlite3VTabFindFunctionCallback<VTab>?,
     rename: Sqlite3VTabRenameCallback<VTab>?,
     savepoint: Sqlite3VTabSavepointCallback<VTab>?,
     release: Sqlite3VTabReleaseCallback<VTab>?,
@@ -107,11 +108,11 @@ public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqli
         column = column,
         rowid = rowid,
         update = update,
+        findFunction = findFunction,
         begin = begin,
         sync = sync,
         commit = commit,
         rollback = rollback,
-        findFunction = findFunction,
         rename = rename,
         savepoint = savepoint,
         release = release,

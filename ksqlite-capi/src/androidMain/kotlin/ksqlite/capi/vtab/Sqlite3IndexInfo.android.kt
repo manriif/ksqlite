@@ -7,9 +7,13 @@ import ksqlite.capi.memory.JniPointer
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
+import ksqlite.capi.types.vtab.Sqlite3IndexInfo
+import ksqlite.capi.types.vtab.Sqlite3VTabConstraintOperatorCode
+import ksqlite.capi.types.vtab.Sqlite3VTabScanFlag
 
 public actual class sqlite3_index_info private constructor(private val info: s3_index_info) :
-    Struct(info.pointer, null /* memory is owned by SQLite */) {
+    Struct(info.pointer, null /* memory is owned by SQLite */),
+    Sqlite3IndexInfo {
 
     internal constructor(pointer: JniPointer) : this(s3_index_info(pointer))
 
@@ -17,75 +21,75 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
     private val constraintUsages by lazy { Array(nConstraint, info::constraintUsage) }
     private val orderBys by lazy { Array(nConstraint, info::orderBy) }
 
-    public actual val colUsed: ULong
+    public actual override val colUsed: ULong
         get() = info.colUsed.toULong()
 
-    public actual val nConstraint: Int
+    public actual override val nConstraint: Int
         get() = info.nConstraint
 
-    public actual val nOrderBy: Int
+    public actual override val nOrderBy: Int
         get() = info.nOrderBy
 
-    public actual fun getConstraintColumn(index: Int): Int =
+    public actual override fun getConstraintColumn(index: Int): Int =
         constraints[index].iColumn
 
-    public actual fun getConstraintOp(index: Int): Sqlite3VTabConstraintOperatorCode =
+    public actual override fun getConstraintOp(index: Int): Sqlite3VTabConstraintOperatorCode =
         convertVTabConstraintOperatorCode(constraints[index].op.toInt())
 
-    public actual fun getConstraintUsable(index: Int): Int =
+    public actual override fun getConstraintUsable(index: Int): Int =
         constraints[index].usable.toInt()
 
-    public actual fun getOrderByColumn(index: Int): Int =
+    public actual override fun getOrderByColumn(index: Int): Int =
         orderBys[index].iColumn
 
-    public actual fun getOrderByDesc(index: Int): Int =
+    public actual override fun getOrderByDesc(index: Int): Int =
         orderBys[index].desc.toInt()
 
-    public actual var idxNum: Int
+    public actual override var idxNum: Int
         get() = info.idxNum
         set(value) {
             info.idxNum = value
         }
 
-    public actual var idxStr: String?
+    public actual override var idxStr: String?
         get() = info.idxStr.toKStringFromUtf8OrNull()
         set(value) = sqlite3_mprintf(info::idxStr, value)
 
-    public actual var needToFreeIdxStr: Int
+    public actual override var needToFreeIdxStr: Int
         get() = info.needToFreeIdxStr
         set(value) {
             info.needToFreeIdxStr = value
         }
 
-    public actual var orderByConsumed: Int
+    public actual override var orderByConsumed: Int
         get() = info.orderByConsumed
         set(value) {
             info.orderByConsumed = value
         }
 
-    public actual var estimatedCost: Double
+    public actual override var estimatedCost: Double
         get() = info.estimatedCost
         set(value) {
             info.estimatedCost = value
         }
 
-    public actual var estimatedRows: Long
+    public actual override var estimatedRows: Long
         get() = info.estimatedRows
         set(value) {
             info.estimatedRows = value
         }
 
-    public actual var idxFlags: Sqlite3VTabScanFlag
+    public actual override var idxFlags: Sqlite3VTabScanFlag
         get() = Sqlite3VTabScanFlag.Mask(info.idxFlags)
         set(value) {
             info.idxFlags = value.value
         }
 
-    public actual fun setConstraintUsageArgvIndex(index: Int, argvIndex: Int) {
+    public actual override fun setConstraintUsageArgvIndex(index: Int, argvIndex: Int) {
         constraintUsages[index].argvIndex = argvIndex
     }
 
-    public actual fun setConstraintUsageOmit(index: Int, omit: Int) {
+    public actual override fun setConstraintUsageOmit(index: Int, omit: Int) {
         constraintUsages[index].omit = omit.toByte()
     }
 }

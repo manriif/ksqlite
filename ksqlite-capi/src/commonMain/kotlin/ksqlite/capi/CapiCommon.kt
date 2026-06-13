@@ -6,7 +6,7 @@ import ksqlite.capi.memory.Buffer
 import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 import kotlin.jvm.JvmInline
 
 /**

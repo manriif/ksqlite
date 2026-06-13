@@ -6,16 +6,18 @@ import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
+import ksqlite.capi.types.vtab.Sqlite3VTab
 import ksqlite.sqlite3
 
-public actual abstract class sqlite3_vtab public actual constructor() :
+public actual open class sqlite3_vtab public actual constructor() :
     Struct(allocate = { s3_vtab.allocate(this) }),
-    MemoryScope {
+    MemoryScope,
+    Sqlite3VTab {
 
-    public actual val nRef: Int
+    public actual override val nRef: Int
         get() = s3_vtab.nRef(pointer)
 
-    public actual var errMsg: String?
+    public actual override var errMsg: String?
         get() = s3_vtab.zErrMsg(pointer).toKStringFromUtf8OrNull()
         set(value) {
             sqlite3.sqlite3_free(s3_vtab.zErrMsg(pointer))

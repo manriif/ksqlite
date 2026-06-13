@@ -1,8 +1,5 @@
 package ksqlite.capi.vtab.callbacks
 
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.vtab.sqlite3_index_info
-import ksqlite.capi.vtab.sqlite3_vtab
 import ksqlite.capi.vtab.sqlite3_vtab_cursor
 
 /**
@@ -17,5 +14,5 @@ public fun interface Sqlite3VTabEofCallback<VTabCursor: sqlite3_vtab_cursor> {
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/vtab.html#the_xeof_method).
      */
-    public fun handle(cursor: VTabCursor): Sqlite3Result.OkOrFailure
+    public fun handle(cursor: VTabCursor): Int
 }

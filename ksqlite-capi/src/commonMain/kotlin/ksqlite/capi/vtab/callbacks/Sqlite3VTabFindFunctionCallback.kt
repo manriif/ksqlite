@@ -1,7 +1,8 @@
 package ksqlite.capi.vtab.callbacks
 
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
-import ksqlite.capi.vtab.Sqlite3VTabConstraintOperatorCode
+import ksqlite.capi.types.vtab.Sqlite3VTabConstraintOperatorCode
 import ksqlite.capi.vtab.sqlite3_vtab
 
 /**
@@ -29,12 +30,11 @@ public fun interface Sqlite3VTabFindFunctionCallback<VTab : sqlite3_vtab> {
 
         /**
          * Writes [function] to `pxFunc`, overloading the original one, and returns 1 to SQLite.
-         *
-         * Note that the same instance of [appData] is passed to the same instance of [function].
          */
         public fun <AppData> overload(
             appData: AppData,
-            function: Sqlite3FunctionFuncCallback<AppData>
+            function: Sqlite3FunctionFuncCallback<in AppData>,
+            destroy: Sqlite3DestroyCallback<in AppData>?
         ): Result
 
         /**
@@ -49,13 +49,12 @@ public fun interface Sqlite3VTabFindFunctionCallback<VTab : sqlite3_vtab> {
         /**
          * Writes [function] to `pxFunc`, overloading the original one, and returns [constraintOp]
          * to SQLite.
-         *
-         * Note that the same instance of [appData] is passed to the same instance of [function].
          */
         public fun <AppData> overload(
             constraintOp: Sqlite3VTabConstraintOperatorCode.Custom,
             appData: AppData,
-            function: Sqlite3FunctionFuncCallback<AppData>
+            function: Sqlite3FunctionFuncCallback<in AppData>,
+            destroy: Sqlite3DestroyCallback<in AppData>?
         ): Result
 
         /**

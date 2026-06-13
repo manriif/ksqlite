@@ -11,21 +11,23 @@ import kotlinx.cinterop.ptr
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8
+import ksqlite.capi.types.vtab.Sqlite3VTab
 import ksqlite.sqlite3_free
 import ksqlite.sqlite3_mprintf
 
-public actual abstract class sqlite3_vtab private constructor(
+public actual open class sqlite3_vtab private constructor(
     override val pointer: CPointer<s3_vtab>,
     placement: NativeFreeablePlacement? = null
 ) : Struct(pointer, placement),
-    MemoryScope {
+    MemoryScope,
+    Sqlite3VTab {
 
     public actual constructor() : this(nativeHeap.alloc<s3_vtab>().ptr, nativeHeap)
 
-    public actual val nRef: Int
+    public actual override val nRef: Int
         get() = pointer.pointed.nRef
 
-    public actual var errMsg: String?
+    public actual override var errMsg: String?
         get() = pointer.pointed.zErrMsg?.toKStringFromUtf8()
         set(value) = pointer.pointed.run {
             sqlite3_free(zErrMsg)

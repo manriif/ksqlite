@@ -66,7 +66,7 @@ private fun sqliteResultThrow(
 @PublishedApi
 internal fun sqliteResultCheck(
     result: Sqlite3Result,
-    getDb: (() -> sqlite3)?,
+    getDb: (() -> sqlite3)? = null,
     getMessagePrefix: (() -> String)? = null
 ) {
     if (result is Sqlite3Result.Failure) {

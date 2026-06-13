@@ -18,7 +18,7 @@ public open class SQLiteException(
      */
     public val result: Sqlite3Result.Failure,
     override val message: String
-) : Exception(message)
+) : RuntimeException(message)
 
 ///////////////////////////////////////////////////////////////////////////
 // Factories

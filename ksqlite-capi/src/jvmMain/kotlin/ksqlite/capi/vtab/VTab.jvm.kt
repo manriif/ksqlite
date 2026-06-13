@@ -157,6 +157,32 @@ internal val VTabUpdateHandler = xUpdate.allocate({ vTab, argc, argv, outRowid -
     )
 }, StaticMemoryAllocator)
 
+internal val VTabFindFunctionHandler = xFindFunction.allocate({ vTab, argc, name, outFn, outData ->
+    val functionName = name.toKStringFromUtf8()
+
+    vTabFindFunction(
+        vTab = vTab.address(),
+        argumentCount = argc,
+        functionName = functionName,
+        setFunction = { instance, appData, function, destroy ->
+            // Keep the same logic as regular function from C-API
+            // The function is bound to the sqlite3_vtab lifecycle
+            createFunction(appData, function, null, null, destroy) { fn, fnDestroy ->
+                outFn.setPointerValue(instance.memory.functionPointer(::FunctionFuncHandler))
+
+                outData.setPointerValue(
+                    instance.memory.keyedStableRefPointer(
+                        key = functionKey(functionName, argc, null),
+                        data = fn,
+                        appData = appData,
+                        destructor = fnDestroy
+                    )
+                )
+            }
+        }
+    )
+}, StaticMemoryAllocator)
+
 internal val VTabBeginHandler = xBegin.allocate({ vTab ->
     vTabBegin(vTab.address())
 }, StaticMemoryAllocator)
@@ -171,32 +197,6 @@ internal val VTabCommitHandler = xCommit.allocate({ vTab ->
 
 internal val VTabRollbackHandler = xRollback.allocate({ vTab ->
     vTabRollback(vTab.address())
-}, StaticMemoryAllocator)
-
-internal val VTabFindFunctionHandler = xFindFunction.allocate({ vTab, argc, name, outFn, outData ->
-    val functionName = name.toKStringFromUtf8()
-
-    vTabFindFunction(
-        vTab = vTab.address(),
-        argumentCount = argc,
-        functionName = functionName,
-        setFunction = { instance, appData, function ->
-            // Keep the same logic as regular function from C-API
-            // The function is bound to the sqlite3_vtab lifecycle
-            createFunction(appData, function, null, null, null) { fn, fnDestroy ->
-                outFn.setPointerValue(instance.memory.functionPointer(::FunctionFuncHandler))
-
-                outData.setPointerValue(
-                    instance.memory.keyedStableRefPointer(
-                        key = functionKey(functionName, argc, null),
-                        data = fn,
-                        appData = appData,
-                        destructor = fnDestroy
-                    )
-                )
-            }
-        }
-    )
 }, StaticMemoryAllocator)
 
 internal val VTabRenameHandler = xRename.allocate({ vTab, newName ->

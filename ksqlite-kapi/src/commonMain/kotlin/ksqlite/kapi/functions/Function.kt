@@ -3,10 +3,11 @@ package ksqlite.kapi.functions
 /**
  * [Application-Defined SQL Functions](https://sqlite.org/appfunc.html).
  */
-public interface Function {
+public interface Function : AutoCloseable {
 
     /**
-     * Called when the function is finalized by SQLite.
+     * Called when the function is finalized by SQLite. Finalization can also happen when the
+     * function registration fails.
      */
-    public fun destroy(): Unit = Unit
+    public override fun close(): Unit = Unit
 }

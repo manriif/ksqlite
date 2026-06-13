@@ -1,6 +1,4 @@
-@file:Suppress("ClassName", "SpellCheckingInspection")
-
-package ksqlite.capi.vtab
+package ksqlite.capi.types.vtab
 
 /**
  * These constants define the various options to the sqlite3_vtab_config() interface that virtual

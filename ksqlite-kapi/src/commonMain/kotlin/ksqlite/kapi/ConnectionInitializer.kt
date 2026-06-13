@@ -1,6 +1,7 @@
 package ksqlite.kapi
 
 import ksqlite.capi.types.Sqlite3TextEncoding
+import ksqlite.capi.types.vtab.Sqlite3ModuleVersion
 import ksqlite.kapi.callbacks.AutoVacuumPages
 import ksqlite.kapi.functions.AggregateFunction
 import ksqlite.kapi.functions.ScalarFunction
@@ -36,6 +37,19 @@ public interface ConnectionInitializer {
 
     public fun createModule(
         name: String,
-        module: VirtualTableModule
+        version: Sqlite3ModuleVersion = Sqlite3ModuleVersion.VERSION_4,
+        module: VirtualTableModule.Regular
+    )
+
+    public fun createModule(
+        name: String,
+        version: Sqlite3ModuleVersion = Sqlite3ModuleVersion.VERSION_4,
+        module: VirtualTableModule.Eponymous
+    )
+
+    public fun createModule(
+        name: String,
+        version: Sqlite3ModuleVersion = Sqlite3ModuleVersion.VERSION_4,
+        module: VirtualTableModule.EponymousOnly
     )
 }

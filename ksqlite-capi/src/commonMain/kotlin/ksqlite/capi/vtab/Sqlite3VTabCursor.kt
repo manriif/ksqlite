@@ -3,6 +3,7 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.Struct
+import ksqlite.capi.types.vtab.Sqlite3VTabCursor
 
 /**
  * Every virtual table module implementation uses a subclass of the following structure to describe
@@ -22,4 +23,4 @@ import ksqlite.capi.memory.Struct
  *
  * Subclasser may pass the typed [sqlite3_vtab] as a constructor parameter if necessary.
  */
-public expect open class sqlite3_vtab_cursor() : Struct
+public expect open class sqlite3_vtab_cursor() : Struct, Sqlite3VTabCursor

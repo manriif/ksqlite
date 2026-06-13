@@ -1,4 +1,4 @@
-package ksqlite.capi.vtab
+package ksqlite.capi.types.vtab
 
 /**
  * Defines the particular edition of the module table structure. Currently, iVersion is always

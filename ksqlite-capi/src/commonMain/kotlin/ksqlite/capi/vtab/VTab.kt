@@ -2,6 +2,7 @@
 
 package ksqlite.capi.vtab
 
+import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
 import ksqlite.capi.memory.ConcurrentMap
 import ksqlite.capi.types.Sqlite3Result
@@ -57,8 +58,8 @@ import ksqlite.capi.vtab.callbacks.Sqlite3VTabCreateOrConnectCallback as CreateO
  * Callbacks of an SQLite 3 Virtual Table module.
  */
 internal class VTabModuleCallbacks<AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
-    val create: Sqlite3VTabCreateCallback<AppData, VTab>?,
-    val connect: Sqlite3VTabConnectCallback<AppData, VTab>,
+    val create: Sqlite3VTabCreateCallback<in AppData, VTab>?,
+    val connect: Sqlite3VTabConnectCallback<in AppData, VTab>,
     val bestIndex: Sqlite3VTabBestIndexCallback<VTab>,
     val disconnect: Sqlite3VTabDisconnectCallback<VTab>,
     val destroy: Sqlite3VTabDestroyCallback<VTab>,
@@ -70,11 +71,11 @@ internal class VTabModuleCallbacks<AppData, VTab : sqlite3_vtab, VTabCursor : sq
     val column: Sqlite3VTabColumnCallback<VTabCursor>,
     val rowid: Sqlite3VTabRowidCallback<VTabCursor>,
     val update: Sqlite3VTabUpdateCallback<VTab>?,
+    val findFunction: Sqlite3VTabFindFunctionCallback<VTab>?,
     val begin: Sqlite3VTabBeginCallback<VTab>?,
     val sync: Sqlite3VTabSyncCallback<VTab>?,
     val commit: Sqlite3VTabCommitCallback<VTab>?,
     val rollback: Sqlite3VTabRollbackCallback<VTab>?,
-    val findFunction: Sqlite3VTabFindFunctionCallback<VTab>?,
     val rename: Sqlite3VTabRenameCallback<VTab>?,
     val savepoint: Sqlite3VTabSavepointCallback<VTab>?,
     val release: Sqlite3VTabReleaseCallback<VTab>?,
@@ -202,7 +203,7 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
 
     inline fun next(cursorAddress: Long) = callbacks.next.handle(cursorAddress.cursor).code
 
-    inline fun eof(cursorAddress: Long) = callbacks.eof.handle(cursorAddress.cursor).code
+    inline fun eof(cursorAddress: Long) = callbacks.eof.handle(cursorAddress.cursor)
 
     inline fun column(
         cursorAddress: Long,
@@ -249,13 +250,18 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
     inline fun findFunction(
         argumentCount: Int,
         functionName: String,
-        setFunction: (sqlite3_vtab, Any?, Sqlite3FunctionFuncCallback<Any?>) -> Unit
+        setFunction: (
+            sqlite3_vtab,
+            Any?,
+            Sqlite3FunctionFuncCallback<Any?>,
+            Sqlite3DestroyCallback<Any?>?
+        ) -> Unit
     ) = checkNotNull(callbacks.findFunction).run {
         when (val result = vTabFindFunctionScope().handle(vTab, argumentCount, functionName)) {
             VTabFindFunctionDoNotOverloadResult -> 0
 
             is VTabFindFunctionOverloadResult -> {
-                setFunction(vTab, result.appData, result.function)
+                setFunction(vTab, result.appData, result.function, result.destroy)
                 result.result
             }
         }
@@ -312,7 +318,7 @@ private inline val Long.vTabState: VTabState<*, *>
 /**
  * Invokes `this` create or connect callback.
  */
-private inline fun <AppData, VTab : sqlite3_vtab> CreateOrConnect<AppData, VTab>.createOrConnect(
+private inline fun <AppData, VTab : sqlite3_vtab> CreateOrConnect<in AppData, VTab>.createOrConnect(
     module: VTabModule<AppData, VTab, *>,
     db: sqlite3,
     argv: Array<String>,
@@ -454,6 +460,21 @@ internal inline fun vTabUpdate(
 ) = vTab.vTabState.update(arguments, setRowid)
 
 /**
+ * Invokes the [VTabModuleCallbacks.findFunction].
+ */
+internal inline fun vTabFindFunction(
+    vTab: Long,
+    argumentCount: Int,
+    functionName: String,
+    setFunction: (
+        sqlite3_vtab,
+        Any?,
+        Sqlite3FunctionFuncCallback<Any?>,
+        Sqlite3DestroyCallback<Any?>?
+    ) -> Unit
+) = vTab.vTabState.findFunction(argumentCount, functionName, setFunction)
+
+/**
  * Invokes the [VTabModuleCallbacks.begin].
  */
 internal inline fun vTabBegin(vTab: Long) = vTab.vTabState.begin()
@@ -472,16 +493,6 @@ internal inline fun vTabCommit(vTab: Long) = vTab.vTabState.commit()
  * Invokes the [VTabModuleCallbacks.rollback].
  */
 internal inline fun vTabRollback(vTab: Long) = vTab.vTabState.rollback()
-
-/**
- * Invokes the [VTabModuleCallbacks.findFunction].
- */
-internal inline fun vTabFindFunction(
-    vTab: Long,
-    argumentCount: Int,
-    functionName: String,
-    setFunction: (sqlite3_vtab, Any?, Sqlite3FunctionFuncCallback<Any?>) -> Unit
-) = vTab.vTabState.findFunction(argumentCount, functionName, setFunction)
 
 /**
  * Invokes the [VTabModuleCallbacks.rename].

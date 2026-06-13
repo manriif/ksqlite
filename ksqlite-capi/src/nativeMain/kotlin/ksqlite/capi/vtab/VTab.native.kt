@@ -163,6 +163,34 @@ internal val VTabUpdateHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
     )
 }
 
+internal val VTabFindFunctionHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
+                                                         argc: Int,
+                                                         name: CPointer<ByteVar>?,
+                                                         outFunction: CPointer<CPointerVar<CFunction<(CPointer<s3_context>?, Int, CPointer<CPointerVar<s3_value>>?) -> Unit>>>?,
+                                                         outAppData: CPointer<COpaquePointerVar>? ->
+    val functionName = name!!.toKStringFromUtf8()
+
+    vTabFindFunction(
+        vTab = vTab.toLong(),
+        argumentCount = argc,
+        functionName = functionName,
+        setFunction = { instance, appData, function, destroy ->
+            // Keep the same logic as regular function from C-API
+            // The function is bound to the sqlite3_vtab lifecycle
+            createFunction(appData, function, null, null, destroy) { fn, fnDestroy ->
+                outFunction!!.pointed.value = callbackHandler(function, FunctionFuncHandler)
+
+                outAppData!!.pointed.value = instance.memory.keyedStableRefPointer(
+                    key = functionKey(functionName, argc, null),
+                    data = fn,
+                    appData = appData,
+                    destructor = fnDestroy
+                )
+            }
+        }
+    )
+}
+
 internal val VTabBeginHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
     vTabBegin(vTab.toLong())
 }
@@ -177,34 +205,6 @@ internal val VTabCommitHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
 
 internal val VTabRollbackHandler = staticCFunction { vTab: CPointer<s3_vtab>? ->
     vTabRollback(vTab.toLong())
-}
-
-internal val VTabFindFunctionHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
-                                                         argc: Int,
-                                                         name: CPointer<ByteVar>?,
-                                                         outFunction: CPointer<CPointerVar<CFunction<(CPointer<s3_context>?, Int, CPointer<CPointerVar<s3_value>>?) -> Unit>>>?,
-                                                         outAppData: CPointer<COpaquePointerVar>? ->
-    val functionName = name!!.toKStringFromUtf8()
-
-    vTabFindFunction(
-        vTab = vTab.toLong(),
-        argumentCount = argc,
-        functionName = functionName,
-        setFunction = { instance, appData, function ->
-            // Keep the same logic as regular function from C-API
-            // The function is bound to the sqlite3_vtab lifecycle
-            createFunction(appData, function, null, null, null) { fn, fnDestroy ->
-                outFunction!!.pointed.value = callbackHandler(function, FunctionFuncHandler)
-
-                outAppData!!.pointed.value = instance.memory.keyedStableRefPointer(
-                    key = functionKey(functionName, argc, null),
-                    data = fn,
-                    appData = appData,
-                    destructor = fnDestroy
-                )
-            }
-        }
-    )
 }
 
 internal val VTabRenameHandler = staticCFunction { vTab: CPointer<s3_vtab>?,

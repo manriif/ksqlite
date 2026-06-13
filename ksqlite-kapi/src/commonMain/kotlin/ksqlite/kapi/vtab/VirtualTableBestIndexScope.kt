@@ -14,7 +14,7 @@ public interface VirtualTableBestIndexScope {
 
     /**
      * Returns the name of the collation sequence to use for text comparisons on the constraint
-     * the received [IndexInfo] and constraint at [index].
+     * the received [ksqlite.capi.types.vtab.Sqlite3IndexInfo] and constraint at [index].
      */
     public fun collation(index: Int): String
 

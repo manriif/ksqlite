@@ -3,6 +3,9 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.Struct
+import ksqlite.capi.types.vtab.Sqlite3IndexInfo
+import ksqlite.capi.types.vtab.Sqlite3VTabConstraintOperatorCode
+import ksqlite.capi.types.vtab.Sqlite3VTabScanFlag
 
 /**
  * The sqlite3_index_info structure and its substructures is used as part of the virtual table
@@ -11,107 +14,22 @@ import ksqlite.capi.memory.Struct
  *
  * [sqlite3_index_info](https://sqlite.org/c3ref/index_info.html)
  */
-public expect class sqlite3_index_info : Struct {
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Inputs
-    ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Mask of columns used by statement.
-     */
-    public val colUsed: ULong
-
-    /**
-     * Number of constraints.
-     */
-    public val nConstraint: Int
-
-    /**
-     * Number of terms in the ORDER BY clause.
-     */
-    public val nOrderBy: Int
-
-    /**
-     * Returns the column for the constraint at [index].
-     * Returns -1 for ROWID.
-     */
-    public fun getConstraintColumn(index: Int): Int
-
-    /**
-     * Returns the operator for the constraint at [index].
-     */
-    public fun getConstraintOp(index: Int): Sqlite3VTabConstraintOperatorCode
-
-    /**
-     * Returns `True` if the constraint at [index] is usable.
-     */
-    public fun getConstraintUsable(index: Int): Int
-
-    /**
-     * Returns the column for the ORDER BY at [index].
-     */
-    public fun getOrderByColumn(index: Int): Int
-
-    /**
-     * Returns `True` in the ORDER BY at [index] is in descending order, `False` if the order is
-     * ascending.
-     */
-    public fun getOrderByDesc(index: Int): Int
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Outputs
-    ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Number used to identify the index.
-     */
-    public var idxNum: Int
-
-    /**
-     * String recorded with [idxNum] and passed into the xFilter method.
-     * Setting a value to this field automatically free any previously existing value.
-     */
-    public var idxStr: String?
-
-    /**
-     * Free [idxStr] using sqlite3_free() if true.
-     */
-    public var needToFreeIdxStr: Int
-
-    /**
-     * True if output is already ordered.
-     */
-    public var orderByConsumed: Int
-
-    /**
-     * Estimated cost of using this index.
-     */
-    public var estimatedCost: Double
-
-    /**
-     * Estimated number of rows returned.
-     */
-    public var estimatedRows: Long
-
-    /**
-     * Mask of [Sqlite3VTabScanFlag] flags.
-     */
-    public var idxFlags: Sqlite3VTabScanFlag
-
-    /**
-     * if [argvIndex] > 0, then the constraint at [index] is part of argv to xFilter.
-     */
-    public fun setConstraintUsageArgvIndex(
-        index: Int,
-        argvIndex: Int
-    )
-
-    /**
-     * If [omit] is `True` then no test is coded for the constraint at [index].
-     */
-    public fun setConstraintUsageOmit(
-        index: Int,
-        omit: Int
-    )
+public expect class sqlite3_index_info : Struct, Sqlite3IndexInfo {
+    override val colUsed: ULong
+    override val nConstraint: Int
+    override val nOrderBy: Int
+    override fun getConstraintColumn(index: Int): Int
+    override fun getConstraintOp(index: Int): Sqlite3VTabConstraintOperatorCode
+    override fun getConstraintUsable(index: Int): Int
+    override fun getOrderByColumn(index: Int): Int
+    override fun getOrderByDesc(index: Int): Int
+    override var idxNum: Int
+    override var idxStr: String?
+    override var needToFreeIdxStr: Int
+    override var orderByConsumed: Int
+    override var estimatedCost: Double
+    override var estimatedRows: Long
+    override var idxFlags: Sqlite3VTabScanFlag
+    override fun setConstraintUsageArgvIndex(index: Int, argvIndex: Int)
+    override fun setConstraintUsageOmit(index: Int, omit: Int)
 }

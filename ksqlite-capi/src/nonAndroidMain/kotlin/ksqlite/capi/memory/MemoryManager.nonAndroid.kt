@@ -8,6 +8,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 /**
  * Base for [MemoryManager].
+ * TODO Clear keyed reference when null is passed
  */
 @OptIn(ExperimentalAtomicApi::class)
 internal abstract class MemoryManagerBase : AutoCloseable {

@@ -1,12 +1,9 @@
-package ksqlite.kapi.vtab
-
-import ksqlite.capi.vtab.Sqlite3VTabConstraintOperatorCode
-import ksqlite.capi.vtab.Sqlite3VTabScanFlag
+package ksqlite.capi.types.vtab
 
 /**
- * Index information.
+ * Describes an [`sqlite3_index_info`](https://sqlite.org/c3ref/index_info.html) struct.
  */
-public interface IndexInfo {
+public interface Sqlite3IndexInfo {
 
     ///////////////////////////////////////////////////////////////////////////
     // Inputs

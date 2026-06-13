@@ -17,7 +17,7 @@ import ksqlite.capi.sqlite3_result_zeroblob
 import ksqlite.capi.sqlite3_result_zeroblob64
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.kapi.impl.helpers.ContextClosableScope
-import ksqlite.kapi.impl.functions.autoClosableDestructor
+import ksqlite.kapi.impl.helpers.autoCloser
 import ksqlite.kapi.impl.helpers.sqliteResultCheck
 import ksqlite.kapi.value.Value
 import ksqlite.kapi.value.ValueReturnScope
@@ -88,7 +88,7 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
             context = scope.context,
             data = value,
             type = type,
-            destroy = autoClosableDestructor(value)
+            destroy = autoCloser(value)
         )
     }
 }

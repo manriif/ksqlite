@@ -1,4 +1,4 @@
-package ksqlite.capi.vtab
+package ksqlite.capi.types.vtab
 
 /**
  * Virtual table implementations are allowed to set the sqlite3_index_info.idxFlags field to some

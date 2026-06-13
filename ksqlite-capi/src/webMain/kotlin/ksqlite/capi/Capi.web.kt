@@ -100,7 +100,7 @@ import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParamStackScoped
 import ksqlite.capi.types.useParamsStackScoped
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.vtab.createVTabModule
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
@@ -667,7 +667,7 @@ public actual fun <AppData> sqlite3_create_module_v2(
     name: String,
     module: sqlite3_module<AppData>?,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?
+    destroy: Sqlite3DestroyCallback<in AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     heapScoped {
         createVTabModule(module?.callbacks, appData) { vTabModule ->

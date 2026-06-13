@@ -1,5 +1,5 @@
 package ksqlite.kapi
 
-public interface Connection {
+public interface Connection: AutoCloseable {
 
 }

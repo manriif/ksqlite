@@ -12,8 +12,8 @@ import ksqlite.capi.types.sqlite3ActionCodes
 import ksqlite.capi.types.sqlite3DataTypes
 import ksqlite.capi.types.sqlite3Results
 import ksqlite.capi.types.sqlite3TextEncodings
-import ksqlite.capi.vtab.Sqlite3VTabConstraintOperatorCode
-import ksqlite.capi.vtab.sqlite3VTabConstraintOperatorCodes
+import ksqlite.capi.types.vtab.Sqlite3VTabConstraintOperatorCode
+import ksqlite.capi.types.vtab.sqlite3VTabConstraintOperatorCodes
 
 ///////////////////////////////////////////////////////////////////////////
 // Result

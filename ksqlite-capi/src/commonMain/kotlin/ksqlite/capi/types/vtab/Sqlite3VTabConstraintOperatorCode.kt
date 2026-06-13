@@ -1,6 +1,6 @@
 @file:Suppress("SpellCheckingInspection")
 
-package ksqlite.capi.vtab
+package ksqlite.capi.types.vtab
 
 /**
  * These macros define the allowed values for the sqlite3_index_info.aConstraint[].op field. Each

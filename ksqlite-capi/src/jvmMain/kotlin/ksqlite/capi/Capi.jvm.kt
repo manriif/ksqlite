@@ -90,7 +90,7 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
@@ -628,7 +628,7 @@ public actual fun <AppData> sqlite3_create_module_v2(
     name: String,
     module: sqlite3_module<AppData>?,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?
+    destroy: Sqlite3DestroyCallback<in AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     memScoped {
         createVTabModule(module?.callbacks, appData) { vTabModule ->

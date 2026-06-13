@@ -1,5 +1,6 @@
 package ksqlite.kapi.vtab
 
+import ksqlite.capi.types.vtab.Sqlite3VTabCursor
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.value.ProtectedValue
 
@@ -9,42 +10,42 @@ import ksqlite.kapi.value.ProtectedValue
  * If an error is detected in a function exposed by this interface, and if error raising is allowed
  * by SQLite, it is allowed to raise an [SQLiteException] that is then reported to SQLite.
  */
-public interface VirtualTableCursor : AutoCloseable {
+public abstract class VirtualTableCursor : Sqlite3VTabCursor, AutoCloseable {
 
     /**
      * Returns `false` if `this` cursor currently points to a valid row of data, of `true`
      * otherwise.
      */
-    public fun eof(): Boolean
+    public abstract fun eof(): Boolean
 
     /**
      * Begins a search on a virtual table.
      */
-    public fun VirtualTableFilterScope.filter(
+    public abstract fun VirtualTableFilterScope.filter(
         idxNum: Int,
-        idxStr: String,
+        idxStr: String?,
         arguments: Array<ProtectedValue>
     )
 
     /**
      * Advances `this` cursor to the next row of a result set initiated by [filter].
      */
-    public fun next()
+    public abstract fun next()
 
     /**
      * Returns the value of the [index]th column by using one of the
      * [VirtualTableColumnScope.setResult] overload.
      */
-    public fun VirtualTableColumnScope.column(index: Int)
+    public abstract fun VirtualTableColumnScope.column(index: Int)
 
     /**
      * Returns the rowid `this` cursor is currently pointing at.
      */
-    public fun rowid(arguments: Array<ProtectedValue>): Long
+    public abstract fun rowid(): Long
 
     /**
      * Closes the cursor.
      * It is not allowed to throw an [SQLiteException] here.
      */
-    override fun close()
+    abstract override fun close()
 }
