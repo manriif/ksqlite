@@ -13,7 +13,7 @@ import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.SQLITE_TRANSIENT
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
-import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
@@ -32,7 +32,7 @@ import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3WalHookCallback
 import ksqlite.capi.handlers.AuthorizerHandler
-import ksqlite.capi.handlers.AutoVacuumPagesHandler
+import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationCompareHandler
 import ksqlite.capi.handlers.CollationNeededHandler
@@ -360,11 +360,11 @@ public actual fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
     appData: AppData,
     destroy: Sqlite3DestroyCallback<in AppData>?,
-    callback: Sqlite3AutoVacuumPagesCallback<in AppData>?
+    callback: Sqlite3AutovacuumPagesCallback<in AppData>?
 ): Sqlite3Result = convertResult(
     native_sqlite3_autovacuum_pages(
         db.pointer,
-        callbackHandler(callback, AutoVacuumPagesHandler),
+        callbackHandler(callback, AutovacuumPagesHandler),
         db.memory.keyedStableRefPointer(KEY_AUTOVACUUM_PAGES, callback, appData, destroy),
         stableRefDisposer(callback, destroy)
     )
@@ -556,24 +556,24 @@ public actual fun sqlite3_blob_open(
 
 public actual fun sqlite3_blob_read(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    output: ByteArray,
     size: Int,
     offset: Int
 ): Sqlite3Result =
-    convertResult(native_sqlite3_blob_read(blob.pointer, bytes.refTo(0), size, offset))
+    convertResult(native_sqlite3_blob_read(blob.pointer, output.refTo(0), size, offset))
 
 public actual fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
-    rowIndex: Long
-): Sqlite3Result = convertResult(native_sqlite3_blob_reopen(blob.pointer, rowIndex))
+    rowid: Long
+): Sqlite3Result = convertResult(native_sqlite3_blob_reopen(blob.pointer, rowid))
 
 public actual fun sqlite3_blob_write(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    input: ByteArray,
     size: Int,
     offset: Int
 ): Sqlite3Result =
-    convertResult(native_sqlite3_blob_write(blob.pointer, bytes.refTo(0), size, offset))
+    convertResult(native_sqlite3_blob_write(blob.pointer, input.refTo(0), size, offset))
 
 public actual fun <AppData> sqlite3_busy_handler(
     db: sqlite3,
@@ -951,8 +951,8 @@ public actual fun sqlite3_drop_modules(
     native_sqlite3_drop_modules(db.pointer, keep?.toCStringArray(this))
 })
 
-public actual fun sqlite3_errcode(db: sqlite3): Int =
-    native_sqlite3_errcode(db.pointer)
+public actual fun sqlite3_errcode(db: sqlite3): Sqlite3Result =
+    convertResult(native_sqlite3_errcode(db.pointer))
 
 public actual fun sqlite3_errmsg(db: sqlite3): String? =
     native_sqlite3_errmsg(db.pointer)?.toKStringFromUtf8()

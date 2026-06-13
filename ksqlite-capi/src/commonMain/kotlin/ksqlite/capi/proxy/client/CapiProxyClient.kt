@@ -2,7 +2,7 @@ package ksqlite.capi.proxy.client
 
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
-import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
@@ -79,7 +79,7 @@ public interface CapiProxyClient {
         db: sqlite3,
         appData: AppData,
         destroy: Sqlite3DestroyCallback<AppData>?,
-        callback: Sqlite3AutoVacuumPagesCallback<AppData>?
+        callback: Sqlite3AutovacuumPagesCallback<AppData>?
     ): Sqlite3Result
 
     /**

@@ -1,6 +1,6 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.kapi.Connection
+import ksqlite.kapi.connection.Connection
 import ksqlite.kapi.SQLiteException
 
 /**

@@ -4,7 +4,7 @@ package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
-import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
@@ -22,7 +22,7 @@ import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.handlers.AuthorizerHandler
-import ksqlite.capi.handlers.AutoVacuumPagesHandler
+import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationCompareHandler
 import ksqlite.capi.handlers.CollationNeededHandler
@@ -189,11 +189,11 @@ public actual fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
     appData: AppData,
     destroy: Sqlite3DestroyCallback<in AppData>?,
-    callback: Sqlite3AutoVacuumPagesCallback<in AppData>?
+    callback: Sqlite3AutovacuumPagesCallback<in AppData>?
 ): Sqlite3Result = convertResult(db.withMemoryManager {
     exports.sqlite3_autovacuum_pages(
         db.pointer,
-        functionPointer(callback, ::AutoVacuumPagesHandler),
+        functionPointer(callback, ::AutovacuumPagesHandler),
         keyedStableRefPointer(KEY_AUTOVACUUM_PAGES, callback, appData, destroy),
         stableRefDisposer(callback, destroy)
     )
@@ -395,7 +395,7 @@ public actual fun sqlite3_blob_open(
 
 public actual fun sqlite3_blob_read(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    output: ByteArray,
     size: Int,
     offset: Int
 ): Sqlite3Result {
@@ -410,7 +410,7 @@ public actual fun sqlite3_blob_read(
 
             memory.heap8()
                 .subarray(start, end)
-                .copyTo(bytes, 0)
+                .copyTo(output, 0)
         }
     } finally {
         memory.dealloc(pointer)
@@ -421,15 +421,15 @@ public actual fun sqlite3_blob_read(
 
 public actual fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
-    rowIndex: Long
-): Sqlite3Result = convertResult(exports.sqlite3_blob_reopen(blob.pointer, rowIndex.toJsBigInt()))
+    rowid: Long
+): Sqlite3Result = convertResult(exports.sqlite3_blob_reopen(blob.pointer, rowid.toJsBigInt()))
 
 public actual fun sqlite3_blob_write(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    input: ByteArray,
     size: Int,
     offset: Int
-): Sqlite3Result = convertResult(bufferScoped(bytes) { bufferPtr ->
+): Sqlite3Result = convertResult(bufferScoped(input) { bufferPtr ->
     exports.sqlite3_blob_write(blob.pointer, bufferPtr, size, offset)
 })
 
@@ -827,8 +827,8 @@ public actual fun sqlite3_drop_modules(
     exports.sqlite3_drop_modules(db.pointer, allocateUtf8Array(keep))
 })
 
-public actual fun sqlite3_errcode(db: sqlite3): Int =
-    exports.sqlite3_errcode(db.pointer)
+public actual fun sqlite3_errcode(db: sqlite3): Sqlite3Result =
+    convertResult(exports.sqlite3_errcode(db.pointer))
 
 public actual fun sqlite3_errmsg(db: sqlite3): String? =
     exports.sqlite3_errmsg(db.pointer).toKStringFromUtf8OrNull()

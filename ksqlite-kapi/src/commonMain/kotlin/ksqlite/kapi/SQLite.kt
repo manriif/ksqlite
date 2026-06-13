@@ -3,10 +3,10 @@ package ksqlite.kapi
 import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.kapi.callbacks.AutoExtension
-import ksqlite.kapi.impl.createSQLiteInstance
+import ksqlite.kapi.connection.Connection
 
 /**
- * SQLite instance is used to obtains [Connection].
+ * SQLite instance is used to obtains [ksqlite.kapi.connection.Connection].
  */
 public interface SQLite : AutoCloseable {
 
@@ -30,7 +30,7 @@ public interface SQLite : AutoCloseable {
     /**
      * Opens a new database connection using `sqlite3_open_v2(), forwarding [flag] and [vfs].
      *
-     * Once opened, [configure] is immediately invoked before the [Connection] is getting
+     * Once opened, [configure] is immediately invoked before the [ksqlite.kapi.connection.Connection] is getting
      * returned.
      */
     public fun open(

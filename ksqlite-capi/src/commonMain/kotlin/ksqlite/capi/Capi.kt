@@ -4,7 +4,7 @@ package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
-import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
+import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
@@ -113,7 +113,7 @@ public expect fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
     appData: AppData,
     destroy: Sqlite3DestroyCallback<in AppData>?,
-    callback: Sqlite3AutoVacuumPagesCallback<in AppData>?
+    callback: Sqlite3AutovacuumPagesCallback<in AppData>?
 ): Sqlite3Result
 
 /**
@@ -151,7 +151,7 @@ public expect fun sqlite3_backup_pagecount(backup: sqlite3_backup): Int
  * Return the number of pages still to be backed up as of the most recent call to
  * [sqlite3_backup_step].
  *
- * [sqlite3_backup_remaining](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
+ * [sqlite3_backup_remaining()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
  */
 public expect fun sqlite3_backup_remaining(backup: sqlite3_backup): Int
 
@@ -372,7 +372,7 @@ public expect fun sqlite3_blob_open(
  */
 public expect fun sqlite3_blob_read(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    output: ByteArray,
     size: Int,
     offset: Int
 ): Sqlite3Result
@@ -389,7 +389,7 @@ public expect fun sqlite3_blob_read(
  */
 public expect fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
-    rowIndex: Long
+    rowid: Long
 ): Sqlite3Result
 
 /**
@@ -399,7 +399,7 @@ public expect fun sqlite3_blob_reopen(
  */
 public expect fun sqlite3_blob_write(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    input: ByteArray,
     size: Int,
     offset: Int
 ): Sqlite3Result
@@ -999,7 +999,7 @@ public expect fun sqlite3_drop_modules(
  *
  * [sqlite3_errcode()](https://sqlite.org/c3ref/errcode.html)
  */
-public expect fun sqlite3_errcode(db: sqlite3): Int
+public expect fun sqlite3_errcode(db: sqlite3): Sqlite3Result
 
 /**
  * Return UTF-8 encoded English language explanation of the most recent error.

@@ -1,8 +1,7 @@
 package ksqlite.kapi.functions
 
 import ksqlite.capi.sqlite3_aggregate_context
-import ksqlite.kapi.impl.functions.FunctionScopeImpl
-import ksqlite.kapi.impl.value.ValueReturnScopeImpl
+import ksqlite.kapi.value.ValueReturnScopeImpl
 import ksqlite.kapi.value.ValueReturnScope
 
 /**

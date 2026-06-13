@@ -1,7 +1,7 @@
 package ksqlite.kapi.functions
 
 import ksqlite.capi.types.Sqlite3Result
-import ksqlite.kapi.Connection
+import ksqlite.kapi.connection.Connection
 import ksqlite.kapi.SQLiteException
 
 /**

@@ -1,8 +1,7 @@
 package ksqlite.kapi.functions
 
 import ksqlite.capi.sqlite3_aggregate_context
-import ksqlite.kapi.impl.helpers.sqliteOutOfMemoryCheck
-import ksqlite.kapi.impl.functions.FunctionScopeImpl
+import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 
 /**
  * Scope for use with [AggregateFunction.step] and [WindowFunction.inverse].

@@ -21,7 +21,7 @@ public interface VirtualTableCreateOrConnectScope {
      * Declares that the virtual table overloads the function identified by [name] and
      * [argumentCount].
      *
-     * The virtual table must implement [VirtualTable.FindFunctionSupport].
+     * The virtual table must implement [VirtualTable.findFunction].
      */
     public fun overloadFunction(
         name: String,

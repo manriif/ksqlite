@@ -635,7 +635,7 @@ struct DbState : MutexGuarded {
 
     struct {
         Hook authorizer;
-        HookDestroyable autoVacuumPages;
+        HookDestroyable autovacuumPages;
         Hook busyHandler;
         HookDestroyable collationCompare;
         Hook collationNeeded;
@@ -686,7 +686,7 @@ static void destroyDbState(
     HookClear(hooks.walHook);
 
     // Destructors must have been called by SQLite for theses hooks.
-    RequireNull(hooks.autoVacuumPages.instance);
+    RequireNull(hooks.autovacuumPages.instance);
     RequireNull(hooks.collationCompare.instance);
 
     sqlite3_free(state.configMainDbName);
@@ -2604,9 +2604,9 @@ Java_ksqlite_KsqliteJni_sqlite3_1aggregate_1context(
 }
 
 /**
- * Calls the `AutoVacuumPagesCallback` hook.
+ * Calls the `AutovacuumPagesCallback` hook.
  */
-static unsigned int autoVacuumPagesCaller(
+static unsigned int autovacuumPagesCaller(
     void* pHook,
     const char* zSchema,
     unsigned int nDbPage,
@@ -2617,7 +2617,7 @@ static unsigned int autoVacuumPagesCaller(
     DbStateDeclareHook(pHook);
     const auto schema = Utf8ToJstring(zSchema);
 
-    HookEnterDbState(autoVacuumPages);
+    HookEnterDbState(autovacuumPages);
     uint result = env->CallIntMethod(instance, apply, schema, nDbPage, nFreePage, nBytePerPage);
     HookLeave();
 
@@ -2635,10 +2635,10 @@ Java_ksqlite_KsqliteJni_sqlite3_1autovacuum_1pages(
     jobject destructor
 ) {
     DbHookDestructorReplace(
-        autoVacuumPages,
+        autovacuumPages,
         "(Ljava/lang/String;III)I",
-        "AutoVacuumPagesCallback",
-        sqlite3_autovacuum_pages(pDb, autoVacuumPagesCaller, pHook, hookDestroyer),
+        "AutovacuumPagesCallback",
+        sqlite3_autovacuum_pages(pDb, autovacuumPagesCaller, pHook, hookDestroyer),
         sqlite3_autovacuum_pages(pDb, nullptr, nullptr, nullptr)
     );
 }
@@ -3605,7 +3605,7 @@ Java_ksqlite_KsqliteJni_sqlite3_1create_1collation_1v2(
     const auto zName = JstringToUtf8(name);
 
     DbHookDestructorReplace(
-        autoVacuumPages,
+        collationCompare,
         "([B[B)I",
         "CollationCompareCallback",
         sqlite3_create_collation_v2(

@@ -4,7 +4,6 @@ import ksqlite.capi.types.vtab.Sqlite3IndexInfo
 import ksqlite.capi.types.vtab.Sqlite3VTab
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.functions.ScalarFunction
-import ksqlite.kapi.impl.vtab.VTab
 import ksqlite.kapi.value.ProtectedValue
 
 /**

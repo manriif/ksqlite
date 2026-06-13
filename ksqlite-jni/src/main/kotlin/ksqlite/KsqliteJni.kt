@@ -5,7 +5,7 @@ package ksqlite
 
 import ksqlite.callbacks.AuthorizerCallback
 import ksqlite.callbacks.AutoExtensionCallback
-import ksqlite.callbacks.AutoVacuumPagesCallback
+import ksqlite.callbacks.AutovacuumPagesCallback
 import ksqlite.callbacks.BusyHandlerCallback
 import ksqlite.callbacks.CollationCompareCallback
 import ksqlite.callbacks.CollationNeededCallback
@@ -171,7 +171,7 @@ public external fun sqlite3_aggregate_context(
  */
 public external fun sqlite3_autovacuum_pages(
     db: Long,
-    callback: AutoVacuumPagesCallback?,
+    callback: AutovacuumPagesCallback?,
     destructor: DestructorCallback?,
 ): Int
 

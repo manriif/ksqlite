@@ -2,9 +2,8 @@ package ksqlite.kapi.functions
 
 import ksqlite.capi.sqlite3_get_auxdata
 import ksqlite.capi.sqlite3_set_auxdata
-import ksqlite.kapi.impl.functions.FunctionScopeImpl
-import ksqlite.kapi.impl.helpers.autoCloser
-import ksqlite.kapi.impl.value.ValueReturnScopeImpl
+import ksqlite.kapi.helpers.autoCloser
+import ksqlite.kapi.value.ValueReturnScopeImpl
 import ksqlite.kapi.value.ValueReturnScope
 
 /**

@@ -19,8 +19,8 @@ import ksqlite.capi.sqlite3_value_type
 import ksqlite.capi.types.Sqlite3DataType
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.kapi.impl.helpers.ClosableScope
-import ksqlite.kapi.impl.helpers.sqliteOutOfMemoryCheck
+import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 
 /**
  * Represents an `sqlite3_value` opaque type.
