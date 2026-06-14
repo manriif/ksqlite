@@ -1,7 +1,7 @@
 package ksqlite.capi
 
-import ksqlite.OutputPointer
-import ksqlite.callbacks.AutoExtensionCallback
+import ksqlite.foreign.OutputPointer
+import ksqlite.foreign.callbacks.AutoExtensionCallback
 import ksqlite.capi.types.sqlite3
 
 /**

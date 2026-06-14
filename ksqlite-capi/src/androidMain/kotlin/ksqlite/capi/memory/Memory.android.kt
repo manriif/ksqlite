@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.nativeReadString
+import ksqlite.foreign.nativeReadString
 
 ///////////////////////////////////////////////////////////////////////////
 // Pointer

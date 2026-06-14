@@ -1,7 +1,7 @@
 package ksqlite.capi.memory
 
-import ksqlite.structs.StructType
-import ksqlite.wasm.WasmPointer
+import ksqlite.foreign.structs.StructType
+import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toLong
 
 public actual open class Struct internal constructor(

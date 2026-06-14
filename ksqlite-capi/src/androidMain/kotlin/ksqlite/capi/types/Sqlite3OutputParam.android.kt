@@ -1,6 +1,6 @@
 package ksqlite.capi.types
 
-import ksqlite.OutputPointer
+import ksqlite.foreign.OutputPointer
 import ksqlite.capi.memory.isNull
 
 /**

@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.structs.JniStruct
+import ksqlite.foreign.structs.JniStruct
 
 public actual open class Struct internal constructor(
     internal val pointer: JniPointer,

@@ -2,7 +2,7 @@ package ksqlite.capi.memory
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.wasm
-import ksqlite.wasm.WasmPointer
+import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toLong
 
 /**

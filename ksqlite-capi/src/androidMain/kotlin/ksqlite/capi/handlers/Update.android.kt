@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.PreupdateHookCallback
-import ksqlite.callbacks.UpdateHookCallback
+import ksqlite.foreign.callbacks.PreupdateHookCallback
+import ksqlite.foreign.callbacks.UpdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.convertActionCode

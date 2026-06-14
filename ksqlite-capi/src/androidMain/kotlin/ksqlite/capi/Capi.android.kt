@@ -47,6 +47,7 @@ import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
+import ksqlite.capi.memory.toJniJavaObjectArray
 import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
@@ -92,245 +93,224 @@ import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.vtab.createVTabModule
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
-import ksqlite.ksqliteLoadLibrary
-import ksqlite.ksqlite_cancel_auto_extension
-import ksqlite.ksqlite_prepare_v2
-import ksqlite.ksqlite_prepare_v3
-import ksqlite.ksqlite_auto_extension as jni_ksqlite_auto_extension
-import ksqlite.sqlite3_autovacuum_pages as jni_sqlite3_autovacuum_pages
-import ksqlite.sqlite3_backup_finish as jni_sqlite3_backup_finish
-import ksqlite.sqlite3_backup_init as jni_sqlite3_backup_init
-import ksqlite.sqlite3_backup_pagecount as jni_sqlite3_backup_pagecount
-import ksqlite.sqlite3_backup_remaining as jni_sqlite3_backup_remaining
-import ksqlite.sqlite3_backup_step as jni_sqlite3_backup_step
-import ksqlite.sqlite3_bind_blob as jni_sqlite3_bind_blob
-import ksqlite.sqlite3_bind_blob64 as jni_sqlite3_bind_blob64
-import ksqlite.sqlite3_bind_double as jni_sqlite3_bind_double
-import ksqlite.sqlite3_bind_int as jni_sqlite3_bind_int
-import ksqlite.sqlite3_bind_int64 as jni_sqlite3_bind_int64
-import ksqlite.sqlite3_bind_null as jni_sqlite3_bind_null
-import ksqlite.sqlite3_bind_parameter_count as jni_sqlite3_bind_parameter_count
-import ksqlite.sqlite3_bind_parameter_index as jni_sqlite3_bind_parameter_index
-import ksqlite.sqlite3_bind_parameter_name as jni_sqlite3_bind_parameter_name
-import ksqlite.sqlite3_bind_pointer as jni_sqlite3_bind_pointer
-import ksqlite.sqlite3_bind_text as jni_sqlite3_bind_text
-import ksqlite.sqlite3_bind_text64 as jni_sqlite3_bind_text64
-import ksqlite.sqlite3_bind_value as jni_sqlite3_bind_value
-import ksqlite.sqlite3_bind_zeroblob as jni_sqlite3_bind_zeroblob
-import ksqlite.sqlite3_bind_zeroblob64 as jni_sqlite3_bind_zeroblob64
-import ksqlite.sqlite3_blob_bytes as jni_sqlite3_blob_bytes
-import ksqlite.sqlite3_blob_close as jni_sqlite3_blob_close
-import ksqlite.sqlite3_blob_open as jni_sqlite3_blob_open
-import ksqlite.sqlite3_blob_read as jni_sqlite3_blob_read
-import ksqlite.sqlite3_blob_reopen as jni_sqlite3_blob_reopen
-import ksqlite.sqlite3_blob_write as jni_sqlite3_blob_write
-import ksqlite.sqlite3_busy_handler as jni_sqlite3_busy_handler
-import ksqlite.sqlite3_busy_timeout as jni_sqlite3_busy_timeout
-import ksqlite.sqlite3_changes as jni_sqlite3_changes
-import ksqlite.sqlite3_changes64 as jni_sqlite3_changes64
-import ksqlite.sqlite3_clear_bindings as jni_sqlite3_clear_bindings
-import ksqlite.sqlite3_close as jni_sqlite3_close
-import ksqlite.sqlite3_close_v2 as jni_sqlite3_close_v2
-import ksqlite.sqlite3_collation_needed as jni_sqlite3_collation_needed
-import ksqlite.sqlite3_column_blob as jni_sqlite3_column_blob
-import ksqlite.sqlite3_column_bytes as jni_sqlite3_column_bytes
-import ksqlite.sqlite3_column_count as jni_sqlite3_column_count
-import ksqlite.sqlite3_column_database_name as jni_sqlite3_column_database_name
-import ksqlite.sqlite3_column_decltype as jni_sqlite3_column_decltype
-import ksqlite.sqlite3_column_double as jni_sqlite3_column_double
-import ksqlite.sqlite3_column_int as jni_sqlite3_column_int
-import ksqlite.sqlite3_column_int64 as jni_sqlite3_column_int64
-import ksqlite.sqlite3_column_name as jni_sqlite3_column_name
-import ksqlite.sqlite3_column_origin_name as jni_sqlite3_column_origin_name
-import ksqlite.sqlite3_column_table_name as jni_sqlite3_column_table_name
-import ksqlite.sqlite3_column_text as jni_sqlite3_column_text
-import ksqlite.sqlite3_column_type as jni_sqlite3_column_type
-import ksqlite.sqlite3_column_value as jni_sqlite3_column_value
-import ksqlite.sqlite3_commit_hook as jni_sqlite3_commit_hook
-import ksqlite.sqlite3_compileoption_get as jni_sqlite3_compileoption_get
-import ksqlite.sqlite3_compileoption_used as jni_sqlite3_compileoption_used
-import ksqlite.sqlite3_complete as jni_sqlite3_complete
-import ksqlite.sqlite3_config as jni_sqlite3_config
-import ksqlite.sqlite3_context_db_handle as jni_sqlite3_context_db_handle
-import ksqlite.sqlite3_create_collation_v2 as jni_sqlite3_create_collation_v2
-import ksqlite.sqlite3_create_function_v2 as jni_sqlite3_create_function_v2
-import ksqlite.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
-import ksqlite.sqlite3_create_window_function as jni_sqlite3_create_window_function
-import ksqlite.sqlite3_data_count as jni_sqlite3_data_count
-import ksqlite.sqlite3_db_cacheflush as jni_sqlite3_db_cacheflush
-import ksqlite.sqlite3_db_config as jni_sqlite3_db_config
-import ksqlite.sqlite3_db_filename as jni_sqlite3_db_filename
-import ksqlite.sqlite3_db_handle as jni_sqlite3_db_handle
-import ksqlite.sqlite3_db_name as jni_sqlite3_db_name
-import ksqlite.sqlite3_db_readonly as jni_sqlite3_db_readonly
-import ksqlite.sqlite3_db_release_memory as jni_sqlite3_db_release_memory
-import ksqlite.sqlite3_db_status as jni_sqlite3_db_status
-import ksqlite.sqlite3_db_status64 as jni_sqlite3_db_status64
-import ksqlite.sqlite3_declare_vtab as jni_sqlite3_declare_vtab
-import ksqlite.sqlite3_deserialize as jni_sqlite3_deserialize
-import ksqlite.sqlite3_drop_modules as jni_sqlite3_drop_modules
-import ksqlite.sqlite3_errcode as jni_sqlite3_errcode
-import ksqlite.sqlite3_errmsg as jni_sqlite3_errmsg
-import ksqlite.sqlite3_error_offset as jni_sqlite3_error_offset
-import ksqlite.sqlite3_errstr as jni_sqlite3_errstr
-import ksqlite.sqlite3_exec as jni_sqlite3_exec
-import ksqlite.sqlite3_expanded_sql as jni_sqlite3_expanded_sql
-import ksqlite.sqlite3_extended_errcode as jni_sqlite3_extended_errcode
-import ksqlite.sqlite3_extended_result_codes as jni_sqlite3_extended_result_codes
-import ksqlite.sqlite3_file_control as jni_sqlite3_file_control
-import ksqlite.sqlite3_finalize as jni_sqlite3_finalize
-import ksqlite.sqlite3_free as jni_sqlite3_free
-import ksqlite.sqlite3_get_autocommit as jni_sqlite3_get_autocommit
-import ksqlite.sqlite3_hard_heap_limit64 as jni_sqlite3_hard_heap_limit64
-import ksqlite.sqlite3_initialize as jni_sqlite3_initialize
-import ksqlite.sqlite3_interrupt as jni_sqlite3_interrupt
-import ksqlite.sqlite3_is_interrupted as jni_sqlite3_is_interrupted
-import ksqlite.sqlite3_key as jni_sqlite3_key
-import ksqlite.sqlite3_key_v2 as jni_sqlite3_key_v2
-import ksqlite.sqlite3_keyword_check as jni_sqlite3_keyword_check
-import ksqlite.sqlite3_keyword_count as jni_sqlite3_keyword_count
-import ksqlite.sqlite3_keyword_name as jni_sqlite3_keyword_name
-import ksqlite.sqlite3_last_insert_rowid as jni_sqlite3_last_insert_rowid
-import ksqlite.sqlite3_libversion as jni_sqlite3_libversion
-import ksqlite.sqlite3_libversion_number as jni_sqlite3_libversion_number
-import ksqlite.sqlite3_limit as jni_sqlite3_limit
-import ksqlite.sqlite3_log as jni_sqlite3_log
-import ksqlite.sqlite3_malloc as jni_sqlite3_malloc
-import ksqlite.sqlite3_malloc64 as jni_sqlite3_malloc64
-import ksqlite.sqlite3_memory_highwater as jni_sqlite3_memory_highwater
-import ksqlite.sqlite3_memory_used as jni_sqlite3_memory_used
-import ksqlite.sqlite3_msize as jni_sqlite3_msize
-import ksqlite.sqlite3_next_stmt as jni_sqlite3_next_stmt
-import ksqlite.sqlite3_open as jni_sqlite3_open
-import ksqlite.sqlite3_open_v2 as jni_sqlite3_open_v2
-import ksqlite.sqlite3_overload_function as jni_sqlite3_overload_function
-import ksqlite.sqlite3_prepare_v2 as jni_sqlite3_prepare_v2
-import ksqlite.sqlite3_prepare_v3 as jni_sqlite3_prepare_v3
-import ksqlite.sqlite3_preupdate_blobwrite as jni_sqlite3_preupdate_blobwrite
-import ksqlite.sqlite3_preupdate_count as jni_sqlite3_preupdate_count
-import ksqlite.sqlite3_preupdate_depth as jni_sqlite3_preupdate_depth
-import ksqlite.sqlite3_preupdate_hook as jni_sqlite3_preupdate_hook
-import ksqlite.sqlite3_preupdate_new as jni_sqlite3_preupdate_new
-import ksqlite.sqlite3_preupdate_old as jni_sqlite3_preupdate_old
-import ksqlite.sqlite3_progress_handler as jni_sqlite3_progress_handler
-import ksqlite.sqlite3_randomness as jni_sqlite3_randomness
-import ksqlite.sqlite3_realloc as jni_sqlite3_realloc
-import ksqlite.sqlite3_realloc64 as jni_sqlite3_realloc64
-import ksqlite.sqlite3_rekey as jni_sqlite3_rekey
-import ksqlite.sqlite3_rekey_v2 as jni_sqlite3_rekey_v2
-import ksqlite.sqlite3_release_memory as jni_sqlite3_release_memory
-import ksqlite.sqlite3_reset as jni_sqlite3_reset
-import ksqlite.sqlite3_reset_auto_extension as jni_sqlite3_reset_auto_extension
-import ksqlite.sqlite3_result_blob as jni_sqlite3_result_blob
-import ksqlite.sqlite3_result_blob64 as jni_sqlite3_result_blob64
-import ksqlite.sqlite3_result_double as jni_sqlite3_result_double
-import ksqlite.sqlite3_result_error as jni_sqlite3_result_error
-import ksqlite.sqlite3_result_error_code as jni_sqlite3_result_error_code
-import ksqlite.sqlite3_result_error_nomem as jni_sqlite3_result_error_nomem
-import ksqlite.sqlite3_result_error_toobig as jni_sqlite3_result_error_toobig
-import ksqlite.sqlite3_result_int as jni_sqlite3_result_int
-import ksqlite.sqlite3_result_int64 as jni_sqlite3_result_int64
-import ksqlite.sqlite3_result_null as jni_sqlite3_result_null
-import ksqlite.sqlite3_result_pointer as jni_sqlite3_result_pointer
-import ksqlite.sqlite3_result_subtype as jni_sqlite3_result_subtype
-import ksqlite.sqlite3_result_text as jni_sqlite3_result_text
-import ksqlite.sqlite3_result_text64 as jni_sqlite3_result_text64
-import ksqlite.sqlite3_result_value as jni_sqlite3_result_value
-import ksqlite.sqlite3_result_zeroblob as jni_sqlite3_result_zeroblob
-import ksqlite.sqlite3_result_zeroblob64 as jni_sqlite3_result_zeroblob64
-import ksqlite.sqlite3_rollback_hook as jni_sqlite3_rollback_hook
-import ksqlite.sqlite3_serialize as jni_sqlite3_serialize
-import ksqlite.sqlite3_set_authorizer as jni_sqlite3_set_authorizer
-import ksqlite.sqlite3_set_errmsg as jni_sqlite3_set_errmsg
-import ksqlite.sqlite3_set_last_insert_rowid as jni_sqlite3_set_last_insert_rowid
-import ksqlite.sqlite3_shutdown as jni_sqlite3_shutdown
-import ksqlite.sqlite3_snapshot_cmp as jni_sqlite3_snapshot_cmp
-import ksqlite.sqlite3_snapshot_free as jni_sqlite3_snapshot_free
-import ksqlite.sqlite3_snapshot_get as jni_sqlite3_snapshot_get
-import ksqlite.sqlite3_snapshot_open as jni_sqlite3_snapshot_open
-import ksqlite.sqlite3_snapshot_recover as jni_sqlite3_snapshot_recover
-import ksqlite.sqlite3_soft_heap_limit64 as jni_sqlite3_soft_heap_limit64
-import ksqlite.sqlite3_sourceid as jni_sqlite3_sourceid
-import ksqlite.sqlite3_sql as jni_sqlite3_sql
-import ksqlite.sqlite3_status as jni_sqlite3_status
-import ksqlite.sqlite3_status64 as jni_sqlite3_status64
-import ksqlite.sqlite3_step as jni_sqlite3_step
-import ksqlite.sqlite3_stmt_busy as jni_sqlite3_stmt_busy
-import ksqlite.sqlite3_stmt_explain as jni_sqlite3_stmt_explain
-import ksqlite.sqlite3_stmt_isexplain as jni_sqlite3_stmt_isexplain
-import ksqlite.sqlite3_stmt_readonly as jni_sqlite3_stmt_readonly
-import ksqlite.sqlite3_stmt_status as jni_sqlite3_stmt_status
-import ksqlite.sqlite3_strglob as jni_sqlite3_strglob
-import ksqlite.sqlite3_stricmp as jni_sqlite3_stricmp
-import ksqlite.sqlite3_strlike as jni_sqlite3_strlike
-import ksqlite.sqlite3_strnicmp as jni_sqlite3_strnicmp
-import ksqlite.sqlite3_system_errno as jni_sqlite3_system_errno
-import ksqlite.sqlite3_table_column_metadata as jni_sqlite3_table_column_metadata
-import ksqlite.sqlite3_total_changes as jni_sqlite3_total_changes
-import ksqlite.sqlite3_total_changes64 as jni_sqlite3_total_changes64
-import ksqlite.sqlite3_trace_v2 as jni_sqlite3_trace_v2
-import ksqlite.sqlite3_txn_state as jni_sqlite3_txn_state
-import ksqlite.sqlite3_update_hook as jni_sqlite3_update_hook
-import ksqlite.sqlite3_uri_boolean as jni_sqlite3_uri_boolean
-import ksqlite.sqlite3_uri_int64 as jni_sqlite3_uri_int64
-import ksqlite.sqlite3_uri_key as jni_sqlite3_uri_key
-import ksqlite.sqlite3_uri_parameter as jni_sqlite3_uri_parameter
-import ksqlite.sqlite3_value_blob as jni_sqlite3_value_blob
-import ksqlite.sqlite3_value_bytes as jni_sqlite3_value_bytes
-import ksqlite.sqlite3_value_double as jni_sqlite3_value_double
-import ksqlite.sqlite3_value_dup as jni_sqlite3_value_dup
-import ksqlite.sqlite3_value_encoding as jni_sqlite3_value_encoding
-import ksqlite.sqlite3_value_free as jni_sqlite3_value_free
-import ksqlite.sqlite3_value_frombind as jni_sqlite3_value_frombind
-import ksqlite.sqlite3_value_int as jni_sqlite3_value_int
-import ksqlite.sqlite3_value_int64 as jni_sqlite3_value_int64
-import ksqlite.sqlite3_value_nochange as jni_sqlite3_value_nochange
-import ksqlite.sqlite3_value_numeric_type as jni_sqlite3_value_numeric_type
-import ksqlite.sqlite3_value_subtype as jni_sqlite3_value_subtype
-import ksqlite.sqlite3_value_text as jni_sqlite3_value_text
-import ksqlite.sqlite3_value_type as jni_sqlite3_value_type
-import ksqlite.sqlite3_vfs_find as jni_sqlite3_vfs_find
-import ksqlite.sqlite3_vfs_register as jni_sqlite3_vfs_register
-import ksqlite.sqlite3_vfs_unregister as jni_sqlite3_vfs_unregister
-import ksqlite.sqlite3_vtab_collation as jni_sqlite3_vtab_collation
-import ksqlite.sqlite3_vtab_distinct as jni_sqlite3_vtab_distinct
-import ksqlite.sqlite3_vtab_in as jni_sqlite3_vtab_in
-import ksqlite.sqlite3_vtab_in_first as jni_sqlite3_vtab_in_first
-import ksqlite.sqlite3_vtab_in_next as jni_sqlite3_vtab_in_next
-import ksqlite.sqlite3_vtab_nochange as jni_sqlite3_vtab_nochange
-import ksqlite.sqlite3_vtab_on_conflict as jni_sqlite3_vtab_on_conflict
-import ksqlite.sqlite3_vtab_rhs_value as jni_sqlite3_vtab_rhs_value
-import ksqlite.sqlite3_wal_autocheckpoint as jni_sqlite3_wal_autocheckpoint
-import ksqlite.sqlite3_wal_checkpoint as jni_sqlite3_wal_checkpoint
-import ksqlite.sqlite3_wal_checkpoint_v2 as jni_sqlite3_wal_checkpoint_v2
-import ksqlite.sqlite3_wal_hook as jni_sqlite3_wal_hook
-
-///////////////////////////////////////////////////////////////////////////
-// Library
-///////////////////////////////////////////////////////////////////////////
+import ksqlite.foreign.ksqliteLoadLibrary
+import ksqlite.foreign.ksqlite_cancel_auto_extension
+import ksqlite.foreign.ksqlite_prepare_v2
+import ksqlite.foreign.ksqlite_prepare_v3
+import ksqlite.foreign.ksqlite_auto_extension as jni_ksqlite_auto_extension
+import ksqlite.foreign.sqlite3_autovacuum_pages as jni_sqlite3_autovacuum_pages
+import ksqlite.foreign.sqlite3_backup_finish as jni_sqlite3_backup_finish
+import ksqlite.foreign.sqlite3_backup_init as jni_sqlite3_backup_init
+import ksqlite.foreign.sqlite3_backup_pagecount as jni_sqlite3_backup_pagecount
+import ksqlite.foreign.sqlite3_backup_remaining as jni_sqlite3_backup_remaining
+import ksqlite.foreign.sqlite3_backup_step as jni_sqlite3_backup_step
+import ksqlite.foreign.sqlite3_bind_blob as jni_sqlite3_bind_blob
+import ksqlite.foreign.sqlite3_bind_blob64 as jni_sqlite3_bind_blob64
+import ksqlite.foreign.sqlite3_bind_double as jni_sqlite3_bind_double
+import ksqlite.foreign.sqlite3_bind_int as jni_sqlite3_bind_int
+import ksqlite.foreign.sqlite3_bind_int64 as jni_sqlite3_bind_int64
+import ksqlite.foreign.sqlite3_bind_null as jni_sqlite3_bind_null
+import ksqlite.foreign.sqlite3_bind_parameter_count as jni_sqlite3_bind_parameter_count
+import ksqlite.foreign.sqlite3_bind_parameter_index as jni_sqlite3_bind_parameter_index
+import ksqlite.foreign.sqlite3_bind_parameter_name as jni_sqlite3_bind_parameter_name
+import ksqlite.foreign.sqlite3_bind_pointer as jni_sqlite3_bind_pointer
+import ksqlite.foreign.sqlite3_bind_text as jni_sqlite3_bind_text
+import ksqlite.foreign.sqlite3_bind_text64 as jni_sqlite3_bind_text64
+import ksqlite.foreign.sqlite3_bind_value as jni_sqlite3_bind_value
+import ksqlite.foreign.sqlite3_bind_zeroblob as jni_sqlite3_bind_zeroblob
+import ksqlite.foreign.sqlite3_bind_zeroblob64 as jni_sqlite3_bind_zeroblob64
+import ksqlite.foreign.sqlite3_blob_bytes as jni_sqlite3_blob_bytes
+import ksqlite.foreign.sqlite3_blob_close as jni_sqlite3_blob_close
+import ksqlite.foreign.sqlite3_blob_open as jni_sqlite3_blob_open
+import ksqlite.foreign.sqlite3_blob_read as jni_sqlite3_blob_read
+import ksqlite.foreign.sqlite3_blob_reopen as jni_sqlite3_blob_reopen
+import ksqlite.foreign.sqlite3_blob_write as jni_sqlite3_blob_write
+import ksqlite.foreign.sqlite3_busy_handler as jni_sqlite3_busy_handler
+import ksqlite.foreign.sqlite3_busy_timeout as jni_sqlite3_busy_timeout
+import ksqlite.foreign.sqlite3_changes as jni_sqlite3_changes
+import ksqlite.foreign.sqlite3_changes64 as jni_sqlite3_changes64
+import ksqlite.foreign.sqlite3_clear_bindings as jni_sqlite3_clear_bindings
+import ksqlite.foreign.sqlite3_close as jni_sqlite3_close
+import ksqlite.foreign.sqlite3_close_v2 as jni_sqlite3_close_v2
+import ksqlite.foreign.sqlite3_collation_needed as jni_sqlite3_collation_needed
+import ksqlite.foreign.sqlite3_column_blob as jni_sqlite3_column_blob
+import ksqlite.foreign.sqlite3_column_bytes as jni_sqlite3_column_bytes
+import ksqlite.foreign.sqlite3_column_count as jni_sqlite3_column_count
+import ksqlite.foreign.sqlite3_column_database_name as jni_sqlite3_column_database_name
+import ksqlite.foreign.sqlite3_column_decltype as jni_sqlite3_column_decltype
+import ksqlite.foreign.sqlite3_column_double as jni_sqlite3_column_double
+import ksqlite.foreign.sqlite3_column_int as jni_sqlite3_column_int
+import ksqlite.foreign.sqlite3_column_int64 as jni_sqlite3_column_int64
+import ksqlite.foreign.sqlite3_column_name as jni_sqlite3_column_name
+import ksqlite.foreign.sqlite3_column_origin_name as jni_sqlite3_column_origin_name
+import ksqlite.foreign.sqlite3_column_table_name as jni_sqlite3_column_table_name
+import ksqlite.foreign.sqlite3_column_text as jni_sqlite3_column_text
+import ksqlite.foreign.sqlite3_column_type as jni_sqlite3_column_type
+import ksqlite.foreign.sqlite3_column_value as jni_sqlite3_column_value
+import ksqlite.foreign.sqlite3_commit_hook as jni_sqlite3_commit_hook
+import ksqlite.foreign.sqlite3_compileoption_get as jni_sqlite3_compileoption_get
+import ksqlite.foreign.sqlite3_compileoption_used as jni_sqlite3_compileoption_used
+import ksqlite.foreign.sqlite3_complete as jni_sqlite3_complete
+import ksqlite.foreign.sqlite3_config as jni_sqlite3_config
+import ksqlite.foreign.sqlite3_context_db_handle as jni_sqlite3_context_db_handle
+import ksqlite.foreign.sqlite3_create_collation_v2 as jni_sqlite3_create_collation_v2
+import ksqlite.foreign.sqlite3_create_function_v2 as jni_sqlite3_create_function_v2
+import ksqlite.foreign.sqlite3_create_module_v2 as jni_sqlite3_create_module_v2
+import ksqlite.foreign.sqlite3_create_window_function as jni_sqlite3_create_window_function
+import ksqlite.foreign.sqlite3_data_count as jni_sqlite3_data_count
+import ksqlite.foreign.sqlite3_db_cacheflush as jni_sqlite3_db_cacheflush
+import ksqlite.foreign.sqlite3_db_config as jni_sqlite3_db_config
+import ksqlite.foreign.sqlite3_db_filename as jni_sqlite3_db_filename
+import ksqlite.foreign.sqlite3_db_handle as jni_sqlite3_db_handle
+import ksqlite.foreign.sqlite3_db_name as jni_sqlite3_db_name
+import ksqlite.foreign.sqlite3_db_readonly as jni_sqlite3_db_readonly
+import ksqlite.foreign.sqlite3_db_release_memory as jni_sqlite3_db_release_memory
+import ksqlite.foreign.sqlite3_db_status as jni_sqlite3_db_status
+import ksqlite.foreign.sqlite3_db_status64 as jni_sqlite3_db_status64
+import ksqlite.foreign.sqlite3_declare_vtab as jni_sqlite3_declare_vtab
+import ksqlite.foreign.sqlite3_deserialize as jni_sqlite3_deserialize
+import ksqlite.foreign.sqlite3_drop_modules as jni_sqlite3_drop_modules
+import ksqlite.foreign.sqlite3_errcode as jni_sqlite3_errcode
+import ksqlite.foreign.sqlite3_errmsg as jni_sqlite3_errmsg
+import ksqlite.foreign.sqlite3_error_offset as jni_sqlite3_error_offset
+import ksqlite.foreign.sqlite3_errstr as jni_sqlite3_errstr
+import ksqlite.foreign.sqlite3_exec as jni_sqlite3_exec
+import ksqlite.foreign.sqlite3_expanded_sql as jni_sqlite3_expanded_sql
+import ksqlite.foreign.sqlite3_extended_errcode as jni_sqlite3_extended_errcode
+import ksqlite.foreign.sqlite3_extended_result_codes as jni_sqlite3_extended_result_codes
+import ksqlite.foreign.sqlite3_file_control as jni_sqlite3_file_control
+import ksqlite.foreign.sqlite3_finalize as jni_sqlite3_finalize
+import ksqlite.foreign.sqlite3_free as jni_sqlite3_free
+import ksqlite.foreign.sqlite3_get_autocommit as jni_sqlite3_get_autocommit
+import ksqlite.foreign.sqlite3_hard_heap_limit64 as jni_sqlite3_hard_heap_limit64
+import ksqlite.foreign.sqlite3_initialize as jni_sqlite3_initialize
+import ksqlite.foreign.sqlite3_interrupt as jni_sqlite3_interrupt
+import ksqlite.foreign.sqlite3_is_interrupted as jni_sqlite3_is_interrupted
+import ksqlite.foreign.sqlite3_key as jni_sqlite3_key
+import ksqlite.foreign.sqlite3_key_v2 as jni_sqlite3_key_v2
+import ksqlite.foreign.sqlite3_keyword_check as jni_sqlite3_keyword_check
+import ksqlite.foreign.sqlite3_keyword_count as jni_sqlite3_keyword_count
+import ksqlite.foreign.sqlite3_keyword_name as jni_sqlite3_keyword_name
+import ksqlite.foreign.sqlite3_last_insert_rowid as jni_sqlite3_last_insert_rowid
+import ksqlite.foreign.sqlite3_libversion as jni_sqlite3_libversion
+import ksqlite.foreign.sqlite3_libversion_number as jni_sqlite3_libversion_number
+import ksqlite.foreign.sqlite3_limit as jni_sqlite3_limit
+import ksqlite.foreign.sqlite3_log as jni_sqlite3_log
+import ksqlite.foreign.sqlite3_malloc as jni_sqlite3_malloc
+import ksqlite.foreign.sqlite3_malloc64 as jni_sqlite3_malloc64
+import ksqlite.foreign.sqlite3_memory_highwater as jni_sqlite3_memory_highwater
+import ksqlite.foreign.sqlite3_memory_used as jni_sqlite3_memory_used
+import ksqlite.foreign.sqlite3_msize as jni_sqlite3_msize
+import ksqlite.foreign.sqlite3_next_stmt as jni_sqlite3_next_stmt
+import ksqlite.foreign.sqlite3_open as jni_sqlite3_open
+import ksqlite.foreign.sqlite3_open_v2 as jni_sqlite3_open_v2
+import ksqlite.foreign.sqlite3_overload_function as jni_sqlite3_overload_function
+import ksqlite.foreign.sqlite3_prepare_v2 as jni_sqlite3_prepare_v2
+import ksqlite.foreign.sqlite3_prepare_v3 as jni_sqlite3_prepare_v3
+import ksqlite.foreign.sqlite3_preupdate_blobwrite as jni_sqlite3_preupdate_blobwrite
+import ksqlite.foreign.sqlite3_preupdate_count as jni_sqlite3_preupdate_count
+import ksqlite.foreign.sqlite3_preupdate_depth as jni_sqlite3_preupdate_depth
+import ksqlite.foreign.sqlite3_preupdate_hook as jni_sqlite3_preupdate_hook
+import ksqlite.foreign.sqlite3_preupdate_new as jni_sqlite3_preupdate_new
+import ksqlite.foreign.sqlite3_preupdate_old as jni_sqlite3_preupdate_old
+import ksqlite.foreign.sqlite3_progress_handler as jni_sqlite3_progress_handler
+import ksqlite.foreign.sqlite3_randomness as jni_sqlite3_randomness
+import ksqlite.foreign.sqlite3_realloc as jni_sqlite3_realloc
+import ksqlite.foreign.sqlite3_realloc64 as jni_sqlite3_realloc64
+import ksqlite.foreign.sqlite3_rekey as jni_sqlite3_rekey
+import ksqlite.foreign.sqlite3_rekey_v2 as jni_sqlite3_rekey_v2
+import ksqlite.foreign.sqlite3_release_memory as jni_sqlite3_release_memory
+import ksqlite.foreign.sqlite3_reset as jni_sqlite3_reset
+import ksqlite.foreign.sqlite3_reset_auto_extension as jni_sqlite3_reset_auto_extension
+import ksqlite.foreign.sqlite3_result_blob as jni_sqlite3_result_blob
+import ksqlite.foreign.sqlite3_result_blob64 as jni_sqlite3_result_blob64
+import ksqlite.foreign.sqlite3_result_double as jni_sqlite3_result_double
+import ksqlite.foreign.sqlite3_result_error as jni_sqlite3_result_error
+import ksqlite.foreign.sqlite3_result_error_code as jni_sqlite3_result_error_code
+import ksqlite.foreign.sqlite3_result_error_nomem as jni_sqlite3_result_error_nomem
+import ksqlite.foreign.sqlite3_result_error_toobig as jni_sqlite3_result_error_toobig
+import ksqlite.foreign.sqlite3_result_int as jni_sqlite3_result_int
+import ksqlite.foreign.sqlite3_result_int64 as jni_sqlite3_result_int64
+import ksqlite.foreign.sqlite3_result_null as jni_sqlite3_result_null
+import ksqlite.foreign.sqlite3_result_pointer as jni_sqlite3_result_pointer
+import ksqlite.foreign.sqlite3_result_subtype as jni_sqlite3_result_subtype
+import ksqlite.foreign.sqlite3_result_text as jni_sqlite3_result_text
+import ksqlite.foreign.sqlite3_result_text64 as jni_sqlite3_result_text64
+import ksqlite.foreign.sqlite3_result_value as jni_sqlite3_result_value
+import ksqlite.foreign.sqlite3_result_zeroblob as jni_sqlite3_result_zeroblob
+import ksqlite.foreign.sqlite3_result_zeroblob64 as jni_sqlite3_result_zeroblob64
+import ksqlite.foreign.sqlite3_rollback_hook as jni_sqlite3_rollback_hook
+import ksqlite.foreign.sqlite3_serialize as jni_sqlite3_serialize
+import ksqlite.foreign.sqlite3_set_authorizer as jni_sqlite3_set_authorizer
+import ksqlite.foreign.sqlite3_set_errmsg as jni_sqlite3_set_errmsg
+import ksqlite.foreign.sqlite3_set_last_insert_rowid as jni_sqlite3_set_last_insert_rowid
+import ksqlite.foreign.sqlite3_shutdown as jni_sqlite3_shutdown
+import ksqlite.foreign.sqlite3_snapshot_cmp as jni_sqlite3_snapshot_cmp
+import ksqlite.foreign.sqlite3_snapshot_free as jni_sqlite3_snapshot_free
+import ksqlite.foreign.sqlite3_snapshot_get as jni_sqlite3_snapshot_get
+import ksqlite.foreign.sqlite3_snapshot_open as jni_sqlite3_snapshot_open
+import ksqlite.foreign.sqlite3_snapshot_recover as jni_sqlite3_snapshot_recover
+import ksqlite.foreign.sqlite3_soft_heap_limit64 as jni_sqlite3_soft_heap_limit64
+import ksqlite.foreign.sqlite3_sourceid as jni_sqlite3_sourceid
+import ksqlite.foreign.sqlite3_sql as jni_sqlite3_sql
+import ksqlite.foreign.sqlite3_status as jni_sqlite3_status
+import ksqlite.foreign.sqlite3_status64 as jni_sqlite3_status64
+import ksqlite.foreign.sqlite3_step as jni_sqlite3_step
+import ksqlite.foreign.sqlite3_stmt_busy as jni_sqlite3_stmt_busy
+import ksqlite.foreign.sqlite3_stmt_explain as jni_sqlite3_stmt_explain
+import ksqlite.foreign.sqlite3_stmt_isexplain as jni_sqlite3_stmt_isexplain
+import ksqlite.foreign.sqlite3_stmt_readonly as jni_sqlite3_stmt_readonly
+import ksqlite.foreign.sqlite3_stmt_status as jni_sqlite3_stmt_status
+import ksqlite.foreign.sqlite3_strglob as jni_sqlite3_strglob
+import ksqlite.foreign.sqlite3_stricmp as jni_sqlite3_stricmp
+import ksqlite.foreign.sqlite3_strlike as jni_sqlite3_strlike
+import ksqlite.foreign.sqlite3_strnicmp as jni_sqlite3_strnicmp
+import ksqlite.foreign.sqlite3_system_errno as jni_sqlite3_system_errno
+import ksqlite.foreign.sqlite3_table_column_metadata as jni_sqlite3_table_column_metadata
+import ksqlite.foreign.sqlite3_total_changes as jni_sqlite3_total_changes
+import ksqlite.foreign.sqlite3_total_changes64 as jni_sqlite3_total_changes64
+import ksqlite.foreign.sqlite3_trace_v2 as jni_sqlite3_trace_v2
+import ksqlite.foreign.sqlite3_txn_state as jni_sqlite3_txn_state
+import ksqlite.foreign.sqlite3_update_hook as jni_sqlite3_update_hook
+import ksqlite.foreign.sqlite3_uri_boolean as jni_sqlite3_uri_boolean
+import ksqlite.foreign.sqlite3_uri_int64 as jni_sqlite3_uri_int64
+import ksqlite.foreign.sqlite3_uri_key as jni_sqlite3_uri_key
+import ksqlite.foreign.sqlite3_uri_parameter as jni_sqlite3_uri_parameter
+import ksqlite.foreign.sqlite3_value_blob as jni_sqlite3_value_blob
+import ksqlite.foreign.sqlite3_value_bytes as jni_sqlite3_value_bytes
+import ksqlite.foreign.sqlite3_value_double as jni_sqlite3_value_double
+import ksqlite.foreign.sqlite3_value_dup as jni_sqlite3_value_dup
+import ksqlite.foreign.sqlite3_value_encoding as jni_sqlite3_value_encoding
+import ksqlite.foreign.sqlite3_value_free as jni_sqlite3_value_free
+import ksqlite.foreign.sqlite3_value_frombind as jni_sqlite3_value_frombind
+import ksqlite.foreign.sqlite3_value_int as jni_sqlite3_value_int
+import ksqlite.foreign.sqlite3_value_int64 as jni_sqlite3_value_int64
+import ksqlite.foreign.sqlite3_value_nochange as jni_sqlite3_value_nochange
+import ksqlite.foreign.sqlite3_value_numeric_type as jni_sqlite3_value_numeric_type
+import ksqlite.foreign.sqlite3_value_subtype as jni_sqlite3_value_subtype
+import ksqlite.foreign.sqlite3_value_text as jni_sqlite3_value_text
+import ksqlite.foreign.sqlite3_value_type as jni_sqlite3_value_type
+import ksqlite.foreign.sqlite3_vfs_find as jni_sqlite3_vfs_find
+import ksqlite.foreign.sqlite3_vfs_register as jni_sqlite3_vfs_register
+import ksqlite.foreign.sqlite3_vfs_unregister as jni_sqlite3_vfs_unregister
+import ksqlite.foreign.sqlite3_vtab_collation as jni_sqlite3_vtab_collation
+import ksqlite.foreign.sqlite3_vtab_distinct as jni_sqlite3_vtab_distinct
+import ksqlite.foreign.sqlite3_vtab_in as jni_sqlite3_vtab_in
+import ksqlite.foreign.sqlite3_vtab_in_first as jni_sqlite3_vtab_in_first
+import ksqlite.foreign.sqlite3_vtab_in_next as jni_sqlite3_vtab_in_next
+import ksqlite.foreign.sqlite3_vtab_nochange as jni_sqlite3_vtab_nochange
+import ksqlite.foreign.sqlite3_vtab_on_conflict as jni_sqlite3_vtab_on_conflict
+import ksqlite.foreign.sqlite3_vtab_rhs_value as jni_sqlite3_vtab_rhs_value
+import ksqlite.foreign.sqlite3_wal_autocheckpoint as jni_sqlite3_wal_autocheckpoint
+import ksqlite.foreign.sqlite3_wal_checkpoint as jni_sqlite3_wal_checkpoint
+import ksqlite.foreign.sqlite3_wal_checkpoint_v2 as jni_sqlite3_wal_checkpoint_v2
+import ksqlite.foreign.sqlite3_wal_hook as jni_sqlite3_wal_hook
 
 /**
- * Workaround to load the native library at file level.
+ * Loads the native library.
  */
 @Suppress("unused")
-private val nativeInit = run {
-    ksqliteLoadLibrary()
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Helpers
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns the raw values of `this` [VariadicValue] array.
- */
-private fun Array<out VariadicValue<Any>?>.toJniJavaObjectArray(): Array<Any?> {
-    return map { it?.value }.toTypedArray()
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Functions
-///////////////////////////////////////////////////////////////////////////
+private val nativeInit = run(::ksqliteLoadLibrary)
 
 public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
     autoExtensionRegister(callback) { jni_ksqlite_auto_extension(AutoExtensionHandler) }

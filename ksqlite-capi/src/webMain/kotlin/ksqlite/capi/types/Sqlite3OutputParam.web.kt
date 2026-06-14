@@ -7,9 +7,9 @@ import ksqlite.capi.memory.StackAllocatorScope
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.wasm.IR
-import ksqlite.wasm.WasmMemory
-import ksqlite.wasm.WasmPointer
+import ksqlite.foreign.wasm.IR
+import ksqlite.foreign.wasm.WasmMemory
+import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toInt
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong

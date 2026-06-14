@@ -17,7 +17,7 @@ import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.sqlite3
+import ksqlite.foreign.sqlite3
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator

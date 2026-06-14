@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.AuthorizerCallback
+import ksqlite.foreign.callbacks.AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.convertActionCode
 

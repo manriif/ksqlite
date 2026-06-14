@@ -1,9 +1,9 @@
 package ksqlite.capi
 
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.wasm.WasmMemory
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.allocCString
+import ksqlite.foreign.wasm.WasmMemory
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.allocCString
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 

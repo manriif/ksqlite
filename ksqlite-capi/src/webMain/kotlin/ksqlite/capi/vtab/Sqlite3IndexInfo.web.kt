@@ -12,11 +12,11 @@ import ksqlite.capi.sqlite3_mprintf
 import ksqlite.capi.types.vtab.Sqlite3IndexInfo
 import ksqlite.capi.types.vtab.Sqlite3VTabConstraintOperatorCode
 import ksqlite.capi.types.vtab.Sqlite3VTabScanFlag
-import ksqlite.structs.invoke
-import ksqlite.structs.nthConstraint
-import ksqlite.structs.nthConstraintUsage
-import ksqlite.structs.nthOrderBy
-import ksqlite.wasm.WasmPointer
+import ksqlite.foreign.structs.invoke
+import ksqlite.foreign.structs.nthConstraint
+import ksqlite.foreign.structs.nthConstraintUsage
+import ksqlite.foreign.structs.nthOrderBy
+import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 

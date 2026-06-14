@@ -3,44 +3,11 @@ package ksqlite.capi
 import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
 import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.VariadicValue
 import ksqlite.capi.types.Sqlite3ConfigOption
 import ksqlite.capi.types.Sqlite3DbConfigOption
 import ksqlite.capi.types.Sqlite3Result
 import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
-import kotlin.jvm.JvmInline
-
-/**
- * Value of a variadic function call.
- */
-internal sealed interface VariadicValue<out Pointer : Any> {
-
-    val value: Any
-
-    @JvmInline
-    value class OfPointer<P : Any>(override val value: P) : VariadicValue<P>
-
-    @JvmInline
-    value class OfInt(override val value: Int) : VariadicValue<Nothing>
-
-    @JvmInline
-    value class OfUInt(override val value: UInt) : VariadicValue<Nothing>
-
-    @JvmInline
-    value class OfLong(override val value: Long) : VariadicValue<Nothing>
-
-    /**
-     * Strings are given a key because it is possible that the application must manage it as SQLite
-     * won't make a copy of it.
-     *
-     * For now, [Sqlite3DbConfigOption.MAINDBNAME] is the only string that must stay alive until the
-     * database connection is closed.
-     */
-    data class OfString(override val value: String, val key: String) : VariadicValue<Nothing>
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Configuration
-///////////////////////////////////////////////////////////////////////////
 
 /**
  * Handles the [ksqlite.capi.sqlite3_config].

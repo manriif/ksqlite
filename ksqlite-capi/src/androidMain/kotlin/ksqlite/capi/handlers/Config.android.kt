@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.ConfigLogCallback
-import ksqlite.callbacks.ConfigSqlLogCallback
+import ksqlite.foreign.callbacks.ConfigLogCallback
+import ksqlite.foreign.callbacks.ConfigSqlLogCallback
 import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
 import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
 import ksqlite.capi.dispatchSqlLogEvent

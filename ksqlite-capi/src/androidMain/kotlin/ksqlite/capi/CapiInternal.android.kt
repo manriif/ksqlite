@@ -2,7 +2,7 @@
 
 package ksqlite.capi
 
-import ksqlite.OutputPointer
+import ksqlite.foreign.OutputPointer
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
@@ -13,15 +13,15 @@ import ksqlite.capi.memory.orNull
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.nativeFreeAndMalloc
+import ksqlite.foreign.nativeFreeAndMalloc
 import kotlin.reflect.KMutableProperty0
-import ksqlite.sqlite3_aggregate_context as jni_sqlite3_aggregate_context
-import ksqlite.sqlite3_column_buffer as jni_sqlite3_column_buffer
-import ksqlite.sqlite3_get_auxdata as jni_sqlite3_get_auxdata
-import ksqlite.sqlite3_set_auxdata as jni_sqlite3_set_auxdata
-import ksqlite.sqlite3_user_data as jni_sqlite3_user_data
-import ksqlite.sqlite3_value_buffer as jni_sqlite3_value_buffer
-import ksqlite.sqlite3_value_pointer as jni_sqlite3_value_pointer
+import ksqlite.foreign.sqlite3_aggregate_context as jni_sqlite3_aggregate_context
+import ksqlite.foreign.sqlite3_column_buffer as jni_sqlite3_column_buffer
+import ksqlite.foreign.sqlite3_get_auxdata as jni_sqlite3_get_auxdata
+import ksqlite.foreign.sqlite3_set_auxdata as jni_sqlite3_set_auxdata
+import ksqlite.foreign.sqlite3_user_data as jni_sqlite3_user_data
+import ksqlite.foreign.sqlite3_value_buffer as jni_sqlite3_value_buffer
+import ksqlite.foreign.sqlite3_value_pointer as jni_sqlite3_value_pointer
 
 private inline fun toBuffer(block: (OutputPointer.OfInt64) -> Long): Buffer? {
     val size = OutputPointer.OfInt64(0)

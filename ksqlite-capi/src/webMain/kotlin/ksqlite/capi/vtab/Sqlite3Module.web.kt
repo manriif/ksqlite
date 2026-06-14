@@ -6,7 +6,7 @@ import ksqlite.capi.capi
 import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
-import ksqlite.structs.invoke
+import ksqlite.foreign.structs.invoke
 
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VTabModuleCallbacks<AppData, *, *>,

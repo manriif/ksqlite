@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.DestructorCallback
+import ksqlite.foreign.callbacks.DestructorCallback
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 
 /**

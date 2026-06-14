@@ -1,9 +1,8 @@
-@file:JvmName("Ksqlite")
 @file:Suppress("FunctionName", "SpellCheckingInspection")
 
 package ksqlite.capi
 
-import ksqlite.capi.VariadicValue.OfPointer
+import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
 import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
@@ -20,10 +19,10 @@ import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
 import ksqlite.capi.callbacks.Sqlite3TraceCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3WalHookCallback
+import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
 import ksqlite.capi.handlers.CollationCompareHandler
@@ -40,12 +39,10 @@ import ksqlite.capi.handlers.FunctionValueHandler
 import ksqlite.capi.handlers.PreupdateHookHandler
 import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
-import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Array
@@ -53,6 +50,7 @@ import ksqlite.capi.memory.backing
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
+import ksqlite.capi.memory.invokeVariadic
 import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
@@ -76,8 +74,8 @@ import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3Limit
+import ksqlite.capi.types.Sqlite3OpenFlag
 import ksqlite.capi.types.Sqlite3OutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
 import ksqlite.capi.types.Sqlite3Result
@@ -90,14 +88,12 @@ import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
 import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
@@ -106,61 +102,19 @@ import ksqlite.capi.types.useParam
 import ksqlite.capi.types.useParamMemScoped
 import ksqlite.capi.types.useParams
 import ksqlite.capi.types.useParamsMemScoped
+import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.vtab.createVTabModule
+import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
-import ksqlite.ksqliteLoadLibrary
-import java.lang.foreign.MemoryLayout
-import java.lang.foreign.MemorySegment
+import ksqlite.foreign.ksqliteLoadLibrary
 import java.lang.foreign.ValueLayout
-import ksqlite.sqlite3 as native
-
-///////////////////////////////////////////////////////////////////////////
-// Library
-///////////////////////////////////////////////////////////////////////////
+import ksqlite.foreign.sqlite3 as native
 
 /**
- * Workaround to load the native library at file level.
+ * Loads the native library.
  */
 @Suppress("unused")
-private val nativeInit = run {
-    ksqliteLoadLibrary()
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Helpers
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Invokes a function accepting a variadic parameter.
- * String parameter are allocated within [manager].
- */
-private inline fun <Result> invokeVariadic(
-    values: Array<out VariadicValue<MemorySegment>?>,
-    manager: () -> MemoryManager,
-    invoke: (layouts: Array<out MemoryLayout>, arguments: Array<out Any>) -> Result
-): Result {
-    val layouts = Array(values.size) { index ->
-        when (values[index]) {
-            is OfInt, is OfUInt -> ValueLayout.JAVA_INT
-            is OfLong -> ValueLayout.JAVA_LONG
-            is OfPointer, is OfString, null -> ValueLayout.ADDRESS
-        }
-    }
-
-    val arguments = Array(values.size) { index ->
-        when (val value = values[index]) {
-            null -> NullPtr
-            !is OfString -> value.value
-            else -> manager().keyedStringPointer(value.key, value.value)
-        }
-    }
-
-    return invoke(layouts, arguments)
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Functions
-///////////////////////////////////////////////////////////////////////////
+private val nativeInit = run(::ksqliteLoadLibrary)
 
 public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
     autoExtensionRegister(callback) { native.ksqlite_auto_extension(AutoExtensionHandler) }

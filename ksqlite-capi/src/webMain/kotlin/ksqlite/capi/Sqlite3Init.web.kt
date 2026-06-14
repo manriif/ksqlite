@@ -1,10 +1,10 @@
 package ksqlite.capi
 
-import ksqlite.Sqlite3
-import ksqlite.Sqlite3Capi
-import ksqlite.Sqlite3Wasm
-import ksqlite.Sqlite3WasmExports
-import ksqlite.sqliteInitializer
+import ksqlite.foreign.Sqlite3
+import ksqlite.foreign.Sqlite3Capi
+import ksqlite.foreign.Sqlite3Wasm
+import ksqlite.foreign.Sqlite3WasmExports
+import ksqlite.foreign.sqliteInitializer
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine

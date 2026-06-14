@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.ExecCallback
+import ksqlite.foreign.callbacks.ExecCallback
 import ksqlite.capi.callbacks.Sqlite3ExecCallback
 
 /**

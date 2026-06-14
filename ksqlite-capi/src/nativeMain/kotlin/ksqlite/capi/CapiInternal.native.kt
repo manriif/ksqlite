@@ -12,13 +12,13 @@ import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.sqlite3_aggregate_context as native_sqlite3_aggregate_context
-import ksqlite.sqlite3_column_blob as native_sqlite3_column_blob
-import ksqlite.sqlite3_get_auxdata as native_sqlite3_get_auxdata
-import ksqlite.sqlite3_set_auxdata as native_sqlite3_set_auxdata
-import ksqlite.sqlite3_user_data as native_sqlite3_user_data
-import ksqlite.sqlite3_value_blob as native_sqlite3_value_blob
-import ksqlite.sqlite3_value_pointer as native_sqlite3_value_pointer
+import ksqlite.foreign.sqlite3_aggregate_context as native_sqlite3_aggregate_context
+import ksqlite.foreign.sqlite3_column_blob as native_sqlite3_column_blob
+import ksqlite.foreign.sqlite3_get_auxdata as native_sqlite3_get_auxdata
+import ksqlite.foreign.sqlite3_set_auxdata as native_sqlite3_set_auxdata
+import ksqlite.foreign.sqlite3_user_data as native_sqlite3_user_data
+import ksqlite.foreign.sqlite3_value_blob as native_sqlite3_value_blob
+import ksqlite.foreign.sqlite3_value_pointer as native_sqlite3_value_pointer
 
 private val pointerSize = sizeOf<CPointerVarOf<*>>().toInt()
 

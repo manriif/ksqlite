@@ -1,10 +1,10 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.dispatchSqlLogEvent
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.WasmFunctions
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.installFunction
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.WasmFunctions
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.installFunction
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
 import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback

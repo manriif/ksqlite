@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.BusyHandlerCallback
+import ksqlite.foreign.callbacks.BusyHandlerCallback
 import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
 
 /**

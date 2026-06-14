@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.CollationNeededCallback
-import ksqlite.callbacks.CollationCompareCallback
+import ksqlite.foreign.callbacks.CollationNeededCallback
+import ksqlite.foreign.callbacks.CollationCompareCallback
 import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
 import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
 import ksqlite.capi.convertTextEncoding

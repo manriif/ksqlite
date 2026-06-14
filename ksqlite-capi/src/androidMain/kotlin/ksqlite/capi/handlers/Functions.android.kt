@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.FunctionCallback
+import ksqlite.foreign.callbacks.FunctionCallback
 import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.memory.toArray
 import ksqlite.capi.types.sqlite3_context

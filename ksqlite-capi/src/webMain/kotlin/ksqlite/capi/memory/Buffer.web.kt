@@ -1,11 +1,11 @@
 package ksqlite.capi.memory
 
 import ksqlite.capi.wasm
-import ksqlite.js.copyFrom
-import ksqlite.js.copyTo
-import ksqlite.js.plus
-import ksqlite.wasm.WasmMemory
-import ksqlite.wasm.WasmPointer
+import ksqlite.foreign.js.copyFrom
+import ksqlite.foreign.js.copyTo
+import ksqlite.foreign.js.plus
+import ksqlite.foreign.wasm.WasmMemory
+import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toLong
 
 public actual open class Buffer internal constructor(

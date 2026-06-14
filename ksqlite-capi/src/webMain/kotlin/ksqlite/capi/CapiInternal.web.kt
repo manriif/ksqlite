@@ -2,7 +2,7 @@
 
 package ksqlite.capi
 
-import ksqlite.Sqlite3WasmExports
+import ksqlite.foreign.Sqlite3WasmExports
 import ksqlite.capi.callbacks.Sqlite3DestroyCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.HeapAllocatorScope
@@ -19,9 +19,9 @@ import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.wasm.IR
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.sizeofIR
+import ksqlite.foreign.wasm.IR
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.sizeofIR
 import kotlin.js.toLong
 
 private val pointerSize = wasm.sizeofIR(IR.Ptr)

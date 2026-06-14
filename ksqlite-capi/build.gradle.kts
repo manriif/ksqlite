@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.conventions.kmp)
 }
 
-val extractWasmResources = registerExtractWasmResourcesTask(projects.ksqliteWasm)
+val extractWasmResources = registerExtractWasmResourcesTask(projects.ksqliteForeign.wasm)
 
 kotlin {
     androidJvmTargets()
@@ -22,19 +22,19 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation(projects.ksqliteJni)
+            implementation(projects.ksqliteForeign.jni)
         }
 
         jvmMain.dependencies {
-            implementation(projects.ksqliteFfm)
+            implementation(projects.ksqliteForeign.ffm)
         }
 
         nativeMain.dependencies {
-            implementation(projects.ksqliteCinterop)
+            implementation(projects.ksqliteForeign.cinterop)
         }
 
         webMain.dependencies {
-            implementation(projects.ksqliteWasm)
+            implementation(projects.ksqliteForeign.wasm)
         }
 
         webTest {

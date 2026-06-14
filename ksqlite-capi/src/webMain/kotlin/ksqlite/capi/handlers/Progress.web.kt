@@ -1,10 +1,10 @@
 package ksqlite.capi.handlers
 
 import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.WasmFunctions
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.installFunction
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.WasmFunctions
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.installFunction
 
 /**
  * Handler for [ksqlite.capi.sqlite3_progress_handler].

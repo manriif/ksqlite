@@ -77,7 +77,7 @@ komple {
 
     projects {
         register<CProject>("Kotlin SQLite") {
-            packageName = property("project.namespace").toString()
+            packageName = "ksqlite.foreign"
             libraryName = ksqlite.libraryName
             headerFile = ksqlite.ksqliteDirectory.file(cHeaderFile(KSQLITE))
             definitions = SqliteDefinitions

@@ -41,9 +41,8 @@ import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.memory.HeapAllocatorScope
-import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.NullPtr
+import ksqlite.capi.memory.VariadicValue
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Array
 import ksqlite.capi.memory.allocateUtf8Pointer
@@ -52,6 +51,7 @@ import ksqlite.capi.memory.bufferScoped
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.heapScoped
+import ksqlite.capi.memory.invokeVariadic
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
@@ -104,83 +104,11 @@ import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 import ksqlite.capi.vtab.createVTabModule
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
-import ksqlite.js.arrayForEachIndexed
-import ksqlite.js.arraySize
-import ksqlite.js.copyTo
-import ksqlite.js.plus
-import ksqlite.wasm.IR
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.size
-import ksqlite.wasm.sizeofIR
+import ksqlite.foreign.js.copyTo
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.size
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
-
-///////////////////////////////////////////////////////////////////////////
-// Helpers
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Invokes a function accepting a variadic parameter.
- */
-private inline fun <Result> HeapAllocatorScope.invokeVariadic(
-    values: Array<out VariadicValue<WasmPointer>?>,
-    noinline manager: () -> MemoryManager,
-    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
-): Result {
-    val pointerSize = memory.sizeofIR(IR.Ptr)
-    val argCount = arraySize(values)
-    val vaArgsSize = pointerSize * argCount
-    val vaArgsPointer = allocate(vaArgsSize)
-
-    arrayForEachIndexed(values) { index, value ->
-        val vaArgPointer = vaArgsPointer + (index * pointerSize)
-
-        when (value) {
-            null -> memory.pokePtr(vaArgPointer, NullPtr)
-            is OfInt -> memory.poke32(vaArgPointer, value.value)
-            is OfUInt -> memory.poke32(vaArgPointer, value.value.toInt())
-            is OfLong -> memory.poke64(vaArgPointer, value.value.toJsBigInt())
-            is OfPointer -> memory.pokePtr(vaArgPointer, value.value)
-
-            // String value is allocated on MemoryManager rather than current scope as the String is
-            // tied to the lifecycle of the caller MemoryScope
-            is OfString -> memory.pokePtr(
-                address = vaArgPointer,
-                value = manager().keyedStringPointer(
-                    key = value.key,
-                    value = value.value
-                )
-            )
-        }
-    }
-
-    return invoke(vaArgsPointer)
-}
-
-/**
- * Invokes a function accepting a variadic parameter.
- */
-private inline fun <Result> invokeVariadic(
-    values: Array<out VariadicValue<WasmPointer>?>,
-    noinline manager: () -> MemoryManager,
-    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
-): Result = heapScoped {
-    invokeVariadic(values, manager, invoke)
-}
-
-/**
- * Invokes a function accepting a variadic parameter.
- */
-context(scope: HeapAllocatorScope)
-private inline fun <Result> invokeVariadic(
-    noinline manager: () -> MemoryManager,
-    vararg values: VariadicValue<WasmPointer>?,
-    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
-): Result = scope.invokeVariadic(values, manager, invoke)
-
-///////////////////////////////////////////////////////////////////////////
-// Functions
-///////////////////////////////////////////////////////////////////////////
 
 public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
     autoExtensionRegister(callback) { exports.ksqlite_auto_extension(SharedAutoExtensionHandler) }

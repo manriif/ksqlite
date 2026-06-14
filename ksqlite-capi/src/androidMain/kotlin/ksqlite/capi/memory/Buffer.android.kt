@@ -1,7 +1,7 @@
 package ksqlite.capi.memory
 
-import ksqlite.nativeBufferRead
-import ksqlite.nativeBufferWrite
+import ksqlite.foreign.nativeBufferRead
+import ksqlite.foreign.nativeBufferWrite
 
 public actual class Buffer internal constructor(
     internal val pointer: JniPointer,

@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.WalHookCallback
+import ksqlite.foreign.callbacks.WalHookCallback
 import ksqlite.capi.callbacks.Sqlite3WalHookCallback
 import ksqlite.capi.types.sqlite3
 

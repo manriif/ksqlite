@@ -3,10 +3,10 @@ package ksqlite.capi.handlers
 import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
 import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
 import ksqlite.capi.convertActionCode
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.WasmFunctions
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.installFunction
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.WasmFunctions
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.installFunction
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.sqlite3
 

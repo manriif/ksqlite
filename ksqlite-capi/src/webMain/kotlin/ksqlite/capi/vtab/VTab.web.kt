@@ -18,23 +18,26 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.wasm
-import ksqlite.js.plus
-import ksqlite.structs.member
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.installFunction
+import ksqlite.foreign.structs.sqlite3_module
+import ksqlite.foreign.structs.sqlite3_vtab
+import ksqlite.foreign.js.plus
+import ksqlite.foreign.structs.member
+import ksqlite.foreign.structs.sqlite3_vtab_cursor
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.installFunction
 import kotlin.js.toLong
-import ksqlite.wasm.FunctionSignature.Int32 as I32
-import ksqlite.wasm.FunctionSignature.Int64 as I64
+import ksqlite.foreign.wasm.FunctionSignature.Int32 as I32
+import ksqlite.foreign.wasm.FunctionSignature.Int64 as I64
 
 ///////////////////////////////////////////////////////////////////////////
 // Aliases
 ///////////////////////////////////////////////////////////////////////////
 
-internal typealias s3_index_info = ksqlite.structs.sqlite3_index_info
-internal typealias s3_module = ksqlite.structs.sqlite3_module
-internal typealias s3_vtab = ksqlite.structs.sqlite3_vtab
-internal typealias s3_vtab_cursor = ksqlite.structs.sqlite3_vtab_cursor
+internal typealias s3_index_info = ksqlite.foreign.structs.sqlite3_index_info
+internal typealias s3_module = sqlite3_module
+internal typealias s3_vtab = sqlite3_vtab
+internal typealias s3_vtab_cursor = sqlite3_vtab_cursor
 
 ///////////////////////////////////////////////////////////////////////////
 // Handlers

@@ -3,9 +3,9 @@ package ksqlite.capi
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.setPointerValue
 import ksqlite.capi.types.sqlite3
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.installFunction
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.installFunction
 
 /**
  * Singleton handler for auto extensions.
