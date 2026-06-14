@@ -3,30 +3,31 @@ package ksqlite.capi
 import ksqlite.capi.callbacks.AutoExtensionCallbackScope
 import ksqlite.capi.callbacks.AutoExtensionFailureResult
 import ksqlite.capi.callbacks.AutoExtensionSuccessResult
-import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
 import ksqlite.capi.types.sqlite3
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.internal.convertResult
 
 /**
- * All registered [Sqlite3AutoExtensionCallback].
+ * All registered [SqliteAutoExtensionCallback].
  */
-private val AutoExtensions = mutableListOf<Sqlite3AutoExtensionCallback>()
+private val AutoExtensions = mutableListOf<SqliteAutoExtensionCallback>()
 
 /**
  * Registers the auto extension [callback].
  * The [invoke] block must return the result of [sqlite3_auto_extension].
  */
 internal fun autoExtensionRegister(
-    callback: Sqlite3AutoExtensionCallback,
+    callback: SqliteAutoExtensionCallback,
     invoke: () -> Int
-): Sqlite3Result {
-    var result: Sqlite3Result = Sqlite3Result.OK
+): SqliteResultCode {
+    var result: SqliteResultCode = SqliteResultCode.OK
 
     if (AutoExtensions.isEmpty()) {
         result = convertResult(invoke())
     }
 
-    if (result == Sqlite3Result.OK) {
+    if (result == SqliteResultCode.OK) {
         AutoExtensions.add(callback)
     }
 
@@ -38,7 +39,7 @@ internal fun autoExtensionRegister(
  * The [invoke] block must return the result of [sqlite3_cancel_auto_extension].
  */
 internal fun autoExtensionUnregister(
-    callback: Sqlite3AutoExtensionCallback,
+    callback: SqliteAutoExtensionCallback,
     invoke: () -> Int
 ): Int {
     if (!AutoExtensions.remove(callback)) {
@@ -72,7 +73,7 @@ internal fun <Pointer> autoExtensionHandle(
     setError: (pointer: Pointer, message: String) -> Unit
 ): Int {
     val iterator = AutoExtensions.iterator()
-    var result: Sqlite3Result = Sqlite3Result.OK
+    var result: SqliteResultCode = SqliteResultCode.OK
 
     if (!iterator.hasNext()) {
         return result.code
@@ -80,10 +81,10 @@ internal fun <Pointer> autoExtensionHandle(
 
     var errorMessage: String? = null
 
-    while (iterator.hasNext() && result == Sqlite3Result.OK) {
+    while (iterator.hasNext() && result == SqliteResultCode.OK) {
         result = iterator.next().run {
             when (val result = AutoExtensionCallbackScope.apply(db)) {
-                AutoExtensionSuccessResult -> Sqlite3Result.OK
+                AutoExtensionSuccessResult -> SqliteResultCode.OK
 
                 is AutoExtensionFailureResult -> result.result.also {
                     errorMessage = result.message

@@ -1,9 +1,9 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
+import ksqlite.capi.callbacks.SqliteExecCallback
 import ksqlite.capi.memory.toNullableStringArrayOrEmpty
 import ksqlite.capi.memory.toStringArrayOrEmpty
-import ksqlite.`sqlite3_exec$callback`
+import ksqlite.foreign.`sqlite3_exec$callback`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -22,7 +22,7 @@ internal class ExecHandler :
         columnCount: Int,
         values: MemorySegment,
         names: MemorySegment
-    ): Int = handle(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteExecCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             columnCount = columnCount,

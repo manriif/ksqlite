@@ -1,0 +1,70 @@
+package ksqlite.capi.vtab.callbacks
+
+import ksqlite.types.SqliteResultCode
+import ksqlite.capi.vtab.sqlite3_vtab
+
+/**
+ * Serves both for [SqliteVTabBeginCallback], [SqliteVTabSyncCallback], [SqliteVTabCommitCallback] and [SqliteVTabRollbackToCallback].
+ */
+public fun interface SqliteVTabTransactionCallback<VTab : sqlite3_vtab> {
+
+    /**
+     * Details on parameters and result can be found here:
+     * - [begin](https://sqlite.org/vtab.html#the_xbegin_method).
+     * - [sync](https://sqlite.org/vtab.html#the_xsync_method)
+     * - [commit](https://sqlite.org/vtab.html#the_xcommit_method)
+     * - [rollback](https://sqlite.org/vtab.html#the_xrollback_method)
+     */
+    public fun handle(vTab: VTab): SqliteResultCode.OkOrFailure
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Aliases
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * This method begins a transaction on a virtual table. This method is optional. The xBegin pointer
+ * of sqlite3_module may be NULL.
+ *
+ * This method is always followed by one call to either the xCommit or xRollback method. Virtual
+ * table transactions do not nest, so the xBegin method will not be invoked more than once on a
+ * single virtual table without an intervening call to either xCommit or xRollback. Multiple calls
+ * to other methods can and likely will occur in between the xBegin and the corresponding xCommit or
+ * xRollback.
+ *
+ * [The xBegin Method](https://sqlite.org/vtab.html#the_xbegin_method)
+ */
+public typealias SqliteVTabBeginCallback<VTab> = SqliteVTabTransactionCallback<VTab>
+
+/**
+ * This method signals the start of a two-phase commit on a virtual table. This method is optional.
+ * The xSync pointer of sqlite3_module may be NULL.
+ *
+ * This method is only invoked after a call to the xBegin method and prior to an xCommit or
+ * xRollback. In order to implement two-phase commit, the xSync method on all virtual tables is
+ * invoked prior to invoking the xCommit method on any virtual table. If any of the xSync methods
+ * fail, the entire transaction is rolled back.
+ *
+ * [The xSync Method](https://sqlite.org/vtab.html#the_xsync_method)
+ */
+public typealias SqliteVTabSyncCallback<VTab> = SqliteVTabTransactionCallback<VTab>
+
+/**
+ * This method causes a virtual table transaction to commit. This method is optional. The xCommit
+ * pointer of sqlite3_module may be NULL.
+ *
+ * A call to this method always follows a prior call to xBegin and xSync.
+ *
+ * [The xCommit Method](https://sqlite.org/vtab.html#the_xcommit_method)
+ */
+public typealias SqliteVTabCommitCallback<VTab> = SqliteVTabTransactionCallback<VTab>
+
+/**
+ * This method causes a virtual table transaction to rollback. This method is optional. The
+ * xRollback pointer of sqlite3_module may be NULL.
+ *
+ * A call to this method always follows a prior call to xBegin.
+ *
+ * [The xRollback Method](https://sqlite.org/vtab.html#the_xrollback_method)
+ */
+public typealias SqliteVTabRollbackCallback<VTab> = SqliteVTabTransactionCallback<VTab>

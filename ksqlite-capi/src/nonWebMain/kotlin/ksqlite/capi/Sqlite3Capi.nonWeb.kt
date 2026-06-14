@@ -2,13 +2,13 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3WalHookCallback
+import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.Sqlite3CheckpointMode
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3SnapshotOutputParam
+import ksqlite.types.SqliteResultCode
+import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_snapshot
+import ksqlite.types.SqliteCheckpointMode
 
 /**
  * Set the hard heap-size limit for the library. An argument of zero disables the hard heap limit.
@@ -50,8 +50,8 @@ public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot)
 public expect fun sqlite3_snapshot_get(
     db: sqlite3,
     name: String?,
-    outSnapshot: Sqlite3SnapshotOutputParam
-): Sqlite3Result
+    outSnapshot: SqliteSnapshotOutputParam
+): SqliteResultCode
 
 /**
  * Open a read-transaction on the snapshot identified by [snapshot].
@@ -62,7 +62,7 @@ public expect fun sqlite3_snapshot_open(
     db: sqlite3,
     name: String?,
     snapshot: sqlite3_snapshot
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Recover as many snapshots as possible from the wal file associated with schema zDb of database
@@ -73,7 +73,7 @@ public expect fun sqlite3_snapshot_open(
 public expect fun sqlite3_snapshot_recover(
     db: sqlite3,
     name: String?
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Set the soft heap-size limit for the library. An argument of zero disables the limit. A negative
@@ -102,7 +102,7 @@ public expect fun sqlite3_soft_heap_limit64(limit: Long): Long
 public expect fun sqlite3_wal_autocheckpoint(
     db: sqlite3,
     nFrame: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Checkpoint database [name]. If [name] is NULL, or if the buffer [name] points to contains a
@@ -113,7 +113,7 @@ public expect fun sqlite3_wal_autocheckpoint(
 public expect fun sqlite3_wal_checkpoint(
     db: sqlite3,
     name: String?
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Checkpoint database [name]. If [name] is NULL, or if the buffer [name] points to contains a
@@ -124,10 +124,10 @@ public expect fun sqlite3_wal_checkpoint(
 public expect fun sqlite3_wal_checkpoint_v2(
     db: sqlite3,
     name: String?,
-    mode: Sqlite3CheckpointMode,
+    mode: SqliteCheckpointMode,
     outNLog: Int32OutputParam?,
     outNCkpt: Int32OutputParam?
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Register a callback to be invoked each time a transaction is written into the write-ahead-log by
@@ -144,5 +144,5 @@ public expect fun sqlite3_wal_checkpoint_v2(
 public expect fun <AppData> sqlite3_wal_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3WalHookCallback<AppData>?
+    callback: SqliteWalHookCallback<AppData>?
 )

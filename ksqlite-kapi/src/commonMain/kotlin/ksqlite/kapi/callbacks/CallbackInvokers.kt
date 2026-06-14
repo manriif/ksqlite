@@ -1,16 +1,16 @@
 package ksqlite.kapi.callbacks
 
-import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
-import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
+import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
 
 /**
  * Invokes [AutovacuumPages.apply].
  */
-internal val AutovacuumPagesInvoker = Sqlite3AutovacuumPagesCallback { callback: AutovacuumPages,
-                                                                       schemaName,
-                                                                       dbPage,
-                                                                       freePage,
-                                                                       bytePerPage ->
+internal val AutovacuumPagesInvoker = SqliteAutovacuumPagesCallback { callback: AutovacuumPages,
+                                                                      schemaName,
+                                                                      dbPage,
+                                                                      freePage,
+                                                                      bytePerPage ->
     callback.apply(
         schemaName = schemaName,
         dbPage = dbPage,
@@ -22,6 +22,6 @@ internal val AutovacuumPagesInvoker = Sqlite3AutovacuumPagesCallback { callback:
 /**
  * Invokes [BusyHandler.apply].
  */
-internal val BusyHandlerInvoker = Sqlite3BusyHandlerCallback { callback: BusyHandler, count ->
+internal val BusyHandlerInvoker = SqliteBusyHandlerCallback { callback: BusyHandler, count ->
     callback.apply(count)
 }

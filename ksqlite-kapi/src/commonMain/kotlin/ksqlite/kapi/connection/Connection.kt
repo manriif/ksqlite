@@ -1,5 +1,6 @@
 package ksqlite.kapi.connection
 
+import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.vtab.Sqlite3ModuleVersion
@@ -12,6 +13,8 @@ import ksqlite.kapi.functions.ScalarFunction
 import ksqlite.kapi.functions.WindowFunction
 import ksqlite.kapi.vtab.VirtualTableModule
 import kotlin.time.Duration
+
+public typealias OpenFlag = Sqlite3BlobOpenFlag
 
 /**
  * [Database connection](https://sqlite.org/c3ref/sqlite3.html).
@@ -28,7 +31,7 @@ public abstract class Connection internal constructor(): AutoCloseable {
     /**
      *
      */
-    public abstract fun openBlob(): Blob
+    public abstract fun openBlob(openFlag: OpenFlag): Blob
 
     /**
      * Sets the busy [handler].

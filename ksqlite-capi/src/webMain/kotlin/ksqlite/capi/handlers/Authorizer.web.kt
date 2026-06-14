@@ -1,12 +1,12 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
-import ksqlite.capi.convertActionCode
+import ksqlite.capi.callbacks.SqliteAuthorizerCallback
+import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
-import ksqlite.capi.memory.toKStringFromUtf8OrNull
+import ksqlite.types.internal.convertActionCode
 
 /**
  * Handler for [ksqlite.capi.sqlite3_set_authorizer].
@@ -32,7 +32,7 @@ internal class AuthorizerHandler : Handler() {
         param4: WasmPointer,
         param5: WasmPointer,
         param6: WasmPointer
-    ): Int = handle(refPointer) { callback: Sqlite3AuthorizerCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteAuthorizerCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             action = convertActionCode(action),

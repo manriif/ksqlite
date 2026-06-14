@@ -3,7 +3,7 @@ package ksqlite.capi.memory
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.asStableRef
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 
 /**
  * C-static function disposing a [Reference] from a [kotlinx.cinterop.StableRef].
@@ -20,7 +20,7 @@ private val StableRefDisposer = staticCFunction { pointer: COpaquePointer? ->
  */
 internal fun stableRefDisposer(
     data: Any?,
-    destructor: Sqlite3DestroyCallback<*>? = null
+    destructor: SqliteDestroyCallback<*>? = null
 ) = StableRefDisposer.takeIf { data != null || destructor != null }
 
 /**

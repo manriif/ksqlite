@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 
 /**
  * Resource which can be disposed.
@@ -67,7 +67,7 @@ internal fun unregisterGlobalDisposable(address: Long) {
 internal class InstanceDestructor<Instance>(
     private val address: Long,
     private val instance: Instance,
-    private val destructor: Sqlite3DestroyCallback<Instance>
+    private val destructor: SqliteDestroyCallback<Instance>
 ) : Disposable {
 
     override fun dispose() {
@@ -89,7 +89,7 @@ internal fun <Instance, Disposer : Any> instanceDisposer(
     disposer: Disposer,
     instance: Instance,
     address: Long,
-    destructor: Sqlite3DestroyCallback<Instance>?,
+    destructor: SqliteDestroyCallback<Instance>?,
 ): Disposer? {
     if (destructor == null) {
         return null

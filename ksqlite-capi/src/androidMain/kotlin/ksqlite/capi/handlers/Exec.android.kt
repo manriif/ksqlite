@@ -1,13 +1,13 @@
 package ksqlite.capi.handlers
 
 import ksqlite.foreign.callbacks.ExecCallback
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
+import ksqlite.capi.callbacks.SqliteExecCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_busy_handler].
  */
 internal class ExecHandler<AppData> :
-    Handler<Sqlite3ExecCallback<AppData>, AppData>(),
+    Handler<SqliteExecCallback<AppData>, AppData>(),
     ExecCallback {
 
     override fun apply(

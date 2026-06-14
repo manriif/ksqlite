@@ -1,6 +1,6 @@
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
@@ -56,7 +56,7 @@ internal expect fun getAuxdataInternal(
 internal expect fun setAuxdataInternal(
     context: sqlite3_context,
     index: Int,
-    destroy: Sqlite3DestroyCallback<Nothing?>
+    destroy: SqliteDestroyCallback<Nothing?>
 ): Long?
 
 /**

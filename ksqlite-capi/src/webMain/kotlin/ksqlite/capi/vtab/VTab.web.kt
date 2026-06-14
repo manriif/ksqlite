@@ -18,11 +18,8 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.wasm
-import ksqlite.foreign.structs.sqlite3_module
-import ksqlite.foreign.structs.sqlite3_vtab
 import ksqlite.foreign.js.plus
 import ksqlite.foreign.structs.member
-import ksqlite.foreign.structs.sqlite3_vtab_cursor
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
@@ -35,9 +32,9 @@ import ksqlite.foreign.wasm.FunctionSignature.Int64 as I64
 ///////////////////////////////////////////////////////////////////////////
 
 internal typealias s3_index_info = ksqlite.foreign.structs.sqlite3_index_info
-internal typealias s3_module = sqlite3_module
-internal typealias s3_vtab = sqlite3_vtab
-internal typealias s3_vtab_cursor = sqlite3_vtab_cursor
+internal typealias s3_module = ksqlite.foreign.structs.sqlite3_module
+internal typealias s3_vtab = ksqlite.foreign.structs.sqlite3_vtab
+internal typealias s3_vtab_cursor = ksqlite.foreign.structs.sqlite3_vtab_cursor
 
 ///////////////////////////////////////////////////////////////////////////
 // Handlers

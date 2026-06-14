@@ -6,8 +6,8 @@ import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
-import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.callbacks.SqliteConfigLogCallback
+import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.types.sqlite3
 
 /**
@@ -28,7 +28,7 @@ internal class ConfigLogHandler : Handler() {
         refPointer: WasmPointer,
         errCode: Int,
         errMsg: WasmPointer
-    ): Unit = handle(refPointer) { callback: Sqlite3ConfigLogCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteConfigLogCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             errorCode = errCode,
@@ -57,7 +57,7 @@ internal class ConfigSqlLogHandler : Handler() {
         db: WasmPointer,
         name: WasmPointer,
         type: Int
-    ): Unit = handle(refPointer) { callback: Sqlite3ConfigSqlLogCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteConfigSqlLogCallback<Any?>, appData ->
         dispatchSqlLogEvent(
             callback = callback,
             appData = appData,

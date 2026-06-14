@@ -1,6 +1,6 @@
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.foreign.wasm.WasmMemory
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.allocCString
@@ -13,7 +13,7 @@ import ksqlite.capi.memory.orNull
 internal class NamedPointer<Data>(
     val name: WasmPointer,
     private val memory: WasmMemory,
-    private val destroy: Sqlite3DestroyCallback<Data>?
+    private val destroy: SqliteDestroyCallback<Data>?
 ) {
 
     /**
@@ -33,11 +33,11 @@ internal class NamedPointer<Data>(
  */
 internal inline fun <Data, R> allocateNamedPointer(
     name: String?,
-    destroy: Sqlite3DestroyCallback<Data>?,
+    destroy: SqliteDestroyCallback<Data>?,
     memory: WasmMemory = wasm,
     block: (
         ptr: NamedPointer<Data>,
-        ptrDestroy: Sqlite3DestroyCallback<Data>
+        ptrDestroy: SqliteDestroyCallback<Data>
     ) -> R
 ): R {
     val typePointer = name?.let(memory::allocCString)

@@ -1,8 +1,5 @@
 package ksqlite.capi.vtab
 
-import ksqlite.foreign.OutputPointer
-import ksqlite.foreign.callbacks.DestructorCallback
-import ksqlite.foreign.callbacks.FunctionCallback
 import ksqlite.capi.createFunction
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.handlers.callbackHandler
@@ -12,8 +9,9 @@ import ksqlite.capi.memory.toArray
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.foreign.structs.sqlite3_module
-import ksqlite.foreign.structs.sqlite3_vtab_cursor
+import ksqlite.foreign.OutputPointer
+import ksqlite.foreign.callbacks.DestructorCallback
+import ksqlite.foreign.callbacks.FunctionCallback
 import ksqlite.foreign.callbacks.VTabModuleCallbacks as JniVTabModuleCallbacks
 
 ///////////////////////////////////////////////////////////////////////////
@@ -21,9 +19,9 @@ import ksqlite.foreign.callbacks.VTabModuleCallbacks as JniVTabModuleCallbacks
 ///////////////////////////////////////////////////////////////////////////
 
 internal typealias s3_index_info = ksqlite.foreign.structs.sqlite3_index_info
-internal typealias s3_module = sqlite3_module
+internal typealias s3_module = ksqlite.foreign.structs.sqlite3_module
 internal typealias s3_vtab = ksqlite.foreign.structs.sqlite3_vtab
-internal typealias s3_vtab_cursor = sqlite3_vtab_cursor
+internal typealias s3_vtab_cursor = ksqlite.foreign.structs.sqlite3_vtab_cursor
 
 ///////////////////////////////////////////////////////////////////////////
 // Handlers

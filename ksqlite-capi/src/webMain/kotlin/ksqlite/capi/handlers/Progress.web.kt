@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
+import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
@@ -18,7 +18,7 @@ internal class ProgressHandlerHandler : Handler() {
 
     private fun apply(
         refPointer: WasmPointer
-    ): Int = handle(refPointer) { callback: Sqlite3ProgressHandlerCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteProgressHandlerCallback<Any?>, appData ->
         callback.apply(appData)
     }
 }

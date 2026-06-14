@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
-import ksqlite.`sqlite3_progress_handler$x0`
+import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
+import ksqlite.foreign.`sqlite3_progress_handler$x0`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -17,7 +17,7 @@ internal class ProgressHandlerHandler :
 
     override fun apply(
         refPointer: MemorySegment
-    ): Int = handle(refPointer) { callback: Sqlite3ProgressHandlerCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteProgressHandlerCallback<Any?>, appData ->
         callback.apply(appData)
     }
 }

@@ -1,6 +1,6 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.vtab.sqlite3_vtab
 import ksqlite.capi.vtab.sqlite3_vtab_cursor
@@ -18,19 +18,19 @@ internal class VTab(
     /**
      * Sets the [errMsg] from [exception]'s message and returns [exception]'s result
      */
-    fun handleError(exception: SQLiteException): Sqlite3Result.Failure {
+    fun handleError(exception: SQLiteException): SqliteResultCode.Failure {
         errMsg = exception.message
         return exception.result
     }
 
     /**
-     * Executes [block] and returns [Sqlite3Result.OK] or an instance of [Sqlite3Result.Failure] if
+     * Executes [block] and returns [SqliteResultCode.OK] or an instance of [SqliteResultCode.Failure] if
      * [block]'s throws.
      */
-    inline fun catching(block: VirtualTable.() -> Unit): Sqlite3Result.OkOrFailure {
+    inline fun catching(block: VirtualTable.() -> Unit): SqliteResultCode.OkOrFailure {
         return table.runCatchingSQLiteException(::handleError) {
             block()
-            Sqlite3Result.OK
+            SqliteResultCode.OK
         }
     }
 
@@ -39,7 +39,7 @@ internal class VTab(
      * and the result is returned.
      */
     inline fun <T> catching(
-        transform: (Sqlite3Result.Failure) -> T,
+        transform: (SqliteResultCode.Failure) -> T,
         block: VirtualTable.() -> T
     ): T = table.runCatchingSQLiteException({ transform(handleError(it)) }) { block() }
 }
@@ -53,13 +53,13 @@ internal class VTabCursor(
 ) : sqlite3_vtab_cursor() {
 
     /**
-     * Executes [block] and returns [Sqlite3Result.OK] or an instance of [Sqlite3Result.Failure] if
+     * Executes [block] and returns [SqliteResultCode.OK] or an instance of [SqliteResultCode.Failure] if
      * [block]'s throws.
      */
-    inline fun catching(block: VirtualTableCursor.() -> Unit): Sqlite3Result.OkOrFailure {
+    inline fun catching(block: VirtualTableCursor.() -> Unit): SqliteResultCode.OkOrFailure {
         return cursor.runCatchingSQLiteException(vTab::handleError) {
             block()
-            Sqlite3Result.OK
+            SqliteResultCode.OK
         }
     }
 
@@ -68,7 +68,7 @@ internal class VTabCursor(
      * and the result is returned.
      */
     inline fun <T> catching(
-        transform: (Sqlite3Result.Failure) -> T,
+        transform: (SqliteResultCode.Failure) -> T,
         block: VirtualTableCursor.() -> T
     ): T = cursor.runCatchingSQLiteException({ transform(vTab.handleError(it)) }) { block() }
 }

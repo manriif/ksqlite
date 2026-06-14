@@ -2,36 +2,36 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
 import ksqlite.capi.memory.ConcurrentMap
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabBeginCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabBestIndexCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabCloseCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabColumnCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabCommitCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabConnectCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabCreateCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabDestroyCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabDisconnectCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabEofCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabFilterCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabFindFunctionCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabIntegrityCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabNextCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabOpenCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabReleaseCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabRenameCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabRollbackCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabRollbackToCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabRowidCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabSavepointCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabSyncCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabUpdateCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabBeginCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabBestIndexCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabCloseCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabColumnCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabCommitCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabCreateCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabDestroyCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabDisconnectCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabEofCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabFilterCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabFindFunctionCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabIntegrityCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabNextCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabOpenCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabReleaseCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabRenameCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabRollbackCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabRollbackToCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabRowidCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabSavepointCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabSyncCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabUpdateCallback
 import ksqlite.capi.vtab.callbacks.VTabCreateOrConnectFailureResult
 import ksqlite.capi.vtab.callbacks.VTabCreateOrConnectSuccessResult
 import ksqlite.capi.vtab.callbacks.VTabFindFunctionDoNotOverloadResult
@@ -48,7 +48,7 @@ import ksqlite.capi.vtab.callbacks.vTabIntegrityScope
 import ksqlite.capi.vtab.callbacks.vTabOpenScope
 import ksqlite.capi.vtab.callbacks.vTabRowidScope
 import ksqlite.capi.vtab.callbacks.vTabUpdateScope
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabCreateOrConnectCallback as CreateOrConnect
+import ksqlite.capi.vtab.callbacks.SqliteVTabCreateOrConnectCallback as CreateOrConnect
 
 ///////////////////////////////////////////////////////////////////////////
 // Module
@@ -58,36 +58,36 @@ import ksqlite.capi.vtab.callbacks.Sqlite3VTabCreateOrConnectCallback as CreateO
  * Callbacks of an SQLite 3 Virtual Table module.
  */
 internal class VTabModuleCallbacks<AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
-    val create: Sqlite3VTabCreateCallback<in AppData, VTab>?,
-    val connect: Sqlite3VTabConnectCallback<in AppData, VTab>,
-    val bestIndex: Sqlite3VTabBestIndexCallback<VTab>,
-    val disconnect: Sqlite3VTabDisconnectCallback<VTab>,
-    val destroy: Sqlite3VTabDestroyCallback<VTab>,
-    val open: Sqlite3VTabOpenCallback<VTab, VTabCursor>,
-    val close: Sqlite3VTabCloseCallback<VTabCursor>,
-    val filter: Sqlite3VTabFilterCallback<VTabCursor>,
-    val next: Sqlite3VTabNextCallback<VTabCursor>,
-    val eof: Sqlite3VTabEofCallback<VTabCursor>,
-    val column: Sqlite3VTabColumnCallback<VTabCursor>,
-    val rowid: Sqlite3VTabRowidCallback<VTabCursor>,
-    val update: Sqlite3VTabUpdateCallback<VTab>?,
-    val findFunction: Sqlite3VTabFindFunctionCallback<VTab>?,
-    val begin: Sqlite3VTabBeginCallback<VTab>?,
-    val sync: Sqlite3VTabSyncCallback<VTab>?,
-    val commit: Sqlite3VTabCommitCallback<VTab>?,
-    val rollback: Sqlite3VTabRollbackCallback<VTab>?,
-    val rename: Sqlite3VTabRenameCallback<VTab>?,
-    val savepoint: Sqlite3VTabSavepointCallback<VTab>?,
-    val release: Sqlite3VTabReleaseCallback<VTab>?,
-    val rollbackTo: Sqlite3VTabRollbackToCallback<VTab>?,
-    val integrity: Sqlite3VTabIntegrityCallback<VTab>?
+    val create: SqliteVTabCreateCallback<in AppData, VTab>?,
+    val connect: SqliteVTabConnectCallback<in AppData, VTab>,
+    val bestIndex: SqliteVTabBestIndexCallback<VTab>,
+    val disconnect: SqliteVTabDisconnectCallback<VTab>,
+    val destroy: SqliteVTabDestroyCallback<VTab>,
+    val open: SqliteVTabOpenCallback<VTab, VTabCursor>,
+    val close: SqliteVTabCloseCallback<VTabCursor>,
+    val filter: SqliteVTabFilterCallback<VTabCursor>,
+    val next: SqliteVTabNextCallback<VTabCursor>,
+    val eof: SqliteVTabEofCallback<VTabCursor>,
+    val column: SqliteVTabColumnCallback<VTabCursor>,
+    val rowid: SqliteVTabRowidCallback<VTabCursor>,
+    val update: SqliteVTabUpdateCallback<VTab>?,
+    val findFunction: SqliteVTabFindFunctionCallback<VTab>?,
+    val begin: SqliteVTabBeginCallback<VTab>?,
+    val sync: SqliteVTabSyncCallback<VTab>?,
+    val commit: SqliteVTabCommitCallback<VTab>?,
+    val rollback: SqliteVTabRollbackCallback<VTab>?,
+    val rename: SqliteVTabRenameCallback<VTab>?,
+    val savepoint: SqliteVTabSavepointCallback<VTab>?,
+    val release: SqliteVTabReleaseCallback<VTab>?,
+    val rollbackTo: SqliteVTabRollbackToCallback<VTab>?,
+    val integrity: SqliteVTabIntegrityCallback<VTab>?
 ) {
 
-    val moduleKind: Sqlite3ModuleKind
+    val moduleKind: SqliteModuleKind
         inline get() = when {
-            create == null -> Sqlite3ModuleKind.EponymousOnly
-            create === connect -> Sqlite3ModuleKind.Eponymous
-            else -> Sqlite3ModuleKind.Ordinal
+            create == null -> SqliteModuleKind.EponymousOnly
+            create === connect -> SqliteModuleKind.Eponymous
+            else -> SqliteModuleKind.Ordinal
         }
 }
 
@@ -147,7 +147,7 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
      */
     private inline fun closeVTab(
         cleanup: (sqlite3_vtab) -> Unit,
-        callback: (VTab) -> Sqlite3Result
+        callback: (VTab) -> SqliteResultCode
     ) = callback(vTab).code.also {
         check(VTabStates.remove(vTab.address) === this) {
             "Virtual table at address ${vTab.address} is not present or has changed"
@@ -166,7 +166,7 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
                     }
                 })
 
-                Sqlite3Result.OK
+                SqliteResultCode.OK
             }
 
             is VTabResultFailureResult -> result.result
@@ -218,7 +218,7 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
         when (val result = vTabRowidScope().handle(cursorAddress.cursor)) {
             is VTabRowidSuccessResult -> {
                 setRowid(result.rowid)
-                Sqlite3Result.OK
+                SqliteResultCode.OK
             }
 
             is VTabResultFailureResult -> result.result
@@ -232,7 +232,7 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
         when (val result = vTabUpdateScope().handle(vTab, arguments)) {
             is VTabUpdateSuccessResult -> {
                 result.rowid?.let(setRowid)
-                Sqlite3Result.OK
+                SqliteResultCode.OK
             }
 
             is VTabResultFailureResult -> result.result
@@ -253,8 +253,8 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
         setFunction: (
             sqlite3_vtab,
             Any?,
-            Sqlite3FunctionFuncCallback<Any?>,
-            Sqlite3DestroyCallback<Any?>?
+            SqliteFunctionFuncCallback<Any?>,
+            SqliteDestroyCallback<Any?>?
         ) -> Unit
     ) = checkNotNull(callbacks.findFunction).run {
         when (val result = vTabFindFunctionScope().handle(vTab, argumentCount, functionName)) {
@@ -288,7 +288,7 @@ internal class VTabState<VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor>(
         when (val result = vTabIntegrityScope().handle(vTab, schema, tableName, flags)) {
             is VTabIntegritySuccessResult -> {
                 result.error?.let(setError)
-                Sqlite3Result.OK
+                SqliteResultCode.OK
             }
 
             is VTabIntegrityFailureResult -> {
@@ -332,12 +332,12 @@ private inline fun <AppData, VTab : sqlite3_vtab> CreateOrConnect<in AppData, VT
             }
         })
 
-        Sqlite3Result.OK
+        SqliteResultCode.OK
     }
 
     is VTabCreateOrConnectFailureResult -> {
         setError(result.error)
-        Sqlite3Result.ERROR
+        SqliteResultCode.ERROR
     }
 }.code
 
@@ -469,8 +469,8 @@ internal inline fun vTabFindFunction(
     setFunction: (
         sqlite3_vtab,
         Any?,
-        Sqlite3FunctionFuncCallback<Any?>,
-        Sqlite3DestroyCallback<Any?>?
+        SqliteFunctionFuncCallback<Any?>,
+        SqliteDestroyCallback<Any?>?
     ) -> Unit
 ) = vTab.vTabState.findFunction(argumentCount, functionName, setFunction)
 

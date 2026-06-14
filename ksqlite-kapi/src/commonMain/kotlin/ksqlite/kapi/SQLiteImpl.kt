@@ -2,12 +2,12 @@ package ksqlite.kapi
 
 import co.touchlab.stately.concurrency.Lock
 import co.touchlab.stately.concurrency.withLock
-import ksqlite.capi.types.Sqlite3ConfigOption
+import ksqlite.capi.types.CapiSqliteConfigOption
 import ksqlite.capi.types.sqlite3
 import ksqlite.kapi.connection.Connection
 
 internal class SQLiteImpl(
-    private val options: List<Sqlite3ConfigOption>,
+    private val options: List<CapiSqliteConfigOption>,
     private val onClose: () -> Unit
 ): SQLite {
 
@@ -39,7 +39,7 @@ private fun clearSQLiteInstance() = SQLiteInstanceLock.withLock {
 /**
  * Creates and sets [SQLiteInstance].
  */
-internal fun createSQLiteInstance(options: List<Sqlite3ConfigOption>): SQLite {
+internal fun createSQLiteInstance(options: List<CapiSqliteConfigOption>): SQLite {
     return SQLiteInstanceLock.withLock {
         check(SQLiteInstance == null) {
             "Only a single instance of SQLite is allowed simultaneously, previous instance must be " +

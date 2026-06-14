@@ -5,7 +5,7 @@ import ksqlite.capi.sqlite3_result_error
 import ksqlite.capi.sqlite3_result_error_code
 import ksqlite.capi.sqlite3_result_error_nomem
 import ksqlite.capi.sqlite3_result_error_toobig
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.kapi.connection.Connection
 import ksqlite.kapi.SQLiteException
@@ -15,7 +15,7 @@ import ksqlite.kapi.throwSQLiteException
 /**
  * Special exception types used to set the result of a function call.
  */
-private sealed class ResultException : SQLiteException(Sqlite3Result.ERROR, "") {
+private sealed class ResultException : SQLiteException(SqliteResultCode.ERROR, "") {
     class NoMem : ResultException()
     class TooBig : ResultException()
 }
@@ -30,7 +30,7 @@ internal class FunctionScopeImpl(context: sqlite3_context) :
 
     override fun setResultError(
         message: String,
-        result: Sqlite3Result.Failure
+        result: SqliteResultCode.Failure
     ): Nothing = notClosed { throwSQLiteException(message, result) }
 
     override fun setResultErrorNoMem(): Nothing = notClosed { throw ResultException.NoMem() }

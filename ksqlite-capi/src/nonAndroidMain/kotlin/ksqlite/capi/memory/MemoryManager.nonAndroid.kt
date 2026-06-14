@@ -2,7 +2,7 @@ package ksqlite.capi.memory
 
 import co.touchlab.stately.concurrency.close
 import co.touchlab.stately.concurrency.withLock
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -135,7 +135,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      */
     protected abstract inner class AutoDisposable<AppData>(
         private val id: Long,
-        private val destructor: Sqlite3DestroyCallback<AppData>?
+        private val destructor: SqliteDestroyCallback<AppData>?
     ) : Disposable {
 
         var disposableKey: String? = null

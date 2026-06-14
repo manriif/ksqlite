@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.handlers.Handler
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
@@ -23,7 +23,7 @@ internal class StableRefDisposerHandler : Handler(), ReferenceFunction {
  */
 internal fun MemoryManager.stableRefDisposer(
     data: Any?,
-    destructor: Sqlite3DestroyCallback<*>? = null
+    destructor: SqliteDestroyCallback<*>? = null
 ): MemorySegment = stableRefDisposer.takeIf { data != null || destructor != null } ?: NullPtr
 
 /**

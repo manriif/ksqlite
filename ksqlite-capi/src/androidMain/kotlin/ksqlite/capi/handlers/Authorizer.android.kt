@@ -1,14 +1,14 @@
 package ksqlite.capi.handlers
 
+import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.foreign.callbacks.AuthorizerCallback
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
-import ksqlite.capi.convertActionCode
+import ksqlite.types.internal.convertActionCode
 
 /**
  * Handler for [ksqlite.capi.sqlite3_set_authorizer].
  */
 internal class AuthorizerHandler<AppData> :
-    Handler<Sqlite3AuthorizerCallback<AppData>, AppData>(),
+    Handler<SqliteAuthorizerCallback<AppData>, AppData>(),
     AuthorizerCallback {
 
     override fun apply(

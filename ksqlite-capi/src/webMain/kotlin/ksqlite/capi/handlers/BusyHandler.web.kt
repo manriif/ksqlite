@@ -4,7 +4,7 @@ import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
-import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_busy_handler].
@@ -22,7 +22,7 @@ internal class BusyHandlerHandler : Handler() {
     private fun apply(
         refPointer: WasmPointer,
         count: Int,
-    ): Int = handle(refPointer) { callback: Sqlite3BusyHandlerCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteBusyHandlerCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             count = count

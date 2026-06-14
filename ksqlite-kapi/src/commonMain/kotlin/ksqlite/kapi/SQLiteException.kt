@@ -1,6 +1,6 @@
 package ksqlite.kapi
 
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 
 /**
  * Exception resulting from a call to an SQLite API that failed, returning a non-successful result
@@ -16,7 +16,7 @@ public open class SQLiteException(
     /**
      * The result returned by the API call that failed.
      */
-    public val result: Sqlite3Result.Failure,
+    public val result: SqliteResultCode.Failure,
     override val message: String
 ) : RuntimeException(message)
 
@@ -26,11 +26,11 @@ public open class SQLiteException(
 
 /**
  * Throws an [SQLiteException] with supplied [message] and [result] which is default to
- * [Sqlite3Result.ERROR].
+ * [SqliteResultCode.ERROR].
  */
 public fun throwSQLiteException(
     message: String,
-    result: Sqlite3Result.Failure = Sqlite3Result.ERROR
+    result: SqliteResultCode.Failure = SqliteResultCode.ERROR
 ): Nothing {
     throw SQLiteException(result, message)
 }

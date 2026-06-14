@@ -2,7 +2,7 @@ package ksqlite.capi.handlers
 
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.staticCFunction
-import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
+import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
 
 /**
  * Static C function for [busyHandlerHandler].
@@ -15,7 +15,7 @@ internal val BusyHandlerHandler = staticCFunction(::busyHandlerHandler)
 private fun busyHandlerHandler(
     refPointer: COpaquePointer?,
     count: Int,
-) = handle(refPointer) { callback: Sqlite3BusyHandlerCallback<Any?>, appData ->
+) = handle(refPointer) { callback: SqliteBusyHandlerCallback<Any?>, appData ->
     callback.apply(
         appData = appData,
         count = count

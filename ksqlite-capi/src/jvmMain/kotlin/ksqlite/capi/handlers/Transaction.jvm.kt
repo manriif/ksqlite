@@ -1,9 +1,9 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.`sqlite3_commit_hook$x0`
-import ksqlite.`sqlite3_rollback_hook$x0`
+import ksqlite.capi.callbacks.SqliteCommitHookCallback
+import ksqlite.capi.callbacks.SqliteRollbackHookCallback
+import ksqlite.foreign.`sqlite3_commit_hook$x0`
+import ksqlite.foreign.`sqlite3_rollback_hook$x0`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -19,7 +19,7 @@ internal class CommitHookHandler :
 
     override fun apply(
         refPointer: MemorySegment
-    ): Int = handle(refPointer) { callback: Sqlite3CommitHookCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteCommitHookCallback<Any?>, appData ->
         callback.apply(appData)
     }
 }
@@ -36,7 +36,7 @@ internal class RollbackHookHandler :
 
     override fun apply(
         refPointer: MemorySegment
-    ): Unit = handle(refPointer) { callback: Sqlite3RollbackHookCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteRollbackHookCallback<Any?>, appData ->
         callback.apply(appData)
     }
 }

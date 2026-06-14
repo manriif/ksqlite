@@ -1,11 +1,11 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3TraceCallback
+import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.dispatchTraceEvent
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.`sqlite3_trace_v2$xCallback`
+import ksqlite.foreign.`sqlite3_trace_v2$xCallback`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
@@ -25,7 +25,7 @@ internal class TraceHandler :
         refPointer: MemorySegment,
         pPointer: MemorySegment,
         xPointer: MemorySegment
-    ): Int = handle(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteTraceCallback<Any?>, appData ->
         dispatchTraceEvent(
             callback = callback,
             appData = appData,

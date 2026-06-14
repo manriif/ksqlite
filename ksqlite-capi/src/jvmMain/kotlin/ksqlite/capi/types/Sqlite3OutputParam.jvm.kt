@@ -5,6 +5,7 @@ import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.notNull
+import ksqlite.foreign.sqlite3.sqlite3_free
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
 import java.lang.foreign.ValueLayout
@@ -118,7 +119,7 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
         val string = part.toKStringFromUtf8()
 
         if (free) {
-            ksqlite.sqlite3.sqlite3_free(pointer)
+            sqlite3_free(pointer)
         }
 
         return string
@@ -129,7 +130,7 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3OutputParam actual constructor() :
+public actual class SqliteOutputParam actual constructor() :
     PointerOutputParam<sqlite3>() {
 
     override fun create(pointer: MemorySegment): sqlite3 {
@@ -137,7 +138,7 @@ public actual class Sqlite3OutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3BlobOutputParam actual constructor() :
+public actual class SqliteBlobOutputParam actual constructor() :
     PointerOutputParam<sqlite3_blob>() {
 
     override fun create(pointer: MemorySegment): sqlite3_blob {
@@ -145,7 +146,7 @@ public actual class Sqlite3BlobOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3SnapshotOutputParam actual constructor() :
+public actual class SqliteSnapshotOutputParam actual constructor() :
     PointerOutputParam<sqlite3_snapshot>() {
 
     override fun create(pointer: MemorySegment): sqlite3_snapshot {
@@ -153,7 +154,7 @@ public actual class Sqlite3SnapshotOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3StmtOutputParam actual constructor() :
+public actual class SqliteStmtOutputParam actual constructor() :
     PointerOutputParam<sqlite3_stmt>() {
 
     override fun create(pointer: MemorySegment): sqlite3_stmt {
@@ -161,7 +162,7 @@ public actual class Sqlite3StmtOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3ValueOutputParam actual constructor() :
+public actual class SqliteValueOutputParam actual constructor() :
     PointerOutputParam<sqlite3_value>() {
 
     override fun create(pointer: MemorySegment): sqlite3_value {

@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
+import ksqlite.capi.callbacks.SqliteCommitHookCallback
+import ksqlite.capi.callbacks.SqliteRollbackHookCallback
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
@@ -19,7 +19,7 @@ internal class CommitHookHandler : Handler() {
 
     private fun apply(
         refPointer: WasmPointer
-    ): Int = handle(refPointer) { callback: Sqlite3CommitHookCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteCommitHookCallback<Any?>, appData ->
         callback.apply(appData)
     }
 }
@@ -36,7 +36,7 @@ internal class RollbackHookHandler : Handler() {
 
     private fun apply(
         refPointer: WasmPointer
-    ): Unit = handle(refPointer) { callback: Sqlite3RollbackHookCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteRollbackHookCallback<Any?>, appData ->
         callback.apply(appData)
     }
 }

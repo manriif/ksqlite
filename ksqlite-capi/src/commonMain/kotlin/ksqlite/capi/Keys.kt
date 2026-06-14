@@ -1,6 +1,6 @@
 package ksqlite.capi
 
-import ksqlite.capi.types.Sqlite3TextEncoding
+import ksqlite.types.SqliteTextEncoding
 
 ///////////////////////////////////////////////////////////////////////////
 // Keys used to store buffers that are not copied by SQLite and are then managed by the application
@@ -32,7 +32,7 @@ internal const val KEY_WAL_HOOK = "wal_hook"
 internal fun functionKey(
     name: String,
     nArg: Int,
-    encoding: Sqlite3TextEncoding?
+    encoding: SqliteTextEncoding?
 ): String {
     return "create_function_${name}_${nArg}_${encoding?.value}"
 }
@@ -43,7 +43,7 @@ internal fun functionKey(
 internal fun windowFunctionKey(
     name: String,
     nArg: Int,
-    encoding: Sqlite3TextEncoding
+    encoding: SqliteTextEncoding
 ): String {
     return "create_window_function_${name}_${nArg}_${encoding.value}"
 }
@@ -53,7 +53,7 @@ internal fun windowFunctionKey(
  */
 internal fun collationKey(
     name: String,
-    encoding: Sqlite3TextEncoding,
+    encoding: SqliteTextEncoding,
 ): String {
     return "create_collation_${name}_${encoding.value}"
 }

@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
+import ksqlite.capi.callbacks.SqliteExecCallback
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
@@ -28,7 +28,7 @@ internal class ExecHandler : Handler() {
         columnCount: Int,
         values: WasmPointer,
         names: WasmPointer
-    ): Int = handle(refPointer) { callback: Sqlite3ExecCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteExecCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             columnCount = columnCount,

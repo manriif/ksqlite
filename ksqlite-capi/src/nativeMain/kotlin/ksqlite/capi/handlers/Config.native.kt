@@ -6,8 +6,8 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.dispatchSqlLogEvent
-import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
-import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.callbacks.SqliteConfigLogCallback
+import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
 
@@ -27,7 +27,7 @@ private fun configLogHandler(
     refPointer: COpaquePointer?,
     errCode: Int,
     errMsg: CPointer<ByteVar>?
-) = handle(refPointer) { callback: Sqlite3ConfigLogCallback<Any?>, appData ->
+) = handle(refPointer) { callback: SqliteConfigLogCallback<Any?>, appData ->
     callback.apply(
         appData = appData,
         errorCode = errCode,
@@ -52,7 +52,7 @@ private fun configSqlLogHandler(
     db: CPointer<s3>?,
     name: CPointer<ByteVar>?,
     type: Int
-) = handle(refPointer) { callback: Sqlite3ConfigSqlLogCallback<Any?>, appData ->
+) = handle(refPointer) { callback: SqliteConfigSqlLogCallback<Any?>, appData ->
     dispatchSqlLogEvent(
         callback = callback,
         appData = appData,

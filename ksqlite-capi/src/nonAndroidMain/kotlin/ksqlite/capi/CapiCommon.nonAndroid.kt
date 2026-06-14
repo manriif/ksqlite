@@ -3,7 +3,7 @@ package ksqlite.capi
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.memoryOrNull
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
@@ -22,8 +22,8 @@ internal val sqlite3_context.db: sqlite3
 /**
  * Handles the [ksqlite.capi.sqlite3_clear_bindings].
  */
-internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite3Result {
-    if (result == Sqlite3Result.OK.code) {
+internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): SqliteResultCode {
+    if (result == SqliteResultCode.OK.code) {
         stmt.memoryOrNull?.let { manager ->
             check(manager.isEmpty) { "Statement disposables has not been disposed all" }
         }

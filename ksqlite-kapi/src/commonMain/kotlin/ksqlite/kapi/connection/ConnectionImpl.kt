@@ -6,12 +6,12 @@ import ksqlite.capi.sqlite3_close_v2
 import ksqlite.capi.sqlite3_create_function_v2
 import ksqlite.capi.sqlite3_create_module_v2
 import ksqlite.capi.sqlite3_create_window_function
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.vtab.Sqlite3ModuleVersion
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabConnectCallback
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabCreateCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
+import ksqlite.capi.vtab.callbacks.SqliteVTabCreateCallback
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.callbacks.AutovacuumPages
@@ -60,7 +60,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
 
     private val modules = mutableListOf<sqlite3_module<*>>()
 
-    override fun openBlob(): Blob {
+    override fun openBlob(openFlag: OpenFlag): Blob {
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -135,8 +135,8 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
     private fun <Module : VirtualTableModule> Module.install(
         name: String,
         version: Sqlite3ModuleVersion,
-        create: Sqlite3VTabCreateCallback<in Module, VTab>?,
-        connect: Sqlite3VTabConnectCallback<in Module, VTab>,
+        create: SqliteVTabCreateCallback<in Module, VTab>?,
+        connect: SqliteVTabConnectCallback<in Module, VTab>,
     ) {
         val optionalFunctions = optionalFunctions()
 
@@ -186,7 +186,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
             destroy = AutoCloser
         )
 
-        if (result == Sqlite3Result.OK) {
+        if (result == SqliteResultCode.OK) {
             modules.add(sqliteModule)
         } else {
             sqliteModule.close()

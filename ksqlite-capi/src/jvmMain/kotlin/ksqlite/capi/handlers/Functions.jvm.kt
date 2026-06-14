@@ -4,12 +4,12 @@ import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.sqlite3.sqlite3_user_data
-import ksqlite.`sqlite3_create_function_v2$xFinal`
-import ksqlite.`sqlite3_create_function_v2$xFunc`
-import ksqlite.`sqlite3_create_function_v2$xStep`
-import ksqlite.`sqlite3_create_window_function$xInverse`
-import ksqlite.`sqlite3_create_window_function$xValue`
+import ksqlite.foreign.sqlite3.sqlite3_user_data
+import ksqlite.foreign.`sqlite3_create_function_v2$xFinal`
+import ksqlite.foreign.`sqlite3_create_function_v2$xFunc`
+import ksqlite.foreign.`sqlite3_create_function_v2$xStep`
+import ksqlite.foreign.`sqlite3_create_window_function$xInverse`
+import ksqlite.foreign.`sqlite3_create_window_function$xValue`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 

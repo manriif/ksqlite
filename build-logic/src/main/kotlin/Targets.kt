@@ -1,11 +1,11 @@
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.kotlin.dsl.assign
-import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithHostTests
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
@@ -118,23 +118,19 @@ fun KotlinMultiplatformExtension.appleTargets(): List<KotlinNativeTarget> = buil
 /**
  * Adds Jvm targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.jvmTargets(): List<KotlinJvmTarget> {
-    return listOf(jvm {
-        compilerOptions {
-            jvmTarget = JvmTarget.fromTarget(project.libs.versions.jvm.target.jvm.get())
-        }
-    })
-}
+fun KotlinMultiplatformExtension.jvmTargets(): List<KotlinJvmTarget> = listOf(jvm {
+    compilerOptions {
+        jvmTarget = JvmTarget.fromTarget(project.libs.versions.jvm.target.jvm.get())
+    }
+})
 
 /**
  * Adds Linux targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.linuxTargets(): List<KotlinNativeTarget> {
-    return listOf(
-        linuxX64(),
-        linuxArm64()
-    )
-}
+fun KotlinMultiplatformExtension.linuxTargets(): List<KotlinNativeTarget> = listOf(
+    linuxX64(),
+    linuxArm64()
+)
 
 /**
  * Adds Windows targets to `this` [KotlinMultiplatformExtension] and returns them.
@@ -146,23 +142,18 @@ fun KotlinMultiplatformExtension.windowsTargets(): List<KotlinNativeTargetWithHo
 /**
  * Adds Js targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.jsTargets(): List<KotlinJsTargetDsl> {
-    return listOf(js {
-        useEsModules()
-        browser()
-    })
-}
+fun KotlinMultiplatformExtension.jsTargets(): List<KotlinJsTargetDsl> = listOf(js {
+    useEsModules()
+    browser()
+})
 
 /**
  * Adds WasmJs targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
 @OptIn(ExperimentalWasmDsl::class)
-fun KotlinMultiplatformExtension.wasmJsTargets(
-): List<KotlinWasmJsTargetDsl> {
-    return listOf(wasmJs {
-        browser()
-    })
-}
+fun KotlinMultiplatformExtension.wasmJsTargets(): List<KotlinWasmJsTargetDsl> = listOf(wasmJs {
+    browser()
+})
 
 /**
  * Adds Web targets to `this` [KotlinMultiplatformExtension] and returns them.
@@ -184,11 +175,20 @@ fun KotlinMultiplatformExtension.webTargets() = buildList {
  */
 @Suppress("DEPRECATION")
 // TODO uncomment targets
-fun KotlinMultiplatformExtension.nativeTargets(
-): List<KotlinNativeTarget> = buildList {
+fun KotlinMultiplatformExtension.nativeTargets(): List<KotlinNativeTarget> = buildList {
     /*addAll(androidNativeTargets())
     addAll(appleTargets())
     addAll(linuxTargets())
     addAll(windowsTargets())*/
     add(macosArm64())
+}
+
+/**
+ * Adds all supported targets to `this` [KotlinMultiplatformExtension] and returns them.
+ */
+fun KotlinMultiplatformExtension.allTargets(): List<KotlinTarget> = buildList {
+    addAll(androidJvmTargets())
+    addAll(jvmTargets())
+    addAll(webTargets())
+    addAll(nativeTargets())
 }

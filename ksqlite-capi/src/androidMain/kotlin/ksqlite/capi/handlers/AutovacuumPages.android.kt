@@ -1,13 +1,13 @@
 package ksqlite.capi.handlers
 
 import ksqlite.foreign.callbacks.AutovacuumPagesCallback
-import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
+import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_autovacuum_pages].
  */
 internal class AutovacuumPagesHandler<AppData> :
-    Handler<Sqlite3AutovacuumPagesCallback<AppData>, AppData>(),
+    Handler<SqliteAutovacuumPagesCallback<AppData>, AppData>(),
     AutovacuumPagesCallback {
 
     override fun apply(

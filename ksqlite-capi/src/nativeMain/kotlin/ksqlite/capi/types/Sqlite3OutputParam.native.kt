@@ -15,7 +15,7 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.value
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.sqlite3_free as native_sqlite3_free
+import ksqlite.foreign.sqlite3_free as native_sqlite3_free
 
 /**
  * Base for output parameter.
@@ -134,7 +134,7 @@ public actual class Utf8OutputParam actual constructor() :
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3OutputParam actual constructor() :
+public actual class SqliteOutputParam actual constructor() :
     PointerOutputParam<sqlite3, s3>() {
 
     override fun create(pointer: CPointer<s3>): sqlite3 {
@@ -142,7 +142,7 @@ public actual class Sqlite3OutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3BlobOutputParam actual constructor() :
+public actual class SqliteBlobOutputParam actual constructor() :
     PointerOutputParam<sqlite3_blob, s3_blob>() {
 
     override fun create(pointer: CPointer<s3_blob>): sqlite3_blob {
@@ -150,7 +150,7 @@ public actual class Sqlite3BlobOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3SnapshotOutputParam actual constructor() :
+public actual class SqliteSnapshotOutputParam actual constructor() :
     PointerOutputParam<sqlite3_snapshot, s3_snapshot>() {
 
     override fun create(pointer: CPointer<s3_snapshot>): sqlite3_snapshot {
@@ -158,7 +158,7 @@ public actual class Sqlite3SnapshotOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3StmtOutputParam actual constructor() :
+public actual class SqliteStmtOutputParam actual constructor() :
     PointerOutputParam<sqlite3_stmt, s3_stmt>() {
 
     override fun create(pointer: CPointer<s3_stmt>): sqlite3_stmt {
@@ -166,7 +166,7 @@ public actual class Sqlite3StmtOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3ValueOutputParam actual constructor() :
+public actual class SqliteValueOutputParam actual constructor() :
     PointerOutputParam<sqlite3_value, s3_value>() {
 
     override fun create(pointer: CPointer<s3_value>): sqlite3_value {

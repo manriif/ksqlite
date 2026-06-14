@@ -1,9 +1,9 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3WalHookCallback
+import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.sqlite3
-import ksqlite.`sqlite3_wal_hook$x0`
+import ksqlite.foreign.`sqlite3_wal_hook$x0`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -22,7 +22,7 @@ internal class WalHookHandler :
         db: MemorySegment,
         dbName: MemorySegment,
         nPage: Int,
-    ): Int = handle(refPointer) { callback: Sqlite3WalHookCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteWalHookCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             db = sqlite3(db),

@@ -107,7 +107,7 @@ public actual class Utf8OutputParam actual constructor() :
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3OutputParam actual constructor() :
+public actual class SqliteOutputParam actual constructor() :
     PointerOutputParam<sqlite3>() {
 
     override fun create(pointer: Long): sqlite3 {
@@ -115,7 +115,7 @@ public actual class Sqlite3OutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3BlobOutputParam actual constructor() :
+public actual class SqliteBlobOutputParam actual constructor() :
     PointerOutputParam<sqlite3_blob>() {
 
     override fun create(pointer: Long): sqlite3_blob {
@@ -123,7 +123,7 @@ public actual class Sqlite3BlobOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3SnapshotOutputParam actual constructor() :
+public actual class SqliteSnapshotOutputParam actual constructor() :
     PointerOutputParam<sqlite3_snapshot>() {
 
     override fun create(pointer: Long): sqlite3_snapshot {
@@ -131,7 +131,7 @@ public actual class Sqlite3SnapshotOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3StmtOutputParam actual constructor() :
+public actual class SqliteStmtOutputParam actual constructor() :
     PointerOutputParam<sqlite3_stmt>() {
 
     override fun create(pointer: Long): sqlite3_stmt {
@@ -139,7 +139,7 @@ public actual class Sqlite3StmtOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3ValueOutputParam actual constructor() :
+public actual class SqliteValueOutputParam actual constructor() :
     PointerOutputParam<sqlite3_value>() {
 
     override fun create(pointer: Long): sqlite3_value {

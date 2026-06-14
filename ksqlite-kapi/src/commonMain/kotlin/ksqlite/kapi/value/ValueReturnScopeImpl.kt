@@ -1,6 +1,6 @@
 package ksqlite.kapi.value
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.sqlite3_context_db_handle
 import ksqlite.capi.sqlite3_result_blob
@@ -47,7 +47,7 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
             context = scope.context,
             buffer = value,
             size = size,
-            destroy = cleanup?.let(::Sqlite3DestroyCallback)
+            destroy = cleanup?.let(::SqliteDestroyCallback)
         )
     }
 
@@ -74,7 +74,7 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
             buffer = value,
             size = size,
             encoding = encoding,
-            destroy = cleanup?.let(::Sqlite3DestroyCallback)
+            destroy = cleanup?.let(::SqliteDestroyCallback)
         )
     }
 

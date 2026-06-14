@@ -141,7 +141,7 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-public actual class Sqlite3OutputParam actual constructor() :
+public actual class SqliteOutputParam actual constructor() :
     PointerOutputParam<sqlite3>() {
 
     override fun WasmMemory.create(pointer: WasmPointer): sqlite3 {
@@ -149,7 +149,7 @@ public actual class Sqlite3OutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3BlobOutputParam actual constructor() :
+public actual class SqliteBlobOutputParam actual constructor() :
     PointerOutputParam<sqlite3_blob>() {
 
     override fun WasmMemory.create(pointer: WasmPointer): sqlite3_blob {
@@ -157,7 +157,7 @@ public actual class Sqlite3BlobOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3StmtOutputParam actual constructor() :
+public actual class SqliteStmtOutputParam actual constructor() :
     PointerOutputParam<sqlite3_stmt>() {
 
     override fun WasmMemory.create(pointer: WasmPointer): sqlite3_stmt {
@@ -165,7 +165,7 @@ public actual class Sqlite3StmtOutputParam actual constructor() :
     }
 }
 
-public actual class Sqlite3ValueOutputParam actual constructor() :
+public actual class SqliteValueOutputParam actual constructor() :
     PointerOutputParam<sqlite3_value>() {
 
     override fun WasmMemory.create(pointer: WasmPointer): sqlite3_value {

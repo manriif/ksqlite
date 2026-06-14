@@ -3,7 +3,7 @@
 package ksqlite.capi
 
 import ksqlite.foreign.Sqlite3WasmExports
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.HeapAllocatorScope
 import ksqlite.capi.memory.NullPtr
@@ -62,7 +62,7 @@ internal actual fun getAuxdataInternal(context: sqlite3_context, index: Int): Lo
 internal actual fun setAuxdataInternal(
     context: sqlite3_context,
     index: Int,
-    destroy: Sqlite3DestroyCallback<Nothing?>
+    destroy: SqliteDestroyCallback<Nothing?>
 ): Long? = context.db.withMemoryManager {
     val pointer = stableRefPointer(null, null, destroy)
     val disposer = stableRefDisposer(null, destroy)

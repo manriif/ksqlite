@@ -6,13 +6,12 @@ plugins {
 val extractWasmResources = registerExtractWasmResourcesTask(projects.ksqliteForeign.wasm)
 
 kotlin {
-    androidJvmTargets()
-    jvmTargets()
-    nativeTargets()
-    webTargets()
+    allTargets()
 
     sourceSets {
         commonMain.dependencies {
+            api(projects.ksqliteTypes.core)
+            implementation(projects.ksqliteTypes.internal)
             implementation(libs.stately.concurrentCollections)
         }
 

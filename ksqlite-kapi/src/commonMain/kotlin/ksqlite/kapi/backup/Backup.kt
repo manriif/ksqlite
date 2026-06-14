@@ -3,7 +3,7 @@ package ksqlite.kapi.backup
 import ksqlite.capi.sqlite3_backup_init
 import ksqlite.capi.sqlite3_errcode
 import ksqlite.capi.sqlite3_errmsg
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.kapi.connection.Connection
 import ksqlite.kapi.throwSQLiteException
 
@@ -62,7 +62,7 @@ public interface Backup : AutoCloseable {
                 val message = sqlite3_errmsg(destination.db) ?: "Failed to initializes a backup"
                 val result = sqlite3_errcode(destination.db)
 
-                check(result is Sqlite3Result.Failure) {
+                check(result is SqliteResultCode.Failure) {
                     "Unexpected result $result after a sqlite3_backup_init() failure"
                 }
 

@@ -2,13 +2,13 @@ package ksqlite.kapi.helpers
 
 import ksqlite.capi.sqlite3_errmsg
 import ksqlite.capi.sqlite3_errstr
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.sqlite3
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.throwSQLiteException
 
 /**
- * Throws an [SQLiteException] with [Sqlite3Result.NOMEM] if [value], obtained from an SQLite API
+ * Throws an [SQLiteException] with [SqliteResultCode.NOMEM] if [value], obtained from an SQLite API
  * call, is `null`.
  */
 @PublishedApi
@@ -17,7 +17,7 @@ internal fun <T> sqliteOutOfMemoryCheck(
     lazyMessage: () -> String
 ): T {
     if (value == null) {
-        throwSQLiteException(lazyMessage(), Sqlite3Result.NOMEM)
+        throwSQLiteException(lazyMessage(), SqliteResultCode.NOMEM)
     }
 
     return value
@@ -33,11 +33,11 @@ internal fun <T> sqliteOutOfMemoryCheck(
  * SQLite API call is made.
  */
 private fun sqliteResultThrow(
-    result: Sqlite3Result,
+    result: SqliteResultCode,
     db: sqlite3?,
     getMessagePrefix: (() -> String)? = null
 ) {
-    if (result !is Sqlite3Result.Failure) {
+    if (result !is SqliteResultCode.Failure) {
         return
     }
 
@@ -55,7 +55,7 @@ private fun sqliteResultThrow(
 }
 
 /**
- * Throws an [SQLiteException] if the [result] is an [Sqlite3Result.Failure].
+ * Throws an [SQLiteException] if the [result] is an [SqliteResultCode.Failure].
  *
  * If [getMessagePrefix] is supplied, the computed message is prepended before the SQLite message
  * associated with the database connection provided by [getDb].
@@ -65,17 +65,17 @@ private fun sqliteResultThrow(
  */
 @PublishedApi
 internal fun sqliteResultCheck(
-    result: Sqlite3Result,
+    result: SqliteResultCode,
     getDb: (() -> sqlite3)? = null,
     getMessagePrefix: (() -> String)? = null
 ) {
-    if (result is Sqlite3Result.Failure) {
+    if (result is SqliteResultCode.Failure) {
         sqliteResultThrow(result, getDb?.invoke(), getMessagePrefix)
     }
 }
 
 /**
- * Throws an [SQLiteException] if the [result] is an [Sqlite3Result.Failure].
+ * Throws an [SQLiteException] if the [result] is an [SqliteResultCode.Failure].
  *
  * If [getMessagePrefix] is supplied, the computed message is prepended before the SQLite message
  * associated with `this` database connection.
@@ -85,10 +85,10 @@ internal fun sqliteResultCheck(
  */
 @PublishedApi
 internal fun sqlite3.resultCheck(
-    result: Sqlite3Result,
+    result: SqliteResultCode,
     getMessagePrefix: (() -> String)? = null
 ) {
-    if (result is Sqlite3Result.Failure) {
+    if (result is SqliteResultCode.Failure) {
         sqliteResultThrow(result, this, getMessagePrefix)
     }
 }

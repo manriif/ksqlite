@@ -1,22 +1,22 @@
 package ksqlite.capi.vtab.callbacks
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.vtab.Sqlite3VTabConstraintOperatorCode
+import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
 import ksqlite.capi.vtab.sqlite3_vtab
 import ksqlite.capi.vtab.sqlite3_vtab_cursor
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabCreateOrConnectCallback as CreateOrConnect
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabFindFunctionCallback as FindFunction
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabIntegrityCallback as Integrity
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabOpenCallback as Open
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabRowidCallback as Rowid
-import ksqlite.capi.vtab.callbacks.Sqlite3VTabUpdateCallback as Update
+import ksqlite.capi.vtab.callbacks.SqliteVTabCreateOrConnectCallback as CreateOrConnect
+import ksqlite.capi.vtab.callbacks.SqliteVTabFindFunctionCallback as FindFunction
+import ksqlite.capi.vtab.callbacks.SqliteVTabIntegrityCallback as Integrity
+import ksqlite.capi.vtab.callbacks.SqliteVTabOpenCallback as Open
+import ksqlite.capi.vtab.callbacks.SqliteVTabRowidCallback as Rowid
+import ksqlite.capi.vtab.callbacks.SqliteVTabUpdateCallback as Update
 
 /**
  * Common result for scope emitting a [result] on failure.
  */
-internal class VTabResultFailureResult(val result: Sqlite3Result.Failure) :
+internal class VTabResultFailureResult(val result: SqliteResultCode.Failure) :
     Open.Result<Nothing>,
     Rowid.Result,
     Update.Result
@@ -71,7 +71,7 @@ private object VTabOpenCallbackScope : Open.Scope<sqlite3_vtab_cursor> {
     override fun success(cursor: sqlite3_vtab_cursor): Open.Result<sqlite3_vtab_cursor> =
         VTabOpenSuccessResult(cursor)
 
-    override fun failure(result: Sqlite3Result.Failure): Open.Result<sqlite3_vtab_cursor> =
+    override fun failure(result: SqliteResultCode.Failure): Open.Result<sqlite3_vtab_cursor> =
         VTabResultFailureResult(result)
 }
 
@@ -96,7 +96,7 @@ private object VTabRowidCallbackScope : Rowid.Scope {
     override fun success(rowid: Long): Rowid.Result =
         VTabRowidSuccessResult(rowid)
 
-    override fun failure(result: Sqlite3Result.Failure): Rowid.Result =
+    override fun failure(result: SqliteResultCode.Failure): Rowid.Result =
         VTabResultFailureResult(result)
 }
 
@@ -119,7 +119,7 @@ private object VTabUpdateCallbackScope : Update.Scope {
     override fun success(rowid: Long?): Update.Result =
         VTabUpdateSuccessResult(rowid)
 
-    override fun failure(result: Sqlite3Result.Failure): Update.Result =
+    override fun failure(result: SqliteResultCode.Failure): Update.Result =
         VTabResultFailureResult(result)
 }
 
@@ -135,8 +135,8 @@ internal fun vTabUpdateScope(): Update.Scope = VTabUpdateCallbackScope
 internal class VTabFindFunctionOverloadResult(
     val result: Int,
     val appData: Any?,
-    val function: Sqlite3FunctionFuncCallback<Any?>,
-    val destroy: Sqlite3DestroyCallback<Any?>?
+    val function: SqliteFunctionFuncCallback<Any?>,
+    val destroy: SqliteDestroyCallback<Any?>?
 ) : FindFunction.Result
 
 internal object VTabFindFunctionDoNotOverloadResult : FindFunction.Result
@@ -150,34 +150,34 @@ private object VTabFindFunctionCallbackScope : FindFunction.Scope {
     private fun overload(
         result: Int,
         appData: Any?,
-        function: Sqlite3FunctionFuncCallback<*>,
-        destroy: Sqlite3DestroyCallback<*>? = null
+        function: SqliteFunctionFuncCallback<*>,
+        destroy: SqliteDestroyCallback<*>? = null
     ) = VTabFindFunctionOverloadResult(
         result = result,
         appData = appData,
-        function = function as Sqlite3FunctionFuncCallback<Any?>,
-        destroy = destroy as? Sqlite3DestroyCallback<Any?>
+        function = function as SqliteFunctionFuncCallback<Any?>,
+        destroy = destroy as? SqliteDestroyCallback<Any?>
     )
 
-    override fun overload(function: Sqlite3FunctionFuncCallback<Nothing?>): FindFunction.Result =
+    override fun overload(function: SqliteFunctionFuncCallback<Nothing?>): FindFunction.Result =
         overload(1, null, function)
 
     override fun <AppData> overload(
         appData: AppData,
-        function: Sqlite3FunctionFuncCallback<in AppData>,
-        destroy: Sqlite3DestroyCallback<in AppData>?
+        function: SqliteFunctionFuncCallback<in AppData>,
+        destroy: SqliteDestroyCallback<in AppData>?
     ): FindFunction.Result = overload(1, appData, function, destroy)
 
     override fun overload(
-        constraintOp: Sqlite3VTabConstraintOperatorCode.Custom,
-        function: Sqlite3FunctionFuncCallback<Nothing?>
+        constraintOp: SqliteVTabConstraintOperatorCode.Custom,
+        function: SqliteFunctionFuncCallback<Nothing?>
     ): FindFunction.Result = overload(constraintOp.code, null, function)
 
     override fun <AppData> overload(
-        constraintOp: Sqlite3VTabConstraintOperatorCode.Custom,
+        constraintOp: SqliteVTabConstraintOperatorCode.Custom,
         appData: AppData,
-        function: Sqlite3FunctionFuncCallback<in AppData>,
-        destroy: Sqlite3DestroyCallback<in AppData>?
+        function: SqliteFunctionFuncCallback<in AppData>,
+        destroy: SqliteDestroyCallback<in AppData>?
     ): FindFunction.Result = overload(constraintOp.code, appData, function, destroy)
 
     override fun doNotOverload(): FindFunction.Result = VTabFindFunctionDoNotOverloadResult
@@ -199,7 +199,7 @@ internal class VTabIntegritySuccessResult(val error: String?) : Integrity.Result
  */
 internal class VTabIntegrityFailureResult(
     val error: String,
-    val result: Sqlite3Result.Failure
+    val result: SqliteResultCode.Failure
 ) : Integrity.Result
 
 /**
@@ -212,7 +212,7 @@ private object VTabIntegrityCallbackScope : Integrity.Scope {
 
     override fun failure(
         error: String,
-        result: Sqlite3Result.Failure
+        result: SqliteResultCode.Failure
     ): Integrity.Result = VTabIntegrityFailureResult(error, result)
 }
 

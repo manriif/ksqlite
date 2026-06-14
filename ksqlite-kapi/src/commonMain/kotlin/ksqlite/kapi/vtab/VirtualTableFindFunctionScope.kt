@@ -1,6 +1,6 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.capi.types.vtab.Sqlite3VTabConstraintOperatorCode
+import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
 
 /**
  * Scope to use with [VirtualTable.bestIndex].
@@ -19,5 +19,5 @@ public interface VirtualTableFindFunctionScope {
      *
      * Note that this replaces any [code] from a previous call to [customConstraintOperator].
      */
-    public fun customConstraintOperator(code: Sqlite3VTabConstraintOperatorCode.Custom)
+    public fun customConstraintOperator(code: SqliteVTabConstraintOperatorCode.Custom)
 }

@@ -17,8 +17,8 @@ internal typealias s3_api = cnames.structs.sqlite3_api_routines
 internal typealias s3_context = cnames.structs.sqlite3_context
 internal typealias s3_stmt = cnames.structs.sqlite3_stmt
 internal typealias s3_value = cnames.structs.sqlite3_value
-internal typealias s3_snapshot = ksqlite.sqlite3_snapshot
-internal typealias s3_vfs = ksqlite.sqlite3_vfs
+internal typealias s3_snapshot = ksqlite.foreign.sqlite3_snapshot
+internal typealias s3_vfs = ksqlite.foreign.sqlite3_vfs
 
 ///////////////////////////////////////////////////////////////////////////
 // Structs

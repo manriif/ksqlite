@@ -4,16 +4,13 @@ plugins {
 }
 
 kotlin {
-    androidJvmTargets()
-    jvmTargets()
-    nativeTargets()
-    webTargets()
+    allTargets()
 
     sourceSets {
         commonMain.dependencies {
+            api(projects.ksqliteTypes.core)
             implementation(projects.ksqliteCapi)
             implementation(libs.stately.concurrentCollections) // TODO regular concurrency
-            api(libs.kotlinx.coroutinesCore)
         }
 
         commonTest.dependencies {

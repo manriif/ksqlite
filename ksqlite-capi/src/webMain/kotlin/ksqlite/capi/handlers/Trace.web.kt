@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3TraceCallback
+import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.dispatchTraceEvent
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
@@ -31,7 +31,7 @@ internal class TraceHandler : Handler() {
         refPointer: WasmPointer,
         pPointer: WasmPointer,
         xPointer: WasmPointer
-    ): Int = handle(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteTraceCallback<Any?>, appData ->
         dispatchTraceEvent(
             callback = callback,
             appData = appData,

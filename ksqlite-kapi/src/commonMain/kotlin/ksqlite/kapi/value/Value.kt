@@ -85,15 +85,15 @@ public open class ProtectedValue internal constructor(
     /**
      * Returns the length of the value in bytes.
      *
-     * This is only relevant when [type] returns [Sqlite3DataType.BLOB] or
-     * [Sqlite3DataType.TEXT].
+     * This is only relevant when [type] returns [ksqlite.types.SqliteDataType.BLOB] or
+     * [ksqlite.types.SqliteDataType.TEXT].
      */
     public val bytes: Int
         get() = scope.notClosed { sqlite3_value_bytes(value) }
 
     /**
      * Returns the current text encoding of the value, assuming that [type] returns
-     * [Sqlite3DataType.TEXT].
+     * [ksqlite.types.SqliteDataType.TEXT].
      */
     public val encoding: Sqlite3TextEncoding.Set2
         get() = scope.notClosed { sqlite3_value_encoding(value) }
@@ -183,7 +183,7 @@ public class DuplicatedValue internal constructor(value: sqlite3_value) :
 
 /**
  * Creates a new [UnprotectedValue] wrapping `this` [sqlite3_value] or returns `null` if the type
- * of `this` value is [Sqlite3DataType.NULL].
+ * of `this` value is [ksqlite.types.SqliteDataType.NULL].
  */
 internal fun sqlite3_value.toUnprotectedValue(scope: ClosableScope): UnprotectedValue =
     UnprotectedValue(this, scope)

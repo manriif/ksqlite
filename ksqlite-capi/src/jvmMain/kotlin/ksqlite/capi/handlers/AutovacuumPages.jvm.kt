@@ -1,8 +1,8 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
+import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.`sqlite3_autovacuum_pages$x0`
+import ksqlite.foreign.`sqlite3_autovacuum_pages$x0`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -22,7 +22,7 @@ internal class AutovacuumPagesHandler :
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = handle(refPointer) { callback: Sqlite3AutovacuumPagesCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteAutovacuumPagesCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             schemaName = zSchema.toKStringFromUtf8(),

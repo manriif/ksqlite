@@ -1,6 +1,6 @@
 package ksqlite.kapi.functions
 
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.kapi.connection.Connection
 import ksqlite.kapi.SQLiteException
 
@@ -22,16 +22,16 @@ public interface FunctionScope {
 
     /**
      * Causes SQLite to throw an exception with [message].
-     * The default error code is [Sqlite3Result.ERROR] but can be overriden by supplying the appropriate error code
+     * The default error code is [SqliteResultCode.ERROR] but can be overriden by supplying the appropriate error code
      *
-     * By default, SQLite sets the error code to [Sqlite3Result.ERROR] but it can be overridden by
+     * By default, SQLite sets the error code to [SqliteResultCode.ERROR] but it can be overridden by
      * supplying an appropriate error [result].
      *
      * This method is equivalent to throwing an [SQLiteException].
      */
     public fun setResultError(
         message: String,
-        result: Sqlite3Result.Failure = Sqlite3Result.ERROR
+        result: SqliteResultCode.Failure = SqliteResultCode.ERROR
     ): Nothing
 
     /**

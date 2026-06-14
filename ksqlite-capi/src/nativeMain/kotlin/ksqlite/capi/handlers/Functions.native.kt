@@ -9,7 +9,7 @@ import ksqlite.capi.types.s3_context
 import ksqlite.capi.types.s3_value
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.sqlite3_user_data
+import ksqlite.foreign.sqlite3_user_data
 
 /**
  * Handler for function callback.

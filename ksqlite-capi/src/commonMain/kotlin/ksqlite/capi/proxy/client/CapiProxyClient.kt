@@ -1,51 +1,51 @@
 package ksqlite.capi.proxy.client
 
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
-import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
-import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
-import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
-import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
-import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
-import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
-import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3TraceCallback
-import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
+import ksqlite.capi.callbacks.SqliteAuthorizerCallback
+import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
+import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
+import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
+import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationNeededCallback
+import ksqlite.capi.callbacks.SqliteCommitHookCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.capi.callbacks.SqliteExecCallback
+import ksqlite.capi.callbacks.SqliteFunctionFinalCallback
+import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
+import ksqlite.capi.callbacks.SqliteFunctionInverseCallback
+import ksqlite.capi.callbacks.SqliteFunctionStepCallback
+import ksqlite.capi.callbacks.SqliteFunctionValueCallback
+import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
+import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
+import ksqlite.capi.callbacks.SqliteRollbackHookCallback
+import ksqlite.capi.callbacks.SqliteTraceCallback
+import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.ReadableBuffer
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
-import ksqlite.capi.types.Sqlite3BlobOutputParam
+import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.Sqlite3CompleteResult
-import ksqlite.capi.types.Sqlite3ConfigOption
+import ksqlite.capi.types.CapiSqliteConfigOption
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DbConfigOption
+import ksqlite.capi.types.CapiSqliteDbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
 import ksqlite.capi.types.Sqlite3FileControlOpcode
 import ksqlite.capi.types.Sqlite3Limit
 import ksqlite.capi.types.Sqlite3OpenFlag
-import ksqlite.capi.types.Sqlite3OutputParam
+import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.Sqlite3PrepareFlag
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.Sqlite3SerializeFlag
 import ksqlite.capi.types.Sqlite3StatementStatusCounter
 import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3StmtOutputParam
+import ksqlite.capi.types.SqliteStmtOutputParam
 import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.Sqlite3TraceCode
 import ksqlite.capi.types.Sqlite3TransactionState
-import ksqlite.capi.types.Sqlite3ValueOutputParam
+import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
@@ -70,7 +70,7 @@ public interface CapiProxyClient {
     /**
      * See [ksqlite.capi.sqlite3_auto_extension].
      */
-	public suspend fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result
+	public suspend fun sqlite3_auto_extension(callback: SqliteAutoExtensionCallback): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_autovacuum_pages].
@@ -78,14 +78,14 @@ public interface CapiProxyClient {
 	public suspend fun <AppData> sqlite3_autovacuum_pages(
         db: sqlite3,
         appData: AppData,
-        destroy: Sqlite3DestroyCallback<AppData>?,
-        callback: Sqlite3AutovacuumPagesCallback<AppData>?
-    ): Sqlite3Result
+        destroy: SqliteDestroyCallback<AppData>?,
+        callback: SqliteAutovacuumPagesCallback<AppData>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_backup_finish].
 	 */
-	public suspend fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
+	public suspend fun sqlite3_backup_finish(backup: sqlite3_backup): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_backup_init].
@@ -113,7 +113,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_backup_step(
         backup: sqlite3_backup,
         nPage: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_blob].
@@ -123,8 +123,8 @@ public interface CapiProxyClient {
         index: Int,
         bytes: ByteArray,
         size: Int,
-        destroy: Sqlite3DestroyCallback<ByteArray>?
-    ): Sqlite3Result
+        destroy: SqliteDestroyCallback<ByteArray>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_blob64].
@@ -134,8 +134,8 @@ public interface CapiProxyClient {
         index: Int,
         buffer: Buffer,
         size: Long,
-        destroy: Sqlite3DestroyCallback<Buffer>?
-    ): Sqlite3Result
+        destroy: SqliteDestroyCallback<Buffer>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_double].
@@ -144,7 +144,7 @@ public interface CapiProxyClient {
         stmt: sqlite3_stmt,
         index: Int,
         value: Double
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_int].
@@ -153,7 +153,7 @@ public interface CapiProxyClient {
         stmt: sqlite3_stmt,
         index: Int,
         value: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_int64].
@@ -162,7 +162,7 @@ public interface CapiProxyClient {
         stmt: sqlite3_stmt,
         index: Int,
         value: Long
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_null].
@@ -170,7 +170,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_bind_null(
         stmt: sqlite3_stmt,
         index: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_parameter_count].
@@ -201,8 +201,8 @@ public interface CapiProxyClient {
         index: Int,
         data: Data,
         type: String?,
-        destroy: Sqlite3DestroyCallback<Data>?
-    ): Sqlite3Result
+        destroy: SqliteDestroyCallback<Data>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_text].
@@ -211,7 +211,7 @@ public interface CapiProxyClient {
         stmt: sqlite3_stmt,
         index: Int,
         value: String
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_text64].
@@ -222,8 +222,8 @@ public interface CapiProxyClient {
         buffer: Buffer,
         size: Long,
         encoding: Sqlite3TextEncoding.Set1,
-        destroy: Sqlite3DestroyCallback<Buffer>?
-    ): Sqlite3Result
+        destroy: SqliteDestroyCallback<Buffer>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_value].
@@ -232,7 +232,7 @@ public interface CapiProxyClient {
         stmt: sqlite3_stmt,
         index: Int,
         value: sqlite3_value
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_zeroblob].
@@ -241,7 +241,7 @@ public interface CapiProxyClient {
         stmt: sqlite3_stmt,
         index: Int,
         size: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_bind_zeroblob64].
@@ -250,7 +250,7 @@ public interface CapiProxyClient {
         stmt: sqlite3_stmt,
         index: Int,
         size: ULong
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_blob_bytes].
@@ -260,7 +260,7 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_blob_close].
 	 */
-	public suspend fun sqlite3_blob_close(blob: sqlite3_blob): Sqlite3Result
+	public suspend fun sqlite3_blob_close(blob: sqlite3_blob): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_blob_open].
@@ -272,8 +272,8 @@ public interface CapiProxyClient {
         columnName: String,
         rowIndex: Long,
         flags: Sqlite3BlobOpenFlag,
-        outBlob: Sqlite3BlobOutputParam
-    ): Sqlite3Result
+        outBlob: SqliteBlobOutputParam
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_blob_read].
@@ -283,7 +283,7 @@ public interface CapiProxyClient {
         bytes: ByteArray,
         size: Int,
         offset: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_blob_reopen].
@@ -291,7 +291,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_blob_reopen(
         blob: sqlite3_blob,
         rowIndex: Long
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_blob_write].
@@ -301,7 +301,7 @@ public interface CapiProxyClient {
         bytes: ByteArray,
         size: Int,
         offset: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_busy_handler].
@@ -309,8 +309,8 @@ public interface CapiProxyClient {
 	public suspend fun <AppData> sqlite3_busy_handler(
         db: sqlite3,
         appData: AppData,
-        callback: Sqlite3BusyHandlerCallback<AppData>?
-    ): Sqlite3Result
+        callback: SqliteBusyHandlerCallback<AppData>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_busy_timeout].
@@ -318,12 +318,12 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_busy_timeout(
         db: sqlite3,
         millis: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_cancel_auto_extension].
 	 */
-	public suspend fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int
+	public suspend fun sqlite3_cancel_auto_extension(callback: SqliteAutoExtensionCallback): Int
 
     /**
 	 * See [ksqlite.capi.sqlite3_changes].
@@ -338,17 +338,17 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_clear_bindings].
 	 */
-	public suspend fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result
+	public suspend fun sqlite3_clear_bindings(stmt: sqlite3_stmt): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_close].
 	 */
-	public suspend fun sqlite3_close(db: sqlite3): Sqlite3Result
+	public suspend fun sqlite3_close(db: sqlite3): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_close_v2].
 	 */
-	public suspend fun sqlite3_close_v2(db: sqlite3): Sqlite3Result
+	public suspend fun sqlite3_close_v2(db: sqlite3): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_collation_needed].
@@ -356,8 +356,8 @@ public interface CapiProxyClient {
 	public suspend fun <AppData> sqlite3_collation_needed(
         db: sqlite3,
         appData: AppData,
-        callback: Sqlite3CollationNeededCallback<AppData>?,
-    ): Sqlite3Result
+        callback: SqliteCollationNeededCallback<AppData>?,
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_column_blob].
@@ -479,7 +479,7 @@ public interface CapiProxyClient {
 	public suspend fun <AppData> sqlite3_commit_hook(
         db: sqlite3,
         appData: AppData,
-        callback: Sqlite3CommitHookCallback<AppData>?
+        callback: SqliteCommitHookCallback<AppData>?
     )
 
     /**
@@ -500,7 +500,7 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_config].
 	 */
-	public suspend fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
+	public suspend fun sqlite3_config(option: CapiSqliteConfigOption): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_context_db_handle].
@@ -512,8 +512,8 @@ public interface CapiProxyClient {
         name: String,
         encoding: Sqlite3TextEncoding.Set0,
         appData: AppData,
-        callback: Sqlite3CollationCompareCallback<AppData>?
-    ): Sqlite3Result
+        callback: SqliteCollationCompareCallback<AppData>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_create_collation_v2].
@@ -523,9 +523,9 @@ public interface CapiProxyClient {
         name: String,
         encoding: Sqlite3TextEncoding.Set0,
         appData: AppData,
-        destroy: Sqlite3DestroyCallback<AppData>?,
-        callback: Sqlite3CollationCompareCallback<AppData>?
-    ): Sqlite3Result
+        destroy: SqliteDestroyCallback<AppData>?,
+        callback: SqliteCollationCompareCallback<AppData>?
+    ): SqliteResultCode
 
     public fun <AppData> sqlite3_create_function(
         db: sqlite3,
@@ -533,10 +533,10 @@ public interface CapiProxyClient {
         nArg: Int,
         encoding: Sqlite3TextEncoding,
         appData: AppData,
-        func: Sqlite3FunctionFuncCallback<AppData>?,
-        step: Sqlite3FunctionStepCallback<AppData>?,
-        final: Sqlite3FunctionFinalCallback<AppData>?
-    ): Sqlite3Result
+        func: SqliteFunctionFuncCallback<AppData>?,
+        step: SqliteFunctionStepCallback<AppData>?,
+        final: SqliteFunctionFinalCallback<AppData>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_create_function_v2].
@@ -547,18 +547,18 @@ public interface CapiProxyClient {
         nArg: Int,
         encoding: Sqlite3TextEncoding,
         appData: AppData,
-        func: Sqlite3FunctionFuncCallback<AppData>?,
-        step: Sqlite3FunctionStepCallback<AppData>?,
-        final: Sqlite3FunctionFinalCallback<AppData>?,
-        destroy: Sqlite3DestroyCallback<AppData>?
-    ): Sqlite3Result
+        func: SqliteFunctionFuncCallback<AppData>?,
+        step: SqliteFunctionStepCallback<AppData>?,
+        final: SqliteFunctionFinalCallback<AppData>?,
+        destroy: SqliteDestroyCallback<AppData>?
+    ): SqliteResultCode
 
     public fun <AppData> sqlite3_create_module(
         db: sqlite3,
         name: String,
         module: sqlite3_module<AppData>?,
         appData: AppData
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_create_module_v2].
@@ -568,8 +568,8 @@ public interface CapiProxyClient {
         name: String,
         module: sqlite3_module<AppData>?,
         appData: AppData,
-        destroy: Sqlite3DestroyCallback<AppData>?,
-    ): Sqlite3Result
+        destroy: SqliteDestroyCallback<AppData>?,
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_create_window_function].
@@ -580,12 +580,12 @@ public interface CapiProxyClient {
         nArg: Int,
         encoding: Sqlite3TextEncoding,
         appData: AppData,
-        step: Sqlite3FunctionStepCallback<AppData>?,
-        final: Sqlite3FunctionFinalCallback<AppData>?,
-        value: Sqlite3FunctionValueCallback<AppData>?,
-        inverse: Sqlite3FunctionInverseCallback<AppData>?,
-        destroy: Sqlite3DestroyCallback<AppData>?
-    ): Sqlite3Result
+        step: SqliteFunctionStepCallback<AppData>?,
+        final: SqliteFunctionFinalCallback<AppData>?,
+        value: SqliteFunctionValueCallback<AppData>?,
+        inverse: SqliteFunctionInverseCallback<AppData>?,
+        destroy: SqliteDestroyCallback<AppData>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_data_count].
@@ -595,15 +595,15 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_db_cacheflush].
 	 */
-	public suspend fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
+	public suspend fun sqlite3_db_cacheflush(db: sqlite3): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_db_config].
 	 */
 	public suspend fun sqlite3_db_config(
         db: sqlite3,
-        option: Sqlite3DbConfigOption,
-    ): Sqlite3Result
+        option: CapiSqliteDbConfigOption,
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_db_filename].
@@ -637,7 +637,7 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_db_release_memory].
 	 */
-	public suspend fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result
+	public suspend fun sqlite3_db_release_memory(db: sqlite3): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_db_status].
@@ -648,7 +648,7 @@ public interface CapiProxyClient {
         outCurrent: Int32OutputParam?,
         outHighwater: Int32OutputParam?,
         resetFlag: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_db_status64].
@@ -659,7 +659,7 @@ public interface CapiProxyClient {
         outCurrent: Int64OutputParam?,
         outHighwater: Int64OutputParam?,
         resetFlag: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_declare_vtab].
@@ -667,7 +667,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_declare_vtab(
         db: sqlite3,
         sql: String
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_deserialize].
@@ -679,7 +679,7 @@ public interface CapiProxyClient {
         dbSize: Long,
         bufferSize: Long,
         flags: Sqlite3DeserializeFlag?
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_drop_modules].
@@ -687,7 +687,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_drop_modules(
         db: sqlite3,
         keep: Array<String>?
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_errcode].
@@ -717,8 +717,8 @@ public interface CapiProxyClient {
         sql: String,
         outErrorMessage: Utf8OutputParam?,
         appData: AppData,
-        callback: Sqlite3ExecCallback<AppData>?
-    ): Sqlite3Result
+        callback: SqliteExecCallback<AppData>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_expanded_sql].
@@ -736,7 +736,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_extended_result_codes(
         db: sqlite3,
         enabled: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_file_control].
@@ -745,12 +745,12 @@ public interface CapiProxyClient {
         db: sqlite3,
         name: String?,
         opcode: Sqlite3FileControlOpcode,
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_finalize].
 	 */
-	public suspend fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result
+	public suspend fun sqlite3_finalize(stmt: sqlite3_stmt): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_free].
@@ -765,7 +765,7 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_initialize].
 	 */
-	public suspend fun sqlite3_initialize(): Sqlite3Result
+	public suspend fun sqlite3_initialize(): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_interrupt].
@@ -784,7 +784,7 @@ public interface CapiProxyClient {
         db: sqlite3,
         key: ByteArray,
         nKey: Int,
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_key_v2].
@@ -794,7 +794,7 @@ public interface CapiProxyClient {
         dbName: String,
         key: ByteArray,
         nKey: Int,
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_keyword_check].
@@ -812,7 +812,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_keyword_name(
         index: Int,
         outName: Utf8OutputParam,
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_last_insert_rowid].
@@ -884,18 +884,18 @@ public interface CapiProxyClient {
 	 */
 	public suspend fun sqlite3_open(
         fileName: String,
-        outDb: Sqlite3OutputParam
-    ): Sqlite3Result
+        outDb: SqliteOutputParam
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_open_v2].
 	 */
 	public suspend fun sqlite3_open_v2(
         fileName: String,
-        outDb: Sqlite3OutputParam,
+        outDb: SqliteOutputParam,
         flags: Sqlite3OpenFlag.Db,
         vfs: String?
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_overload_function].
@@ -904,7 +904,7 @@ public interface CapiProxyClient {
         db: sqlite3,
         name: String,
         nArg: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_prepare_v2].
@@ -913,9 +913,9 @@ public interface CapiProxyClient {
         db: sqlite3,
         sql: ByteArray,
         maxBytes: Int,
-        outStmt: Sqlite3StmtOutputParam,
+        outStmt: SqliteStmtOutputParam,
         outOffset: Int32OutputParam?
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_prepare_v2].
@@ -923,8 +923,8 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_prepare_v2(
         db: sqlite3,
         sql: String,
-        outStmt: Sqlite3StmtOutputParam
-    ): Sqlite3Result
+        outStmt: SqliteStmtOutputParam
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_prepare_v3].
@@ -934,9 +934,9 @@ public interface CapiProxyClient {
         sql: ByteArray,
         maxBytes: Int,
         flags: Sqlite3PrepareFlag?,
-        outStmt: Sqlite3StmtOutputParam,
+        outStmt: SqliteStmtOutputParam,
         outOffset: Int32OutputParam?
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_prepare_v3].
@@ -945,8 +945,8 @@ public interface CapiProxyClient {
         db: sqlite3,
         sql: String,
         flags: Sqlite3PrepareFlag?,
-        outStmt: Sqlite3StmtOutputParam
-    ): Sqlite3Result
+        outStmt: SqliteStmtOutputParam
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_preupdate_blobwrite].
@@ -969,7 +969,7 @@ public interface CapiProxyClient {
 	public suspend fun <AppData> sqlite3_preupdate_hook(
         db: sqlite3,
         appData: AppData,
-        callback: Sqlite3PreupdateHookCallback<AppData>?
+        callback: SqlitePreupdateHookCallback<AppData>?
     )
 
     /**
@@ -978,8 +978,8 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_preupdate_new(
         db: sqlite3,
         index: Int,
-        outValue: Sqlite3ValueOutputParam
-    ): Sqlite3Result
+        outValue: SqliteValueOutputParam
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_preupdate_old].
@@ -987,8 +987,8 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_preupdate_old(
         db: sqlite3,
         index: Int,
-        outValue: Sqlite3ValueOutputParam
-    ): Sqlite3Result
+        outValue: SqliteValueOutputParam
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_progress_handler].
@@ -997,7 +997,7 @@ public interface CapiProxyClient {
         db: sqlite3,
         nOps: Int,
         appData: AppData,
-        callback: Sqlite3ProgressHandlerCallback<AppData>?
+        callback: SqliteProgressHandlerCallback<AppData>?
     )
 
     /**
@@ -1031,7 +1031,7 @@ public interface CapiProxyClient {
         db: sqlite3,
         key: ByteArray,
         nKey: Int,
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_rekey_v2].
@@ -1041,7 +1041,7 @@ public interface CapiProxyClient {
         dbName: String,
         key: ByteArray,
         nKey: Int,
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_release_memory].
@@ -1051,7 +1051,7 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_reset].
 	 */
-	public suspend fun sqlite3_reset(stmt: sqlite3_stmt): Sqlite3Result
+	public suspend fun sqlite3_reset(stmt: sqlite3_stmt): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_reset_auto_extension].
@@ -1065,7 +1065,7 @@ public interface CapiProxyClient {
         context: sqlite3_context,
         bytes: ByteArray,
         size: Int,
-        destroy: Sqlite3DestroyCallback<ByteArray>?
+        destroy: SqliteDestroyCallback<ByteArray>?
     )
 
     /**
@@ -1075,7 +1075,7 @@ public interface CapiProxyClient {
         context: sqlite3_context,
         buffer: Buffer,
         size: Long,
-        destroy: Sqlite3DestroyCallback<Buffer>?
+        destroy: SqliteDestroyCallback<Buffer>?
     )
 
     /**
@@ -1140,7 +1140,7 @@ public interface CapiProxyClient {
         context: sqlite3_context,
         data: Data,
         type: String?,
-        destroy: Sqlite3DestroyCallback<Data>?
+        destroy: SqliteDestroyCallback<Data>?
     )
 
     /**
@@ -1167,7 +1167,7 @@ public interface CapiProxyClient {
         buffer: Buffer,
         size: Long,
         encoding: Sqlite3TextEncoding.Set1,
-        destroy: Sqlite3DestroyCallback<Buffer>?
+        destroy: SqliteDestroyCallback<Buffer>?
     )
 
     /**
@@ -1192,7 +1192,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_result_zeroblob64(
         context: sqlite3_context,
         size: ULong
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_rollback_hook].
@@ -1200,7 +1200,7 @@ public interface CapiProxyClient {
 	public suspend fun <AppData> sqlite3_rollback_hook(
         db: sqlite3,
         appData: AppData,
-        callback: Sqlite3RollbackHookCallback<AppData>?
+        callback: SqliteRollbackHookCallback<AppData>?
     )
 
     /**
@@ -1218,17 +1218,17 @@ public interface CapiProxyClient {
 	public suspend fun <AppData> sqlite3_set_authorizer(
         db: sqlite3,
         appData: AppData,
-        callback: Sqlite3AuthorizerCallback<AppData>?
-    ): Sqlite3Result
+        callback: SqliteAuthorizerCallback<AppData>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_set_errmsg].
 	 */
 	public suspend fun sqlite3_set_errmsg(
         db: sqlite3,
-        errorCode: Sqlite3Result.Failure,
+        errorCode: SqliteResultCode.Failure,
         message: String?
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_set_last_insert_rowid].
@@ -1241,7 +1241,7 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_shutdown].
 	 */
-	public suspend fun sqlite3_shutdown(): Sqlite3Result
+	public suspend fun sqlite3_shutdown(): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_sourceid].
@@ -1261,7 +1261,7 @@ public interface CapiProxyClient {
         outCurrent: Int32OutputParam,
         outHighwater: Int32OutputParam,
         resetFlag: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_status64].
@@ -1271,12 +1271,12 @@ public interface CapiProxyClient {
         outCurrent: Int64OutputParam,
         outHighwater: Int64OutputParam,
         resetFlag: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_step].
 	 */
-	public suspend fun sqlite3_step(stmt: sqlite3_stmt): Sqlite3Result
+	public suspend fun sqlite3_step(stmt: sqlite3_stmt): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_stmt_busy].
@@ -1289,7 +1289,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_stmt_explain(
         stmt: sqlite3_stmt,
         mode: Sqlite3ExplainMode
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_stmt_isexplain].
@@ -1362,7 +1362,7 @@ public interface CapiProxyClient {
         outNotNull: Int32OutputParam?,
         outPrimaryKey: Int32OutputParam?,
         outAutoIncrement: Int32OutputParam?
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_total_changes].
@@ -1381,8 +1381,8 @@ public interface CapiProxyClient {
         db: sqlite3,
         mask: Sqlite3TraceCode?,
         appData: AppData,
-        callback: Sqlite3TraceCallback<AppData>?
-    ): Sqlite3Result
+        callback: SqliteTraceCallback<AppData>?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_txn_state].
@@ -1398,7 +1398,7 @@ public interface CapiProxyClient {
 	public suspend fun <AppData> sqlite3_update_hook(
         db: sqlite3,
         appData: AppData,
-        callback: Sqlite3UpdateHookCallback<AppData>?
+        callback: SqliteUpdateHookCallback<AppData>?
     )
 
     /**
@@ -1518,12 +1518,12 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_vfs_register(
         vfs: sqlite3_vfs,
         makeDefault: Int
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_vfs_unregister].
 	 */
-	public suspend fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): Sqlite3Result
+	public suspend fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_vtab_collation].
@@ -1539,7 +1539,7 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_vtab_config(
         db: sqlite3,
         option: Sqlite3VTabConfigOption
-    ): Sqlite3Result
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_vtab_distinct].
@@ -1560,16 +1560,16 @@ public interface CapiProxyClient {
 	 */
 	public suspend fun sqlite3_vtab_in_first(
         value: sqlite3_value,
-        outValue: Sqlite3ValueOutputParam?
-    ): Sqlite3Result
+        outValue: SqliteValueOutputParam?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_vtab_in_next].
 	 */
 	public suspend fun sqlite3_vtab_in_next(
         value: sqlite3_value,
-        outValue: Sqlite3ValueOutputParam?
-    ): Sqlite3Result
+        outValue: SqliteValueOutputParam?
+    ): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_vtab_nochange].
@@ -1579,7 +1579,7 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_vtab_on_conflict].
 	 */
-	public suspend fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result
+	public suspend fun sqlite3_vtab_on_conflict(db: sqlite3): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_vtab_rhs_value].
@@ -1587,6 +1587,6 @@ public interface CapiProxyClient {
 	public suspend fun sqlite3_vtab_rhs_value(
         info: sqlite3_index_info,
         index: Int,
-        outValue: Sqlite3ValueOutputParam?
-    ): Sqlite3Result
+        outValue: SqliteValueOutputParam?
+    ): SqliteResultCode
 }

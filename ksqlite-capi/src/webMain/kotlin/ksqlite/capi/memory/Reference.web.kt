@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.handlers.Handler
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
@@ -24,7 +24,7 @@ internal class StableRefDisposerHandler : Handler(), ReferenceFunction {
  */
 internal fun MemoryManager.stableRefDisposer(
     data: Any?,
-    destructor: Sqlite3DestroyCallback<*>? = null
+    destructor: SqliteDestroyCallback<*>? = null
 ): WasmPointer = stableRefDisposer.takeIf { data != null || destructor != null } ?: NullPtr
 
 /**

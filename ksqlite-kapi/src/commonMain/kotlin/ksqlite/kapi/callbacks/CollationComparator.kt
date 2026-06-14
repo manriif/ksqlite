@@ -1,12 +1,12 @@
 package ksqlite.kapi.callbacks
 
 /**
- * Analog callback to [ksqlite.capi.callbacks.Sqlite3CollationCompareCallback].
+ * Analog callback to [ksqlite.capi.callbacks.SqliteCollationCompareCallback].
  */
 public fun interface CollationComparator {
 
     /**
-     * See [ksqlite.capi.callbacks.Sqlite3CollationCompareCallback].
+     * See [ksqlite.capi.callbacks.SqliteCollationCompareCallback].
      */
     public fun apply(
         schemaName: String,

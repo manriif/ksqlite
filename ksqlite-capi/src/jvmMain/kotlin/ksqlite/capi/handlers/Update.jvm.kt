@@ -1,12 +1,12 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
-import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
-import ksqlite.capi.convertActionCode
+import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
+import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.sqlite3
-import ksqlite.`sqlite3_preupdate_hook$xPreUpdate`
-import ksqlite.`sqlite3_update_hook$x0`
+import ksqlite.foreign.`sqlite3_preupdate_hook$xPreUpdate`
+import ksqlite.foreign.`sqlite3_update_hook$x0`
+import ksqlite.types.internal.convertActionCode
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -28,7 +28,7 @@ internal class PreupdateHookHandler :
         tableName: MemorySegment,
         iKey1: Long,
         iKey2: Long
-    ): Unit = handle(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqlitePreupdateHookCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             db = sqlite3(db),
@@ -57,7 +57,7 @@ internal class UpdateHookHandler :
         dbName: MemorySegment,
         tableName: MemorySegment,
         rowId: Long
-    ): Unit = handle(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteUpdateHookCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             action = convertActionCode(action),

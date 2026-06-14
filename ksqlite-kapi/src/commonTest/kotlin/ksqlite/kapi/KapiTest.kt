@@ -1,6 +1,6 @@
 package ksqlite.kapi
 
-import ksqlite.capi.types.Sqlite3ConfigOption
+import ksqlite.capi.types.CapiSqliteConfigOption
 import ksqlite.capi.types.Sqlite3OpenFlag
 import kotlin.test.Test
 
@@ -10,8 +10,8 @@ class KapiTest {
     fun api() {
         val sqlite = SQLite(
             options = arrayOf(
-                Sqlite3ConfigOption.URI(0),
-                Sqlite3ConfigOption.LOOKASIDE(0, 0)
+                CapiSqliteConfigOption.URI(0),
+                CapiSqliteConfigOption.LOOKASIDE(0, 0)
             )
         )
 

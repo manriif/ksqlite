@@ -26,17 +26,17 @@ import ksqlite.capi.types.s3_value
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
-import ksqlite.sqlite3_int64Var
-import ksqlite.sqlite3_mprintf
+import ksqlite.foreign.sqlite3_int64Var
+import ksqlite.foreign.sqlite3_mprintf
 
 ///////////////////////////////////////////////////////////////////////////
 // Aliases
 ///////////////////////////////////////////////////////////////////////////
 
-internal typealias s3_index_info = ksqlite.sqlite3_index_info
-internal typealias s3_module = ksqlite.sqlite3_module
-internal typealias s3_vtab = ksqlite.sqlite3_vtab
-internal typealias s3_vtab_cursor = ksqlite.sqlite3_vtab_cursor
+internal typealias s3_index_info = ksqlite.foreign.sqlite3_index_info
+internal typealias s3_module = ksqlite.foreign.sqlite3_module
+internal typealias s3_vtab = ksqlite.foreign.sqlite3_vtab
+internal typealias s3_vtab_cursor = ksqlite.foreign.sqlite3_vtab_cursor
 
 ///////////////////////////////////////////////////////////////////////////
 // Handlers

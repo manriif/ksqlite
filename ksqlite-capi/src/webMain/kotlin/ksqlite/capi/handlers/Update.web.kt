@@ -1,14 +1,14 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
-import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
-import ksqlite.capi.convertActionCode
+import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
+import ksqlite.capi.callbacks.SqliteUpdateHookCallback
+import ksqlite.capi.memory.toKStringFromUtf8
+import ksqlite.capi.types.sqlite3
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
-import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
+import ksqlite.types.internal.convertActionCode
 
 /**
  * Handler for [ksqlite.capi.sqlite3_preupdate_hook].
@@ -36,7 +36,7 @@ internal class PreupdateHookHandler : Handler() {
         tableName: WasmPointer,
         iKey1: Long,
         iKey2: Long
-    ): Unit = handle(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqlitePreupdateHookCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             db = sqlite3(db),
@@ -71,7 +71,7 @@ internal class UpdateHookHandler : Handler() {
         dbName: WasmPointer,
         tableName: WasmPointer,
         rowId: Long
-    ): Unit = handle(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteUpdateHookCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             action = convertActionCode(action),

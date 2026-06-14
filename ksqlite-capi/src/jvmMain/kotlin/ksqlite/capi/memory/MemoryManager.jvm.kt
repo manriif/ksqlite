@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.handlers.Handler
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
@@ -44,7 +44,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         key: String?,
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>?
+        destructor: SqliteDestroyCallback<AppData>?
     ): MemorySegment = notClosed {
         if (data == null && destructor == null) {
             NullPtr
@@ -63,7 +63,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     fun <AppData> stableRefPointer(
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>? = null
+        destructor: SqliteDestroyCallback<AppData>? = null
     ): MemorySegment = commonStableRefPointer(null, data, appData, destructor)
 
     /**
@@ -79,7 +79,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         key: String,
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>? = null
+        destructor: SqliteDestroyCallback<AppData>? = null
     ): MemorySegment = commonStableRefPointer(key, data, appData, destructor)
 
     /**
@@ -137,7 +137,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun byteArrayPointer(
         value: ByteArray,
-        destructor: Sqlite3DestroyCallback<ByteArray>?
+        destructor: SqliteDestroyCallback<ByteArray>?
     ): MemorySegment = notClosed {
         registerDisposable { ByteArrayDisposable(it, destructor, value) }.pointer
     }
@@ -161,7 +161,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class StableRefReference<AppData>(
         id: Long,
-        destructor: Sqlite3DestroyCallback<AppData>?,
+        destructor: SqliteDestroyCallback<AppData>?,
         override val data: Any?,
         override val appData: AppData
     ) : AutoDisposable<AppData>(id, destructor),
@@ -177,7 +177,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private abstract inner class ArenaDisposable<AppData>(
         id: Long,
-        destructor: Sqlite3DestroyCallback<AppData>? = null
+        destructor: SqliteDestroyCallback<AppData>? = null
     ) : AutoDisposable<AppData>(id, destructor) {
 
         val arena: Arena = Arena.ofShared()
@@ -200,7 +200,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class ByteArrayDisposable(
         id: Long,
-        destructor: Sqlite3DestroyCallback<ByteArray>?,
+        destructor: SqliteDestroyCallback<ByteArray>?,
         override val appData: ByteArray,
     ) : ArenaDisposable<ByteArray>(id, destructor) {
 

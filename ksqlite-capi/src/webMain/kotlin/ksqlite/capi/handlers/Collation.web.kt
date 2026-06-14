@@ -1,15 +1,15 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
-import ksqlite.capi.convertTextEncoding
+import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationNeededCallback
+import ksqlite.capi.memory.readByteArray
+import ksqlite.capi.memory.toKStringFromUtf8
+import ksqlite.capi.types.sqlite3
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
-import ksqlite.capi.memory.readByteArray
-import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
+import ksqlite.types.internal.convertTextEncoding
 
 /**
  * Handler for [ksqlite.capi.sqlite3_create_collation] and
@@ -34,7 +34,7 @@ internal class CollationCompareHandler : Handler() {
         text1: WasmPointer,
         size2: Int,
         text2: WasmPointer
-    ): Int = handle(refPointer) { callback: Sqlite3CollationCompareCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteCollationCompareCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             lhs = text1.readByteArray(size1),
@@ -63,7 +63,7 @@ internal class CollationNeededHandler : Handler() {
         db: WasmPointer,
         eTextRep: Int,
         name: WasmPointer
-    ): Unit = handle(refPointer) { callback: Sqlite3CollationNeededCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteCollationNeededCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             db = sqlite3(db),

@@ -1,13 +1,17 @@
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
-import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.callbacks.SqliteConfigLogCallback
+import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.VariadicValue
-import ksqlite.capi.types.Sqlite3ConfigOption
-import ksqlite.capi.types.Sqlite3DbConfigOption
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
+import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.types.CapiSqliteConfigOption
+import ksqlite.capi.types.CapiSqliteDbConfigOption
+import ksqlite.types.SqliteConfigOption
+import ksqlite.types.SqliteDbConfigOption
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.internal.convertResult
+import ksqlite.types.vtab.SqliteVTabConfigOption
 
 /**
  * Handles the [ksqlite.capi.sqlite3_config].
@@ -15,14 +19,14 @@ import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
  */
 @Suppress("UNCHECKED_CAST")
 internal fun <Pointer : Any> commonConfig(
-    option: Sqlite3ConfigOption,
+    option: CapiSqliteConfigOption,
     bufferPointer: (Buffer) -> Pointer?,
-    logFunctionPointer: (callback: Sqlite3ConfigLogCallback<Any?>?, appData: Any?) -> Pointer?,
-    sqllogFunctionPointer: (callback: Sqlite3ConfigSqlLogCallback<Any?>?, appData: Any?) -> Pointer?,
+    logFunctionPointer: (callback: SqliteConfigLogCallback<Any?>?, appData: Any?) -> Pointer?,
+    sqllogFunctionPointer: (callback: SqliteConfigSqlLogCallback<Any?>?, appData: Any?) -> Pointer?,
     keyedStableRefPointer: ((String, Any?, Any?) -> Pointer?)?,
-    rowidInView: Sqlite3ConfigOption.ROWID_IN_VIEW.() -> Int,
+    rowidInView: SqliteConfigOption.ROWID_IN_VIEW<Int32OutputParam>.() -> Int,
     nativeConfig: (id: Int, args: Array<out VariadicValue<Pointer>?>) -> Int,
-): Sqlite3Result {
+): SqliteResultCode {
     val args = with(option) {
         if (this is ROWID_IN_VIEW) {
             return convertResult(rowidInView())
@@ -38,11 +42,13 @@ internal fun <Pointer : Any> commonConfig(
                 VariadicValue.OfInt(min)
             )
 
-            is LOG<*> -> arrayOf(
-                logFunctionPointer(callback as Sqlite3ConfigLogCallback<Any?>?, appData)
-                    ?.let(VariadicValue<Pointer>::OfPointer),
+            is LOG -> arrayOf(
+                logFunctionPointer(
+                    logger?.callback as SqliteConfigLogCallback<Any?>?,
+                    logger?.appData
+                )?.let(VariadicValue<Pointer>::OfPointer),
                 keyedStableRefPointer
-                    ?.invoke(KEY_CONFIG_LOG, callback, appData)
+                    ?.invoke(KEY_CONFIG_LOG, logger?.callback, logger?.appData)
                     ?.let(VariadicValue<Pointer>::OfPointer)
             )
 
@@ -70,11 +76,13 @@ internal fun <Pointer : Any> commonConfig(
             is SMALL_MALLOC -> arrayOf(VariadicValue.OfInt(enabled))
             is SORTERREF_SIZE -> arrayOf(VariadicValue.OfInt(nByte))
 
-            is SQLLOG<*> -> arrayOf(
-                sqllogFunctionPointer(callback as Sqlite3ConfigSqlLogCallback<Any?>?, appData)
-                    ?.let(VariadicValue<Pointer>::OfPointer),
+            is SQLLOG -> arrayOf(
+                sqllogFunctionPointer(
+                    logger?.callback as SqliteConfigSqlLogCallback<Any?>?,
+                    logger?.appData
+                )?.let(VariadicValue<Pointer>::OfPointer),
                 keyedStableRefPointer
-                    ?.invoke(KEY_CONFIG_SQLLOG, callback, appData)
+                    ?.invoke(KEY_CONFIG_SQLLOG, logger?.callback, logger?.appData)
                     ?.let(VariadicValue<Pointer>::OfPointer)
             )
 
@@ -92,11 +100,11 @@ internal fun <Pointer : Any> commonConfig(
  * The array passed to [nativeConfig] contains at most 3 values.
  */
 internal fun <Pointer : Any> commonDbConfig(
-    option: Sqlite3DbConfigOption,
+    option: CapiSqliteDbConfigOption,
     bufferPointer: (Buffer) -> Pointer?,
-    outParamConfig: Sqlite3DbConfigOption.IntOutput.() -> Int,
+    outParamConfig: SqliteDbConfigOption.IntOutput<Int32OutputParam>.() -> Int,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
-): Sqlite3Result {
+): SqliteResultCode {
     val args = with(option) {
         when (this) {
             is IntOutput -> {
@@ -125,9 +133,9 @@ internal fun <Pointer : Any> commonDbConfig(
  * The array passed to [nativeConfig] contains at most 1 value.
  */
 internal fun <Pointer : Any> commonVtabConfig(
-    option: Sqlite3VTabConfigOption,
+    option: SqliteVTabConfigOption,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
-): Sqlite3Result {
+): SqliteResultCode {
     val args = with(option) {
         when (this) {
             is CONSTRAINT_SUPPORT -> arrayOf(VariadicValue.OfInt(enabled))

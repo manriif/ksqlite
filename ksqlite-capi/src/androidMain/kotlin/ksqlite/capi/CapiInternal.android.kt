@@ -3,7 +3,7 @@
 package ksqlite.capi
 
 import ksqlite.foreign.OutputPointer
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.JniPointer
@@ -48,7 +48,7 @@ internal actual fun getAuxdataInternal(context: sqlite3_context, index: Int): Lo
 internal actual fun setAuxdataInternal(
     context: sqlite3_context,
     index: Int,
-    destroy: Sqlite3DestroyCallback<Nothing?>
+    destroy: SqliteDestroyCallback<Nothing?>
 ): Long? = jni_sqlite3_set_auxdata(context.pointer, index, destructorHandler(null, destroy)).orNull
 
 @PublishedApi

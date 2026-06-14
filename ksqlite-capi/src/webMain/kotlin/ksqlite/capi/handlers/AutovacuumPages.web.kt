@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3AutovacuumPagesCallback
+import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
@@ -29,7 +29,7 @@ internal class AutovacuumPagesHandler : Handler() {
         nDbPage: Int,
         nFreePage: Int,
         nBytePerPage: Int
-    ): Int = handle(refPointer) { callback: Sqlite3AutovacuumPagesCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteAutovacuumPagesCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             schemaName = zSchema.toKStringFromUtf8(),
