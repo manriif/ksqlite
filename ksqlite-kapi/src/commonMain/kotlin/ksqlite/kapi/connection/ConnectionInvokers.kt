@@ -1,4 +1,4 @@
-package ksqlite.kapi.callbacks
+package ksqlite.kapi.connection
 
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.callbacks.SqliteBusyHandlerCallback

@@ -16,11 +16,11 @@ import ksqlite.capi.sqlite3_value_pointer
 import ksqlite.capi.sqlite3_value_subtype
 import ksqlite.capi.sqlite3_value_text
 import ksqlite.capi.sqlite3_value_type
-import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
+import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteTextEncoding
 
 /**
  * Represents an `sqlite3_value` opaque type.
@@ -60,14 +60,14 @@ public open class ProtectedValue internal constructor(
     /**
      * Data type of the value.
      */
-    public val type: Sqlite3DataType
+    public val type: SqliteDataType
         get() = scope.notClosed { sqlite3_value_type(value) }
 
     /**
      * Returns the type of the value after a numeric conversion as been done. The conversion is only
      * made if the value can be converted.
      */
-    public val numericType: Sqlite3DataType
+    public val numericType: SqliteDataType
         get() = scope.notClosed { sqlite3_value_numeric_type(value) }
 
     /**
@@ -95,7 +95,7 @@ public open class ProtectedValue internal constructor(
      * Returns the current text encoding of the value, assuming that [type] returns
      * [ksqlite.types.SqliteDataType.TEXT].
      */
-    public val encoding: Sqlite3TextEncoding.Set2
+    public val encoding: SqliteTextEncoding.Set2
         get() = scope.notClosed { sqlite3_value_encoding(value) }
 
     /**

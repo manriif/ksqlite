@@ -1,7 +1,7 @@
 package ksqlite.kapi.value
 
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.types.Sqlite3TextEncoding
+import ksqlite.types.SqliteTextEncoding
 
 /**
  * Scope used in functions where SQLite is expecting a value to be returned using one of
@@ -86,7 +86,7 @@ public interface ValueReturnScope {
      */
     public fun setResult(
         value: Buffer,
-        encoding: Sqlite3TextEncoding.Set1,
+        encoding: SqliteTextEncoding.Set1,
         size: Long = value.byteSize,
         cleanup: ((Buffer) -> Unit)? = null
     )

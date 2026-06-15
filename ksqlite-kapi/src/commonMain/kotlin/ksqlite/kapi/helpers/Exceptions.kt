@@ -2,10 +2,10 @@ package ksqlite.kapi.helpers
 
 import ksqlite.capi.sqlite3_errmsg
 import ksqlite.capi.sqlite3_errstr
-import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.sqlite3
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.throwSQLiteException
+import ksqlite.types.SqliteResultCode
 
 /**
  * Throws an [SQLiteException] with [SqliteResultCode.NOMEM] if [value], obtained from an SQLite API
@@ -41,7 +41,11 @@ private fun sqliteResultThrow(
         return
     }
 
-    val errorMessage = db?.let(::sqlite3_errmsg) ?: sqlite3_errstr(result.code)
+    val errorMessage = when (result) {
+        MISUSE -> sqlite3_errstr(result.code)
+        else -> db?.let(::sqlite3_errmsg) ?: sqlite3_errstr(result.code)
+    }
+
     val messagePrefix = getMessagePrefix?.invoke()
 
     val message = when {

@@ -1,34 +1,31 @@
 package ksqlite.kapi.connection
 
 import ksqlite.capi.sqlite3_autovacuum_pages
+import ksqlite.capi.sqlite3_blob_open
 import ksqlite.capi.sqlite3_busy_handler
 import ksqlite.capi.sqlite3_close_v2
 import ksqlite.capi.sqlite3_create_function_v2
 import ksqlite.capi.sqlite3_create_module_v2
 import ksqlite.capi.sqlite3_create_window_function
-import ksqlite.types.SqliteResultCode
-import ksqlite.capi.types.Sqlite3TextEncoding
+import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.vtab.Sqlite3ModuleVersion
 import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
 import ksqlite.capi.vtab.callbacks.SqliteVTabCreateCallback
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.kapi.blob.Blob
-import ksqlite.kapi.callbacks.AutovacuumPages
-import ksqlite.kapi.callbacks.BusyHandler
+import ksqlite.kapi.blob.BlobImpl
 import ksqlite.kapi.functions.AggregateFunction
-import ksqlite.kapi.functions.ScalarFunction
-import ksqlite.kapi.functions.WindowFunction
-import ksqlite.kapi.callbacks.AutovacuumPagesInvoker
-import ksqlite.kapi.callbacks.BusyHandlerInvoker
 import ksqlite.kapi.functions.AggregateFunctionFinalInvoker
 import ksqlite.kapi.functions.AggregateFunctionStepInvoker
+import ksqlite.kapi.functions.ScalarFunction
 import ksqlite.kapi.functions.ScalarFunctionFuncInvoker
+import ksqlite.kapi.functions.WindowFunction
 import ksqlite.kapi.functions.WindowFunctionInverseInvoker
 import ksqlite.kapi.functions.WindowFunctionValueInvoker
 import ksqlite.kapi.helpers.AutoCloser
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
+import ksqlite.kapi.helpers.usingParam
 import ksqlite.kapi.vtab.VTab
 import ksqlite.kapi.vtab.VTabBeginInvoker
 import ksqlite.kapi.vtab.VTabBestIndexInvoker
@@ -55,13 +52,45 @@ import ksqlite.kapi.vtab.VTabSyncInvoker
 import ksqlite.kapi.vtab.VTabUpdateInvoker
 import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.kapi.vtab.VirtualTableOptionalFunction
+import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.SqliteTextEncoding
+import ksqlite.types.vtab.SqliteModuleVersion
 
-internal class ConnectionImpl(override val db: sqlite3): Connection() {
+internal class ConnectionImpl(override val db: sqlite3) : Connection() {
 
     private val modules = mutableListOf<sqlite3_module<*>>()
 
-    override fun openBlob(openFlag: OpenFlag): Blob {
-    }
+    override fun setAutovacuumPages(callback: AutovacuumPages?) = sqliteResultCheck(
+        if (callback != null) {
+            sqlite3_autovacuum_pages(db, callback, AutoCloser, AutovacuumPagesInvoker)
+        } else {
+            sqlite3_autovacuum_pages(db, callback, null, null)
+        }
+    )
+
+    override fun openBlob(
+        tableName: String,
+        columnName: String,
+        rowid: Long,
+        databaseName: String,
+        flags: SqliteBlobOpenFlag
+    ): Blob = BlobImpl(
+        db = db,
+        blob = usingParam(SqliteBlobOutputParam()) { outBlob ->
+            db.resultCheck(
+                sqlite3_blob_open(
+                    db = db,
+                    databaseName = databaseName,
+                    tableName = tableName,
+                    columnName = columnName,
+                    rowid = rowid,
+                    flags = flags,
+                    outBlob = outBlob
+                )
+            )
+        }
+    )
 
     ///////////////////////////////////////////////////////////////////////////
     // Functions
@@ -70,7 +99,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
     override fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: Sqlite3TextEncoding,
+        encoding: SqliteTextEncoding,
         function: ScalarFunction
     ) = db.resultCheck(
         sqlite3_create_function_v2(
@@ -89,7 +118,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
     override fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: Sqlite3TextEncoding,
+        encoding: SqliteTextEncoding,
         function: AggregateFunction
     ) = db.resultCheck(
         sqlite3_create_function_v2(
@@ -108,7 +137,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
     override fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: Sqlite3TextEncoding,
+        encoding: SqliteTextEncoding,
         function: WindowFunction
     ) = db.resultCheck(
         sqlite3_create_window_function(
@@ -134,7 +163,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
      */
     private fun <Module : VirtualTableModule> Module.install(
         name: String,
-        version: Sqlite3ModuleVersion,
+        version: SqliteModuleVersion,
         create: SqliteVTabCreateCallback<in Module, VTab>?,
         connect: SqliteVTabConnectCallback<in Module, VTab>,
     ) {
@@ -196,7 +225,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
 
     override fun createModule(
         name: String,
-        version: Sqlite3ModuleVersion,
+        version: SqliteModuleVersion,
         module: VirtualTableModule.Regular
     ) = module.install(
         name = name,
@@ -207,7 +236,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
 
     override fun createModule(
         name: String,
-        version: Sqlite3ModuleVersion,
+        version: SqliteModuleVersion,
         module: VirtualTableModule.Eponymous
     ) = module.install(
         name = name,
@@ -218,7 +247,7 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
 
     override fun createModule(
         name: String,
-        version: Sqlite3ModuleVersion,
+        version: SqliteModuleVersion,
         module: VirtualTableModule.EponymousOnly
     ) = module.install(
         name = name,
@@ -231,10 +260,6 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
     // Callbacks
     ///////////////////////////////////////////////////////////////////////////
 
-    override fun autoVacuumPages(callback: AutovacuumPages) = sqliteResultCheck(
-        sqlite3_autovacuum_pages(db, callback, AutoCloser, AutovacuumPagesInvoker)
-    )
-
     override fun busyHandler(callback: BusyHandler) = sqliteResultCheck(
         sqlite3_busy_handler(db, callback, BusyHandlerInvoker)
     )
@@ -245,6 +270,6 @@ internal class ConnectionImpl(override val db: sqlite3): Connection() {
 
     override fun close() {
         db.resultCheck(sqlite3_close_v2(db))
-        modules.forEach { it.close() }
+        modules.forEach(sqlite3_module<*>::close)
     }
 }

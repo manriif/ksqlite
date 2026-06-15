@@ -360,7 +360,7 @@ public expect fun sqlite3_blob_open(
     databaseName: String,
     tableName: String,
     columnName: String,
-    rowIndex: Long,
+    rowid: Long,
     flags: SqliteBlobOpenFlag,
     outBlob: SqliteBlobOutputParam
 ): SqliteResultCode

@@ -12,8 +12,8 @@ import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
 
 internal class BlobImpl(
-    private val blob: sqlite3_blob,
-    private val db: sqlite3
+    private val db: sqlite3,
+    private val blob: sqlite3_blob
 ) : Blob,
     ClosableScope() {
 

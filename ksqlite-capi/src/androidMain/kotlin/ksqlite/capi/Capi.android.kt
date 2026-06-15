@@ -486,7 +486,7 @@ public actual fun sqlite3_blob_open(
     databaseName: String,
     tableName: String,
     columnName: String,
-    rowIndex: Long,
+    rowid: Long,
     flags: SqliteBlobOpenFlag,
     outBlob: SqliteBlobOutputParam
 ): SqliteResultCode = convertResult(
@@ -496,7 +496,7 @@ public actual fun sqlite3_blob_open(
             databaseName,
             tableName,
             columnName,
-            rowIndex,
+            rowid,
             flags.value,
             blobPtr
         )

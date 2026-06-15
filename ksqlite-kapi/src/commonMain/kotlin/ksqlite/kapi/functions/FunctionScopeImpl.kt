@@ -10,6 +10,7 @@ import ksqlite.capi.types.sqlite3_context
 import ksqlite.kapi.connection.Connection
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.helpers.ContextClosableScope
+import ksqlite.kapi.requireConnection
 import ksqlite.kapi.throwSQLiteException
 
 /**
@@ -26,7 +27,7 @@ internal class FunctionScopeImpl(context: sqlite3_context) :
     ContextClosableScope(context) {
 
     override val connection: Connection
-        get() = notClosed { retrieveConnection(sqlite3_context_db_handle(context)) }
+        get() = notClosed { requireConnection(sqlite3_context_db_handle(context)) }
 
     override fun setResultError(
         message: String,

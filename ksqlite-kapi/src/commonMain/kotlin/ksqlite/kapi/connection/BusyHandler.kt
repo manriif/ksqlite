@@ -1,7 +1,7 @@
-package ksqlite.kapi.callbacks
+package ksqlite.kapi.connection
 
 /**
- * Callback to use with [ksqlite.kapi.ConnectionInitializer.busyHandler].
+ * Callback to use with [Connection.setBusyHandler].
  */
 public fun interface BusyHandler {
 

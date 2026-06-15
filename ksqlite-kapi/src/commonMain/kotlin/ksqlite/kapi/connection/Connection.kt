@@ -1,20 +1,16 @@
 package ksqlite.kapi.connection
 
-import ksqlite.capi.types.Sqlite3BlobOpenFlag
-import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.vtab.Sqlite3ModuleVersion
+import ksqlite.kapi.MAIN_DB_NAME
 import ksqlite.kapi.blob.Blob
-import ksqlite.kapi.callbacks.AutovacuumPages
-import ksqlite.kapi.callbacks.BusyHandler
-import ksqlite.kapi.callbacks.CollationComparator
 import ksqlite.kapi.functions.AggregateFunction
 import ksqlite.kapi.functions.ScalarFunction
 import ksqlite.kapi.functions.WindowFunction
 import ksqlite.kapi.vtab.VirtualTableModule
+import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteTextEncoding
+import ksqlite.types.vtab.SqliteModuleVersion
 import kotlin.time.Duration
-
-public typealias OpenFlag = Sqlite3BlobOpenFlag
 
 /**
  * [Database connection](https://sqlite.org/c3ref/sqlite3.html).
@@ -24,24 +20,34 @@ public abstract class Connection internal constructor(): AutoCloseable {
     internal abstract val db: sqlite3
 
     /**
-     * [sqlite3_autovacuum_pages()](https://sqlite.org/c3ref/autovacuum_pages.html)
+     * Sets the callback that is invoked prior to each autovacuum of the database file.
+     *
+     * Any previously set callback is replaced.
      */
     public abstract fun setAutovacuumPages(callback: AutovacuumPages?)
 
     /**
-     *
+     * Opens a [Blob].
      */
-    public abstract fun openBlob(openFlag: OpenFlag): Blob
+    public abstract fun openBlob(
+        tableName: String,
+        columnName: String,
+        rowid: Long,
+        databaseName: String = MAIN_DB_NAME,
+        flags: SqliteBlobOpenFlag = SqliteBlobOpenFlag.READONLY
+    ): Blob
 
     /**
-     * Sets the busy [handler].
-     * Note that any existing [ksqlite.kapi.callbacks.BusyHandler] is replaced.
+     * Sets the callback that might be invoked whenever an attempt is made to access a database
+     * table associated with this connection when another thread or process has the table locked.
+     *
+     * Any previously set callback is replaced.
      */
     public abstract fun setBusyHandler(handler: BusyHandler?)
 
     /**
-     * Sets the busy timeout.
-     * Note that any existing [BusyHandler] is replaced.
+     * Sets a[BusyHandler] that sleeps for a specified amount of time when a table is locked.
+     * Any [BusyHandler] previously passed to [setBusyHandler] is replaced.
      */
     public abstract fun setBusyTimeout(duration: Duration)
 
@@ -52,39 +58,39 @@ public abstract class Connection internal constructor(): AutoCloseable {
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: Sqlite3TextEncoding,
+        encoding: SqliteTextEncoding,
         function: ScalarFunction
     )
 
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: Sqlite3TextEncoding,
+        encoding: SqliteTextEncoding,
         function: AggregateFunction
     )
 
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: Sqlite3TextEncoding,
+        encoding: SqliteTextEncoding,
         function: WindowFunction
     )
 
     public abstract fun createModule(
         name: String,
-        version: Sqlite3ModuleVersion = Sqlite3ModuleVersion.VERSION_4,
+        version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.Regular
     )
 
     public abstract fun createModule(
         name: String,
-        version: Sqlite3ModuleVersion = Sqlite3ModuleVersion.VERSION_4,
+        version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.Eponymous
     )
 
     public abstract fun createModule(
         name: String,
-        version: Sqlite3ModuleVersion = Sqlite3ModuleVersion.VERSION_4,
+        version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.EponymousOnly
     )
 

@@ -17,7 +17,7 @@ class KapiTest {
 
         val connection = sqlite.open(
             fileName = "",
-            flag = Sqlite3OpenFlag.READWRITE or Sqlite3OpenFlag.URI
+            flags = Sqlite3OpenFlag.READWRITE or Sqlite3OpenFlag.URI
         ) {
 
         }

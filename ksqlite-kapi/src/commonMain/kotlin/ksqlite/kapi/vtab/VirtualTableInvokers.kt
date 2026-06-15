@@ -23,7 +23,7 @@ import ksqlite.kapi.functions.ScalarFunctionFuncInvoker
 import ksqlite.kapi.helpers.AutoCloser
 import ksqlite.kapi.helpers.ContextClosableScope
 import ksqlite.kapi.helpers.runCatchingSQLiteException
-import ksqlite.kapi.retrieveConnection
+import ksqlite.kapi.requireConnection
 import ksqlite.kapi.value.toProtectedValues
 
 /**
@@ -37,7 +37,7 @@ private inline fun <Module : VirtualTableModule> createOrConnect(
     ) -> VirtualTable
 ) = SqliteVTabCreateOrConnectCallback<Module, VTab> { db, module, arguments ->
     module.runCatchingSQLiteException({ failure(it.message) }) {
-        val connection = retrieveConnection(db)
+        val connection = requireConnection(db)
 
         val table = VirtualTableCreateOrConnectScopeImpl(db).use { scope ->
             block(module, scope, connection, arguments)

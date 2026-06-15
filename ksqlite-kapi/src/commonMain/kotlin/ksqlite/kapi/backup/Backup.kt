@@ -3,9 +3,10 @@ package ksqlite.kapi.backup
 import ksqlite.capi.sqlite3_backup_init
 import ksqlite.capi.sqlite3_errcode
 import ksqlite.capi.sqlite3_errmsg
-import ksqlite.types.SqliteResultCode
+import ksqlite.kapi.MAIN_DB_NAME
 import ksqlite.kapi.connection.Connection
 import ksqlite.kapi.throwSQLiteException
+import ksqlite.types.SqliteResultCode
 
 /**
  * Exposes the [Online Backup API](https://sqlite.org/backup.html).
@@ -40,8 +41,6 @@ public interface Backup : AutoCloseable {
      * Provides methods to initializes a [Backup].
      */
     public companion object {
-
-        private const val MAIN_DB_NAME = "main"
 
         /**
          * Initializes a backup, copying content from database [sourceName] using the connection

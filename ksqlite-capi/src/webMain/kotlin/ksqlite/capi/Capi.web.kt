@@ -311,7 +311,7 @@ public actual fun sqlite3_blob_open(
     databaseName: String,
     tableName: String,
     columnName: String,
-    rowIndex: Long,
+    rowid: Long,
     flags: SqliteBlobOpenFlag,
     outBlob: SqliteBlobOutputParam
 ): SqliteResultCode = convertResult(heapScoped {
@@ -321,7 +321,7 @@ public actual fun sqlite3_blob_open(
             databaseName.allocateUtf8Pointer(),
             tableName.allocateUtf8Pointer(),
             columnName.allocateUtf8Pointer(),
-            rowIndex.toJsBigInt(),
+            rowid.toJsBigInt(),
             flags.value,
             blobPtr
         )

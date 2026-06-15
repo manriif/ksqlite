@@ -297,7 +297,7 @@ public external fun sqlite3_blob_open(
     databaseName: String,
     tableName: String,
     columnName: String,
-    rowIndex: Long,
+    rowid: Long,
     flags: Int,
     outBlob: OutputPointer.OfPointer?,
 ): Int
@@ -311,7 +311,7 @@ public external fun sqlite3_blob_read(
 
 public external fun sqlite3_blob_reopen(
     blob: Long,
-    rowIndex: Long,
+    rowid: Long,
 ): Int
 
 public external fun sqlite3_blob_write(

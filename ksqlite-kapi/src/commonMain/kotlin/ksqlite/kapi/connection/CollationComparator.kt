@@ -1,4 +1,4 @@
-package ksqlite.kapi.callbacks
+package ksqlite.kapi.connection
 
 /**
  * Analog callback to [ksqlite.capi.callbacks.SqliteCollationCompareCallback].

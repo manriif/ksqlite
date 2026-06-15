@@ -1,9 +1,9 @@
 package ksqlite.kapi
 
-import ksqlite.capi.types.CapiSqliteConfigOption
-import ksqlite.capi.types.Sqlite3OpenFlag
-import ksqlite.kapi.callbacks.AutoExtension
+import ksqlite.kapi.config.AnyTimeConfigurationScope
+import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.connection.Connection
+import ksqlite.types.SqliteOpenFlag
 
 /**
  * SQLite instance is used to obtains [ksqlite.kapi.connection.Connection].
@@ -11,34 +11,30 @@ import ksqlite.kapi.connection.Connection
 public interface SQLite : AutoCloseable {
 
     /**
+     * Configures SQLite anytime options.
+     */
+    public fun configure(action: AnyTimeConfigurationScope.() -> Unit)
+
+    /**
+     * Opens a new database connection.
+     */
+    public fun open(
+        fileName: String,
+        flags: SqliteOpenFlag.Db = SqliteOpenFlag.READONLY,
+        vfs: String? = null
+    ): Connection
+
+    /**
      * Registers the [autoExtension] callback.
      * This method has no effect if the [autoExtension] is already registered.
      */
-    public fun registerAutoExtension(autoExtension: AutoExtension)
+    public fun addAutoExtension(autoExtension: AutoExtension)
 
     /**
      * Unregisters the [autoExtension] callback.
      * This method has no effect if the [autoExtension] is not registered.
      */
-    public fun unregisterAutoExtension(autoExtension: AutoExtension)
-
-    /**
-     * Configures SQLite with supplied anytime [options].
-     */
-    public fun configure(options: List<SqliteConfigOption.AnyTime>)
-
-    /**
-     * Opens a new database connection using `sqlite3_open_v2(), forwarding [flag] and [vfs].
-     *
-     * Once opened, [configure] is immediately invoked before the [ksqlite.kapi.connection.Connection] is getting
-     * returned.
-     */
-    public fun open(
-        fileName: String,
-        flag: Sqlite3OpenFlag.Db? = null,
-        vfs: String? = null,
-        initialize: (ConnectionInitializer.() -> Unit)? = null
-    ): Connection
+    public fun removeAutoExtension(autoExtension: AutoExtension)
 
     /**
      * Invokes `sqlite3_shutdown()` and resets global SQLite state.
@@ -54,32 +50,16 @@ public interface SQLite : AutoCloseable {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Initializes SQLite with given [options] and returns an [SQLite] instance used to initiate
- * connections.
- *
- * Indeed, [options] are set before `sqlite3_initialize()` is invoked.
+ * Initializes SQLite and returns an [SQLite] instance used to initiate connections.
+ * SQLite options can be configured by supplying a value to [configure].
  *
  * When the returned instance will no longer be needed, [SQLite.close] must be called and this
- * method can be called again with different [options].
+ * method can be called again.
  *
  * Only a single instance of [SQLite] exists at a time and an [IllegalStateException] is thrown if
- * a previously delivered instance of [SQLite] was not closed.
+ * a previously returned instance of [SQLite] was not closed.
+ *
+ * @throws SQLiteException if an operation fails while creating and configuring [SQLite].
  */
-public fun SQLite(options: Iterable<CapiSqliteConfigOption> = emptyList()): SQLite =
-    createSQLiteInstance(options.toList())
-
-/**
- * Initializes SQLite with given [options] and returns an [SQLite] instance used to initiate
- * connections.
- *
- * Indeed, [options] are set before `sqlite3_initialize()` is invoked.
- *
- * When the returned instance will no longer be needed, [SQLite.close] must be called and this
- * method can be called again with different [options].
- *
- * Only a single instance of [SQLite] exists at a time and an [IllegalStateException] is thrown if
- * a previously delivered instance of [SQLite] was not closed.
- */
-public fun SQLite(vararg options: CapiSqliteConfigOption): SQLite =
-    createSQLiteInstance(options.toList())
-
+public fun SQLite(configure: (ConfigurationScope.() -> Unit)? = null): SQLite =
+    createSQLiteInstance(configure)

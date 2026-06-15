@@ -15,10 +15,10 @@ import ksqlite.capi.sqlite3_result_text64
 import ksqlite.capi.sqlite3_result_value
 import ksqlite.capi.sqlite3_result_zeroblob
 import ksqlite.capi.sqlite3_result_zeroblob64
-import ksqlite.capi.types.Sqlite3TextEncoding
 import ksqlite.kapi.helpers.ContextClosableScope
 import ksqlite.kapi.helpers.autoCloser
 import ksqlite.kapi.helpers.sqliteResultCheck
+import ksqlite.types.SqliteTextEncoding
 
 internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : ValueReturnScope {
 
@@ -65,7 +65,7 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
 
     override fun setResult(
         value: Buffer,
-        encoding: Sqlite3TextEncoding.Set1,
+        encoding: SqliteTextEncoding.Set1,
         size: Long,
         cleanup: ((Buffer) -> Unit)?
     ) = scope.notClosed {
