@@ -29,11 +29,5 @@ internal class BlobImpl(
     override fun reopen(rowid: Long) =
         notClosed { db.resultCheck(sqlite3_blob_reopen(blob, rowid)) }
 
-    override fun close() {
-        if (!closed) {
-            db.resultCheck(sqlite3_blob_close(blob))
-        }
-
-        super.close()
-    }
+    override fun onClose() = db.resultCheck(sqlite3_blob_close(blob))
 }

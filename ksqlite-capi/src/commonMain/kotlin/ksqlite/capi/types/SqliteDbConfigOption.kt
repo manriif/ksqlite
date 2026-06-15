@@ -1,6 +1,8 @@
 @file:Suppress("ClassName", "SpellCheckingInspection")
 
-package ksqlite.types
+package ksqlite.capi.types
+
+import ksqlite.capi.memory.Buffer
 
 /**
  * These constants are the available integer configuration options that can be passed as the second
@@ -8,16 +10,16 @@ package ksqlite.types
  *
  * [Database Connection Configuration Options](https://sqlite.org/c3ref/c_dbconfig_defensive.html)
  */
-public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public val id: Int) {
+public sealed class SqliteDbConfigOption(public val id: Int) {
 
     /**
      * Option that accept an int [value] and a [state] output paramater.
      */
-    public sealed class IntOutput<Out32: Any>(
+    public sealed class IntOutput(
         id: Int,
         public val value: Int,
-        public val state: Out32?
-    ) : SqliteDbConfigOption<Nothing, Out32>(id)
+        public val state: Int32OutputParam?
+    ) : SqliteDbConfigOption(id)
 
     /**
      * This option is used to change the name of the "main" database schema. This option does not
@@ -28,8 +30,7 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * application must ensure that the argument passed into SQLITE_DBCONFIG MAINDBNAME is unchanged
      * until after the database connection closes.
      */
-    public class MAINDBNAME(public val name: String) :
-        SqliteDbConfigOption<Nothing, Nothing>(1000)
+    public class MAINDBNAME(public val name: String) : SqliteDbConfigOption(1000)
 
     /**
      * The SQLITE_DBCONFIG_LOOKASIDE option is used to adjust the configuration of the lookaside
@@ -65,11 +66,11 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * default lookaside configuration at compile-time. Typical values for lookaside are 1200 for
      * "sz" and 40 to 100 for "cnt".
      */
-    public class LOOKASIDE<Buffer: Any>(
+    public class LOOKASIDE(
         public val buf: Buffer?,
         public val sz: Int,
         public val cnt: Int
-    ) : SqliteDbConfigOption<Buffer, Nothing>(1001)
+    ) : SqliteDbConfigOption(1001)
 
     /**
      * This option is used to enable or disable the enforcement of foreign key constraints. This is
@@ -80,10 +81,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * following this call. The second parameter may be a NULL pointer, in which case the FK
      * enforcement setting is not reported back.
      */
-    public class ENABLE_FKEY<Out32: Any>(
+    public class ENABLE_FKEY(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1002, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1002, value, state)
 
     /**
      * This option is used to enable or disable triggers. There should be two additional arguments.
@@ -93,10 +94,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * this call. The second parameter may be a NULL pointer, in which case the trigger setting is
      * not reported back.
      */
-    public class ENABLE_TRIGGER<Out32: Any>(
+    public class ENABLE_TRIGGER(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1003, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1003, value, state)
 
     /**
      * This option is used to enable or disable using the fts3_tokenizer() function - part of the
@@ -110,10 +111,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * is modified, if applicable). The second parameter may be a NULL pointer, in which case the
      * value of the setting is not reported back. Refer to FTS3 documentation for further details.
      */
-    public class ENABLE_FTS3_TOKENIZER<Out32: Any>(
+    public class ENABLE_FTS3_TOKENIZER(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1004, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1004, value, state)
 
     /**
      * This option is used to enable or disable the sqlite3_load_extension() interface independently
@@ -128,10 +129,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * call. The second parameter may be a NULL pointer, in which case the new setting is not
      * reported back.
      */
-    public class ENABLE_LOAD_EXTENSION<Out32: Any>(
+    public class ENABLE_LOAD_EXTENSION(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1005, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1005, value, state)
 
     /**
      * Usually, when a database in WAL mode is closed or detached from a database handle, SQLite
@@ -145,10 +146,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * is a pointer to an integer into which is written 0 or 1 to indicate whether
      * checkpoints-on-close have been disabled - 0 if they are not disabled, 1 if they are.
      */
-    public class NO_CKPT_ON_CLOSE<Out32: Any>(
+    public class NO_CKPT_ON_CLOSE(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1006, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1006, value, state)
 
     /**
      * The SQLITE_DBCONFIG_ENABLE_QPSG option activates or deactivates the query planner stability
@@ -162,10 +163,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * a pointer to an integer into which is written 0 or 1 to indicate whether the QPSG is disabled
      * or enabled following this call.
      */
-    public class ENABLE_QPSG<Out32: Any>(
+    public class ENABLE_QPSG(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1007, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1007, value, state)
 
     /**
      * By default, the output of EXPLAIN QUERY PLAN commands does not include output for any
@@ -176,10 +177,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * 0 or 1 to indicate whether output-for-triggers has been disabled - 0 if it is not disabled,
      * 1 if it is.
      */
-    public class TRIGGER_EQP<Out32: Any>(
+    public class TRIGGER_EQP(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1008, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1008, value, state)
 
     /**
      * Set the SQLITE_DBCONFIG_RESET_DATABASE flag and then run VACUUM in order to reset a database
@@ -204,10 +205,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * virtual tables may require access to that corrupt storage, the library must abandon any
      * installed virtual tables without calling their xDestroy() methods.
      */
-    public class RESET_DATABASE<Out32: Any>(
+    public class RESET_DATABASE(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1009, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1009, value, state)
 
     /**
      * The SQLITE_DBCONFIG_DEFENSIVE option activates or deactivates the "defensive" flag for a
@@ -221,10 +222,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * - Writes to the sqlite_dbpage virtual table.
      * - Direct writes to shadow tables.
      */
-    public class DEFENSIVE<Out32: Any>(
+    public class DEFENSIVE(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1010, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1010, value, state)
 
     /**
      * The SQLITE_DBCONFIG_WRITABLE_SCHEMA option activates or deactivates the "writable_schema"
@@ -235,10 +236,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * which is written 0 or 1 to indicate whether the writable_schema is enabled or disabled
      * following this call.
      */
-    public class WRITABLE_SCHEMA<Out32: Any>(
+    public class WRITABLE_SCHEMA(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1011, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1011, value, state)
 
     /**
      * The SQLITE_DBCONFIG_LEGACY_ALTER_TABLE option activates or deactivates the legacy behavior of
@@ -247,10 +248,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * additional information. This feature can also be turned on and off using the PRAGMA
      * legacy_alter_table statement.
      */
-    public class LEGACY_ALTER_TABLE<Out32: Any>(
+    public class LEGACY_ALTER_TABLE(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1012, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1012, value, state)
 
     /**
      * The SQLITE_DBCONFIG_DQS_DML option activates or deactivates the legacy double-quoted string
@@ -258,20 +259,20 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * statements. The default value of this setting is determined by the -DSQLITE_DQS compile-time
      * option.
      */
-    public class DQS_DML<Out32: Any>(
+    public class DQS_DML(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1013, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1013, value, state)
 
     /**
      * The SQLITE_DBCONFIG_DQS option activates or deactivates the legacy double-quoted string
      * literal misfeature for DDL statements, such as CREATE TABLE and CREATE INDEX. The default
      * value of this setting is determined by the -DSQLITE_DQS compile-time option.
      */
-    public class DQS_DDL<Out32: Any>(
+    public class DQS_DDL(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1014, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1014, value, state)
 
     /**
      * This option is used to enable or disable views. There must be two additional arguments. The
@@ -284,10 +285,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * are still allowed even if this option is off. So, in other words, this option now only
      * disables views in the main database schema or in the schemas of ATTACH-ed databases.
      */
-    public class ENABLE_VIEW<Out32: Any>(
+    public class ENABLE_VIEW(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1015, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1015, value, state)
 
     /**
      * The SQLITE_DBCONFIG_LEGACY_FILE_FORMAT option activates or deactivates the legacy file format
@@ -306,10 +307,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * descending index. This is not considered a bug since SQLite versions 3.3.0 and earlier do not
      * support either generated columns or descending indexes.
      */
-    public class LEGACY_FILE_FORMAT<Out32: Any>(
+    public class LEGACY_FILE_FORMAT(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1016, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1016, value, state)
 
     /**
      * The SQLITE_DBCONFIG_TRUSTED_SCHEMA option tells SQLite to assume that database schemas are
@@ -327,10 +328,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * to turn it off if possible. This setting can also be controlled using the PRAGMA
      * trusted_schema statement.
      */
-    public class TRUSTED_SCHEMA<Out32: Any>(
+    public class TRUSTED_SCHEMA(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1017, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1017, value, state)
 
     /**
      * The SQLITE_DBCONFIG_STMT_SCANSTATUS option is only useful in SQLITE_ENABLE_STMT_SCANSTATUS
@@ -344,10 +345,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * second argument is not NULL, then the value of the statement scanstatus setting after
      * processing the first argument is written into the integer that the second argument points to.
      */
-    public class STMT_SCANSTATUS<Out32: Any>(
+    public class STMT_SCANSTATUS(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1018, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1018, value, state)
 
     /**
      * The SQLITE_DBCONFIG_REVERSE_SCANORDER option changes the default order in which tables and
@@ -361,10 +362,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * that the second argument points to depending on if the reverse scan order flag is set after
      * processing the first argument.
      */
-    public class REVERSE_SCANORDER<Out32: Any>(
+    public class REVERSE_SCANORDER(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1019, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1019, value, state)
 
     /**
      * The SQLITE_DBCONFIG_ENABLE_ATTACH_CREATE option enables or disables the ability of the ATTACH
@@ -379,10 +380,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * that the second argument points to depending on if the attach-create flag is set after
      * processing the first argument.
      */
-    public class ENABLE_ATTACH_CREATE<Out32: Any>(
+    public class ENABLE_ATTACH_CREATE(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1020, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1020, value, state)
 
     /**
      * The SQLITE_DBCONFIG_ENABLE_ATTACH_WRITE option enables or disables the ability of the ATTACH
@@ -400,10 +401,10 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * ability to ATTACH a read/write database is enabled or disabled after processing the first
      * argument.
      */
-    public class ENABLE_ATTACH_WRITE<Out32: Any>(
+    public class ENABLE_ATTACH_WRITE(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1021, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1021, value, state)
 
     /**
      * The SQLITE_DBCONFIG_ENABLE_COMMENTS option enables or disables the ability to include
@@ -416,8 +417,8 @@ public sealed class SqliteDbConfigOption<out Buffer: Any, out Out32: Any>(public
      * integer that the second argument points to depending on if comments are allowed in SQL text
      * after processing the first argument.
      */
-    public class ENABLE_COMMENTS<Out32: Any>(
+    public class ENABLE_COMMENTS(
         value: Int,
-        state: Out32?
-    ) : IntOutput<Out32>(1022, value, state)
+        state: Int32OutputParam?
+    ) : IntOutput(1022, value, state)
 }

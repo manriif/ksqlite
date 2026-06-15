@@ -1,6 +1,7 @@
-package ksqlite.kapi
+package ksqlite.kapi.connection
 
-import ksqlite.kapi.connection.Connection
+import ksqlite.kapi.SQLite
+import ksqlite.kapi.SQLiteException
 
 /**
  * Callback to use with [SQLite.addAutoExtension] and [SQLite.removeAutoExtension].

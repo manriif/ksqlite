@@ -23,11 +23,11 @@ import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.ReadableBuffer
-import ksqlite.capi.types.CapiSqliteDbConfigOption
+import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
-import ksqlite.capi.types.CapiSqliteConfigOption
+import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
 import ksqlite.capi.types.SqliteValueOutputParam
@@ -700,7 +700,7 @@ public expect fun sqlite3_complete(sql: String): SqliteCompleteResult
  *
  * [sqlite3_config()](https://sqlite.org/c3ref/config.html)
  */
-public expect fun sqlite3_config(option: CapiSqliteConfigOption): SqliteResultCode
+public expect fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode
 
 /**
  * Extract the user data from a sqlite3_context structure and return a pointer to it.
@@ -883,7 +883,7 @@ public expect fun sqlite3_db_cacheflush(db: sqlite3): SqliteResultCode
  */
 public expect fun sqlite3_db_config(
     db: sqlite3,
-    option: CapiSqliteDbConfigOption,
+    option: SqliteDbConfigOption,
 ): SqliteResultCode
 
 /**

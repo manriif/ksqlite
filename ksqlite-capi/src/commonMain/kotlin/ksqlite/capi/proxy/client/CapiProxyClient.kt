@@ -26,9 +26,9 @@ import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.Sqlite3BlobOpenFlag
 import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.Sqlite3CompleteResult
-import ksqlite.capi.types.CapiSqliteConfigOption
+import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.CapiSqliteDbConfigOption
+import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.Sqlite3DbStatusOption
 import ksqlite.capi.types.Sqlite3DeserializeFlag
 import ksqlite.capi.types.Sqlite3ExplainMode
@@ -500,7 +500,7 @@ public interface CapiProxyClient {
     /**
 	 * See [ksqlite.capi.sqlite3_config].
 	 */
-	public suspend fun sqlite3_config(option: CapiSqliteConfigOption): SqliteResultCode
+	public suspend fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode
 
     /**
 	 * See [ksqlite.capi.sqlite3_context_db_handle].
@@ -602,7 +602,7 @@ public interface CapiProxyClient {
 	 */
 	public suspend fun sqlite3_db_config(
         db: sqlite3,
-        option: CapiSqliteDbConfigOption,
+        option: SqliteDbConfigOption,
     ): SqliteResultCode
 
     /**

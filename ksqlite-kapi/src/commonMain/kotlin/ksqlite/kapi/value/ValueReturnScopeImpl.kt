@@ -1,8 +1,5 @@
 package ksqlite.kapi.value
 
-import ksqlite.capi.callbacks.SqliteDestroyCallback
-import ksqlite.capi.memory.Buffer
-import ksqlite.capi.sqlite3_context_db_handle
 import ksqlite.capi.sqlite3_result_blob
 import ksqlite.capi.sqlite3_result_blob64
 import ksqlite.capi.sqlite3_result_double
@@ -15,6 +12,7 @@ import ksqlite.capi.sqlite3_result_text64
 import ksqlite.capi.sqlite3_result_value
 import ksqlite.capi.sqlite3_result_zeroblob
 import ksqlite.capi.sqlite3_result_zeroblob64
+import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.helpers.ContextClosableScope
 import ksqlite.kapi.helpers.autoCloser
 import ksqlite.kapi.helpers.sqliteResultCheck
@@ -28,12 +26,8 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
     override fun setResult(value: Nothing?, size: Int) =
         scope.notClosed { sqlite3_result_zeroblob(scope.context, size) }
 
-    override fun setResult(value: Nothing?, size: ULong) = scope.notClosed {
-        sqliteResultCheck(
-            result = sqlite3_result_zeroblob64(scope.context, size),
-            getDb = { sqlite3_context_db_handle(scope.context) }
-        )
-    }
+    override fun setResult(value: Nothing?, size: ULong) =
+        scope.notClosed { sqliteResultCheck(sqlite3_result_zeroblob64(scope.context, size)) }
 
     override fun setResult(value: ByteArray, size: Int) =
         scope.notClosed { sqlite3_result_blob(scope.context, value, size, null) }
@@ -45,9 +39,9 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
     ) = scope.notClosed {
         sqlite3_result_blob64(
             context = scope.context,
-            buffer = value,
+            buffer = value.buffer,
             size = size,
-            destroy = cleanup?.let(::SqliteDestroyCallback)
+            destroy = value.reference(cleanup)
         )
     }
 
@@ -71,22 +65,16 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
     ) = scope.notClosed {
         sqlite3_result_text64(
             context = scope.context,
-            buffer = value,
+            buffer = value.buffer,
             size = size,
             encoding = encoding,
-            destroy = cleanup?.let(::SqliteDestroyCallback)
+            destroy = value.reference(cleanup)
         )
     }
 
     override fun setResult(value: Value) =
         scope.notClosed { sqlite3_result_value(scope.context, value.value) }
 
-    override fun setResult(value: Any, type: String?) = scope.notClosed {
-        sqlite3_result_pointer(
-            context = scope.context,
-            data = value,
-            type = type,
-            destroy = autoCloser(value)
-        )
-    }
+    override fun setResult(value: Any, type: String?) =
+        scope.notClosed { sqlite3_result_pointer(scope.context, value, type, autoCloser(value)) }
 }

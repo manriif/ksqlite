@@ -24,16 +24,12 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
         /**
          * Returns a [Vfs] which could be used to add optional flags for VFS.
          */
-        public fun vfs(): Vfs {
-            return Vfs.Mask(value)
-        }
+        public fun vfs(): Vfs = Vfs.Mask(value)
 
         /**
          * Returns a [Db] which is ORed with [flag].
          */
-        public open infix fun or(flag: OptionalDb): Db {
-            return Mask(value or flag.value)
-        }
+        public open infix fun or(flag: OptionalDb): Db = Mask(value or flag.value)
 
         /**
          * Holder for flags.
@@ -75,9 +71,7 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
         /**
          * Returns a [Db] which is ORed with [flag].
          */
-        public infix fun or(flag: CREATE): Db {
-            return Mask(value or flag.value)
-        }
+        public infix fun or(flag: CREATE): Db = Mask(value or flag.value)
     }
 
     /**
@@ -89,9 +83,7 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
         /**
          * Returns a [Db] which is ORed with [flag].
          */
-        public infix fun or(flag: READWRITE): Db {
-            return flag or this
-        }
+        public infix fun or(flag: READWRITE): Db = flag or this
     }
 
     /**
@@ -160,9 +152,7 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
         /**
          * Returns a [Vfs] which is ORed with [flag].
          */
-        public infix fun or(flag: Optional): Vfs {
-            return Mask(value or flag.value)
-        }
+        public infix fun or(flag: Optional): Vfs = Mask(value or flag.value)
 
         /**
          * Holder for VFS only flags.

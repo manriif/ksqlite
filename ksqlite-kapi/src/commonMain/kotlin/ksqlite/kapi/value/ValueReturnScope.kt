@@ -1,10 +1,10 @@
 package ksqlite.kapi.value
 
-import ksqlite.capi.memory.Buffer
+import ksqlite.kapi.buffer.Buffer
 import ksqlite.types.SqliteTextEncoding
 
 /**
- * Scope used in functions where SQLite is expecting a value to be returned using one of
+ * Scope used in places where SQLite is expecting a value to be returned using one of
  * `sqlite3_result_xx` APIs.
  */
 public interface ValueReturnScope {
@@ -16,7 +16,7 @@ public interface ValueReturnScope {
     public fun setResult(value: Nothing?)
 
     /**
-     * Sets the function result to be a buffer of the given [size] with all bytes set to `zero`.
+     * Sets the result to be a buffer of the given [size] with all bytes set to `zero`.
      * This function maps to `sqlite3_result_zeroblob()`.
      */
     public fun setResult(
@@ -25,7 +25,7 @@ public interface ValueReturnScope {
     )
 
     /**
-     * Sets the function result to be a buffer of the given [size] with all bytes set to `zero`.
+     * Sets the result to be a buffer of the given [size] with all bytes set to `zero`.
      * This function maps to `sqlite3_result_zeroblob64()`.
      */
     public fun setResult(
@@ -34,7 +34,7 @@ public interface ValueReturnScope {
     )
 
     /**
-     * Sets the bytes buffer [value] as the function result.
+     * Sets the bytes buffer [value] as the result.
      * This function maps to `sqlite3_result_blob()`.
      */
     public fun setResult(
@@ -43,7 +43,7 @@ public interface ValueReturnScope {
     )
 
     /**
-     * Sets the bytes buffer [value] as the function result.
+     * Sets the bytes buffer [value] as the result.
      * This function maps to `sqlite3_result_blob64()`.
      *
      * When SQLite no longer needs the [value], it will invoke [cleanup].
@@ -55,31 +55,31 @@ public interface ValueReturnScope {
     )
 
     /**
-     * Sets the 32-bit signed integer [value] as the function result.
+     * Sets the 32-bit signed integer [value] as the result.
      * This function maps to `sqlite3_result_int()`.
      */
     public fun setResult(value: Int)
 
     /**
-     * Sets the 64-bit signed integer [value] as the function result.
+     * Sets the 64-bit signed integer [value] as the result.
      * This function maps to `sqlite3_result_int64()`.
      */
     public fun setResult(value: Long)
 
     /**
-     * Sets the 64-bit floating point [value] as the function result.
+     * Sets the 64-bit floating point [value] as the result.
      * This function maps to `sqlite3_result_double()`.
      */
     public fun setResult(value: Double)
 
     /**
-     * Sets the text [value] as the UTF-8 encoded function result.
+     * Sets the text [value] as the UTF-8 encoded result.
      * This function maps to `sqlite3_result_text()`.
      */
     public fun setResult(value: String)
 
     /**
-     * Sets the text buffer [value] as the function result.
+     * Sets the text buffer [value] as the result.
      * This function maps to `sqlite3_result_text64()`.
      *
      * When SQLite no longer needs the [value], it will invoke [cleanup].
@@ -92,7 +92,15 @@ public interface ValueReturnScope {
     )
 
     /**
-     * Sets the [value] as the function result.
+     * Sets [value] as the result.
+     * This function maps to `sqlite3_result_value()`.
+     *
+     * The [value] can be a protected or unprotected SQLite value.
+     */
+    public fun setResult(value: Value)
+
+    /**
+     * Sets [value] as the result.
      * This function maps to `sqlite3_result_pointer()`.
      *
      * If [value] implements [AutoCloseable] then [AutoCloseable.close] is invoked on [value] when
@@ -102,12 +110,56 @@ public interface ValueReturnScope {
         value: Any,
         type: String? = null
     )
-
-    /**
-     * Sets the [value] as the function result.
-     * This function maps to `sqlite3_result_value()`.
-     *
-     * The [value] can be a protected or unprotected SQLite value.
-     */
-    public fun setResult(value: Value)
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Sets the bytes buffer [value] as the result or sets `null` as the result if [value] is `null`.
+ */
+public fun ValueReturnScope.setResult(value: ByteArray?): Unit =
+    value?.let(::setResult) ?: setResult(null)
+
+/**
+ * Sets the 32-bit signed integer [value] as the result or sets `null` as the result if [value] is
+ * `null`.
+ */
+public fun ValueReturnScope.setResult(value: Int?): Unit =
+    value?.let(::setResult) ?: setResult(null)
+
+/**
+ * Sets the 64-bit signed integer [value] as the result or sets `null` as the result if [value] is
+ * `null`.
+ */
+public fun ValueReturnScope.setResult(value: Long?): Unit =
+    value?.let(::setResult) ?: setResult(null)
+
+/**
+ * Sets the 64-bit floating point [value] as the result or sets `null` as the result if [value] is
+ * `null`.
+ */
+public fun ValueReturnScope.setResult(value: Double?): Unit =
+    value?.let(::setResult) ?: setResult(null)
+
+/**
+ * Sets the text [value] as the UTF-8 encoded result or sets `null` as the result if [value] is
+ * `null`.
+ */
+public fun ValueReturnScope.setResult(value: String?): Unit =
+    value?.let(::setResult) ?: setResult(null)
+
+/**
+ * Sets [value] result or sets `null` as the result if [value] is
+ * `null`.
+ */
+public fun ValueReturnScope.setResult(value: Value?): Unit =
+    value?.let(::setResult) ?: setResult(null)
+
+/**
+ * Sets [value] result or sets `null` as the result if [value] is
+ * `null`.
+ */
+public fun ValueReturnScope.setResult(value: Any?): Unit =
+    value?.let(::setResult) ?: setResult(null)

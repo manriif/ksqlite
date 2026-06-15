@@ -1,8 +1,7 @@
-@file:OptIn(ExperimentalAtomicApi::class)
-
 package ksqlite.kapi
 
 import co.touchlab.stately.collections.ConcurrentMutableMap
+import co.touchlab.stately.collections.ConcurrentMutableSet
 import co.touchlab.stately.concurrency.Lock
 import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.sqlite3_initialize
@@ -12,33 +11,32 @@ import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.kapi.config.AnyTimeConfigurationScope
 import ksqlite.kapi.config.ConfigurationScope
+import ksqlite.kapi.config.ConfigurationScopeImpl
+import ksqlite.kapi.connection.AutoExtension
 import ksqlite.kapi.connection.Connection
 import ksqlite.kapi.connection.ConnectionImpl
+import ksqlite.kapi.helpers.AtomicClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
 import ksqlite.types.SqliteOpenFlag
-import kotlin.concurrent.atomics.AtomicBoolean
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
-internal class SQLiteImpl(private val onClose: () -> Unit) : SQLite {
+internal class SQLiteImpl(private val shutdown: () -> Unit) :
+    SQLite,
+    AtomicClosableScope() {
 
-    private val autoExtensions = mutableSetOf<AutoExtension>()
-    private val autoExtensionLock = Lock()
-
+    private val autoExtensions = ConcurrentMutableSet<AutoExtension>()
     private val connections = ConcurrentMutableMap<sqlite3, ConnectionImpl>()
 
-    private val closed = AtomicBoolean(false)
-
-    override fun configure(action: AnyTimeConfigurationScope.() -> Unit) {
-
+    override fun configure(action: AnyTimeConfigurationScope.() -> Unit) = notClosed {
+        action(ConfigurationScopeImpl)
     }
 
     override fun open(
         fileName: String,
         flags: SqliteOpenFlag.Db,
         vfs: String?
-    ): Connection {
-        val extensions = autoExtensionLock.withLock(autoExtensions::toList)
+    ): Connection = notClosed {
+        val extensions = autoExtensions.block { it.toSet() }
 
         val db = usingParam(SqliteOutputParam()) { outDb ->
             sqliteResultCheck(sqlite3_open_v2(fileName, outDb, flags, vfs))
@@ -73,22 +71,24 @@ internal class SQLiteImpl(private val onClose: () -> Unit) : SQLite {
     /**
      * Retrieves the connection associated with [db].
      */
-    fun requireConnection(db: sqlite3): Connection = checkNotNull(connections[db]) {
-        "No connection is associated with database connection handle $db"
+    fun requireConnection(db: sqlite3): Connection = notClosed {
+        checkNotNull(connections[db]) {
+            "No connection is associated with database connection handle $db"
+        }
     }
 
-    override fun addAutoExtension(autoExtension: AutoExtension): Unit =
-        autoExtensionLock.withLock { autoExtensions.add(autoExtension) }
+    override fun addAutoExtension(autoExtension: AutoExtension): Unit = notClosed {
+        autoExtensions.add(autoExtension)
+    }
 
-    override fun removeAutoExtension(autoExtension: AutoExtension): Unit =
-        autoExtensionLock.withLock { autoExtensions.remove(autoExtension) }
+    override fun removeAutoExtension(autoExtension: AutoExtension): Unit = notClosed {
+        autoExtensions.remove(autoExtension)
+    }
 
-    override fun close() {
-        if (closed.compareAndSet(expectedValue = false, newValue = true)) {
-            autoExtensionLock.withLock(autoExtensions::clear)
-            connections.clear()
-            onClose()
-        }
+    override fun onClose() {
+        autoExtensions.clear()
+        connections.clear()
+        shutdown()
     }
 }
 
@@ -103,28 +103,28 @@ private val sqlite: SQLiteImpl
     get() = checkNotNull(SQLiteInstance) { "No SQLite instance exists or it was closed" }
 
 /**
- * Clears [SQLiteInstance].
+ * Shutdowns SQLite and clears [SQLiteInstance].
  */
-private fun clearSQLiteInstance() = SQLiteInstanceLock.withLock {
+private fun sqliteShutdown() = SQLiteInstanceLock.withLock {
     check(SQLiteInstance != null)
     sqliteResultCheck(sqlite3_shutdown())
     SQLiteInstance = null
 }
 
 /**
- * Creates and sets [SQLiteInstance].
+ * Initializes SQLite, sets and returns [SQLiteInstance].
  */
-internal fun createSQLiteInstance(configure: (ConfigurationScope.() -> Unit)? = null): SQLite {
+internal fun sqliteInitialize(configure: (ConfigurationScope.() -> Unit)? = null): SQLite {
     return SQLiteInstanceLock.withLock {
         check(SQLiteInstance == null) {
             "Only a single instance of SQLite is allowed simultaneously, previous instance must " +
                     "be shutdown first"
         }
 
-        configure?.invoke()
+        configure?.invoke(ConfigurationScopeImpl)
         sqliteResultCheck(sqlite3_initialize())
 
-        SQLiteImpl(::clearSQLiteInstance).also { instance ->
+        SQLiteImpl(::sqliteShutdown).also { instance ->
             SQLiteInstance = instance
         }
     }

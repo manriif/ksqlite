@@ -1,12 +1,7 @@
 package ksqlite.kapi.backup
 
-import ksqlite.capi.sqlite3_backup_init
-import ksqlite.capi.sqlite3_errcode
-import ksqlite.capi.sqlite3_errmsg
 import ksqlite.kapi.MAIN_DB_NAME
 import ksqlite.kapi.connection.Connection
-import ksqlite.kapi.throwSQLiteException
-import ksqlite.types.SqliteResultCode
 
 /**
  * Exposes the [Online Backup API](https://sqlite.org/backup.html).
@@ -25,11 +20,15 @@ public interface Backup : AutoCloseable {
 
     /**
      * Copies up to [count] pages between the source and destination databases.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
      */
     public fun step(count: Int)
 
     /**
      * Releases all resources associated with `this` backup.
+     *
+     * @throws ksqlite.kapi.SQLiteException if finalizing the backup fails.
      */
     override fun close()
 
@@ -54,33 +53,23 @@ public interface Backup : AutoCloseable {
             destinationName: String,
             source: Connection,
             sourceName: String
-        ): Backup {
-            val backup = sqlite3_backup_init(destination.db, destinationName, source.db, sourceName)
-
-            if (backup == null) {
-                val message = sqlite3_errmsg(destination.db) ?: "Failed to initializes a backup"
-                val result = sqlite3_errcode(destination.db)
-
-                check(result is SqliteResultCode.Failure) {
-                    "Unexpected result $result after a sqlite3_backup_init() failure"
-                }
-
-                throwSQLiteException(message, result)
-            }
-
-            return BackupImpl(backup)
-        }
+        ): Backup = createBackup(
+            destination = destination,
+            destinationName = destinationName,
+            source = source,
+            sourceName = sourceName
+        )
 
         /**
-         * Initializes a backup, copying content from database `main` using the connection [source] into the
-         * database `main` using connection [destination] and returns a [Backup].
+         * Initializes a backup, copying content from database `main` using the connection [source]
+         * into the database `main` using connection [destination] and returns a [Backup].
          *
          * The returned [Backup] must be closed when done with.
          */
         public fun init(
             destination: Connection,
             source: Connection
-        ): Backup = init(
+        ): Backup = createBackup(
             destination = destination,
             destinationName = MAIN_DB_NAME,
             source = source,

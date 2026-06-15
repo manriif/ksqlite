@@ -2,11 +2,12 @@ package ksqlite.kapi
 
 import ksqlite.kapi.config.AnyTimeConfigurationScope
 import ksqlite.kapi.config.ConfigurationScope
+import ksqlite.kapi.connection.AutoExtension
 import ksqlite.kapi.connection.Connection
 import ksqlite.types.SqliteOpenFlag
 
 /**
- * SQLite instance is used to obtains [ksqlite.kapi.connection.Connection].
+ * [SQLite](https://sqlite.org/docs.html) entry point.
  */
 public interface SQLite : AutoCloseable {
 
@@ -17,6 +18,9 @@ public interface SQLite : AutoCloseable {
 
     /**
      * Opens a new database connection.
+     *
+     * @throws SQLiteException if an error happens while opening the connection or if an
+     * [AutoExtension] fails.
      */
     public fun open(
         fileName: String,
@@ -41,6 +45,8 @@ public interface SQLite : AutoCloseable {
      *
      * It is recommended to terminate any active statement, transaction and opened database
      * connection first before closing `this` [SQLite] instance.
+     *
+     * @throws SQLiteException if error happens while shutting down SQLite.
      */
     override fun close()
 }
@@ -62,4 +68,4 @@ public interface SQLite : AutoCloseable {
  * @throws SQLiteException if an operation fails while creating and configuring [SQLite].
  */
 public fun SQLite(configure: (ConfigurationScope.() -> Unit)? = null): SQLite =
-    createSQLiteInstance(configure)
+    sqliteInitialize(configure)

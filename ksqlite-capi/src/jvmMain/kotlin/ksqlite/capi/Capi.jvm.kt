@@ -63,8 +63,8 @@ import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
-import ksqlite.capi.types.CapiSqliteConfigOption
-import ksqlite.capi.types.CapiSqliteDbConfigOption
+import ksqlite.capi.types.SqliteConfigOption
+import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
@@ -507,14 +507,14 @@ public actual fun sqlite3_compileoption_used(optName: String): Int = memScoped {
 public actual fun sqlite3_complete(sql: String): SqliteCompleteResult =
     convertCompleteResult(memScoped { native.sqlite3_complete(sql.allocateUtf8()) })
 
-public actual fun sqlite3_config(option: CapiSqliteConfigOption): SqliteResultCode = commonConfig(
+public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode = commonConfig(
     option = option,
     logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
     keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     rowidInView = {
-        useParamMemScoped(param) { paramPtr ->
+        useParamMemScoped(enabled) { paramPtr ->
             native.sqlite3_config
                 .makeInvoker(ValueLayout.ADDRESS)
                 .apply(id, paramPtr)
@@ -648,7 +648,7 @@ public actual fun sqlite3_db_cacheflush(db: sqlite3): SqliteResultCode =
 
 public actual fun sqlite3_db_config(
     db: sqlite3,
-    option: CapiSqliteDbConfigOption,
+    option: SqliteDbConfigOption,
 ): SqliteResultCode = commonDbConfig(
     option = option,
     bufferPointer = Buffer::pointer,

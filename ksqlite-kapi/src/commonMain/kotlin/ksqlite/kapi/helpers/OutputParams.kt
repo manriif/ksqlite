@@ -1,12 +1,14 @@
 package ksqlite.kapi.helpers
 
+import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.OutputParam
+import ksqlite.capi.types.booleanValueStrict
 import kotlin.jvm.JvmName
 
 /**
  * Invokes [block] and returns [param]'s value if [block] returns without throwing.
  */
-internal inline fun <V: Any, P : OutputParam<V>> usingParam(
+internal inline fun <V : Any, P : OutputParam<V>> usingParam(
     param: P,
     block: (P) -> Unit
 ): V {
@@ -18,7 +20,7 @@ internal inline fun <V: Any, P : OutputParam<V>> usingParam(
  * Invokes [block] and returns [param]'s value if [block] returns without throwing.
  */
 @JvmName("usingParam2")
-internal inline fun <V: Any, P : OutputParam<V?>> usingParam(
+internal inline fun <V : Any, P : OutputParam<V?>> usingParam(
     param: P,
     block: (P) -> Unit
 ): V {
@@ -27,10 +29,34 @@ internal inline fun <V: Any, P : OutputParam<V?>> usingParam(
 }
 
 /**
+ * Invokes [block] and returns a [Boolean] if [block] returns without throwing.
+ */
+internal inline fun usingBooleanParam(
+    initialValue: Boolean? = null,
+    block: (Int32OutputParam) -> Unit
+): Boolean? {
+    val param = Int32OutputParam(
+        when (initialValue) {
+            false -> 0
+            true -> 1
+            null -> -1
+        }
+    )
+
+    block(param)
+
+    return when (param.value) {
+        0 -> false
+        1 -> true
+        else -> null
+    }
+}
+
+/**
  * Invokes [block] and returns [param1]'s [V1] paired with [param2]'s [V2] if [block] returns
  * without throwing.
  */
-internal inline fun <V1: Any, P1 : OutputParam<V1>, V2: Any, P2 : OutputParam<V2>> usingParams(
+internal inline fun <V1 : Any, P1 : OutputParam<V1>, V2 : Any, P2 : OutputParam<V2>> usingParams(
     param1: P1,
     param2: P2,
     block: (P1, P2) -> Unit
@@ -44,7 +70,7 @@ internal inline fun <V1: Any, P1 : OutputParam<V1>, V2: Any, P2 : OutputParam<V2
  * without throwing.
  */
 @JvmName("usingParams2")
-internal inline fun <V1: Any, P1 : OutputParam<V1?>, V2: Any, P2 : OutputParam<V2>> usingParams(
+internal inline fun <V1 : Any, P1 : OutputParam<V1?>, V2 : Any, P2 : OutputParam<V2>> usingParams(
     param1: P1,
     param2: P2,
     block: (P1, P2) -> Unit
@@ -58,7 +84,7 @@ internal inline fun <V1: Any, P1 : OutputParam<V1?>, V2: Any, P2 : OutputParam<V
  * without throwing.
  */
 @JvmName("usingParams3")
-internal inline fun <V1: Any, P1 : OutputParam<V1?>, V2: Any, P2 : OutputParam<V2?>> usingParams(
+internal inline fun <V1 : Any, P1 : OutputParam<V1?>, V2 : Any, P2 : OutputParam<V2?>> usingParams(
     param1: P1,
     param2: P2,
     block: (P1, P2) -> Unit

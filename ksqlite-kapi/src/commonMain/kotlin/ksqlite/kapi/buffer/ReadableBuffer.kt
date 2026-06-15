@@ -3,6 +3,7 @@ package ksqlite.kapi.buffer
 import ksqlite.capi.memory.read
 import ksqlite.capi.memory.readBytes
 import ksqlite.capi.memory.readBytesOrThrow
+import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.capi.memory.ReadableBuffer as CapiReadableBuffer
 
 /**
@@ -10,11 +11,13 @@ import ksqlite.capi.memory.ReadableBuffer as CapiReadableBuffer
  */
 public open class ReadableBuffer internal constructor(internal open val buffer: CapiReadableBuffer) {
 
+    internal val scope = ClosableScope()
+
     /**
      * Size of the memory region in bytes.
      */
     public val byteSize: Long
-        get() = buffer.byteSize
+        get() = scope.notClosed { buffer.byteSize }
 
     /**
      * Reads [size] bytes from the native memory block into [destination].
@@ -23,21 +26,23 @@ public open class ReadableBuffer internal constructor(internal open val buffer: 
      * starting at [destinationOffset].
      *
      * @throws IllegalArgumentException if [size], [sourceOffset], or [destinationOffset] is
-     * negative
+     * negative.
      * @throws IndexOutOfBoundsException if the requested range is out of bounds in either the
-     * native memory block or [destination]
+     * native memory block or [destination].
      */
     public fun read(
         destination: ByteArray,
         size: Int = destination.size,
         sourceOffset: Long = 0,
         destinationOffset: Int = 0
-    ): Unit = buffer.read(
-        destination = destination,
-        size = size,
-        sourceOffset = sourceOffset,
-        destinationOffset = destinationOffset
-    )
+    ): Unit = scope.notClosed {
+        buffer.read(
+            destination = destination,
+            size = size,
+            sourceOffset = sourceOffset,
+            destinationOffset = destinationOffset
+        )
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -51,25 +56,27 @@ public open class ReadableBuffer internal constructor(internal open val buffer: 
  * [ByteArray] starting at [destinationOffset].
  *
  * @throws IllegalArgumentException if [size], [sourceOffset], or [destinationOffset] is
- * negative
+ * negative.
  * @throws IndexOutOfBoundsException if the requested range is out of bounds in either the
- * native memory block or the returned [ByteArray]
+ * native memory block or the returned [ByteArray].
  */
 public fun ReadableBuffer.read(
     size: Int,
     sourceOffset: Long = 0,
     destinationOffset: Int = 0,
-): ByteArray = buffer.read(
-    size = size,
-    sourceOffset = sourceOffset,
-    destinationOffset = destinationOffset
-)
+): ByteArray = scope.notClosed {
+    buffer.read(
+        size = size,
+        sourceOffset = sourceOffset,
+        destinationOffset = destinationOffset
+    )
+}
 
 /**
  * Reads at most [Int.MAX_VALUE] bytes from `this` buffer.
  */
 public fun ReadableBuffer.readBytes(): ByteArray =
-    buffer.readBytes()
+    scope.notClosed { buffer.readBytes() }
 
 /**
  * Reads all bytes from `this` buffer.
@@ -78,4 +85,4 @@ public fun ReadableBuffer.readBytes(): ByteArray =
  * [ByteArray].
  */
 public fun ReadableBuffer.readBytesOrThrow(): ByteArray =
-    buffer.readBytesOrThrow()
+    scope.notClosed { buffer.readBytesOrThrow() }

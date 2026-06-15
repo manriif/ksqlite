@@ -4,7 +4,7 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.types.SqliteSqlLogEvent
 
 /**
- * Callback to use with [ksqlite.capi.types.CapiSqliteConfigOption.SQLLOG].
+ * Callback to use with [ksqlite.capi.types.SqliteConfigOption.SQLLOG].
  */
 public fun interface SqliteConfigSqlLogCallback<AppData> {
 

@@ -1,7 +1,7 @@
 package ksqlite.capi.callbacks
 
 /**
- * Callback to use with [ksqlite.capi.types.CapiSqliteConfigOption.LOG].
+ * Callback to use with [ksqlite.capi.types.SqliteConfigOption.LOG].
  */
 public fun interface SqliteConfigLogCallback<AppData> {
 

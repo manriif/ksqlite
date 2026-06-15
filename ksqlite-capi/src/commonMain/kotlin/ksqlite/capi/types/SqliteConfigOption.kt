@@ -1,6 +1,10 @@
 @file:Suppress("ClassName", "SpellCheckingInspection")
 
-package ksqlite.types
+package ksqlite.capi.types
+
+import ksqlite.capi.callbacks.SqliteConfigLogCallback
+import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
+import ksqlite.capi.memory.Buffer
 
 /**
  * These constants are the available integer configuration options that can be passed as the first
@@ -8,26 +12,12 @@ package ksqlite.types
  *
  * [Configuration Options][https://sqlite.org/c3ref/c_config_covering_index_scan.html]
  */
-public sealed class SqliteConfigOption
-<out Buffer : Any, out Out32 : Any, out Logger : Any, out SqlLogger : Any>(public val id: Int) {
-
-    /**
-     * Type-less [SqliteConfigOption].
-     */
-    public typealias Raw = SqliteConfigOption<Nothing, Nothing, Nothing, Nothing>
+public sealed class SqliteConfigOption(public val id: Int) {
 
     /**
      * Configuration options that can be set at any time.
      */
-    public sealed class AnyTime
-    <out Buffer : Any, out Out32 : Any, out Logger : Any, out SqlLogger : Any>(id: Int) :
-        SqliteConfigOption<Buffer, Out32, Logger, SqlLogger>(id) {
-
-        /**
-         * Type-less [AnyTime].
-         */
-        public typealias Raw = AnyTime<Nothing, Nothing, Nothing, Nothing>
-    }
+    public sealed class AnyTime(id: Int) : SqliteConfigOption(id)
 
     /**
      * This option sets the threading mode to Single-thread. In other words, it disables all
@@ -36,7 +26,7 @@ public sealed class SqliteConfigOption
      * change the threading mode from its default value of Single-thread and so sqlite3_config()
      * will return SQLITE_ERROR if called with the SQLITE_CONFIG_SINGLETHREAD configuration option.
      */
-    public object SINGLETHREAD : Raw(1)
+    public object SINGLETHREAD : SqliteConfigOption(1)
 
     /**
      * This option sets the threading mode to Multi-thread. In other words, it disables mutexing on
@@ -48,7 +38,7 @@ public sealed class SqliteConfigOption
      * Multi-thread threading mode and sqlite3_config() will return SQLITE_ERROR if called with the
      * SQLITE_CONFIG_MULTITHREAD configuration option.
      */
-    public object MULTITHREAD : Raw(2)
+    public object MULTITHREAD : SqliteConfigOption(2)
 
     /**
      * This option sets the threading mode to Serialized. In other words, this option enables all
@@ -61,33 +51,33 @@ public sealed class SqliteConfigOption
      * threading mode and sqlite3_config() will return SQLITE_ERROR if called with the
      * SQLITE_CONFIG_SERIALIZED configuration option.
      */
-    public object SERIALIZED : Raw(3)
+    public object SERIALIZED : SqliteConfigOption(3)
 
     /**
      * The SQLITE_CONFIG_PAGECACHE option specifies a memory pool that SQLite can use for the
      * database page cache with the default page cache implementation. This configuration option is
      * a no-op if an application-defined page cache implementation is loaded using the
      * SQLITE_CONFIG_PCACHE2. There are three arguments to SQLITE_CONFIG_PAGECACHE: A pointer to
-     * 8-byte aligned memory ([pMem]), the size of each page cache line ([sz]), and the number of
-     * cache lines ([n]). The [sz] argument should be the size of the largest database page (a power
+     * 8-byte aligned memory (pMem), the size of each page cache line (sz), and the number of
+     * cache lines (n). The sz argument should be the size of the largest database page (a power
      * of two between 512 and 65536) plus some extra bytes for each page header. The number of extra
-     * bytes needed by the page header can be determined using SQLITE_CONFIG_PCACHE_HDR[sz]. It is
-     * harmless, apart from the wasted memory, for the [sz] parameter to be larger than necessary.
-     * The [pMem] argument must be either a NULL pointer or a pointer to an 8-byte aligned block of
-     * memory of at least [sz]*[n] bytes, otherwise subsequent behavior is undefined. When [pMem] is
+     * bytes needed by the page header can be determined using SQLITE_CONFIG_PCACHE_HDRSZ. It is
+     * harmless, apart from the wasted memory, for the sz parameter to be larger than necessary.
+     * The pMem argument must be either a NULL pointer or a pointer to an 8-byte aligned block of
+     * memory of at least sz*n bytes, otherwise subsequent behavior is undefined. When pMem is
      * not NULL, SQLite will strive to use the memory provided to satisfy page cache needs, falling
-     * back to sqlite3_malloc() if a page cache line is larger than [sz] bytes or if all of the
-     * [pMem] buffer is exhausted. If [pMem] is NULL and [n] is non-zero, then each database
+     * back to sqlite3_malloc() if a page cache line is larger than sz bytes or if all of the
+     * pMem buffer is exhausted. If pMem is NULL and n is non-zero, then each database
      * connection does an initial bulk allocation for page cache memory from sqlite3_malloc()
-     * sufficient for [n] cache lines if [n] is positive or of -1024*[n] bytes if [n] is negative.
+     * sufficient for n cache lines if n is positive or of -1024*n bytes if n is negative.
      * If additional page cache memory is needed beyond what is provided by the initial allocation,
      * then SQLite goes to sqlite3_malloc() separately for each additional cache line.
      */
-    public class PAGECACHE<Buffer : Any>(
-        public val pMem: Buffer?,
-        public val sz: Int,
-        public val n: Int
-    ) : SqliteConfigOption<Buffer, Nothing, Nothing, Nothing>(7)
+    public class PAGECACHE(
+        internal val pMem: Buffer?,
+        internal val sz: Int,
+        internal val n: Int
+    ) : SqliteConfigOption(7)
 
     /**
      * The SQLITE_CONFIG_HEAP option specifies a static memory buffer that SQLite will use for all
@@ -104,11 +94,11 @@ public sealed class SqliteConfigOption
      * undefined. The minimum allocation size is capped at 2**12. Reasonable values for the minimum
      * allocation size are 2**5 through 2**8.
      */
-    public class HEAP<Buffer : Any>(
-        public val pMem: Buffer?,
-        public val nBytes: Int,
-        public val min: Int
-    ) : SqliteConfigOption<Buffer, Nothing, Nothing, Nothing>(8)
+    public class HEAP(
+        internal val pMem: Buffer?,
+        internal val nBytes: Int,
+        internal val min: Int
+    ) : SqliteConfigOption(8)
 
     /**
      * Enables or disables the collection of memory allocation statistics. When memory allocation
@@ -123,7 +113,7 @@ public sealed class SqliteConfigOption
      * SQLITE_DEFAULT_MEMSTATUS=0 in which case memory allocation statistics are disabled by
      * default.
      */
-    public class MEMSTATUS(public val enabled: Int) : Raw(9)
+    public class MEMSTATUS(internal val enabled: Int) : SqliteConfigOption(9)
 
     /**
      * The SQLITE_CONFIG_LOOKASIDE option takes two arguments that determine the default size of
@@ -135,9 +125,9 @@ public sealed class SqliteConfigOption
      * change the default lookaside configuration at compile-time.
      */
     public class LOOKASIDE(
-        public val sz: Int,
-        public val cnt: Int
-    ) : Raw(13)
+        internal val sz: Int,
+        internal val cnt: Int
+    ) : SqliteConfigOption(13)
 
     /**
      * The SQLITE_CONFIG_LOG option is used to configure the SQLite global error log.
@@ -154,8 +144,10 @@ public sealed class SqliteConfigOption
      * invoke any SQLite interface. In a multi-threaded application, the application-defined logger
      * function must be threadsafe.
      */
-    public class LOG<Logger : Any>(public val logger: Logger?) :
-        AnyTime<Nothing, Nothing, Logger, Nothing>(16)
+    public class LOG<AppData>(
+        internal val appData: AppData,
+        internal val callback: SqliteConfigLogCallback<AppData>?
+    ) : AnyTime(16)
 
     /**
      * The SQLITE_CONFIG_URI option takes a single argument of type int. If non-zero, then URI
@@ -168,7 +160,7 @@ public sealed class SqliteConfigOption
      * handling is globally disabled. The default value may be changed by compiling with the
      * SQLITE_USE_URI symbol defined.
      */
-    public class URI(public val value: Int) : Raw(17)
+    public class URI(internal val value: Int) : SqliteConfigOption(17)
 
     /**
      * The SQLITE_CONFIG_COVERING_INDEX_SCAN option takes a single integer argument which is
@@ -180,7 +172,7 @@ public sealed class SqliteConfigOption
      * is enabled. Providing the ability to disable the optimization allows the older, buggy
      * application code to work without change even with newer versions of SQLite.
      */
-    public class COVERING_INDEX_SCAN(public val enabled: Int) : Raw(20)
+    public class COVERING_INDEX_SCAN(internal val enabled: Int) : SqliteConfigOption(20)
 
     /**
      * This option is only available if sqlite is compiled with the SQLITE_ENABLE_SQLLOG
@@ -195,8 +187,10 @@ public sealed class SqliteConfigOption
      * is passed NULL In this case. An example of using this configuration option can be seen in the
      * "test_sqllog.c" source file in the canonical SQLite source tree.
      */
-    public class SQLLOG<SqlLogger : Any>(public val logger: SqlLogger?) :
-        SqliteConfigOption<Nothing, Nothing, Nothing, SqlLogger>(21)
+    public class SQLLOG<AppData>(
+        internal val appData: AppData,
+        internal val callback: SqliteConfigSqlLogCallback<AppData>?
+    ) : SqliteConfigOption(21)
 
     /**
      * SQLITE_CONFIG_MMAP_SIZE takes two 64-bit integer (sqlite3_int64) values that are the default
@@ -209,16 +203,9 @@ public sealed class SqliteConfigOption
      * default.
      */
     public class MMAP_SIZE(
-        public val sz: Long,
-        public val mx: Long
-    ) : Raw(22)
-
-    /**
-     * The SQLITE_CONFIG_WIN32_HEAPSIZE option is only available if SQLite is compiled for Windows
-     * with the SQLITE_WIN32_MALLOC pre-processor macro defined. SQLITE_CONFIG_WIN32_HEAPSIZE takes
-     * a 32-bit unsigned integer value that specifies the maximum size of the created heap.
-     */
-    public class WIN32_HEAPSIZE(public val nByte: UInt) : Raw(23)
+        internal val sz: Long,
+        internal val mx: Long
+    ) : SqliteConfigOption(22)
 
     /**
      * The SQLITE_CONFIG_PCACHE_HDRSZ option takes a single parameter which is a pointer to an
@@ -226,7 +213,7 @@ public sealed class SqliteConfigOption
      * page in SQLITE_CONFIG_PAGECACHE. The amount of extra space required can change depending on
      * the compiler, target platform, and SQLite version.
      */
-    public class PCACHE_HDRSZ(public val psz: Int) : AnyTime.Raw(24)
+    public class PCACHE_HDRSZ(internal val psz: Int32OutputParam) : AnyTime(24)
 
     /**
      * The SQLITE_CONFIG_PMASZ option takes a single parameter which is an unsigned integer and sets
@@ -236,7 +223,7 @@ public sealed class SqliteConfigOption
      * and the amount of content to be sorted exceeds the page size times the minimum of the PRAGMA
      * cache_size setting and this value.
      */
-    public class PMASZ(public val szPma: UInt) : Raw(25)
+    public class PMASZ(internal val szPma: UInt) : SqliteConfigOption(25)
 
     /**
      * The SQLITE_CONFIG_STMTJRNL_SPILL option takes a single parameter which becomes the statement
@@ -247,15 +234,16 @@ public sealed class SqliteConfigOption
      * can greatly reduce the amount of I/O required to support statement rollback. The default
      * value for this setting is controlled by the SQLITE_STMTJRNL_SPILL compile-time option.
      */
-    public class STMTJRNL_SPILL(public val nByte: Int) : Raw(26)
+    public class STMTJRNL_SPILL(internal val nByte: Int) : SqliteConfigOption(26)
 
     /**
      * Provides a hint to SQLite that it should avoid large memory  allocations if possible. SQLite
      * will run faster if it is free to make large memory allocations, but some applications might
      * prefer to run slower in exchange for guarantees about memory fragmentation that are possible
-     * if large allocations are avoided. This hint is normally off.
+     * if large allocations are avoide
+     * d. This hint is normally off.
      */
-    public class SMALL_MALLOC(public val enabled: Int) : Raw(27)
+    public class SMALL_MALLOC(internal val enabled: Int) : SqliteConfigOption(27)
 
     /**
      * The SQLITE_CONFIG_SORTERREF_SIZE option accepts a single parameter of type (int) - the new
@@ -269,7 +257,7 @@ public sealed class SqliteConfigOption
      * value for this option restores the default behavior. This option is only available if SQLite
      * is compiled with the SQLITE_ENABLE_SORTER_REFERENCES compile-time option.
      */
-    public class SORTERREF_SIZE(public val nByte: Int) : Raw(28)
+    public class SORTERREF_SIZE(internal val nByte: Int) : SqliteConfigOption(28)
 
     /**
      * The SQLITE_CONFIG_MEMDB_MAXSIZE option accepts a single parameter sqlite3_int64 parameter
@@ -280,7 +268,7 @@ public sealed class SqliteConfigOption
      * SQLITE_MEMDB_DEFAULT_MAXSIZE compile-time option. If that compile-time option is not set,
      * then the default maximum is `1073741824`.
      */
-    public class MEMDB_MAXSIZE(public val maxSize: Long) : Raw(29)
+    public class MEMDB_MAXSIZE(internal val maxSize: Long) : SqliteConfigOption(29)
 
     /**
      * The SQLITE_CONFIG_ROWID_IN_VIEW option enables or disables the ability for VIEWs to have a
@@ -295,6 +283,5 @@ public sealed class SqliteConfigOption
      * usual and recommended case) then the integer is always filled with zero, regardless if its
      * initial value.
      */
-    public class ROWID_IN_VIEW<Out32 : Any>(public val param: Out32) :
-        SqliteConfigOption<Nothing, Out32, Nothing, Nothing>(30)
+    public class ROWID_IN_VIEW(internal val enabled: Int32OutputParam) : SqliteConfigOption(30)
 }

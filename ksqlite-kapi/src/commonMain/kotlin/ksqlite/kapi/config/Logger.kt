@@ -10,6 +10,6 @@ public fun interface Logger {
      */
     public fun log(
         errorCode: Int,
-        message: String
+        message: String?
     )
 }

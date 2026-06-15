@@ -12,6 +12,8 @@ public interface Blob : AutoCloseable {
 
     /**
      * Reads [size] bytes from `this` blob, starting at [offset], into [output].
+     *
+     * @throws ksqlite.kapi.SQLiteException if the read operation fails.
      */
     public fun read(
         output: ByteArray,
@@ -21,6 +23,8 @@ public interface Blob : AutoCloseable {
 
     /**
      * Writes [size] bytes from [input] into `this` blob, starting at [offset].
+     *
+     * @throws ksqlite.kapi.SQLiteException if the write operation fails.
      */
     public fun write(
         input: ByteArray,
@@ -30,11 +34,15 @@ public interface Blob : AutoCloseable {
 
     /**
      * Moves `this` blob to the row identified by [rowid] of the same database, table and column.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the move operation fails.
      */
     public fun reopen(rowid: Long)
 
     /**
      * Closes `this` open [Blob] unconditionally.
+     *
+     * @throws ksqlite.kapi.SQLiteException if closing the blob fails.
      */
     override fun close()
 }
