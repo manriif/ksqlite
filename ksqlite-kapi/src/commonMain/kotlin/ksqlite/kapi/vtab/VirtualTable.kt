@@ -1,10 +1,10 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.capi.types.vtab.Sqlite3IndexInfo
-import ksqlite.capi.types.vtab.Sqlite3VTab
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.functions.ScalarFunction
 import ksqlite.kapi.value.ProtectedValue
+import ksqlite.types.vtab.SqliteIndexInfo
+import ksqlite.types.vtab.SqliteVTab
 
 /**
  * Represents a [Virtual Table](https://sqlite.org/vtab.html).
@@ -26,25 +26,25 @@ import ksqlite.kapi.value.ProtectedValue
  * [VirtualTable]. So it is illegal to access these fields in one of [VirtualTableModule] methods as
  * an example.
  */
-public abstract class VirtualTable : Sqlite3VTab {
+public abstract class VirtualTable : SqliteVTab {
 
     /**
      * This field is only available between [VirtualTableModule.connect] /
      * [VirtualTableModule.Regular.create] (excluded) and [disconnect] / [destroy] (included).
      */
-    internal var parent: Sqlite3VTab? = null
+    internal var parent: SqliteVTab? = null
 
     final override val nRef: Int
-        get() = parent(Sqlite3VTab::nRef)
+        get() = parent(SqliteVTab::nRef)
 
     final override var errMsg: String?
-        get() = parent(Sqlite3VTab::errMsg)
+        get() = parent(SqliteVTab::errMsg)
         set(value) = parent { errMsg = value }
 
     /**
      * Invokes [block] with the attached [VTab] or throws if [VTab] is detached.
      */
-    private inline fun <R> parent(block: Sqlite3VTab.() -> R): R =
+    private inline fun <R> parent(block: SqliteVTab.() -> R): R =
         checkNotNull(parent) { "Virtual table is not attached" }.block()
 
     ///////////////////////////////////////////////////////////////////////////
@@ -54,7 +54,7 @@ public abstract class VirtualTable : Sqlite3VTab {
     /**
      * This method is used by SQLite to determine the best way to access the virtual table.
      */
-    public abstract fun VirtualTableBestIndexScope.bestIndex(info: Sqlite3IndexInfo)
+    public abstract fun VirtualTableBestIndexScope.bestIndex(info: SqliteIndexInfo)
 
     /**
      * Releases the connection to the virtual table without destroying the backing store, if any.

@@ -27,9 +27,8 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     private val autoExtensions = ConcurrentMutableSet<AutoExtension>()
     private val connections = ConcurrentMutableMap<sqlite3, ConnectionImpl>()
 
-    override fun configure(action: AnyTimeConfigurationScope.() -> Unit) = notClosed {
-        action(ConfigurationScopeImpl)
-    }
+    override fun configure(action: AnyTimeConfigurationScope.() -> Unit) =
+        notClosed { ConfigurationScopeImpl().use(action) }
 
     override fun open(
         fileName: String,
@@ -121,7 +120,7 @@ internal fun sqliteInitialize(configure: (ConfigurationScope.() -> Unit)? = null
                     "be shutdown first"
         }
 
-        configure?.invoke(ConfigurationScopeImpl)
+        configure?.let { ConfigurationScopeImpl().use(it) }
         sqliteResultCheck(sqlite3_initialize())
 
         SQLiteImpl(::sqliteShutdown).also { instance ->

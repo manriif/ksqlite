@@ -1,17 +1,17 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.capi.types.Sqlite3ConflictResolutionMode
 import ksqlite.kapi.value.ProtectedValue
+import ksqlite.types.SqliteConflictResolutionMode
 
 /**
- * Scope to use with [VirtualTable.UpdateSupport.update].
+ * Scope to use with [VirtualTable.update].
  */
 public interface VirtualTableUpdateScope {
 
     /**
      * Returns the virtual table conflict policy.
      */
-    public val onConflict: Sqlite3ConflictResolutionMode
+    public val onConflict: SqliteConflictResolutionMode
 
     /**
      * Returns `true` if and only if the column corresponding to X is unchanged by the UPDATE

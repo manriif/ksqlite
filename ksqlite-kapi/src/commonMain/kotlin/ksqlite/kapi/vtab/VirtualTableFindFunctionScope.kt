@@ -3,14 +3,14 @@ package ksqlite.kapi.vtab
 import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
 
 /**
- * Scope to use with [VirtualTable.bestIndex].
+ * Scope to use with [VirtualTable.findFunction].
  */
 public interface VirtualTableFindFunctionScope {
 
     /**
      * Sets the custom constraint operator code to return to SQLite.
      *
-     * By default, if [VirtualTable.bestIndex] returns a non-null function, `one` is returned to
+     * By default, if [VirtualTable.findFunction] returns a non-null function, `one` is returned to
      * SQLite to indicates that the function is overloaded, and `zero` is returned otherwise.
      *
      * If a custom [code] is set, it is returned, with the scalar function, instead of the default

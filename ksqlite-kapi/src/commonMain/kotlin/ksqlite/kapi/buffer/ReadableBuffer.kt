@@ -9,9 +9,12 @@ import ksqlite.capi.memory.ReadableBuffer as CapiReadableBuffer
 /**
  * Region of native memory that can be read.
  */
-public open class ReadableBuffer internal constructor(internal open val buffer: CapiReadableBuffer) {
+public open class ReadableBuffer internal constructor(
+    internal open val buffer: CapiReadableBuffer,
+    scope: ClosableScope? = null,
+) {
 
-    internal val scope = ClosableScope()
+    internal open val scope = scope ?: ClosableScope()
 
     /**
      * Size of the memory region in bytes.

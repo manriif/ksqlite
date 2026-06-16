@@ -6,7 +6,7 @@ import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
-import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.callbacks.SqliteCommitHookCallback
 import ksqlite.capi.callbacks.SqliteDestroyCallback
@@ -25,7 +25,7 @@ import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
-import ksqlite.capi.handlers.CollationCompareHandler
+import ksqlite.capi.handlers.CollationHandler
 import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
@@ -57,6 +57,7 @@ import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
+import ksqlite.capi.types.SqliteVTabConfigOption
 import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
@@ -103,7 +104,6 @@ import ksqlite.types.internal.convertExplainMode
 import ksqlite.types.internal.convertResult
 import ksqlite.types.internal.convertTextEncoding
 import ksqlite.types.internal.convertTransactionState
-import ksqlite.types.vtab.SqliteVTabConfigOption
 import ksqlite.foreign.ksqlite_auto_extension as jni_ksqlite_auto_extension
 import ksqlite.foreign.sqlite3_autovacuum_pages as jni_sqlite3_autovacuum_pages
 import ksqlite.foreign.sqlite3_backup_finish as jni_sqlite3_backup_finish
@@ -680,14 +680,14 @@ public actual fun <AppData> sqlite3_create_collation_v2(
     encoding: SqliteTextEncoding.Set0,
     appData: AppData,
     destroy: SqliteDestroyCallback<in AppData>?,
-    callback: SqliteCollationCompareCallback<in AppData>?
+    callback: SqliteCollationCallback<in AppData>?
 ): SqliteResultCode = convertResult(
     jni_sqlite3_create_collation_v2(
         db.pointer,
         name,
         encoding.utf8OrThrow().value,
         destructorHandler(appData, destroy),
-        callbackHandler(callback, appData, ::CollationCompareHandler)
+        callbackHandler(callback, appData, ::CollationHandler)
     )
 )
 

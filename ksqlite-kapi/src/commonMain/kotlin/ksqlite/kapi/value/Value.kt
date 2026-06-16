@@ -1,6 +1,5 @@
 package ksqlite.kapi.value
 
-import ksqlite.capi.memory.ReadableBuffer
 import ksqlite.capi.sqlite3_value_blob
 import ksqlite.capi.sqlite3_value_buffer
 import ksqlite.capi.sqlite3_value_bytes
@@ -17,6 +16,7 @@ import ksqlite.capi.sqlite3_value_subtype
 import ksqlite.capi.sqlite3_value_text
 import ksqlite.capi.sqlite3_value_type
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.kapi.buffer.ReadableBuffer
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 import ksqlite.types.SqliteDataType
@@ -50,7 +50,7 @@ public sealed class Value(
  * Represents a protected [Value].
  *
  * SQLite may perform an implicit type conversion to match the requested value type. If conversion
- * is not feasible then a [ClassCastException] is thrown.
+ * is not feasible then `null` is returned.
  */
 public open class ProtectedValue internal constructor(
     value: sqlite3_value,
@@ -99,49 +99,48 @@ public open class ProtectedValue internal constructor(
         get() = scope.notClosed { sqlite3_value_encoding(value) }
 
     /**
-     * Returns the value as [Data] or `null` if no data is associated with [type].
+     * Returns the value as [ByteArray].
      */
-    public inline fun <reified Data : Any> getAs(type: String? = null): Data? =
-        scope.notClosed { sqlite3_value_pointer(value, type) }
-
-    /**
-     * Returns the value as [Int].
-     */
-    public fun getAsInt(): Int = scope.notClosed { sqlite3_value_int(value) }
-
-    /**
-     * Returns the value as [Long].
-     */
-    public fun getAsLong(): Long = scope.notClosed { sqlite3_value_int64(value) }
-
-    /**
-     * Returns the value as [Double].
-     */
-    public fun getAsDouble(): Double = scope.notClosed { sqlite3_value_double(value) }
-
-    /**
-     * Invokes [convert] and throws [ClassCastException] if it returns `null`.
-     */
-    private inline fun <reified T> tryCast(convert: (sqlite3_value) -> T?): T = scope.notClosed {
-        convert(value) ?: throw ClassCastException(
-            "Value of type $type cannot be converted to ${T::class.simpleName}"
-        )
-    }
+    public fun getAsByteArray(): ByteArray? =
+        scope.notClosed { sqlite3_value_blob(value) }
 
     /**
      * Returns the value as a [ksqlite.capi.memory.ReadableBuffer].
      */
-    public fun getAsBuffer(): ReadableBuffer = tryCast(::sqlite3_value_buffer)
+    public fun getAsBuffer(): ReadableBuffer? = scope.notClosed {
+        sqlite3_value_buffer(value)
+            ?.let { ReadableBuffer(it, scope) }
+    }
 
     /**
-     * Returns the value as [ByteArray].
+     * Returns the value as [Int].
      */
-    public fun getAsByteArray(): ByteArray = tryCast(::sqlite3_value_blob)
+    public fun getAsInt(): Int =
+        scope.notClosed { sqlite3_value_int(value) }
+
+    /**
+     * Returns the value as [Long].
+     */
+    public fun getAsLong(): Long =
+        scope.notClosed { sqlite3_value_int64(value) }
+
+    /**
+     * Returns the value as [Double].
+     */
+    public fun getAsDouble(): Double =
+        scope.notClosed { sqlite3_value_double(value) }
 
     /**
      * Returns the value as [String].
      */
-    public fun getAsString(): String = tryCast(::sqlite3_value_text)
+    public fun getAsString(): String? =
+        scope.notClosed { sqlite3_value_text(value) }
+
+    /**
+     * Returns the value as [Data] or `null` if no data is associated with [type].
+     */
+    public inline fun <reified Data : Any> getAs(type: String? = null): Data? =
+        scope.notClosed { sqlite3_value_pointer(value, type) }
 }
 
 /**
@@ -150,16 +149,7 @@ public open class ProtectedValue internal constructor(
 public class UnprotectedValue internal constructor(
     value: sqlite3_value,
     scope: ClosableScope
-) : Value(value, scope) {
-
-    /**
-     * Returns the same value but as [ProtectedValue].
-     * Thread-safety is not guaranteed by SQLite for unprotected value.
-     *
-     * TODO annotate this as unsafe ?
-     */
-    public fun toProtectedValue(): ProtectedValue = ProtectedValue(value, scope)
-}
+) : Value(value, scope)
 
 /**
  * [Value] obtained from [Value.duplicate] and for which the caller take ownership.

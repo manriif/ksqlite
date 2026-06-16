@@ -4,7 +4,6 @@ import ksqlite.capi.sqlite3_declare_vtab
 import ksqlite.capi.sqlite3_overload_function
 import ksqlite.capi.sqlite3_value_nochange
 import ksqlite.capi.sqlite3_vtab_collation
-import ksqlite.capi.sqlite3_vtab_config
 import ksqlite.capi.sqlite3_vtab_distinct
 import ksqlite.capi.sqlite3_vtab_in
 import ksqlite.capi.sqlite3_vtab_in_first
@@ -12,38 +11,33 @@ import ksqlite.capi.sqlite3_vtab_in_next
 import ksqlite.capi.sqlite3_vtab_nochange
 import ksqlite.capi.sqlite3_vtab_on_conflict
 import ksqlite.capi.sqlite3_vtab_rhs_value
-import ksqlite.capi.types.Sqlite3ConflictResolutionMode
-import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
-import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.ContextClosableScope
-import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
-import ksqlite.kapi.value.ValueReturnScopeImpl
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.kapi.value.ValueReturnScope
+import ksqlite.kapi.value.ValueReturnScopeImpl
 import ksqlite.kapi.value.toProtectedValue
+import ksqlite.types.SqliteConflictResolutionMode
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
 import kotlin.concurrent.Volatile
 
 internal class VirtualTableCreateOrConnectScopeImpl(private val db: sqlite3) :
     VirtualTableCreateOrConnectScope,
     ClosableScope() {
 
-    override fun configure(options: List<Sqlite3VTabConfigOption>) = notClosed {
-        options.forEach { option ->
-            db.resultCheck(sqlite3_vtab_config(db, option))
-        }
-    }
+    override fun configure(action: VirtualTableConfigurationScope.() -> Unit) =
+        notClosed { VirtualTableConfigurationScopeImpl(db).use(action) }
 
     override fun declare(sql: String) =
-        notClosed { db.resultCheck(sqlite3_declare_vtab(db, sql)) }
+        notClosed { sqliteResultCheck(sqlite3_declare_vtab(db, sql)) }
 
     override fun overloadFunction(name: String, argumentCount: Int) =
-        notClosed { db.resultCheck(sqlite3_overload_function(db, name, argumentCount)) }
+        notClosed { sqliteResultCheck(sqlite3_overload_function(db, name, argumentCount)) }
 }
 
 internal class VirtualTableBestIndexScopeImpl(
@@ -120,8 +114,7 @@ internal class VirtualTableFilterScopeImpl :
     override fun inNext(value: ProtectedValue): ProtectedValue? =
         createValue { sqlite3_vtab_in_next(value.value, it) }
 
-    override fun close() {
-        super.close()
+    override fun onClose() {
         lastValue?.scope?.close()
     }
 }
@@ -142,7 +135,7 @@ internal class VirtualTableUpdateScopeImpl(private val db: sqlite3) :
     VirtualTableUpdateScope,
     ClosableScope() {
 
-    override val onConflict: Sqlite3ConflictResolutionMode
+    override val onConflict: SqliteConflictResolutionMode
         get() = notClosed { sqlite3_vtab_on_conflict(db) }
 
     override val ProtectedValue.nochange: Boolean

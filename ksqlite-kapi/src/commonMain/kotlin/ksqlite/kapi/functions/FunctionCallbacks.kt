@@ -23,7 +23,7 @@ private inline fun <F : Function> F.scoped(
 /**
  * Invokes [AggregateFunction.step] and [WindowFunction.step].
  */
-internal val ScalarFunctionFuncInvoker =
+internal val ScalarFunctionFuncCallback =
     SqliteFunctionFuncCallback { appData: ScalarFunction, context, arguments ->
         appData.scoped(context) { scope ->
             ScalarFunctionFuncScope(scope).func(arguments.toProtectedValues(scope))
@@ -33,7 +33,7 @@ internal val ScalarFunctionFuncInvoker =
 /**
  * Invokes [AggregateFunction.step] and [WindowFunction.step].
  */
-internal val AggregateFunctionStepInvoker =
+internal val AggregateFunctionStepCallback =
     SqliteFunctionStepCallback { appData: AggregateFunction, context, arguments ->
         appData.scoped(context) { scope ->
             AggregateFunctionStepScope(scope).step(arguments.toProtectedValues(scope))
@@ -43,7 +43,7 @@ internal val AggregateFunctionStepInvoker =
 /**
  * Invokes [AggregateFunction.final] and [WindowFunction.final].
  */
-internal val AggregateFunctionFinalInvoker =
+internal val AggregateFunctionFinalCallback =
     SqliteFunctionFinalCallback { appData: AggregateFunction, context ->
         appData.scoped(context) { scope ->
             AggregateFunctionFinalScope(scope).final()
@@ -53,7 +53,7 @@ internal val AggregateFunctionFinalInvoker =
 /**
  * Invokes [WindowFunction.inverse].
  */
-internal val WindowFunctionInverseInvoker =
+internal val WindowFunctionInverseCallback =
     SqliteFunctionInverseCallback { appData: WindowFunction, context, arguments ->
         appData.scoped(context) { scope ->
             AggregateFunctionStepScope(scope).inverse(arguments.toProtectedValues(scope))
@@ -63,7 +63,7 @@ internal val WindowFunctionInverseInvoker =
 /**
  * Invokes [WindowFunction.value].
  */
-internal val WindowFunctionValueInvoker =
+internal val WindowFunctionValueCallback =
     SqliteFunctionValueCallback { appData: WindowFunction, context ->
         appData.scoped(context) { scope ->
             AggregateFunctionFinalScope(scope).value()

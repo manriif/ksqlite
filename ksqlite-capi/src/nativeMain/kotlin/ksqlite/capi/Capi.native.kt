@@ -3,33 +3,6 @@
 package ksqlite.capi
 
 
-import ksqlite.types.SqliteBlobOpenFlag
-import ksqlite.types.SqliteCheckpointMode
-import ksqlite.types.SqliteCompleteResult
-import ksqlite.types.SqliteConflictResolutionMode
-import ksqlite.types.SqliteDataType
-import ksqlite.types.SqliteDbStatusOption
-import ksqlite.types.SqliteDeserializeFlag
-import ksqlite.types.SqliteExplainMode
-import ksqlite.types.SqliteFileControlOpcode
-import ksqlite.types.SqliteLimit
-import ksqlite.types.SqliteOpenFlag
-import ksqlite.types.SqlitePrepareFlag
-import ksqlite.types.SqliteResultCode
-import ksqlite.types.SqliteSerializeFlag
-import ksqlite.types.SqliteStatementStatusCounter
-import ksqlite.types.SqliteStatusOption
-import ksqlite.types.SqliteTextEncoding
-import ksqlite.types.SqliteTraceCode
-import ksqlite.types.SqliteTransactionState
-import ksqlite.types.internal.convertCompleteResult
-import ksqlite.types.internal.convertConflictResolutionMode
-import ksqlite.types.internal.convertDataType
-import ksqlite.types.internal.convertExplainMode
-import ksqlite.types.internal.convertResult
-import ksqlite.types.internal.convertTextEncoding
-import ksqlite.types.internal.convertTransactionState
-import ksqlite.types.vtab.SqliteVTabConfigOption
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
@@ -42,7 +15,7 @@ import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
-import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.callbacks.SqliteCommitHookCallback
 import ksqlite.capi.callbacks.SqliteDestroyCallback
@@ -98,6 +71,7 @@ import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
+import ksqlite.capi.types.SqliteVTabConfigOption
 import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
@@ -121,6 +95,32 @@ import ksqlite.foreign.ksqlite_auto_extension
 import ksqlite.foreign.ksqlite_cancel_auto_extension
 import ksqlite.foreign.ksqlite_prepare_v2
 import ksqlite.foreign.ksqlite_prepare_v3
+import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteCheckpointMode
+import ksqlite.types.SqliteCompleteResult
+import ksqlite.types.SqliteConflictResolutionMode
+import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteDbStatusOption
+import ksqlite.types.SqliteDeserializeFlag
+import ksqlite.types.SqliteExplainMode
+import ksqlite.types.SqliteFileControlOpcode
+import ksqlite.types.SqliteLimit
+import ksqlite.types.SqliteOpenFlag
+import ksqlite.types.SqlitePrepareFlag
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.SqliteSerializeFlag
+import ksqlite.types.SqliteStatementStatusCounter
+import ksqlite.types.SqliteStatusOption
+import ksqlite.types.SqliteTextEncoding
+import ksqlite.types.SqliteTraceCode
+import ksqlite.types.SqliteTransactionState
+import ksqlite.types.internal.convertCompleteResult
+import ksqlite.types.internal.convertConflictResolutionMode
+import ksqlite.types.internal.convertDataType
+import ksqlite.types.internal.convertExplainMode
+import ksqlite.types.internal.convertResult
+import ksqlite.types.internal.convertTextEncoding
+import ksqlite.types.internal.convertTransactionState
 import ksqlite.foreign.sqlite3_autovacuum_pages as native_sqlite3_autovacuum_pages
 import ksqlite.foreign.sqlite3_backup_finish as native_sqlite3_backup_finish
 import ksqlite.foreign.sqlite3_backup_init as native_sqlite3_backup_init
@@ -733,7 +733,7 @@ public actual fun <AppData> sqlite3_create_collation_v2(
     encoding: SqliteTextEncoding.Set0,
     appData: AppData,
     destroy: SqliteDestroyCallback<in AppData>?,
-    callback: SqliteCollationCompareCallback<in AppData>?
+    callback: SqliteCollationCallback<in AppData>?
 ): SqliteResultCode = convertResult(
     native_sqlite3_create_collation_v2(
         db.pointer,
@@ -884,9 +884,10 @@ public actual fun sqlite3_db_status(
     outCurrent: Int32OutputParam?,
     outHighwater: Int32OutputParam?,
     resetFlag: Int
-): SqliteResultCode = convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
-    native_sqlite3_db_status(db.pointer, option.id, curPtr, highPtr, resetFlag)
-})
+): SqliteResultCode =
+    convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+        native_sqlite3_db_status(db.pointer, option.id, curPtr, highPtr, resetFlag)
+    })
 
 public actual fun sqlite3_db_status64(
     db: sqlite3,
@@ -894,9 +895,10 @@ public actual fun sqlite3_db_status64(
     outCurrent: Int64OutputParam?,
     outHighwater: Int64OutputParam?,
     resetFlag: Int
-): SqliteResultCode = convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
-    native_sqlite3_db_status64(db.pointer, option.id, curPtr, highPtr, resetFlag)
-})
+): SqliteResultCode =
+    convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+        native_sqlite3_db_status64(db.pointer, option.id, curPtr, highPtr, resetFlag)
+    })
 
 public actual fun sqlite3_declare_vtab(
     db: sqlite3,
@@ -1439,7 +1441,8 @@ public actual fun sqlite3_snapshot_open(
     db: sqlite3,
     name: String?,
     snapshot: sqlite3_snapshot
-): SqliteResultCode = convertResult(native_sqlite3_snapshot_open(db.pointer, name, snapshot.pointer))
+): SqliteResultCode =
+    convertResult(native_sqlite3_snapshot_open(db.pointer, name, snapshot.pointer))
 
 public actual fun sqlite3_snapshot_recover(
     db: sqlite3,
@@ -1460,18 +1463,20 @@ public actual fun sqlite3_status(
     outCurrent: Int32OutputParam,
     outHighwater: Int32OutputParam,
     resetFlag: Int
-): SqliteResultCode = convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
-    native_sqlite3_status(option.id, curPtr, highPtr, resetFlag)
-})
+): SqliteResultCode =
+    convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+        native_sqlite3_status(option.id, curPtr, highPtr, resetFlag)
+    })
 
 public actual fun sqlite3_status64(
     option: SqliteStatusOption,
     outCurrent: Int64OutputParam,
     outHighwater: Int64OutputParam,
     resetFlag: Int
-): SqliteResultCode = convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
-    native_sqlite3_status64(option.id, curPtr, highPtr, resetFlag)
-})
+): SqliteResultCode =
+    convertResult(useParamsMemScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+        native_sqlite3_status64(option.id, curPtr, highPtr, resetFlag)
+    })
 
 public actual fun sqlite3_step(stmt: sqlite3_stmt): SqliteResultCode =
     convertResult(native_sqlite3_step(stmt.pointer))

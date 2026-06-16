@@ -1,12 +1,12 @@
 @file:Suppress("ClassName", "SpellCheckingInspection")
 
-package ksqlite.types.vtab
+package ksqlite.capi.types
 
 /**
  * These constants define the various options to the sqlite3_vtab_config() interface that virtual
  * table implementations can use to customize and optimize their behavior.
  *
- * [Virtual Table Configuration Options][https://sqlite.org/c3ref/c_vtab_constraint_support.html]
+ * [Virtual Table Configuration Options](https://sqlite.org/c3ref/c_vtab_constraint_support.html)
  */
 public sealed class SqliteVTabConfigOption(public val id: Int) {
 

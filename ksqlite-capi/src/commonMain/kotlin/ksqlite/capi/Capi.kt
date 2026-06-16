@@ -6,7 +6,7 @@ import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
-import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.callbacks.SqliteCommitHookCallback
 import ksqlite.capi.callbacks.SqliteDestroyCallback
@@ -23,13 +23,14 @@ import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.ReadableBuffer
-import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.SqliteConfigOption
+import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
+import ksqlite.capi.types.SqliteVTabConfigOption
 import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
@@ -60,7 +61,6 @@ import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.SqliteTraceCode
 import ksqlite.types.SqliteTransactionState
-import ksqlite.types.vtab.SqliteVTabConfigOption
 
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
@@ -727,7 +727,7 @@ public fun <AppData> sqlite3_create_collation(
     name: String,
     encoding: SqliteTextEncoding.Set0,
     appData: AppData,
-    callback: SqliteCollationCompareCallback<AppData>?
+    callback: SqliteCollationCallback<AppData>?
 ): SqliteResultCode = sqlite3_create_collation_v2(
     db = db,
     name = name,
@@ -748,7 +748,7 @@ public expect fun <AppData> sqlite3_create_collation_v2(
     encoding: SqliteTextEncoding.Set0,
     appData: AppData,
     destroy: SqliteDestroyCallback<in AppData>?,
-    callback: SqliteCollationCompareCallback<in AppData>?
+    callback: SqliteCollationCallback<in AppData>?
 ): SqliteResultCode
 
 /**

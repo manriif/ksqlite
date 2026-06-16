@@ -1,6 +1,6 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.types.sqlite3
@@ -29,7 +29,7 @@ internal class CollationCompareHandler :
         text1: MemorySegment,
         size2: Int,
         text2: MemorySegment
-    ): Int = handle(refPointer) { callback: SqliteCollationCompareCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteCollationCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             lhs = text1.asSlice(0, size1.toLong()).toArray(ValueLayout.JAVA_BYTE),

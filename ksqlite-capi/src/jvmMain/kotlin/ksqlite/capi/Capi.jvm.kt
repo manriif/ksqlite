@@ -6,7 +6,7 @@ import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
-import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.callbacks.SqliteCommitHookCallback
 import ksqlite.capi.callbacks.SqliteDestroyCallback
@@ -68,6 +68,7 @@ import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
+import ksqlite.capi.types.SqliteVTabConfigOption
 import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
@@ -113,7 +114,6 @@ import ksqlite.types.internal.convertExplainMode
 import ksqlite.types.internal.convertResult
 import ksqlite.types.internal.convertTextEncoding
 import ksqlite.types.internal.convertTransactionState
-import ksqlite.types.vtab.SqliteVTabConfigOption
 import java.lang.foreign.ValueLayout
 import ksqlite.foreign.sqlite3 as native
 
@@ -538,7 +538,7 @@ public actual fun <AppData> sqlite3_create_collation_v2(
     encoding: SqliteTextEncoding.Set0,
     appData: AppData,
     destroy: SqliteDestroyCallback<in AppData>?,
-    callback: SqliteCollationCompareCallback<in AppData>?
+    callback: SqliteCollationCallback<in AppData>?
 ): SqliteResultCode = convertResult(db.withMemoryManager {
     memScoped {
         native.sqlite3_create_collation_v2(

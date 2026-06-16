@@ -6,7 +6,7 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.sqlite3
@@ -31,7 +31,7 @@ private fun collationCompareHandler(
     text1: COpaquePointer?,
     size2: Int,
     text2: COpaquePointer?
-) = handle(refPointer) { callback: SqliteCollationCompareCallback<Any?>, appData ->
+) = handle(refPointer) { callback: SqliteCollationCallback<Any?>, appData ->
     callback.apply(
         appData = appData,
         lhs = text1!!.readBytes(size1),

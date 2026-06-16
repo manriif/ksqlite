@@ -1,6 +1,5 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 
 /**
  * Scope to use with [VirtualTableModule.connect] and [VirtualTableModule.Regular.create].
@@ -8,9 +7,9 @@ import ksqlite.capi.types.vtab.Sqlite3VTabConfigOption
 public interface VirtualTableCreateOrConnectScope {
 
     /**
-     * Configures the virtual table [options].
+     * Configures the virtual table.
      */
-    public fun configure(options: List<Sqlite3VTabConfigOption>)
+    public fun configure(action: VirtualTableConfigurationScope.() -> Unit)
 
     /**
      * Declares the schema of the virtual table.
@@ -27,22 +26,4 @@ public interface VirtualTableCreateOrConnectScope {
         name: String,
         argumentCount: Int
     )
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Configures the virtual table [options].
- */
-public fun VirtualTableCreateOrConnectScope.configure(options: Iterable<Sqlite3VTabConfigOption>) {
-    configure(options.toList())
-}
-
-/**
- * Configures the virtual table [options].
- */
-public fun VirtualTableCreateOrConnectScope.configure(vararg options: Sqlite3VTabConfigOption) {
-    configure(options.toList())
 }

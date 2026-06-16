@@ -50,6 +50,18 @@ internal open class ClosableScope : BaseClosableScope() {
 }
 
 /**
+ * Subclass of [ClosableScope] invoking [onClose] when the scope is closed.
+ */
+internal class DelegatingCloseableScope(
+    private val onClose: () -> Unit
+): ClosableScope() {
+
+    override fun onClose() {
+        onClose.invoke()
+    }
+}
+
+/**
  * Helper for objects implementing [AutoCloseable].
  */
 @PublishedApi
@@ -58,12 +70,24 @@ internal open class AtomicClosableScope : BaseClosableScope() {
 
     private val _closed = AtomicBoolean(false)
 
-    override val closed: Boolean
+    final override val closed: Boolean
         get() = _closed.load()
 
     final override fun close() {
         if (_closed.compareAndSet(expectedValue = false, newValue = true)) {
             onClose()
         }
+    }
+}
+
+/**
+ * Subclass of [AtomicClosableScope] invoking [onClose] when the scope is closed.
+ */
+internal class DelegatingAtomicCloseableScope(
+    private val onClose: () -> Unit
+): AtomicClosableScope() {
+
+    override fun onClose() {
+        onClose.invoke()
     }
 }

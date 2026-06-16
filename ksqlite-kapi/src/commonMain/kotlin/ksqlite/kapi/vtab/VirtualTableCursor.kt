@@ -1,8 +1,8 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.capi.types.vtab.Sqlite3VTabCursor
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.value.ProtectedValue
+import ksqlite.types.vtab.SqliteVTabCursor
 
 /**
  * Represents a [VirtualTable] cursor used to read and/or write the virtual table.
@@ -10,7 +10,7 @@ import ksqlite.kapi.value.ProtectedValue
  * If an error is detected in a function exposed by this interface, and if error raising is allowed
  * by SQLite, it is allowed to raise an [SQLiteException] that is then reported to SQLite.
  */
-public abstract class VirtualTableCursor : Sqlite3VTabCursor, AutoCloseable {
+public abstract class VirtualTableCursor : SqliteVTabCursor {
 
     /**
      * Returns `false` if `this` cursor currently points to a valid row of data, of `true`
@@ -47,5 +47,5 @@ public abstract class VirtualTableCursor : Sqlite3VTabCursor, AutoCloseable {
      * Closes the cursor.
      * It is not allowed to throw an [SQLiteException] here.
      */
-    abstract override fun close()
+    public abstract fun close()
 }

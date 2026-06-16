@@ -3,7 +3,7 @@ package ksqlite.foreign.callbacks
 /**
  * Callback for use with [ksqlite.foreign.sqlite3_create_collation_v2].
  */
-public fun interface CollationCompareCallback {
+public fun interface CollationCallback {
 
     /**
      * Invoked from JNI.

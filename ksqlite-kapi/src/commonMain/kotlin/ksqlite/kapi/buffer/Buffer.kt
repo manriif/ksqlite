@@ -8,6 +8,7 @@ import ksqlite.capi.sqlite3_malloc
 import ksqlite.capi.sqlite3_malloc64
 import ksqlite.capi.sqlite3_realloc
 import ksqlite.capi.sqlite3_realloc64
+import ksqlite.kapi.helpers.DelegatingCloseableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -31,6 +32,11 @@ public class Buffer internal constructor(override var buffer: CapiBuffer) :
     AutoCloseable {
 
     private val refCount = AtomicInt(0)
+
+    override val scope = DelegatingCloseableScope {
+        ensureNotReferenced()
+        sqlite3_free(buffer)
+    }
 
     /**
      * Ensures that the buffer is not referenced by SQLite.
@@ -126,15 +132,7 @@ public class Buffer internal constructor(override var buffer: CapiBuffer) :
      * @throws IllegalStateException if the buffer is referenced by SQLite as a bind parameter value
      * for example.
      */
-    override fun close() {
-        ensureNotReferenced()
-
-        if (!scope.closed) {
-            sqlite3_free(buffer)
-        }
-
-        scope.close()
-    }
+    override fun close(): Unit = scope.close()
 
     ///////////////////////////////////////////////////////////////////////////
     // Companion

@@ -1,6 +1,7 @@
 package ksqlite.kapi.vtab
 
 import ksqlite.kapi.value.ProtectedValue
+import ksqlite.types.vtab.SqliteIndexInfo
 
 /**
  * Scope to use with [VirtualTable.bestIndex].
@@ -14,7 +15,7 @@ public interface VirtualTableBestIndexScope {
 
     /**
      * Returns the name of the collation sequence to use for text comparisons on the constraint
-     * the received [ksqlite.capi.types.vtab.Sqlite3IndexInfo] and constraint at [index].
+     * the received [SqliteIndexInfo] and constraint at [index].
      */
     public fun collation(index: Int): String
 

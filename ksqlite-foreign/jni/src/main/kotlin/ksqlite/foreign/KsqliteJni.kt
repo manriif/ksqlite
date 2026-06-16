@@ -7,7 +7,7 @@ import ksqlite.foreign.callbacks.AuthorizerCallback
 import ksqlite.foreign.callbacks.AutoExtensionCallback
 import ksqlite.foreign.callbacks.AutovacuumPagesCallback
 import ksqlite.foreign.callbacks.BusyHandlerCallback
-import ksqlite.foreign.callbacks.CollationCompareCallback
+import ksqlite.foreign.callbacks.CollationCallback
 import ksqlite.foreign.callbacks.CollationNeededCallback
 import ksqlite.foreign.callbacks.CommitHookCallback
 import ksqlite.foreign.callbacks.DestructorCallback
@@ -442,7 +442,7 @@ public external fun sqlite3_create_collation_v2(
     name: String,
     eTextRep: Int,
     destructor: DestructorCallback?,
-    callback: CollationCompareCallback?
+    callback: CollationCallback?
 ): Int
 
 public external fun sqlite3_create_function_v2(

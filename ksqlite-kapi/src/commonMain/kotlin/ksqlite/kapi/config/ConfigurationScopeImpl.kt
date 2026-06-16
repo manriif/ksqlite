@@ -4,15 +4,20 @@ import ksqlite.capi.sqlite3_config
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingBooleanParam
 import ksqlite.kapi.helpers.usingParam
 
-internal object ConfigurationScopeImpl : ConfigurationScope {
+internal class ConfigurationScopeImpl :
+    ConfigurationScope,
+    ClosableScope() {
 
-    private fun applyOption(option: SqliteConfigOption) {
-        sqliteResultCheck(sqlite3_config(option))
-    }
+    /**
+     * Applies the given configuration [option].
+     */
+    private fun applyOption(option: SqliteConfigOption) =
+        notClosed { sqliteResultCheck(sqlite3_config(option)) }
 
     override fun singlethread() =
         applyOption(SqliteConfigOption.SINGLETHREAD)
@@ -36,7 +41,7 @@ internal object ConfigurationScopeImpl : ConfigurationScope {
         applyOption(SqliteConfigOption.LOOKASIDE(sz, cnt))
 
     override fun log(logger: Logger?) = logger
-        ?.let { applyOption(SqliteConfigOption.LOG(it, LoggerInvoker)) }
+        ?.let { applyOption(SqliteConfigOption.LOG(it, LoggerCallback)) }
         ?: applyOption(SqliteConfigOption.LOG(null, null))
 
     override fun uri(enabled: Boolean) =
@@ -46,7 +51,7 @@ internal object ConfigurationScopeImpl : ConfigurationScope {
         applyOption(SqliteConfigOption.COVERING_INDEX_SCAN(if (enabled) 1 else 0))
 
     override fun sqllog(sqlLogger: SqlLogger?) = sqlLogger
-        ?.let { applyOption(SqliteConfigOption.SQLLOG(it, SqlLoggerInvoker)) }
+        ?.let { applyOption(SqliteConfigOption.SQLLOG(it, SqlLoggerCallback)) }
         ?: applyOption(SqliteConfigOption.SQLLOG(null, null))
 
     override fun mmapSize(sz: Long, mx: Long) =

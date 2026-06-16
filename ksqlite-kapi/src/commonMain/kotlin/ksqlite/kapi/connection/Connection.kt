@@ -15,19 +15,27 @@ import kotlin.time.Duration
 /**
  * [Database connection](https://sqlite.org/c3ref/sqlite3.html).
  */
-public abstract class Connection internal constructor(): AutoCloseable {
+public abstract class Connection internal constructor() : AutoCloseable {
 
     internal abstract val db: sqlite3
 
     /**
+     * Returns the number of rows modified, inserted or deleted by the most recently completed
+     * INSERT, UPDATE or DELETE statement.
+     */
+    public abstract val changes: Long
+
+    /**
      * Sets the callback that is invoked prior to each autovacuum of the database file.
      *
-     * Any previously set callback is replaced.
+     * @throws ksqlite.kapi.SQLiteException if setting the callback fails.
      */
-    public abstract fun setAutovacuumPages(callback: AutovacuumPages?)
+    public abstract fun setAutovacuumPages(handler: AutovacuumPages?)
 
     /**
      * Opens a [Blob].
+     *
+     * @throws ksqlite.kapi.SQLiteException if opening the blob fails.
      */
     public abstract fun openBlob(
         tableName: String,
@@ -41,19 +49,32 @@ public abstract class Connection internal constructor(): AutoCloseable {
      * Sets the callback that might be invoked whenever an attempt is made to access a database
      * table associated with this connection when another thread or process has the table locked.
      *
-     * Any previously set callback is replaced.
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
     public abstract fun setBusyHandler(handler: BusyHandler?)
 
     /**
-     * Sets a[BusyHandler] that sleeps for a specified amount of time when a table is locked.
+     * Sets a [BusyHandler] that sleeps for a specified amount of time when a table is locked.
      * Any [BusyHandler] previously passed to [setBusyHandler] is replaced.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the timeout fails.
      */
-    public abstract fun setBusyTimeout(duration: Duration)
+    public abstract fun setBusyTimeout(millis: Int)
 
-    public abstract fun setCollationNeeded()
+    /**
+     * Sets the callback that get invoked whenever an undefined collation sequence is required.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun setCollationNeeded(handler: CollationNeeded?)
 
-    public abstract fun createCollation(comparator: CollationComparator)
+/*
+    /**
+     * Sets the callback that get invoked whenever an undefined collation sequence is required.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun createCollation(collation: Collation)*/
 
     public abstract fun createFunction(
         name: String,
@@ -96,3 +117,18 @@ public abstract class Connection internal constructor(): AutoCloseable {
 
     public abstract fun dropModules(keepModules: Set<String>)
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Sets a [BusyHandler] that sleeps for a specified amount of time when a table is locked.
+ * Any [BusyHandler] previously passed to [setBusyHandler] is replaced.
+ *
+ * The [duration] is coerced to [Int.MAX_VALUE] milliseconds.
+ *
+ * @throws ksqlite.kapi.SQLiteException if setting the timeout fails.
+ */
+public fun Connection.setBusyTimeout(duration: Duration): Unit =
+    setBusyTimeout(duration.inWholeMilliseconds.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())

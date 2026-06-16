@@ -4,7 +4,7 @@ import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
-import ksqlite.capi.callbacks.SqliteCollationCompareCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.callbacks.SqliteCommitHookCallback
 import ksqlite.capi.callbacks.SqliteDestroyCallback
@@ -512,7 +512,7 @@ public interface CapiProxyClient {
         name: String,
         encoding: Sqlite3TextEncoding.Set0,
         appData: AppData,
-        callback: SqliteCollationCompareCallback<AppData>?
+        callback: SqliteCollationCallback<AppData>?
     ): SqliteResultCode
 
     /**
@@ -524,7 +524,7 @@ public interface CapiProxyClient {
         encoding: Sqlite3TextEncoding.Set0,
         appData: AppData,
         destroy: SqliteDestroyCallback<AppData>?,
-        callback: SqliteCollationCompareCallback<AppData>?
+        callback: SqliteCollationCallback<AppData>?
     ): SqliteResultCode
 
     public fun <AppData> sqlite3_create_function(
