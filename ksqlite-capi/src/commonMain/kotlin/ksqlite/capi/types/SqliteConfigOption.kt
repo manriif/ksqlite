@@ -15,9 +15,12 @@ import ksqlite.capi.memory.Buffer
 public sealed class SqliteConfigOption(public val id: Int) {
 
     /**
-     * Configuration options that can be set at any time.
+     * Option that accept a [state] output paramater.
      */
-    public sealed class AnyTime(id: Int) : SqliteConfigOption(id)
+    public sealed class IntOutput(
+        id: Int,
+        internal val state: Int32OutputParam
+    ): SqliteConfigOption(id)
 
     /**
      * This option sets the threading mode to Single-thread. In other words, it disables all
@@ -147,7 +150,7 @@ public sealed class SqliteConfigOption(public val id: Int) {
     public class LOG<AppData>(
         internal val appData: AppData,
         internal val callback: SqliteConfigLogCallback<AppData>?
-    ) : AnyTime(16)
+    ) : SqliteConfigOption(16)
 
     /**
      * The SQLITE_CONFIG_URI option takes a single argument of type int. If non-zero, then URI
@@ -213,7 +216,7 @@ public sealed class SqliteConfigOption(public val id: Int) {
      * page in SQLITE_CONFIG_PAGECACHE. The amount of extra space required can change depending on
      * the compiler, target platform, and SQLite version.
      */
-    public class PCACHE_HDRSZ(internal val psz: Int32OutputParam) : AnyTime(24)
+    public class PCACHE_HDRSZ(psz: Int32OutputParam) : IntOutput(24, psz)
 
     /**
      * The SQLITE_CONFIG_PMASZ option takes a single parameter which is an unsigned integer and sets
@@ -283,5 +286,5 @@ public sealed class SqliteConfigOption(public val id: Int) {
      * usual and recommended case) then the integer is always filled with zero, regardless if its
      * initial value.
      */
-    public class ROWID_IN_VIEW(internal val enabled: Int32OutputParam) : SqliteConfigOption(30)
+    public class ROWID_IN_VIEW(enabled: Int32OutputParam) : IntOutput(30, enabled)
 }

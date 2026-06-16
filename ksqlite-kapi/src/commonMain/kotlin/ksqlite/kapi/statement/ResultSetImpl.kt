@@ -3,7 +3,6 @@ package ksqlite.kapi.statement
 import ksqlite.capi.sqlite3_column_blob
 import ksqlite.capi.sqlite3_column_buffer
 import ksqlite.capi.sqlite3_column_bytes
-import ksqlite.capi.sqlite3_column_count
 import ksqlite.capi.sqlite3_column_database_name
 import ksqlite.capi.sqlite3_column_decltype
 import ksqlite.capi.sqlite3_column_double
@@ -15,6 +14,7 @@ import ksqlite.capi.sqlite3_column_table_name
 import ksqlite.capi.sqlite3_column_text
 import ksqlite.capi.sqlite3_column_type
 import ksqlite.capi.sqlite3_column_value
+import ksqlite.capi.sqlite3_data_count
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.kapi.buffer.ReadableBuffer
 import ksqlite.kapi.helpers.ClosableScope
@@ -28,15 +28,14 @@ internal class ResultSetImpl(private val stmt: sqlite3_stmt) :
 
     private var rowScope: ClosableScope? = null
 
-    override val columnCount: Int
-        get() = notClosed { sqlite3_column_count(stmt) }
+    override val dataCount: Int
+        get() = notClosed { sqlite3_data_count(stmt) }
 
     /**
      * Returns a [ClosableScope] that is valid until [reset] is called.
      */
-    private fun getOrCreateRowScope() = rowScope ?: ClosableScope().also { scope ->
-        rowScope = scope
-    }
+    private fun getOrCreateRowScope() = rowScope
+        ?: ClosableScope().also { rowScope = it }
 
     /**
      * Resets the scope for the row if any, invalidating buffers and values for current rows.

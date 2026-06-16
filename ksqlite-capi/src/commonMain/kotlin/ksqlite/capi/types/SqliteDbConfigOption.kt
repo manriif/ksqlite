@@ -17,8 +17,8 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
      */
     public sealed class IntOutput(
         id: Int,
-        public val value: Int,
-        public val state: Int32OutputParam?
+        internal val value: Int,
+        internal val state: Int32OutputParam?
     ) : SqliteDbConfigOption(id)
 
     /**
@@ -30,7 +30,7 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
      * application must ensure that the argument passed into SQLITE_DBCONFIG MAINDBNAME is unchanged
      * until after the database connection closes.
      */
-    public class MAINDBNAME(public val name: String) : SqliteDbConfigOption(1000)
+    public class MAINDBNAME(internal val name: String) : SqliteDbConfigOption(1000)
 
     /**
      * The SQLITE_DBCONFIG_LOOKASIDE option is used to adjust the configuration of the lookaside
@@ -67,9 +67,9 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
      * "sz" and 40 to 100 for "cnt".
      */
     public class LOOKASIDE(
-        public val buf: Buffer?,
-        public val sz: Int,
-        public val cnt: Int
+        internal val buf: Buffer?,
+        internal val sz: Int,
+        internal val cnt: Int
     ) : SqliteDbConfigOption(1001)
 
     /**
@@ -205,10 +205,7 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
      * virtual tables may require access to that corrupt storage, the library must abandon any
      * installed virtual tables without calling their xDestroy() methods.
      */
-    public class RESET_DATABASE(
-        value: Int,
-        state: Int32OutputParam?
-    ) : IntOutput(1009, value, state)
+    public class RESET_DATABASE(internal val value: Int) : SqliteDbConfigOption(1009)
 
     /**
      * The SQLITE_DBCONFIG_DEFENSIVE option activates or deactivates the "defensive" flag for a
@@ -265,7 +262,7 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
     ) : IntOutput(1013, value, state)
 
     /**
-     * The SQLITE_DBCONFIG_DQS option activates or deactivates the legacy double-quoted string
+     * The SQLITE_DBCONFIG_DQS_DDL option activates or deactivates the legacy double-quoted string
      * literal misfeature for DDL statements, such as CREATE TABLE and CREATE INDEX. The default
      * value of this setting is determined by the -DSQLITE_DQS compile-time option.
      */
@@ -354,7 +351,6 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
      * The SQLITE_DBCONFIG_REVERSE_SCANORDER option changes the default order in which tables and
      * indexes are scanned so that the scans start at the end and work toward the beginning rather
      * than starting at the beginning and working toward the end. Setting
-     *
      * SQLITE_DBCONFIG_REVERSE_SCANORDER is the same as setting PRAGMA reverse_unordered_selects.
      * This option takes two arguments which are an integer and a pointer to an integer. The first
      * argument is 1, 0, or -1 to enable, disable, or leave unchanged the reverse scan order flag,

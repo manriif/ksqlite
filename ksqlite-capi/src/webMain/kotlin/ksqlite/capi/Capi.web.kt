@@ -93,6 +93,7 @@ import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteCompleteResult
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteDbReadonlyResult
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
@@ -110,6 +111,7 @@ import ksqlite.types.SqliteTransactionState
 import ksqlite.types.internal.convertCompleteResult
 import ksqlite.types.internal.convertConflictResolutionMode
 import ksqlite.types.internal.convertDataType
+import ksqlite.types.internal.convertDbReadonlyResult
 import ksqlite.types.internal.convertExplainMode
 import ksqlite.types.internal.convertResult
 import ksqlite.types.internal.convertTextEncoding
@@ -525,10 +527,10 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
     keyedStableRefPointer = globalMemory::keyedStableRefPointer,
-    rowidInView = {
+    outputParamConfig = {
         heapScoped {
-            useParam(enabled) { paramPtr ->
-                invokeVariadic(::globalMemory, VariadicValue.OfPointer(paramPtr)) { vaListPtr ->
+            useParam(state) { statePtr ->
+                invokeVariadic(::globalMemory, VariadicValue.OfPointer(statePtr)) { vaListPtr ->
                     exports.sqlite3_config(id, vaListPtr)
                 }
             }
@@ -703,9 +705,9 @@ public actual fun sqlite3_db_name(
 public actual fun sqlite3_db_readonly(
     db: sqlite3,
     name: String
-): Int = heapScoped {
+): SqliteDbReadonlyResult = convertDbReadonlyResult(heapScoped {
     exports.sqlite3_db_readonly(db.pointer, name.allocateUtf8Pointer())
-}
+})
 
 public actual fun sqlite3_db_release_memory(db: sqlite3): SqliteResultCode =
     convertResult(exports.sqlite3_db_release_memory(db.pointer))

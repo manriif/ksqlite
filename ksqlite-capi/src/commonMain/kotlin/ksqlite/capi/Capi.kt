@@ -47,6 +47,7 @@ import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteCompleteResult
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteDbReadonlyResult
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
@@ -704,6 +705,7 @@ public expect fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode
 
 /**
  * Extract the user data from a sqlite3_context structure and return a pointer to it.
+ * Extract the user data from a sqlite3_context structure and return a pointer to it.
  *
  * [sqlite3_context_db_handle()](https://sqlite.org/c3ref/context_db_handle.html)
  */
@@ -923,7 +925,7 @@ public expect fun sqlite3_db_name(
 public expect fun sqlite3_db_readonly(
     db: sqlite3,
     name: String
-): Int
+): SqliteDbReadonlyResult
 
 /**
  * Free up as much memory as we can from the given database connection.

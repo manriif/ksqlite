@@ -13,9 +13,9 @@ import ksqlite.types.SqliteDataType
 public interface ResultSet {
 
     /**
-     * Returns the number of column in the row.
+     * Returns the number of column in the current row of the result set.
      */
-    public val columnCount: Int
+    public val dataCount: Int
 
     /**
      * Returns the name of the database for the column at [index].

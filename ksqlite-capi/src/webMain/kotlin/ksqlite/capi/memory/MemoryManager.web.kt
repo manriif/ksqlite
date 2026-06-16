@@ -54,6 +54,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         destructor: SqliteDestroyCallback<AppData>?
     ): WasmPointer = notClosed {
         if (data == null && destructor == null) {
+            key?.let(::clearDisposable)
             NullPtr
         } else {
             registerDisposable(key) { StableRefReference(it, destructor, data, appData) }.pointer

@@ -3,7 +3,7 @@ package ksqlite.types
 /**
  * Result for `sqlite3_complete()`.
  *
- * [sqlite3_complete()](https://sqlite.org/c3ref/complete.html).
+ * [Determine If An SQL Statement Is Complete](https://sqlite.org/c3ref/complete.html).
  */
 public sealed interface SqliteCompleteResult {
 

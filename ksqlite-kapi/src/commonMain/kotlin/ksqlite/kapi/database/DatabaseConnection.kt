@@ -1,4 +1,4 @@
-package ksqlite.kapi.connection
+package ksqlite.kapi.database
 
 import ksqlite.capi.types.sqlite3
 import ksqlite.kapi.MAIN_DB_NAME
@@ -8,6 +8,7 @@ import ksqlite.kapi.functions.ScalarFunction
 import ksqlite.kapi.functions.WindowFunction
 import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.vtab.SqliteModuleVersion
 import kotlin.time.Duration
@@ -15,7 +16,7 @@ import kotlin.time.Duration
 /**
  * [Database connection](https://sqlite.org/c3ref/sqlite3.html).
  */
-public abstract class Connection internal constructor() : AutoCloseable {
+public abstract class DatabaseConnection internal constructor() : AutoCloseable {
 
     internal abstract val db: sqlite3
 
@@ -24,6 +25,11 @@ public abstract class Connection internal constructor() : AutoCloseable {
      * INSERT, UPDATE or DELETE statement.
      */
     public abstract val changes: Long
+
+    /**
+     * Configuration of the connection.
+     */
+    public abstract val config: DatabaseConnectionConfiguration
 
     /**
      * Sets the callback that is invoked prior to each autovacuum of the database file.
@@ -68,14 +74,39 @@ public abstract class Connection internal constructor() : AutoCloseable {
      */
     public abstract fun setCollationNeeded(handler: CollationNeeded?)
 
-/*
     /**
      * Sets the callback that get invoked whenever an undefined collation sequence is required.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
-    public abstract fun createCollation(collation: Collation)*/
+    public abstract fun setCommitHook(handler: CommitHook?)
 
+    /**
+     * Creates or replaces a collation.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun createCollation(
+        name: String,
+        encoding: SqliteTextEncoding.Set0,
+        collation: Collation
+    )
+
+    /**
+     * Deletes the collation created using the same parameters.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while deleting the collation.
+     */
+    public abstract fun deleteCollation(
+        name: String,
+        encoding: SqliteTextEncoding.Set0
+    )
+
+    /**
+     * Creates or updates a scalar function.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
+     */
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
@@ -83,6 +114,11 @@ public abstract class Connection internal constructor() : AutoCloseable {
         function: ScalarFunction
     )
 
+    /**
+     * Creates or updates an aggregate function.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
+     */
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
@@ -90,6 +126,11 @@ public abstract class Connection internal constructor() : AutoCloseable {
         function: AggregateFunction
     )
 
+    /**
+     * Creates or updates a window function.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
+     */
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
@@ -97,25 +138,99 @@ public abstract class Connection internal constructor() : AutoCloseable {
         function: WindowFunction
     )
 
+    /**
+     * Deletes the function that was created with the same arguments.
+     * If the function is a window function, then [isWindowFunction] should be set to `true`.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while deleting the function.
+     */
+    public abstract fun deleteFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: SqliteTextEncoding,
+        isWindowFunction: Boolean = false
+    )
+
+    /**
+     * Creates or replaces a virtual table module.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while creating the module.
+     */
     public abstract fun createModule(
         name: String,
         version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.Regular
     )
 
+    /**
+     * Creates or replaces a virtual table module.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while creating the module.
+     */
     public abstract fun createModule(
         name: String,
         version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.Eponymous
     )
 
+    /**
+     * Creates or replaces a virtual table module.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while creating the module.
+     */
     public abstract fun createModule(
         name: String,
         version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.EponymousOnly
     )
 
-    public abstract fun dropModules(keepModules: Set<String>)
+    /**
+     * Deletes the module for [name].
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while deleting the module.
+     */
+    public abstract fun deleteModule(name: String)
+
+    /**
+     * Deletes all the modules excepts those that get their name listed in [keep].
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while deleting the modules.
+     */
+    public abstract fun deleteModules(keep: Set<String>)
+
+    /**
+     * Writes any dirty pages in the pager-cache that are not currently in use. The operation only
+     * take places if there is a write-transaction open at the time this function is called.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
+     */
+    public abstract fun flushCache()
+
+    /**
+     * Returns the absolute pathname of the database [databaseName] of this connection.
+     */
+    public abstract fun getFileName(databaseName: String = MAIN_DB_NAME): String?
+
+    /**
+     * Returns the schema name for the [index]th database on this connection.
+     */
+    public abstract fun getName(index: Int): String?
+
+    /**
+     * Returns `true` if the database [databaseName] is read-only, or `false` If it is read/write.
+     *
+     * @throws ksqlite.kapi.SQLiteException if [databaseName] is not the name of a database on this
+     * connection.
+     */
+    public abstract fun isReadOnly(databaseName: String): Boolean
+
+    /**
+     * Returns the status for the given options.
+     */
+    public abstract fun getStatus(
+        option: SqliteDbStatusOption,
+        reset: Boolean = false
+    ): DatabaseConnectionStatus
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -130,5 +245,5 @@ public abstract class Connection internal constructor() : AutoCloseable {
  *
  * @throws ksqlite.kapi.SQLiteException if setting the timeout fails.
  */
-public fun Connection.setBusyTimeout(duration: Duration): Unit =
+public fun DatabaseConnection.setBusyTimeout(duration: Duration): Unit =
     setBusyTimeout(duration.inWholeMilliseconds.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())

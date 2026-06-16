@@ -83,6 +83,7 @@ import ksqlite.types.SqliteCheckpointMode
 import ksqlite.types.SqliteCompleteResult
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteDbReadonlyResult
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
@@ -100,6 +101,7 @@ import ksqlite.types.SqliteTransactionState
 import ksqlite.types.internal.convertCompleteResult
 import ksqlite.types.internal.convertConflictResolutionMode
 import ksqlite.types.internal.convertDataType
+import ksqlite.types.internal.convertDbReadonlyResult
 import ksqlite.types.internal.convertExplainMode
 import ksqlite.types.internal.convertResult
 import ksqlite.types.internal.convertTextEncoding
@@ -661,9 +663,9 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     sqllogFunctionPointer = { cb, appData -> callbackHandler(cb, appData, ::ConfigSqlLogHandler) },
     bufferPointer = Buffer::pointer,
     keyedStableRefPointer = null,
-    rowidInView = {
-        useParam(enabled) { paramPtr ->
-            jni_sqlite3_config(id, arrayOf(paramPtr))
+    outputParamConfig = {
+        useParam(state) { statePtr ->
+            jni_sqlite3_config(id, arrayOf(statePtr))
         }
     },
     nativeConfig = { id, values ->
@@ -802,7 +804,7 @@ public actual fun sqlite3_db_name(
 public actual fun sqlite3_db_readonly(
     db: sqlite3,
     name: String
-): Int = jni_sqlite3_db_readonly(db.pointer, name)
+): SqliteDbReadonlyResult = convertDbReadonlyResult(jni_sqlite3_db_readonly(db.pointer, name))
 
 public actual fun sqlite3_db_release_memory(db: sqlite3): SqliteResultCode =
     convertResult(jni_sqlite3_db_release_memory(db.pointer))

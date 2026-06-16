@@ -1,9 +1,9 @@
 package ksqlite.kapi
 
-import ksqlite.kapi.config.AnyTimeConfigurationScope
+import ksqlite.kapi.config.AnyTimeConfiguration
 import ksqlite.kapi.config.ConfigurationScope
-import ksqlite.kapi.connection.AutoExtension
-import ksqlite.kapi.connection.Connection
+import ksqlite.kapi.database.AutoExtension
+import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.types.SqliteOpenFlag
 
 /**
@@ -12,9 +12,9 @@ import ksqlite.types.SqliteOpenFlag
 public interface SQLite : AutoCloseable {
 
     /**
-     * Configures SQLite anytime options.
+     * Configuration exposing options that can be accessed at anytime.
      */
-    public fun configure(action: AnyTimeConfigurationScope.() -> Unit)
+    public val config: AnyTimeConfiguration
 
     /**
      * Opens a new database connection.
@@ -26,7 +26,7 @@ public interface SQLite : AutoCloseable {
         fileName: String,
         flags: SqliteOpenFlag.Db = SqliteOpenFlag.READONLY,
         vfs: String? = null
-    ): Connection
+    ): DatabaseConnection
 
     /**
      * Registers the [autoExtension] callback.
@@ -49,6 +49,31 @@ public interface SQLite : AutoCloseable {
      * @throws SQLiteException if error happens while shutting down SQLite.
      */
     override fun close()
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Companion
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Provides access to SQLite APIs that do not require SQLite initialization.
+     */
+    public companion object {
+
+        /**
+         * Returns the options that were defined at compile-time.
+         * The `SQLITE_` prefix is omitted for each option.
+         */
+        public val compileOptions: List<String>
+            get() = SqliteCompileOptions
+
+        /**
+         * Returns `true` if `this` seems to form a complete SQL statement. If additional input is
+         * needed before sending tbe text into SQLite for parsing, then `false` is returned.
+         *
+         * @throws SQLiteException if a memory allocation fails.
+         */
+        public fun String.isCompleteSqlStatement(): Boolean = sqliteIsComplete(this)
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////

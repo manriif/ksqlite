@@ -6,9 +6,9 @@ import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.VariadicValue
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteVTabConfigOption
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.internal.convertResult
-import ksqlite.types.vtab.SqliteVTabConfigOption
 
 /**
  * Handles the [ksqlite.capi.sqlite3_config].
@@ -21,15 +21,12 @@ internal fun <Pointer : Any> commonConfig(
     logFunctionPointer: (callback: SqliteConfigLogCallback<Any?>?, appData: Any?) -> Pointer?,
     sqllogFunctionPointer: (callback: SqliteConfigSqlLogCallback<Any?>?, appData: Any?) -> Pointer?,
     keyedStableRefPointer: ((String, Any?, Any?) -> Pointer?)?,
-    rowidInView: SqliteConfigOption.ROWID_IN_VIEW.() -> Int,
+    outputParamConfig: SqliteConfigOption.IntOutput.() -> Int,
     nativeConfig: (id: Int, args: Array<out VariadicValue<Pointer>?>) -> Int,
 ): SqliteResultCode {
     val args = with(option) {
-        if (this is ROWID_IN_VIEW) {
-            return convertResult(rowidInView())
-        }
-
         when (this) {
+            is IntOutput -> return convertResult(outputParamConfig())
             SERIALIZED, MULTITHREAD, SINGLETHREAD -> emptyArray<VariadicValue<Pointer>>()
             is COVERING_INDEX_SCAN -> arrayOf(VariadicValue.OfInt(enabled))
 
@@ -66,7 +63,6 @@ internal fun <Pointer : Any> commonConfig(
                 VariadicValue.OfInt(n)
             )
 
-            is PCACHE_HDRSZ -> arrayOf(VariadicValue.OfInt(psz))
             is PMASZ -> arrayOf(VariadicValue.OfUInt(szPma))
             is SMALL_MALLOC -> arrayOf(VariadicValue.OfInt(enabled))
             is SORTERREF_SIZE -> arrayOf(VariadicValue.OfInt(nByte))
@@ -114,6 +110,11 @@ internal fun <Pointer : Any> commonDbConfig(
             )
 
             is MAINDBNAME -> arrayOf(VariadicValue.OfString(name, KEY_DB_CONFIG_MAINDBNAME))
+
+            is RESET_DATABASE -> arrayOf(
+                VariadicValue.OfInt(value),
+                null
+            )
         }
     }
 

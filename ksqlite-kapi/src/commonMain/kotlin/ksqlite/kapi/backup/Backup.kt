@@ -1,7 +1,7 @@
 package ksqlite.kapi.backup
 
 import ksqlite.kapi.MAIN_DB_NAME
-import ksqlite.kapi.connection.Connection
+import ksqlite.kapi.database.DatabaseConnection
 
 /**
  * Exposes the [Online Backup API](https://sqlite.org/backup.html).
@@ -49,9 +49,9 @@ public interface Backup : AutoCloseable {
          * The returned [Backup] must be closed when done with.
          */
         public fun init(
-            destination: Connection,
+            destination: DatabaseConnection,
             destinationName: String,
-            source: Connection,
+            source: DatabaseConnection,
             sourceName: String
         ): Backup = createBackup(
             destination = destination,
@@ -67,8 +67,8 @@ public interface Backup : AutoCloseable {
          * The returned [Backup] must be closed when done with.
          */
         public fun init(
-            destination: Connection,
-            source: Connection
+            destination: DatabaseConnection,
+            source: DatabaseConnection
         ): Backup = createBackup(
             destination = destination,
             destinationName = MAIN_DB_NAME,

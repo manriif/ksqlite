@@ -32,15 +32,11 @@ internal fun <T> sqliteOutOfMemoryCheck(
  * This function must be called immediately after the [result] is obtained and before any other
  * SQLite API call is made.
  */
-private fun sqliteResultThrow(
-    result: SqliteResultCode,
+internal fun sqliteResultThrow(
+    result: SqliteResultCode.Failure,
     db: sqlite3?,
     getMessagePrefix: (() -> String)? = null
-) {
-    if (result !is SqliteResultCode.Failure) {
-        return
-    }
-
+): Nothing {
     val errorMessage = when (result) {
         MISUSE -> sqlite3_errstr(result.code)
         else -> db?.let(::sqlite3_errmsg) ?: sqlite3_errstr(result.code)

@@ -1,7 +1,7 @@
 package ksqlite.kapi.functions
 
 import ksqlite.types.SqliteResultCode
-import ksqlite.kapi.connection.Connection
+import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.SQLiteException
 
 /**
@@ -18,7 +18,7 @@ public interface FunctionScope {
     /**
      * Returns the database connection associated with the hook.
      */
-    public val connection: Connection
+    public val connection: DatabaseConnection
 
     /**
      * Causes SQLite to throw an exception with [message].

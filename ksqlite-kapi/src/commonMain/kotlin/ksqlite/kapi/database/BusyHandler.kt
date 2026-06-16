@@ -1,7 +1,7 @@
-package ksqlite.kapi.connection
+package ksqlite.kapi.database
 
 /**
- * Callback to use with [Connection.setBusyHandler].
+ * Callback to use with [DatabaseConnection.setBusyHandler].
  */
 public fun interface BusyHandler {
 

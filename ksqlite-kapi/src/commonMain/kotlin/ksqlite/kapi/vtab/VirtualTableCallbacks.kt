@@ -20,12 +20,12 @@ import ksqlite.capi.vtab.callbacks.SqliteVTabRenameCallback
 import ksqlite.capi.vtab.callbacks.SqliteVTabRowidCallback
 import ksqlite.capi.vtab.callbacks.SqliteVTabTransactionCallback
 import ksqlite.capi.vtab.callbacks.SqliteVTabUpdateCallback
-import ksqlite.kapi.connection.Connection
+import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.functions.ScalarFunctionFuncCallback
 import ksqlite.kapi.helpers.AutoCloser
 import ksqlite.kapi.helpers.ContextClosableScope
 import ksqlite.kapi.helpers.runCatchingSQLiteException
-import ksqlite.kapi.requireConnection
+import ksqlite.kapi.sqliteRequireConnection
 import ksqlite.kapi.value.toProtectedValues
 
 /**
@@ -46,12 +46,12 @@ internal val VirtualTableModuleDestructor = SqliteDestroyCallback { module: Virt
 private inline fun <Module : VirtualTableModule> createOrConnect(
     crossinline block: Module.(
         scope: VirtualTableCreateOrConnectScope,
-        connection: Connection,
+        connection: DatabaseConnection,
         arguments: Array<String>
     ) -> VirtualTable
 ) = SqliteVTabCreateOrConnectCallback<Module, VTab> { db, module, arguments ->
     module.runCatchingSQLiteException({ failure(it.message) }) {
-        val connection = requireConnection(db)
+        val connection = sqliteRequireConnection(db)
 
         val table = VirtualTableCreateOrConnectScopeImpl(db).use { scope ->
             block(module, scope, connection, arguments)

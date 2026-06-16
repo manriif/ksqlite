@@ -1,12 +1,12 @@
-package ksqlite.kapi.connection
+package ksqlite.kapi.database
 
+import ksqlite.kapi.SQLite
 import ksqlite.kapi.SQLiteException
-import ksqlite.types.SqliteTextEncoding
 
 /**
- * Callback to use with [Connection.setCollationNeeded].
+ * Callback to use with [SQLite.addAutoExtension] and [SQLite.removeAutoExtension].
  */
-public fun interface CollationNeeded {
+public fun interface AutoExtension {
 
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/auto_extension.html).
@@ -14,9 +14,5 @@ public fun interface CollationNeeded {
      * If an error is detected, then an [SQLiteException] should be thrown. Other exception types
      * are not caught.
      */
-    public fun apply(
-        connection: Connection,
-        encoding: SqliteTextEncoding.Set2,
-        name: String
-    )
+    public fun apply(connection: DatabaseConnection)
 }

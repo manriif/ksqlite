@@ -2,7 +2,6 @@ package ksqlite.kapi.helpers
 
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.OutputParam
-import ksqlite.capi.types.booleanValueStrict
 import kotlin.jvm.JvmName
 
 /**
@@ -32,9 +31,9 @@ internal inline fun <V : Any, P : OutputParam<V?>> usingParam(
  * Invokes [block] and returns a [Boolean] if [block] returns without throwing.
  */
 internal inline fun usingBooleanParam(
-    initialValue: Boolean? = null,
+    initialValue: Boolean?,
     block: (Int32OutputParam) -> Unit
-): Boolean? {
+): Boolean {
     val param = Int32OutputParam(
         when (initialValue) {
             false -> 0
@@ -45,52 +44,61 @@ internal inline fun usingBooleanParam(
 
     block(param)
 
-    return when (param.value) {
+    return when (val value = param.value) {
         0 -> false
         1 -> true
-        else -> null
+        else -> error("Expected SQLite to write 0 or 1 to 32-bit integer but $value was found")
     }
 }
 
 /**
- * Invokes [block] and returns [param1]'s [V1] paired with [param2]'s [V2] if [block] returns
- * without throwing.
+ * Invokes [block] and returns [R], resulting from [transform] which is passed [param1]'s [V1] and
+ * [param2]'s [V2], if [block] returns without throwing.
  */
-internal inline fun <V1 : Any, P1 : OutputParam<V1>, V2 : Any, P2 : OutputParam<V2>> usingParams(
+internal inline fun <R, V1 : Any, P1 : OutputParam<V1>, V2 : Any, P2 : OutputParam<V2>> usingParams(
     param1: P1,
     param2: P2,
+    transform: (V1, V2) -> R,
     block: (P1, P2) -> Unit
-): Pair<V1, V2> {
+): R {
     block(param1, param2)
-    return param1.value to param2.value
+    return transform(param1.value, param2.value)
 }
 
 /**
- * Invokes [block] and returns [param1]'s [V1] paired with [param2]'s [V2] if [block] returns
- * without throwing.
+ * Invokes [block] and returns [R], resulting from [transform] which is passed [param1]'s [V1] and
+ * [param2]'s [V2], if [block] returns without throwing.
  */
 @JvmName("usingParams2")
-internal inline fun <V1 : Any, P1 : OutputParam<V1?>, V2 : Any, P2 : OutputParam<V2>> usingParams(
+internal inline fun <R, V1 : Any, P1 : OutputParam<V1?>, V2 : Any, P2 : OutputParam<V2>> usingParams(
     param1: P1,
     param2: P2,
+    transform: (V1, V2) -> R,
     block: (P1, P2) -> Unit
-): Pair<V1, V2> {
+): R {
     block(param1, param2)
-    return checkNotNull(param1.value) { "First parameter's value is null" } to param2.value
+
+    return transform(
+        checkNotNull(param1.value) { "First parameter's value is null" },
+        param2.value
+    )
 }
 
 /**
- * Invokes [block] and returns [param1]'s [V1] paired with [param2]'s [V2] if [block] returns
- * without throwing.
+ * Invokes [block] and returns [R], resulting from [transform] which is passed [param1]'s [V1] and
+ * [param2]'s [V2], if [block] returns without throwing.
  */
 @JvmName("usingParams3")
-internal inline fun <V1 : Any, P1 : OutputParam<V1?>, V2 : Any, P2 : OutputParam<V2?>> usingParams(
+internal inline fun <R, V1 : Any, P1 : OutputParam<V1?>, V2 : Any, P2 : OutputParam<V2?>> usingParams(
     param1: P1,
     param2: P2,
+    transform: (V1, V2) -> R,
     block: (P1, P2) -> Unit
-): Pair<V1, V2> {
+): R {
     block(param1, param2)
 
-    return checkNotNull(param1.value) { "First parameter's value is null" } to
-            checkNotNull(param2.value) { "Second parameter's value is null" }
+    return transform(
+        checkNotNull(param1.value) { "First parameter's value is null" },
+        checkNotNull(param2.value) { "Second parameter's value is null" }
+    )
 }

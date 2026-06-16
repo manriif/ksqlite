@@ -7,20 +7,17 @@ package ksqlite.kapi.config
  *
  * [Configurations Options](https://sqlite.org/c3ref/c_config_covering_index_scan.html)
  */
-public interface AnyTimeConfigurationScope {
+public interface AnyTimeConfiguration {
+
+    /**
+     * Number of extra bytes per page required for each page in SQLITE_CONFIG_PAGECACHE.
+     */
+    public val pageCacheHeaderSize: Int
 
     /**
      * Sets the logging interface.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
-    public fun log(logger: Logger?)
-
-    /**
-     * Returns the number of extra bytes per page required for each page in
-     * [ConfigurationScope.pagecache].
-     *
-     * @throws ksqlite.kapi.SQLiteException if setting the option fails.
-     */
-    public fun pCacheHdrsz(): Int
+    public fun setLogger(logger: Logger?)
 }

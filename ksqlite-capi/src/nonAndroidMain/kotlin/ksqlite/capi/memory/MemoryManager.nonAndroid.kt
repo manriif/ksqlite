@@ -8,7 +8,6 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 /**
  * Base for [MemoryManager].
- * TODO Clear keyed reference when null is passed
  */
 @OptIn(ExperimentalAtomicApi::class)
 internal abstract class MemoryManagerBase : AutoCloseable {
@@ -127,6 +126,17 @@ internal abstract class MemoryManagerBase : AutoCloseable {
             ?.destroy() // Dispose previous disposable with the same key
 
         return disposable
+    }
+
+    /**
+     * Clears the disposable associated with [key] if any and if [key] is not `null`.
+     */
+    fun clearDisposable(key: String) {
+        val disposable = disposableLock.withLock {
+            keyedDisposables[key]?.let(disposables::get)
+        }
+
+        disposable?.dispose()
     }
 
     /**

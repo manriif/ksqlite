@@ -30,8 +30,7 @@ internal class VirtualTableCreateOrConnectScopeImpl(private val db: sqlite3) :
     VirtualTableCreateOrConnectScope,
     ClosableScope() {
 
-    override fun configure(action: VirtualTableConfigurationScope.() -> Unit) =
-        notClosed { VirtualTableConfigurationScopeImpl(db).use(action) }
+    override val config = VirtualTableConfigurationImpl(db, this)
 
     override fun declare(sql: String) =
         notClosed { sqliteResultCheck(sqlite3_declare_vtab(db, sql)) }

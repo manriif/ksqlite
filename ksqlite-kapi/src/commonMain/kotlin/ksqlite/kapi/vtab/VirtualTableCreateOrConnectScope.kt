@@ -7,9 +7,9 @@ package ksqlite.kapi.vtab
 public interface VirtualTableCreateOrConnectScope {
 
     /**
-     * Configures the virtual table.
+     * Configuration of the virtual table.
      */
-    public fun configure(action: VirtualTableConfigurationScope.() -> Unit)
+    public val config: VirtualTableConfiguration
 
     /**
      * Declares the schema of the virtual table.

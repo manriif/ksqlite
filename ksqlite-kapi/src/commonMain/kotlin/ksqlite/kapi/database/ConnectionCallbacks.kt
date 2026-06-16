@@ -1,9 +1,11 @@
-package ksqlite.kapi.connection
+package ksqlite.kapi.database
 
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
-import ksqlite.kapi.requireConnection
+import ksqlite.capi.callbacks.SqliteCommitHookCallback
+import ksqlite.kapi.sqliteRequireConnection
 
 /**
  * Invokes [AutovacuumPages.apply].
@@ -36,26 +38,27 @@ internal val CollationNeededCallback = SqliteCollationNeededCallback { callback:
                                                                        eTextRep,
                                                                        name ->
     callback.apply(
-        connection = requireConnection(db),
+        connection = sqliteRequireConnection(db),
         encoding = eTextRep,
         name = name
     )
 }
+
+/**
+ * Invokes [CommitHook.apply].
+ */
+internal val CommitHookCallback = SqliteCommitHookCallback { callback: CommitHook ->
+    if (callback.apply()) 1 else 0
+}
+
+/**
+ * Invokes [Collation.apply].
+ */
+internal val CollationCallback = SqliteCollationCallback { callback: Collation, lhs, rhs ->
+    callback.apply(lhs, rhs)
+}
+
 /*
-/**
- * Invokes [BusyHandler.apply].
- */
-internal val BusyHandlerCallback = SqliteBusyHandlerCallback { callback: BusyHandler, count ->
-    callback.apply(count)
-}
-
-/**
- * Invokes [BusyHandler.apply].
- */
-internal val BusyHandlerCallback = SqliteBusyHandlerCallback { callback: BusyHandler, count ->
-    callback.apply(count)
-}
-
 /**
  * Invokes [BusyHandler.apply].
  */

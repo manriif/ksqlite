@@ -3,8 +3,7 @@ package ksqlite.kapi.vtab
 import co.touchlab.stately.concurrency.Lock
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.connection.Connection
-import kotlin.concurrent.Volatile
+import ksqlite.kapi.database.DatabaseConnection
 
 /**
  * [Virtual Table Module](https://sqlite.org/vtab.html#implementation).
@@ -13,7 +12,7 @@ import kotlin.concurrent.Volatile
  * must be implemented depending on the virtual table kind.
  *
  * Note that a [VirtualTableModule] cannot be a singleton nor a reusable instance — a new instance
- * must always be passed to [Connection.createModule].
+ * must always be passed to [DatabaseConnection.createModule].
  */
 public sealed class VirtualTableModule : AutoCloseable {
 
@@ -35,7 +34,7 @@ public sealed class VirtualTableModule : AutoCloseable {
          * If an error is detected, an [SQLiteException] is thrown and is returned to SQLite.
          */
         public abstract fun VirtualTableCreateOrConnectScope.create(
-            connection: Connection,
+            connection: DatabaseConnection,
             arguments: Array<String>
         ): VirtualTable
     }
@@ -67,7 +66,7 @@ public sealed class VirtualTableModule : AutoCloseable {
      * If an error is detected, an [SQLiteException] is thrown and is returned to SQLite.
      */
     public abstract fun VirtualTableCreateOrConnectScope.connect(
-        connection: Connection,
+        connection: DatabaseConnection,
         arguments: Array<String>
     ): VirtualTable
 

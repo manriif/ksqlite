@@ -1,4 +1,4 @@
-package ksqlite.kapi.connection
+package ksqlite.kapi.database
 
 import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.sqlite3_autovacuum_pages
@@ -8,9 +8,18 @@ import ksqlite.capi.sqlite3_busy_timeout
 import ksqlite.capi.sqlite3_changes64
 import ksqlite.capi.sqlite3_close_v2
 import ksqlite.capi.sqlite3_collation_needed
+import ksqlite.capi.sqlite3_commit_hook
+import ksqlite.capi.sqlite3_create_collation_v2
 import ksqlite.capi.sqlite3_create_function_v2
 import ksqlite.capi.sqlite3_create_module_v2
 import ksqlite.capi.sqlite3_create_window_function
+import ksqlite.capi.sqlite3_db_cacheflush
+import ksqlite.capi.sqlite3_db_filename
+import ksqlite.capi.sqlite3_db_name
+import ksqlite.capi.sqlite3_db_readonly
+import ksqlite.capi.sqlite3_db_status64
+import ksqlite.capi.sqlite3_drop_modules
+import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
@@ -30,7 +39,10 @@ import ksqlite.kapi.helpers.AutoCloser
 import ksqlite.kapi.helpers.DelegatingAtomicCloseableScope
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
+import ksqlite.kapi.helpers.sqliteResultThrow
 import ksqlite.kapi.helpers.usingParam
+import ksqlite.kapi.helpers.usingParams
+import ksqlite.kapi.throwSQLiteException
 import ksqlite.kapi.vtab.VTab
 import ksqlite.kapi.vtab.VTabBeginCallback
 import ksqlite.kapi.vtab.VTabBestIndexCallback
@@ -59,28 +71,24 @@ import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.kapi.vtab.VirtualTableModuleDestructor
 import ksqlite.kapi.vtab.VirtualTableOptionalFunction
 import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.vtab.SqliteModuleVersion
 
-internal class ConnectionImpl(override val db: sqlite3) : Connection() {
+internal class DatabaseConnectionImpl(
+    override val db: sqlite3,
+    private val onConnectionClosed: () -> Unit
+) : DatabaseConnection() {
 
     private val scope = DelegatingAtomicCloseableScope(::closeConnection)
 
     override val changes: Long
         get() = scope.notClosed { sqlite3_changes64(db) }
 
-    /**
-     * Updates a [Handler], invoking [clear] to clear any exiting handler if [handler] is `null` or
-     * invoking [set] to replace existing one with non `null` [handler] instance.
-     */
-    private inline fun <Handler> updateHandler(
-        handler: Handler?,
-        clear: () -> SqliteResultCode,
-        set: (Handler) -> SqliteResultCode
-    ) = scope.notClosed { sqliteResultCheck(handler?.let(set) ?: clear()) }
+    override val config = DatabaseConnectionConfigurationImpl(db, scope)
 
-    override fun setAutovacuumPages(handler: AutovacuumPages?) = updateHandler(
+    override fun setAutovacuumPages(handler: AutovacuumPages?) = updateHandlerWithResult(
         handler = handler,
         clear = { sqlite3_autovacuum_pages(db, null, null, null) },
         set = { sqlite3_autovacuum_pages(db, it, AutoCloser, AutovacuumPagesCallback) }
@@ -108,7 +116,7 @@ internal class ConnectionImpl(override val db: sqlite3) : Connection() {
         })
     }
 
-    override fun setBusyHandler(handler: BusyHandler?) = updateHandler(
+    override fun setBusyHandler(handler: BusyHandler?) = updateHandlerWithResult(
         handler = handler,
         clear = { sqlite3_busy_handler(db, null, null) },
         set = { sqlite3_busy_handler(db, it, BusyHandlerCallback) }
@@ -117,11 +125,53 @@ internal class ConnectionImpl(override val db: sqlite3) : Connection() {
     override fun setBusyTimeout(millis: Int) =
         scope.notClosed { sqliteResultCheck(sqlite3_busy_timeout(db, millis)) }
 
-    override fun setCollationNeeded(handler: CollationNeeded?) = updateHandler(
+    override fun setCollationNeeded(handler: CollationNeeded?) = updateHandlerWithResult(
         handler = handler,
         clear = { sqlite3_collation_needed(db, null, null) },
         set = { sqlite3_collation_needed(db, it, CollationNeededCallback) }
     )
+
+    override fun setCommitHook(handler: CommitHook?) = updateHandler(
+        handler = handler,
+        clear = { sqlite3_commit_hook(db, null, null) },
+        set = { sqlite3_commit_hook(db, it, CommitHookCallback) }
+    )
+
+    override fun createCollation(
+        name: String,
+        encoding: SqliteTextEncoding.Set0,
+        collation: Collation
+    ) = scope.notClosed {
+        val result = sqlite3_create_collation_v2(
+            db = db,
+            name = name,
+            encoding = encoding,
+            appData = collation,
+            destroy = AutoCloser,
+            callback = CollationCallback
+        )
+
+        if (result is SqliteResultCode.Failure) {
+            collation.close()
+            sqliteResultThrow(result, db)
+        }
+    }
+
+    override fun deleteCollation(
+        name: String,
+        encoding: SqliteTextEncoding.Set0
+    ) = scope.notClosed {
+        db.resultCheck(
+            sqlite3_create_collation_v2(
+                db = db,
+                name = name,
+                encoding = encoding,
+                appData = null,
+                destroy = null,
+                callback = null
+            )
+        )
+    }
 
     override fun createFunction(
         name: String,
@@ -184,6 +234,42 @@ internal class ConnectionImpl(override val db: sqlite3) : Connection() {
                 value = WindowFunctionValueCallback,
                 destroy = AutoCloser
             )
+        )
+    }
+
+    override fun deleteFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: SqliteTextEncoding,
+        isWindowFunction: Boolean
+    ) = scope.notClosed {
+        db.resultCheck(
+            if (isWindowFunction) {
+                sqlite3_create_window_function(
+                    db = db,
+                    name = name,
+                    nArg = argumentCount,
+                    encoding = encoding,
+                    appData = null,
+                    step = null,
+                    final = null,
+                    inverse = null,
+                    value = null,
+                    destroy = null
+                )
+            } else {
+                sqlite3_create_function_v2(
+                    db = db,
+                    name = name,
+                    nArg = argumentCount,
+                    encoding = encoding,
+                    appData = null,
+                    func = null,
+                    step = null,
+                    final = null,
+                    destroy = null
+                )
+            }
         )
     }
 
@@ -292,6 +378,84 @@ internal class ConnectionImpl(override val db: sqlite3) : Connection() {
         connect = VTabConnectCallback
     )
 
+    override fun deleteModule(name: String) = scope.notClosed {
+        db.resultCheck(
+            sqlite3_create_module_v2(
+                db = db,
+                name = name,
+                module = null,
+                appData = null,
+                destroy = null
+            )
+        )
+    }
+
+    override fun deleteModules(keep: Set<String>) =
+        scope.notClosed { db.resultCheck(sqlite3_drop_modules(db, keep.toTypedArray())) }
+
+    override fun flushCache() =
+        scope.notClosed { sqliteResultCheck(sqlite3_db_cacheflush(db)) }
+
+    override fun getFileName(databaseName: String): String? =
+        scope.notClosed { sqlite3_db_filename(db, databaseName) }
+
+    override fun getName(index: Int): String? =
+        scope.notClosed { sqlite3_db_name(db, index) }
+
+    override fun isReadOnly(databaseName: String): Boolean = scope.notClosed {
+        when (sqlite3_db_readonly(db, databaseName)) {
+            ReadWrite -> false
+            ReadOnly -> true
+            UnknownDatabase ->
+                throwSQLiteException("No database named $databaseName on this database connection")
+        }
+    }
+
+    override fun getStatus(
+        option: SqliteDbStatusOption,
+        reset: Boolean
+    ): DatabaseConnectionStatus = scope.notClosed {
+        usingParams(
+            param1 = Int64OutputParam(-1),
+            param2 = Int64OutputParam(-1),
+            transform = ::DatabaseConnectionStatus
+        ) { outCur, outHighwater ->
+            sqliteResultCheck(
+                sqlite3_db_status64(
+                    db = db,
+                    option = option,
+                    outCurrent = outCur,
+                    outHighwater = outHighwater,
+                    resetFlag = if (reset) 1 else 0,
+                )
+            )
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Handler
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Updates a [Handler], invoking [clear] to clear any exiting handler if [handler] is `null` or
+     * invoking [set] to replace existing one with non `null` [handler] instance.
+     */
+    private inline fun <Handler> updateHandlerWithResult(
+        handler: Handler?,
+        clear: () -> SqliteResultCode,
+        set: (Handler) -> SqliteResultCode
+    ) = scope.notClosed { sqliteResultCheck(handler?.let(set) ?: clear()) }
+
+    /**
+     * Updates a [Handler], invoking [clear] to clear any exiting handler if [handler] is `null` or
+     * invoking [set] to replace existing one with non `null` [handler] instance.
+     */
+    private inline fun <Handler> updateHandler(
+        handler: Handler?,
+        clear: () -> Unit,
+        set: (Handler) -> Unit
+    ) = scope.notClosed { handler?.let(set) ?: clear() }
+
     ///////////////////////////////////////////////////////////////////////////
     // Closing
     ///////////////////////////////////////////////////////////////////////////
@@ -301,6 +465,7 @@ internal class ConnectionImpl(override val db: sqlite3) : Connection() {
      */
     private fun closeConnection() {
         db.resultCheck(sqlite3_close_v2(db))
+        onConnectionClosed()
     }
 
     override fun close() = scope.close()

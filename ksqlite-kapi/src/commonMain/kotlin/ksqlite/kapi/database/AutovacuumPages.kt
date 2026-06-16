@@ -1,7 +1,7 @@
-package ksqlite.kapi.connection
+package ksqlite.kapi.database
 
 /**
- * Callback to use with [Connection.setAutovacuumPages].
+ * Callback to use with [DatabaseConnection.setAutovacuumPages].
  */
 public fun interface AutovacuumPages : AutoCloseable {
 

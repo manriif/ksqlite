@@ -8,7 +8,7 @@ import ksqlite.capi.sqlite3_backup_step
 import ksqlite.capi.sqlite3_errcode
 import ksqlite.capi.sqlite3_errmsg
 import ksqlite.capi.types.sqlite3_backup
-import ksqlite.kapi.connection.Connection
+import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.throwSQLiteException
@@ -38,9 +38,9 @@ internal class BackupImpl(private val backup: sqlite3_backup) :
  * Creates a new [Backup].
  */
 internal fun createBackup(
-    destination: Connection,
+    destination: DatabaseConnection,
     destinationName: String,
-    source: Connection,
+    source: DatabaseConnection,
     sourceName: String
 ): Backup {
     val backup = sqlite3_backup_init(destination.db, destinationName, source.db, sourceName)

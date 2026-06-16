@@ -47,6 +47,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         destructor: SqliteDestroyCallback<AppData>?
     ): MemorySegment = notClosed {
         if (data == null && destructor == null) {
+            key?.let(::clearDisposable)
             NullPtr
         } else {
             registerDisposable(key) { StableRefReference(it, destructor, data, appData) }.pointer
@@ -126,9 +127,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     inline fun <reified H : Handler> functionPointer(
         noinline factory: () -> H
-    ): MemorySegment {
-        return functionPointer(this, factory)
-    }
+    ): MemorySegment = functionPointer(this, factory)
 
     /**
      * Allocates a copy of the [value] and returns a [MemorySegment] to the content.
