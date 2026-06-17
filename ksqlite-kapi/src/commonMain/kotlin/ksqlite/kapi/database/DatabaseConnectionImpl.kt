@@ -1,5 +1,6 @@
 package ksqlite.kapi.database
 
+import co.touchlab.stately.collections.ConcurrentMutableSet
 import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.sqlite3_autovacuum_pages
 import ksqlite.capi.sqlite3_blob_open
@@ -18,15 +19,20 @@ import ksqlite.capi.sqlite3_db_filename
 import ksqlite.capi.sqlite3_db_name
 import ksqlite.capi.sqlite3_db_readonly
 import ksqlite.capi.sqlite3_db_status64
+import ksqlite.capi.sqlite3_deserialize
 import ksqlite.capi.sqlite3_drop_modules
+import ksqlite.capi.sqlite3_exec
+import ksqlite.capi.sqlite3_extended_result_codes
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
+import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
 import ksqlite.capi.vtab.callbacks.SqliteVTabCreateCallback
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.blob.BlobImpl
+import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.functions.AggregateFunction
 import ksqlite.kapi.functions.AggregateFunctionFinalCallback
 import ksqlite.kapi.functions.AggregateFunctionStepCallback
@@ -39,7 +45,6 @@ import ksqlite.kapi.helpers.AutoCloser
 import ksqlite.kapi.helpers.DelegatingAtomicCloseableScope
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
-import ksqlite.kapi.helpers.sqliteResultThrow
 import ksqlite.kapi.helpers.usingParam
 import ksqlite.kapi.helpers.usingParams
 import ksqlite.kapi.throwSQLiteException
@@ -72,6 +77,8 @@ import ksqlite.kapi.vtab.VirtualTableModuleDestructor
 import ksqlite.kapi.vtab.VirtualTableOptionalFunction
 import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteDbStatusOption
+import ksqlite.types.SqliteDeserializeFlag
+import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.vtab.SqliteModuleVersion
@@ -82,11 +89,13 @@ internal class DatabaseConnectionImpl(
 ) : DatabaseConnection() {
 
     private val scope = DelegatingAtomicCloseableScope(::closeConnection)
+    private val closeables = ConcurrentMutableSet<AutoCloseable>()
+
+    override val config = DatabaseConnectionConfigurationImpl(db, scope)
+    override val lastError = DatabaseConnectionLastErrorImpl(db, scope)
 
     override val changes: Long
         get() = scope.notClosed { sqlite3_changes64(db) }
-
-    override val config = DatabaseConnectionConfigurationImpl(db, scope)
 
     override fun setAutovacuumPages(handler: AutovacuumPages?) = updateHandlerWithResult(
         handler = handler,
@@ -98,14 +107,14 @@ internal class DatabaseConnectionImpl(
         tableName: String,
         columnName: String,
         rowid: Long,
-        databaseName: String,
+        database: String,
         flags: SqliteBlobOpenFlag
     ): Blob = scope.notClosed {
         BlobImpl(db, usingParam(SqliteBlobOutputParam()) { outBlob ->
             sqliteResultCheck(
                 sqlite3_blob_open(
                     db = db,
-                    databaseName = databaseName,
+                    database = database,
                     tableName = tableName,
                     columnName = columnName,
                     rowid = rowid,
@@ -139,27 +148,25 @@ internal class DatabaseConnectionImpl(
 
     override fun createCollation(
         name: String,
-        encoding: SqliteTextEncoding.Set0,
+        encoding: SqliteTextEncoding.CreateCollation,
         collation: Collation
     ) = scope.notClosed {
-        val result = sqlite3_create_collation_v2(
-            db = db,
-            name = name,
-            encoding = encoding,
-            appData = collation,
-            destroy = AutoCloser,
-            callback = CollationCallback
+        db.resultCheck(
+            sqlite3_create_collation_v2(
+                db = db,
+                name = name,
+                encoding = encoding,
+                appData = collation,
+                destroy = AutoCloser,
+                callback = CollationCallback
+            ),
+            cleanup = collation::close
         )
-
-        if (result is SqliteResultCode.Failure) {
-            collation.close()
-            sqliteResultThrow(result, db)
-        }
     }
 
     override fun deleteCollation(
         name: String,
-        encoding: SqliteTextEncoding.Set0
+        encoding: SqliteTextEncoding.CreateCollation
     ) = scope.notClosed {
         db.resultCheck(
             sqlite3_create_collation_v2(
@@ -176,7 +183,7 @@ internal class DatabaseConnectionImpl(
     override fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: SqliteTextEncoding,
+        encoding: SqliteFunctionTextEncoding,
         function: ScalarFunction
     ) = scope.notClosed {
         db.resultCheck(
@@ -197,7 +204,7 @@ internal class DatabaseConnectionImpl(
     override fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: SqliteTextEncoding,
+        encoding: SqliteFunctionTextEncoding,
         function: AggregateFunction
     ) = scope.notClosed {
         db.resultCheck(
@@ -218,7 +225,7 @@ internal class DatabaseConnectionImpl(
     override fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: SqliteTextEncoding,
+        encoding: SqliteFunctionTextEncoding,
         function: WindowFunction
     ) = scope.notClosed {
         db.resultCheck(
@@ -240,7 +247,7 @@ internal class DatabaseConnectionImpl(
     override fun deleteFunction(
         name: String,
         argumentCount: Int,
-        encoding: SqliteTextEncoding,
+        encoding: SqliteFunctionTextEncoding,
         isWindowFunction: Boolean
     ) = scope.notClosed {
         db.resultCheck(
@@ -396,29 +403,29 @@ internal class DatabaseConnectionImpl(
     override fun flushCache() =
         scope.notClosed { sqliteResultCheck(sqlite3_db_cacheflush(db)) }
 
-    override fun getFileName(databaseName: String): String? =
-        scope.notClosed { sqlite3_db_filename(db, databaseName) }
+    override fun getFileName(database: String): String? =
+        scope.notClosed { sqlite3_db_filename(db, database) }
 
     override fun getName(index: Int): String? =
         scope.notClosed { sqlite3_db_name(db, index) }
 
-    override fun isReadOnly(databaseName: String): Boolean = scope.notClosed {
-        when (sqlite3_db_readonly(db, databaseName)) {
+    override fun isReadOnly(database: String): Boolean = scope.notClosed {
+        when (sqlite3_db_readonly(db, database)) {
             ReadWrite -> false
             ReadOnly -> true
             UnknownDatabase ->
-                throwSQLiteException("No database named $databaseName on this database connection")
+                throwSQLiteException("No database named $database on this database connection")
         }
     }
 
     override fun getStatus(
         option: SqliteDbStatusOption,
         reset: Boolean
-    ): DatabaseConnectionStatus = scope.notClosed {
+    ): DatabaseConnectionOptionStatus = scope.notClosed {
         usingParams(
             param1 = Int64OutputParam(-1),
             param2 = Int64OutputParam(-1),
-            transform = ::DatabaseConnectionStatus
+            transform = ::DatabaseConnectionOptionStatus
         ) { outCur, outHighwater ->
             sqliteResultCheck(
                 sqlite3_db_status64(
@@ -430,6 +437,93 @@ internal class DatabaseConnectionImpl(
                 )
             )
         }
+    }
+
+    override fun deserialize(
+        serializedDatabase: Buffer,
+        database: String?,
+        databaseSize: Long,
+        bufferSize: Long,
+        flags: SqliteDeserializeFlag?
+    ): Unit = scope.notClosed {
+        var freeOnClose = false
+
+        // Remove the FREEONCLOSE flag to prevent double free of the buffer (SQLite + Kotlin) and
+        // free it on Kotlin  side only
+        val updatedFlags = flags?.let { flags ->
+            if (SqliteDeserializeFlag.FREEONCLOSE in flags) {
+                freeOnClose = true
+                flags without SqliteDeserializeFlag.FREEONCLOSE
+            } else {
+                flags
+            }
+        }
+
+        sqliteResultCheck(
+            sqlite3_deserialize(
+                db = db,
+                schema = database,
+                buffer = serializedDatabase.buffer,
+                dbSize = databaseSize,
+                bufferSize = bufferSize,
+                flags = updatedFlags,
+            )
+        ) {
+            // Keep SQLite behavior and free the buffer
+            if (freeOnClose) {
+                serializedDatabase.close()
+            }
+        }
+
+        // Keep a reference to prevent someone from closing the buffer while it is being used
+        // SQLite needs the buffer until the connection is closed
+        val destructor = serializedDatabase.reference { buffer ->
+            if (freeOnClose) {
+                buffer.close()
+            }
+        }
+
+        closeables.add(AutoCloseable {
+            destructor.apply(serializedDatabase.buffer)
+        })
+    }
+
+    override fun setExtendedResultCodesEnabled(enabled: Boolean) = scope.notClosed {
+        sqliteResultCheck(sqlite3_extended_result_codes(db, if (enabled) 1 else 0))
+    }
+
+    override fun execute(
+        sql: String,
+        callback: Exec?
+    ) = scope.notClosed {
+        val outError = Utf8OutputParam()
+
+        val result = if (callback != null) {
+            sqlite3_exec(
+                db = db,
+                sql = sql,
+                outErrorMessage = outError,
+                appData = callback,
+                callback = ExecCallback
+            )
+        } else {
+            sqlite3_exec(
+                db = db,
+                sql = sql,
+                outErrorMessage = outError,
+                appData = null,
+                callback = null
+            )
+        }
+
+        outError.value?.let { error ->
+            throwSQLiteException(
+                message = error,
+                result = result as? SqliteResultCode.Failure ?: SqliteResultCode.ERROR
+            )
+        }
+
+        sqliteResultCheck(result)
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -465,6 +559,11 @@ internal class DatabaseConnectionImpl(
      */
     private fun closeConnection() {
         db.resultCheck(sqlite3_close_v2(db))
+
+        closeables
+            .onEach { it.close() }
+            .clear()
+
         onConnectionClosed()
     }
 

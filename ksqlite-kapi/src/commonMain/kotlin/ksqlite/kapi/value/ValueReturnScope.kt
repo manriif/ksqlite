@@ -86,7 +86,7 @@ public interface ValueReturnScope {
      */
     public fun setResult(
         value: Buffer,
-        encoding: SqliteTextEncoding.Set1,
+        encoding: SqliteTextEncoding.ResultText,
         size: Long = value.byteSize,
         cleanup: ((Buffer) -> Unit)? = null
     )

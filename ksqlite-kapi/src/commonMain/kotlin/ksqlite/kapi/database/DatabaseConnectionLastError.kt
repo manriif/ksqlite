@@ -1,0 +1,33 @@
+package ksqlite.kapi.database
+
+import ksqlite.types.SqliteResultCode
+
+/**
+ * Provides access to the most recent database error information.
+ *
+ * Note that value returned by the member properties may change while the database connection is
+ * used.
+ */
+public interface DatabaseConnectionLastError {
+
+    /**
+     * UTF-8 encoded English language explanation.
+     */
+    public val message: String?
+
+    /**
+     * Error code.
+     */
+    public val code: SqliteResultCode
+
+    /**
+     * Extended error code.
+     */
+    public val extendedCode: SqliteResultCode
+
+    /**
+     * Byte offset of the start of the token specified by the input SQL, if referenced by the most
+     * recent error.
+     */
+    public val offset: Int
+}

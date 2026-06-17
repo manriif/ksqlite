@@ -8,6 +8,7 @@ import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.helpers.BaseClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingBooleanParam
+import ksqlite.kapi.helpers.usingParam
 
 internal class DatabaseConnectionConfigurationImpl(
     private val db: sqlite3,
@@ -94,6 +95,20 @@ internal class DatabaseConnectionConfigurationImpl(
         get() = getBooleanOption(SqliteDbConfigOption::ENABLE_COMMENTS)
         set(value) = setBooleanOption(value, SqliteDbConfigOption::ENABLE_COMMENTS)
 
+    override var floatingPointDigits: Int
+        get() = getIntOption(0, SqliteDbConfigOption::FP_DIGITS)
+        set(value) = setIntOption(value, SqliteDbConfigOption::FP_DIGITS)
+
+    /**
+     * Applies the given configuration [option].
+     */
+    private fun applyOption(option: SqliteDbConfigOption) =
+        scope.notClosed { sqliteResultCheck(sqlite3_db_config(db, option)) }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Boolean
+    ///////////////////////////////////////////////////////////////////////////
+
     /**
      * Returns the value of the option supplied by [createOption].
      */
@@ -108,20 +123,38 @@ internal class DatabaseConnectionConfigurationImpl(
     /**
      * Sets the [value] of the option supplied by [createOption].
      */
-    private fun setBooleanOption(
+    private inline fun setBooleanOption(
         value: Boolean,
+        createOption: (Int, Nothing?) -> SqliteDbConfigOption.IntOutput
+    ): Unit = applyOption(createOption(if (value) 1 else 0, null))
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Int
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Returns the value of the option supplied by [createOption].
+     */
+    private inline fun getIntOption(
+        nonAlteringValue: Int,
         createOption: (Int, Int32OutputParam) -> SqliteDbConfigOption.IntOutput
-    ): Unit = scope.notClosed {
-        val _ = usingBooleanParam(null) { param ->
-            sqliteResultCheck(sqlite3_db_config(db, createOption(if (value) 1 else 0, param)))
+    ): Int = scope.notClosed {
+        usingParam(Int32OutputParam(-1)) { param ->
+            sqliteResultCheck(sqlite3_db_config(db, createOption(nonAlteringValue, param)))
         }
     }
 
     /**
-     * Applies the given configuration [option].
+     * Sets the [value] of the option supplied by [createOption].
      */
-    private fun applyOption(option: SqliteDbConfigOption) =
-        scope.notClosed { sqliteResultCheck(sqlite3_db_config(db, option)) }
+    private inline fun setIntOption(
+        value: Int,
+        createOption: (Int, Nothing?) -> SqliteDbConfigOption.IntOutput
+    ): Unit = applyOption(createOption(value, null))
+
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    ///////////////////////////////////////////////////////////////////////////
 
     override fun setMainDatabaseName(name: String) =
         applyOption(SqliteDbConfigOption.MAINDBNAME(name))

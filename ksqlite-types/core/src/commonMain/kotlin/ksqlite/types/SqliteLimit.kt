@@ -73,4 +73,9 @@ public enum class SqliteLimit(public val id: Int) {
 	 * The maximum number of auxiliary worker threads that a single prepared statement may start.
 	 */
 	WORKER_THREADS(11),
+
+	/**
+	 * The maximum depth of the LALR(1) parser stack used to analyze input SQL statements.
+	 */
+	PARSER_DEPTH(12)
 }

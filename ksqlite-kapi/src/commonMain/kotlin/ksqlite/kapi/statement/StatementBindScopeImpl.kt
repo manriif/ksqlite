@@ -85,7 +85,7 @@ internal class StatementBindScopeImpl(private val stmt: sqlite3_stmt) :
     override fun bind(
         index: Int,
         value: Buffer,
-        encoding: SqliteTextEncoding.Set1,
+        encoding: SqliteTextEncoding.BindText,
         size: Long,
         cleanup: ((Buffer) -> Unit)?
     ) = bind {

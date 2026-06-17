@@ -145,7 +145,7 @@ public interface StatementBindScope {
     public fun bind(
         index: Int,
         value: Buffer,
-        encoding: SqliteTextEncoding.Set1,
+        encoding: SqliteTextEncoding.BindText,
         size: Long = value.byteSize,
         cleanup: ((Buffer) -> Unit)? = null
     )

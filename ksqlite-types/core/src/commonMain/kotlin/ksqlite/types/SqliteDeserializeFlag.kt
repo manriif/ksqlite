@@ -46,12 +46,34 @@ public sealed class SqliteDeserializeFlag(public open val value: Int) {
      */
     @ConsistentCopyVisibility
     public data class Mask internal constructor(override val value: Int) :
-        SqliteDeserializeFlag(value)
+        SqliteDeserializeFlag(value) {
+
+        override fun contains(flag: SqliteDeserializeFlag): Boolean =
+            (value and flag.value) == flag.value
+    }
 
     /**
      * Returns an [SqliteDeserializeFlag] which is ORed with [flag].
      */
-    public infix fun or(flag: SqliteDeserializeFlag): SqliteDeserializeFlag {
-        return Mask(value or flag.value)
-    }
+    public infix fun or(flag: SqliteDeserializeFlag): SqliteDeserializeFlag =
+        Mask(value or flag.value)
+
+    /**
+     * Returns an [SqliteDeserializeFlag] which is ANDed with [flag].
+     */
+    public infix fun and(flag: SqliteDeserializeFlag): SqliteDeserializeFlag =
+        Mask(value and flag.value)
+
+    /**
+     * Returns an [SqliteDeserializeFlag] which has [flag] removed.
+     */
+    public infix fun without(flag: SqliteDeserializeFlag): SqliteDeserializeFlag =
+        Mask(value and flag.value.inv())
+
+    /**
+     * Returns `true` if [flag] is equals to `this`.
+     * It this is a mask, returns `true` if it contains [flag].
+     */
+    public open operator fun contains(flag: SqliteDeserializeFlag): Boolean =
+        flag == this || flag.value == value
 }

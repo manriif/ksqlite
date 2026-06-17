@@ -50,6 +50,22 @@ public sealed class SqlitePrepareFlag(public open val value: Int) {
      */
     public data object DONT_LOG : Constant(0x10)
 
+    /**
+     * The SQLITE_PREPARE_FROM_DDL flag causes the SQL compiler to enforce security constraints that
+     * would otherwise only be enforced when parsing the database schema. In other words, the
+     * SQLITE_PREPARE_FROM_DDL flag causes the SQL compiler to treat the SQL statement being
+     * prepared as if it had come from an attacker. When SQLITE_PREPARE_FROM_DDL is used and
+     * SQLITE_DBCONFIG_TRUSTED_SCHEMA is off, SQL functions may only be called if they are tagged
+     * with SQLITE_INNOCUOUS and virtual tables may only be used if they are tagged with
+     * SQLITE_VTAB_INNOCUOUS. Best practice is to use the SQLITE_PREPARE_FROM_DDL option when
+     * preparing any SQL that is derived from parts of the database schema. In particular, virtual
+     * table implementations that run SQL statements that are derived from arguments to their
+     * CREATE VIRTUAL TABLE statement should always use sqlite3_prepare_v3() and set the
+     * SQLITE_PREPARE_FROM_DDL flag to prevent bypass of the SQLITE_DBCONFIG_TRUSTED_SCHEMA security
+     * checks.
+     */
+    public data object FROM_DDL : Constant(0x20)
+
     ///////////////////////////////////////////////////////////////////////////
     // Masking
     ///////////////////////////////////////////////////////////////////////////
@@ -59,12 +75,34 @@ public sealed class SqlitePrepareFlag(public open val value: Int) {
      */
     @ConsistentCopyVisibility
     public data class Mask internal constructor(override val value: Int) :
-        SqlitePrepareFlag(value)
+        SqlitePrepareFlag(value) {
+
+        override fun contains(flag: SqlitePrepareFlag): Boolean =
+            (value and flag.value) == flag.value
+    }
 
     /**
      * Returns an [SqlitePrepareFlag] which is ORed with [flag].
      */
-    public infix fun or(flag: SqlitePrepareFlag): SqlitePrepareFlag {
-        return Mask(value or flag.value)
-    }
+    public infix fun or(flag: SqlitePrepareFlag): SqlitePrepareFlag =
+        Mask(value or flag.value)
+
+    /**
+     * Returns an [SqlitePrepareFlag] which is ANDed with [flag].
+     */
+    public infix fun and(flag: SqlitePrepareFlag): SqlitePrepareFlag =
+        Mask(value and flag.value)
+
+    /**
+     * Returns an [SqlitePrepareFlag] which has [flag] removed.
+     */
+    public infix fun without(flag: SqlitePrepareFlag): SqlitePrepareFlag =
+        Mask(value and flag.value.inv())
+
+    /**
+     * Returns `true` if [flag] is equals to `this`.
+     * It this is a mask, returns `true` if it contains [flag].
+     */
+    public open operator fun contains(flag: SqlitePrepareFlag): Boolean =
+        flag == this || flag.value == value
 }

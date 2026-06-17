@@ -14,7 +14,7 @@ public fun interface SqliteCollationNeededCallback<AppData> {
     public fun apply(
         appData: AppData,
         db: sqlite3,
-        eTextRep: SqliteTextEncoding.Set2,
+        eTextRep: SqliteTextEncoding.CollationNeeded,
         name: String
     )
 }

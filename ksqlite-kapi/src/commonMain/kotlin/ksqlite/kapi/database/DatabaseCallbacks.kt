@@ -5,6 +5,8 @@ import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
 import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.callbacks.SqliteCommitHookCallback
+import ksqlite.capi.callbacks.SqliteExecCallback
+import ksqlite.kapi.helpers.ksqliteLog
 import ksqlite.kapi.sqliteRequireConnection
 
 /**
@@ -58,24 +60,24 @@ internal val CollationCallback = SqliteCollationCallback { callback: Collation, 
     callback.apply(lhs, rhs)
 }
 
-/*
 /**
- * Invokes [BusyHandler.apply].
+ * Invokes [Exec.apply].
  */
-internal val BusyHandlerCallback = SqliteBusyHandlerCallback { callback: BusyHandler, count ->
-    callback.apply(count)
-}
+internal val ExecCallback = SqliteExecCallback { callback: Exec, count, values, names ->
+    try {
+        with(callback) {
+            ExecScopeImpl.apply(
+                columnCount = count,
+                columnValues = values,
+                columnNames = names
+            )
+        }
 
-/**
- * Invokes [BusyHandler.apply].
- */
-internal val BusyHandlerCallback = SqliteBusyHandlerCallback { callback: BusyHandler, count ->
-    callback.apply(count)
+        0
+    } catch (_: ExecAbortException) {
+        1
+    } catch (unexpected: Throwable) {
+        ksqliteLog(unexpected)
+        throw unexpected
+    }
 }
-
-/**
- * Invokes [BusyHandler.apply].
- */
-internal val BusyHandlerCallback = SqliteBusyHandlerCallback { callback: BusyHandler, count ->
-    callback.apply(count)
-}*/

@@ -7,64 +7,106 @@ package ksqlite.types
  * SQLite.
  *
  * [Text Encodings](https://sqlite.org/c3ref/c_any.html)
+ *
+ * TODO: uncomment constants subclasses after UTF16 support is added
  */
-public sealed class SqliteTextEncoding(public open val value: Int) {
+public sealed interface SqliteTextEncoding {
 
     /**
-     * Set of [SqliteTextEncoding] including [UTF8], [UFT16LE], [UTF16BE].
+     * Encoding value.
      */
-    public sealed class Set2(value: Int) : SqliteTextEncoding(value)
+    public val value: Int
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Groups
+    ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Set of [SqliteTextEncoding] including [Set2] and [UTF16].
+     * Encoding supported by the `sqlite3_bind_text64()` routine.
      */
-    public sealed class Set1(value: Int) : Set2(value)
+    public sealed interface BindText : SqliteTextEncoding
 
     /**
-     * Set of [SqliteTextEncoding] including [Set1] and [UTF16_ALIGNED].
+     * Encoding that is passed to the `sqlite3_collation_needed()` callback.
      */
-    public sealed class Set0(value: Int) : Set1(value)
+    public sealed interface CollationNeeded : SqliteTextEncoding
+
+    /**
+     * Encoding supported by the `sqlite3_create_collation()` routine.
+     */
+    public sealed interface CreateCollation : SqliteTextEncoding
+
+    /**
+     * Encoding supported by the `sqlite3_result_text64()` routine.
+     */
+    public sealed interface ResultText : SqliteTextEncoding
+
+    /**
+     * Encoding that is returned by the `sqlite3_value_encoding()` routine.
+     */
+    public sealed interface ValueEncoding : SqliteTextEncoding
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Constants
+    ///////////////////////////////////////////////////////////////////////////
+
+    public sealed class Constant(override val value: Int) : SqliteTextEncoding
 
     /**
      * IMP: R-37514-35566.
      */
-    public data object UTF8 : Set2(1)
+    public data object UTF8 :
+        Constant(1),
+        SqliteFunctionTextEncoding,
+        BindText,
+        CollationNeeded,
+        CreateCollation,
+        ResultText
 
     /**
      * IMP: R-03371-37637.
      */
-    public data object UFT16LE : Set2(2)
+    public data object UFT16LE :
+        Constant(2)/*,
+        SqliteFunctionTextEncoding,
+        BindText,
+        CollationNeeded,
+        CreateCollation,
+        ResultText*/
 
     /**
      * IMP: R-51971-34154
      */
-    public data object UTF16BE : Set2(3)
+    public data object UTF16BE :
+        Constant(3)/*,
+        SqliteFunctionTextEncoding,
+        BindText,
+        CollationNeeded,
+        CreateCollation,
+        ResultText*/
 
     /**
      * Use native byte order.
      */
-    public data object UTF16 : Set1(4)
+    public data object UTF16 :
+        Constant(4)/*,
+        SqliteFunctionTextEncoding,
+        BindText,
+        CreateCollation,
+        ResultText*/
 
     /**
      * sqlite3_create_collation() only.
      */
-    public data object UTF16_ALIGNED : Set0(8)
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Masking
-    ///////////////////////////////////////////////////////////////////////////
+    public data object UTF16_ALIGNED :
+        Constant(8)/*,
+        CreateCollation*/
 
     /**
-     * [SqliteTextEncoding] applying a mask and that can be used with create functions routines.
+     * Zero-terminated UTF8.
      */
-    @ConsistentCopyVisibility
-    public data class Mask internal constructor(override val value: Int) :
-        SqliteTextEncoding(value)
-
-    /**
-     * Returns an [SqliteTextEncoding] which is ORed with [flag].
-     */
-    public infix fun or(flag: SqliteFunctionFlag): SqliteTextEncoding {
-        return Mask(value or flag.value)
-    }
+    public data object UTF8_ZT :
+        Constant(16)/*,
+        BindText,
+        ResultText*/
 }

@@ -95,7 +95,7 @@ public open class ProtectedValue internal constructor(
      * Returns the current text encoding of the value, assuming that [type] returns
      * [ksqlite.types.SqliteDataType.TEXT].
      */
-    public val encoding: SqliteTextEncoding.Set2
+    public val encoding: SqliteTextEncoding.ValueEncoding
         get() = scope.notClosed { sqlite3_value_encoding(value) }
 
     /**

@@ -29,32 +29,34 @@ public sealed class SqliteVTabScanFlag(public open val value: Int) {
     public data class Mask internal constructor(override val value: Int) :
         SqliteVTabScanFlag(value) {
 
-        override fun contains(flag: SqliteVTabScanFlag): Boolean {
-            return (value and flag.value) == flag.value
-        }
+        override fun contains(flag: SqliteVTabScanFlag): Boolean =
+            (value and flag.value) == flag.value
     }
 
     /**
      * Returns an [SqliteVTabScanFlag] which is ORed with [flag].
      */
-    public infix fun or(flag: SqliteVTabScanFlag): SqliteVTabScanFlag {
-        return Mask(value or flag.value)
-    }
+    public infix fun or(flag: SqliteVTabScanFlag): SqliteVTabScanFlag =
+        Mask(value or flag.value)
 
     /**
      * Returns an [SqliteVTabScanFlag] which is ANDed with [flag].
      */
-    public infix fun and(flag: SqliteVTabScanFlag): SqliteVTabScanFlag {
-        return Mask(value and flag.value)
-    }
+    public infix fun and(flag: SqliteVTabScanFlag): SqliteVTabScanFlag =
+        Mask(value and flag.value)
+
+    /**
+     * Returns an [SqliteVTabScanFlag] which has [flag] removed.
+     */
+    public infix fun without(flag: SqliteVTabScanFlag): SqliteVTabScanFlag =
+        Mask(value and flag.value.inv())
 
     /**
      * Returns `true` if [flag] is equals to `this`.
      * It this is a mask, returns `true` if it contains [flag].
      */
-    public open operator fun contains(flag: SqliteVTabScanFlag): Boolean {
-        return flag == this || flag.value == value
-    }
+    public open operator fun contains(flag: SqliteVTabScanFlag): Boolean =
+        flag == this || flag.value == value
 
     public companion object {
 

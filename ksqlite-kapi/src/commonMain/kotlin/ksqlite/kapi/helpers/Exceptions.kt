@@ -29,8 +29,8 @@ internal fun <T> sqliteOutOfMemoryCheck(
  * If [getMessagePrefix] is supplied, the computed message is prepended before the SQLite message
  * associated with the database connection [db].
  *
- * This function must be called immediately after the [result] is obtained and before any other
- * SQLite API call is made.
+ * If [db] is supplied, then this function must be called immediately after the [result] is obtained
+ * and before any other SQLite API call is made.
  */
 internal fun sqliteResultThrow(
     result: SqliteResultCode.Failure,
@@ -38,8 +38,8 @@ internal fun sqliteResultThrow(
     getMessagePrefix: (() -> String)? = null
 ): Nothing {
     val errorMessage = when (result) {
-        MISUSE -> sqlite3_errstr(result.code)
-        else -> db?.let(::sqlite3_errmsg) ?: sqlite3_errstr(result.code)
+        MISUSE -> sqlite3_errstr(result)
+        else -> db?.let(::sqlite3_errmsg) ?: sqlite3_errstr(result)
     }
 
     val messagePrefix = getMessagePrefix?.invoke()
@@ -56,26 +56,30 @@ internal fun sqliteResultThrow(
 
 /**
  * Throws an [SQLiteException] if the [result] is an [SqliteResultCode.Failure].
+ * If [cleanup] is supplied, then it is invoked prior to the exception being thrown.
  *
  * If [getMessagePrefix] is supplied, the computed message is prepended before the SQLite message
  * associated with the database connection provided by [getDb].
  *
- * This function must be called immediately after the [result] is obtained and before any other
- * SQLite API call is made.
+ * If [getDb] is supplied, then this function must be called immediately after the [result] is
+ * obtained and before any other SQLite API call is made.
  */
 @PublishedApi
 internal fun sqliteResultCheck(
     result: SqliteResultCode,
     getDb: (() -> sqlite3)? = null,
-    getMessagePrefix: (() -> String)? = null
+    getMessagePrefix: (() -> String)? = null,
+    cleanup: (() -> Unit)? = null
 ) {
     if (result is SqliteResultCode.Failure) {
+        cleanup?.invoke()
         sqliteResultThrow(result, getDb?.invoke(), getMessagePrefix)
     }
 }
 
 /**
  * Throws an [SQLiteException] if the [result] is an [SqliteResultCode.Failure].
+ * If [cleanup] is supplied, then it is invoked prior to the exception being thrown.
  *
  * If [getMessagePrefix] is supplied, the computed message is prepended before the SQLite message
  * associated with `this` database connection.
@@ -86,10 +90,18 @@ internal fun sqliteResultCheck(
 @PublishedApi
 internal fun sqlite3.resultCheck(
     result: SqliteResultCode,
-    getMessagePrefix: (() -> String)? = null
+    getMessagePrefix: (() -> String)? = null,
+    cleanup: (() -> Unit)? = null
 ) {
     if (result is SqliteResultCode.Failure) {
+        cleanup?.invoke()
         sqliteResultThrow(result, this, getMessagePrefix)
+    }
+
+    when (result) {
+        is SqliteResultCode.OK -> Unit
+        SqliteResultCode.DONE.Companion -> TODO()
+        SqliteResultCode.ROW.Companion -> TODO()
     }
 }
 
@@ -104,4 +116,7 @@ internal inline fun <T, R> T.runCatchingSQLiteException(
     block()
 } catch (exception: SQLiteException) {
     handleException(exception)
+} catch (unexpected: Throwable) {
+    ksqliteLog(unexpected)
+    throw unexpected
 }

@@ -7,12 +7,12 @@ import ksqlite.types.SqliteTextEncoding
  */
 private fun sqliteTextEncodings(): Set<SqliteTextEncoding> = setOf(
     SqliteTextEncoding.UTF8,
+    SqliteTextEncoding.UTF8_ZT,
     SqliteTextEncoding.UFT16LE,
     SqliteTextEncoding.UTF16BE,
     SqliteTextEncoding.UTF16,
     SqliteTextEncoding.UTF16_ALIGNED,
 )
-
 
 /**
  * [SqliteTextEncoding]s associated by their integer value.

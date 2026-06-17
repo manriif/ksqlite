@@ -59,7 +59,7 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
 
     override fun setResult(
         value: Buffer,
-        encoding: SqliteTextEncoding.Set1,
+        encoding: SqliteTextEncoding.ResultText,
         size: Long,
         cleanup: ((Buffer) -> Unit)?
     ) = scope.notClosed {

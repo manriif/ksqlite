@@ -163,6 +163,12 @@ public interface DatabaseConnectionConfiguration {
     public var areCommentsEnabled: Boolean
 
     /**
+     * Number of significant digits that SQLite will attempt to preserve when converting floating
+     * point numbers (IEEE 754 "doubles") into text.
+     */
+    public var floatingPointDigits: Int
+
+    /**
      * Sets the name of the "main" database schema to [name].
      *
      * @throws ksqlite.kapi.SQLiteException if getting or setting the option fails.

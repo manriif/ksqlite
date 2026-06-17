@@ -1,5 +1,6 @@
 package ksqlite.capi
 
+import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteTextEncoding
 
 ///////////////////////////////////////////////////////////////////////////
@@ -32,7 +33,7 @@ internal const val KEY_WAL_HOOK = "wal_hook"
 internal fun functionKey(
     name: String,
     nArg: Int,
-    encoding: SqliteTextEncoding?
+    encoding: SqliteFunctionTextEncoding?
 ): String {
     return "create_function_${name}_${nArg}_${encoding?.value}"
 }
@@ -43,7 +44,7 @@ internal fun functionKey(
 internal fun windowFunctionKey(
     name: String,
     nArg: Int,
-    encoding: SqliteTextEncoding
+    encoding: SqliteFunctionTextEncoding
 ): String {
     return "create_window_function_${name}_${nArg}_${encoding.value}"
 }

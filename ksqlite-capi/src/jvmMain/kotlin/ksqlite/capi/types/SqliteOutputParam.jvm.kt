@@ -1,10 +1,10 @@
 package ksqlite.capi.types
 
 import ksqlite.capi.memory.NullPtr
-import ksqlite.capi.memory.memScoped
-import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.isNull
+import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.notNull
+import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.foreign.sqlite3.sqlite3_free
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.SegmentAllocator
@@ -104,27 +104,53 @@ public actual class Int64OutputParam actual constructor(initialValue: Long) :
 
 public actual class Utf8OutputParam actual constructor() : PointerOutputParam<String>() {
 
-    /**
-     * Custom size if not zero terminated.
-     */
-    internal var size: Int? = null
-
-    /**
-     * Whether to free the C-string after read.
-     */
-    internal var free: Boolean = true
+    private var freeOnRead: Boolean = false
+    private var customSize: Int32OutputParam? = null
 
     override fun create(pointer: MemorySegment): String {
-        val part = size?.let { pointer.asSlice(0, it.toLong()) } ?: pointer
+        val part = customSize?.value?.let { pointer.asSlice(0, it.toLong()) } ?: pointer
         val string = part.toKStringFromUtf8()
 
-        if (free) {
+        if (freeOnRead) {
             sqlite3_free(pointer)
         }
 
         return string
     }
+
+    /**
+     * Updates [freeOnRead] and [customSize] properties during [block]'s execution.
+     *
+     * If [customSize] is not `null` then it is assumed that the strings that are read during
+     * [block] execution are not zero terminated.
+     *
+     * If [freeOnRead] is `true` then the native string buffer is freed after it is read.
+     */
+    internal inline fun <R> overriding(
+        freeOnRead: Boolean = false,
+        customSize: Int32OutputParam? = null,
+        block: () -> R
+    ): R {
+        this.freeOnRead = freeOnRead
+        this.customSize = customSize
+
+        return try {
+            block()
+        } finally {
+            this.freeOnRead = false
+            this.customSize = null
+        }
+    }
 }
+
+/**
+ * Invokes [Utf8OutputParam.overriding] or returns [block]'s result if `this` is `null`.
+ */
+internal inline fun <R> Utf8OutputParam?.overriding(
+    freeOnRead: Boolean = false,
+    customSize: Int32OutputParam? = null,
+    block: () -> R
+): R = this?.overriding(freeOnRead, customSize, block) ?: block()
 
 ///////////////////////////////////////////////////////////////////////////
 // Structs

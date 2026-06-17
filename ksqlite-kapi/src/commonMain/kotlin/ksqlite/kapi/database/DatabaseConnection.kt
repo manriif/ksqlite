@@ -3,15 +3,17 @@ package ksqlite.kapi.database
 import ksqlite.capi.types.sqlite3
 import ksqlite.kapi.MAIN_DB_NAME
 import ksqlite.kapi.blob.Blob
+import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.functions.AggregateFunction
 import ksqlite.kapi.functions.ScalarFunction
 import ksqlite.kapi.functions.WindowFunction
 import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteDbStatusOption
+import ksqlite.types.SqliteDeserializeFlag
+import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.vtab.SqliteModuleVersion
-import kotlin.time.Duration
 
 /**
  * [Database connection](https://sqlite.org/c3ref/sqlite3.html).
@@ -21,15 +23,20 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     internal abstract val db: sqlite3
 
     /**
-     * Returns the number of rows modified, inserted or deleted by the most recently completed
-     * INSERT, UPDATE or DELETE statement.
+     * Configuration of the connection.
+     */
+    public abstract val config: DatabaseConnectionConfiguration
+
+    /**
+     * Number of rows modified, inserted or deleted by the most recently completed INSERT, UPDATE or
+     * DELETE statement.
      */
     public abstract val changes: Long
 
     /**
-     * Configuration of the connection.
+     * Most recent error information.
      */
-    public abstract val config: DatabaseConnectionConfiguration
+    public abstract val lastError: DatabaseConnectionLastError
 
     /**
      * Sets the callback that is invoked prior to each autovacuum of the database file.
@@ -47,7 +54,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
         tableName: String,
         columnName: String,
         rowid: Long,
-        databaseName: String = MAIN_DB_NAME,
+        database: String = MAIN_DB_NAME,
         flags: SqliteBlobOpenFlag = SqliteBlobOpenFlag.READONLY
     ): Blob
 
@@ -88,7 +95,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      */
     public abstract fun createCollation(
         name: String,
-        encoding: SqliteTextEncoding.Set0,
+        encoding: SqliteTextEncoding.CreateCollation,
         collation: Collation
     )
 
@@ -99,7 +106,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      */
     public abstract fun deleteCollation(
         name: String,
-        encoding: SqliteTextEncoding.Set0
+        encoding: SqliteTextEncoding.CreateCollation
     )
 
     /**
@@ -110,7 +117,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: SqliteTextEncoding,
+        encoding: SqliteFunctionTextEncoding,
         function: ScalarFunction
     )
 
@@ -122,7 +129,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: SqliteTextEncoding,
+        encoding: SqliteFunctionTextEncoding,
         function: AggregateFunction
     )
 
@@ -134,7 +141,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun createFunction(
         name: String,
         argumentCount: Int,
-        encoding: SqliteTextEncoding,
+        encoding: SqliteFunctionTextEncoding,
         function: WindowFunction
     )
 
@@ -147,7 +154,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun deleteFunction(
         name: String,
         argumentCount: Int,
-        encoding: SqliteTextEncoding,
+        encoding: SqliteFunctionTextEncoding,
         isWindowFunction: Boolean = false
     )
 
@@ -207,9 +214,9 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun flushCache()
 
     /**
-     * Returns the absolute pathname of the database [databaseName] of this connection.
+     * Returns the absolute pathname of the database [database] of this connection.
      */
-    public abstract fun getFileName(databaseName: String = MAIN_DB_NAME): String?
+    public abstract fun getFileName(database: String = MAIN_DB_NAME): String?
 
     /**
      * Returns the schema name for the [index]th database on this connection.
@@ -217,12 +224,12 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun getName(index: Int): String?
 
     /**
-     * Returns `true` if the database [databaseName] is read-only, or `false` If it is read/write.
+     * Returns `true` if the database [database] is read-only, or `false` If it is read/write.
      *
-     * @throws ksqlite.kapi.SQLiteException if [databaseName] is not the name of a database on this
+     * @throws ksqlite.kapi.SQLiteException if [database] is not the name of a database on this
      * connection.
      */
-    public abstract fun isReadOnly(databaseName: String): Boolean
+    public abstract fun isReadOnly(database: String): Boolean
 
     /**
      * Returns the status for the given options.
@@ -230,20 +237,43 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun getStatus(
         option: SqliteDbStatusOption,
         reset: Boolean = false
-    ): DatabaseConnectionStatus
+    ): DatabaseConnectionOptionStatus
+
+    /**
+     * Disconnects from [database] and then reopens [database] as an in-memory database based on the
+     * serialization contained in [serializedDatabase]. The [serializedDatabase] is [databaseSize]
+     * bytes in size. [bufferSize] is the size of the buffer [serializedDatabase], which might be
+     * larger than [databaseSize]. If [bufferSize] is larger than [databaseSize], and the
+     * [SqliteDeserializeFlag.READONLY] bit is not set in [flags], then SQLite is permitted to add
+     * content to the in-memory database as long as the total size does not exceed [bufferSize]
+     * bytes.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
+     */
+    public abstract fun deserialize(
+        serializedDatabase: Buffer,
+        database: String? = null,
+        databaseSize: Long = serializedDatabase.byteSize,
+        bufferSize: Long = databaseSize,
+        flags: SqliteDeserializeFlag? = null
+    )
+
+    /**
+     * Enables or disables the extended result codes.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
+     */
+    public abstract fun setExtendedResultCodesEnabled(enabled: Boolean)
+
+    /**
+     * Runs zero or more UTF-8 encoded, semicolon-separated SQL statements from [sql]. If [callback]
+     * is not `null` then it is invoked for each result row coming out of the evaluated SQL
+     * statements.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
+     */
+    public abstract fun execute(
+        sql: String,
+        callback: Exec? = null
+    )
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Sets a [BusyHandler] that sleeps for a specified amount of time when a table is locked.
- * Any [BusyHandler] previously passed to [setBusyHandler] is replaced.
- *
- * The [duration] is coerced to [Int.MAX_VALUE] milliseconds.
- *
- * @throws ksqlite.kapi.SQLiteException if setting the timeout fails.
- */
-public fun DatabaseConnection.setBusyTimeout(duration: Duration): Unit =
-    setBusyTimeout(duration.inWholeMilliseconds.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())

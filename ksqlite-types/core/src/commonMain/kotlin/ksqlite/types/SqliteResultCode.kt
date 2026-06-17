@@ -937,6 +937,8 @@ public sealed class SqliteResultCode(public val code: Int) {
          *
          * The SQLITE_OK_LOAD_PERMANENTLY return code is useful to loadable extensions that register
          * new VFSes, for example.
+         *
+         * TODO maybe remove this one as extension loading is disabled
          */
         public data object LOAD_PERMANENTLY : OK(256)
 

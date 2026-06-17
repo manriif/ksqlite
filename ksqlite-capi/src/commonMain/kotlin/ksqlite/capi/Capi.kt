@@ -1,4 +1,4 @@
-@file:Suppress("FunctionName", "SpellCheckingInspection")
+@file:Suppress("FunctionName", "SpellCheckingInspection", "DEPRECATION")
 
 package ksqlite.capi
 
@@ -52,6 +52,7 @@ import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqliteFileControlOpcode
+import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteLimit
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
@@ -300,7 +301,7 @@ public expect fun sqlite3_bind_text64(
     index: Int,
     buffer: Buffer,
     size: Long,
-    encoding: SqliteTextEncoding.Set1,
+    encoding: SqliteTextEncoding.BindText,
     destroy: SqliteDestroyCallback<Buffer>?
 ): SqliteResultCode
 
@@ -358,7 +359,7 @@ public expect fun sqlite3_blob_close(blob: sqlite3_blob): SqliteResultCode
  */
 public expect fun sqlite3_blob_open(
     db: sqlite3,
-    databaseName: String,
+    database: String,
     tableName: String,
     columnName: String,
     rowid: Long,
@@ -727,7 +728,7 @@ public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3
 public fun <AppData> sqlite3_create_collation(
     db: sqlite3,
     name: String,
-    encoding: SqliteTextEncoding.Set0,
+    encoding: SqliteTextEncoding.CreateCollation,
     appData: AppData,
     callback: SqliteCollationCallback<AppData>?
 ): SqliteResultCode = sqlite3_create_collation_v2(
@@ -747,7 +748,7 @@ public fun <AppData> sqlite3_create_collation(
 public expect fun <AppData> sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
-    encoding: SqliteTextEncoding.Set0,
+    encoding: SqliteTextEncoding.CreateCollation,
     appData: AppData,
     destroy: SqliteDestroyCallback<in AppData>?,
     callback: SqliteCollationCallback<in AppData>?
@@ -772,7 +773,7 @@ public fun <AppData> sqlite3_create_function(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: SqliteTextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
     func: SqliteFunctionFuncCallback<in AppData>?,
     step: SqliteFunctionStepCallback<in AppData>?,
@@ -798,7 +799,7 @@ public expect fun <AppData> sqlite3_create_function_v2(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: SqliteTextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
     func: SqliteFunctionFuncCallback<in AppData>?,
     step: SqliteFunctionStepCallback<in AppData>?,
@@ -854,7 +855,7 @@ public expect fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: SqliteTextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
     step: SqliteFunctionStepCallback<in AppData>?,
     final: SqliteFunctionFinalCallback<in AppData>?,
@@ -895,7 +896,7 @@ public expect fun sqlite3_db_config(
  */
 public expect fun sqlite3_db_filename(
     db: sqlite3,
-    name: String
+    database: String
 ): sqlite3_filename?
 
 /**
@@ -924,7 +925,7 @@ public expect fun sqlite3_db_name(
  */
 public expect fun sqlite3_db_readonly(
     db: sqlite3,
-    name: String
+    database: String
 ): SqliteDbReadonlyResult
 
 /**
@@ -1022,7 +1023,7 @@ public expect fun sqlite3_error_offset(db: sqlite3): Int
  *
  * [sqlite3_errstr()](https://sqlite.org/c3ref/errcode.html)
  */
-public expect fun sqlite3_errstr(resultCode: Int): String?
+public expect fun sqlite3_errstr(resultCode: SqliteResultCode): String?
 
 /**
  * Execute SQL code. Return one of the SQLITE_ success/failure codes. Also write an error message
@@ -1058,7 +1059,7 @@ public expect fun sqlite3_expanded_sql(stmt: sqlite3_stmt): String?
  *
  * [sqlite3_extended_errcode()](https://sqlite.org/c3ref/errcode.html)
  */
-public expect fun sqlite3_extended_errcode(db: sqlite3): Int
+public expect fun sqlite3_extended_errcode(db: sqlite3): SqliteResultCode
 
 /**
  * Enable or disable the extended result codes.
@@ -1746,7 +1747,7 @@ public expect fun sqlite3_result_text64(
     context: sqlite3_context,
     buffer: Buffer,
     size: Long,
-    encoding: SqliteTextEncoding.Set1,
+    encoding: SqliteTextEncoding.ResultText,
     destroy: SqliteDestroyCallback<Buffer>?
 )
 
@@ -2185,7 +2186,7 @@ public expect fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value?
  *
  * [sqlite3_value_encoding()](https://sqlite.org/c3ref/value_encoding.html)
  */
-public expect fun sqlite3_value_encoding(value: sqlite3_value): SqliteTextEncoding.Set2
+public expect fun sqlite3_value_encoding(value: sqlite3_value): SqliteTextEncoding.ValueEncoding
 
 /**
  * Free an sqlite3_value object previously obtained from sqlite3_value_dup().

@@ -417,4 +417,22 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
         value: Int,
         state: Int32OutputParam?
     ) : IntOutput(1022, value, state)
+
+    /**
+     * The SQLITE_DBCONFIG_FP_DIGITS setting is a small integer that determines the number of
+     * significant digits that SQLite will attempt to preserve when converting floating point
+     * numbers (IEEE 754 "doubles") into text. The default value 17, as of SQLite version 3.52.0.
+     * The value was 15 in all prior versions.
+     *
+     * This option takes two arguments which are an integer and a pointer to an integer. The first
+     * argument is a small integer, between 3 and 23, or zero. The FP_DIGITS setting is changed to
+     * that small integer, or left unaltered if the first argument is zero or out of range. The
+     * second argument is a pointer to an integer. If the pointer is not NULL, then the value of the
+     * FP_DIGITS setting, after possibly being modified by the first arguments, is written into the
+     * integer to which the second argument points.
+     */
+    public class FP_DIGITS(
+        value: Int,
+        state: Int32OutputParam?
+    ) : IntOutput(1023, value, state)
 }

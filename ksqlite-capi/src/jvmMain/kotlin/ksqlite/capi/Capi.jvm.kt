@@ -71,6 +71,7 @@ import ksqlite.capi.types.SqliteStmtOutputParam
 import ksqlite.capi.types.SqliteVTabConfigOption
 import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.Utf8OutputParam
+import ksqlite.capi.types.overriding
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
@@ -98,6 +99,7 @@ import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqliteFileControlOpcode
+import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteLimit
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
@@ -275,7 +277,7 @@ public actual fun sqlite3_bind_text64(
     index: Int,
     buffer: Buffer,
     size: Long,
-    encoding: SqliteTextEncoding.Set1,
+    encoding: SqliteTextEncoding.BindText,
     destroy: SqliteDestroyCallback<Buffer>?
 ): SqliteResultCode = convertResult(
     native.sqlite3_bind_text64(
@@ -284,7 +286,7 @@ public actual fun sqlite3_bind_text64(
         buffer.pointer,
         size,
         bufferDisposer(buffer, destroy),
-        encoding.utf8OrThrow().value.toByte()
+        encoding.value.toByte()
     )
 )
 
@@ -315,7 +317,7 @@ public actual fun sqlite3_blob_close(blob: sqlite3_blob): SqliteResultCode =
 
 public actual fun sqlite3_blob_open(
     db: sqlite3,
-    databaseName: String,
+    database: String,
     tableName: String,
     columnName: String,
     rowid: Long,
@@ -325,7 +327,7 @@ public actual fun sqlite3_blob_open(
     useParam(outBlob) { blobPtr ->
         native.sqlite3_blob_open(
             db.pointer,
-            databaseName.allocateUtf8(),
+            database.allocateUtf8(),
             tableName.allocateUtf8(),
             columnName.allocateUtf8(),
             rowid,
@@ -537,7 +539,7 @@ public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3 =
 public actual fun <AppData> sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
-    encoding: SqliteTextEncoding.Set0,
+    encoding: SqliteTextEncoding.CreateCollation,
     appData: AppData,
     destroy: SqliteDestroyCallback<in AppData>?,
     callback: SqliteCollationCallback<in AppData>?
@@ -546,7 +548,7 @@ public actual fun <AppData> sqlite3_create_collation_v2(
         native.sqlite3_create_collation_v2(
             db.pointer,
             name.allocateUtf8(),
-            encoding.utf8OrThrow().value,
+            encoding.value,
             keyedStableRefPointer(collationKey(name, encoding), callback, appData, destroy),
             functionPointer(callback, ::CollationCompareHandler),
             stableRefDisposer(callback, destroy)
@@ -558,7 +560,7 @@ public actual fun <AppData> sqlite3_create_function_v2(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: SqliteTextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
     func: SqliteFunctionFuncCallback<in AppData>?,
     step: SqliteFunctionStepCallback<in AppData>?,
@@ -571,7 +573,7 @@ public actual fun <AppData> sqlite3_create_function_v2(
                 db.pointer,
                 name.allocateUtf8(),
                 nArg,
-                encoding.utf8OrThrow().value,
+                encoding.value,
                 keyedStableRefPointer(
                     key = functionKey(name, nArg, encoding),
                     data = fn,
@@ -611,7 +613,7 @@ public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: SqliteTextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
     step: SqliteFunctionStepCallback<in AppData>?,
     final: SqliteFunctionFinalCallback<in AppData>?,
@@ -625,7 +627,7 @@ public actual fun <AppData> sqlite3_create_window_function(
                 db.pointer,
                 name.allocateUtf8(),
                 nArg,
-                encoding.utf8OrThrow().value,
+                encoding.value,
                 keyedStableRefPointer(
                     key = windowFunctionKey(name, nArg, encoding),
                     data = fn,
@@ -672,9 +674,9 @@ public actual fun sqlite3_db_config(
 
 public actual fun sqlite3_db_filename(
     db: sqlite3,
-    name: String
+    database: String
 ): sqlite3_filename? = memScoped {
-    native.sqlite3_db_filename(db.pointer, name.allocateUtf8())
+    native.sqlite3_db_filename(db.pointer, database.allocateUtf8())
 }.toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_db_handle(stmt: sqlite3_stmt): sqlite3? =
@@ -688,9 +690,9 @@ public actual fun sqlite3_db_name(
 
 public actual fun sqlite3_db_readonly(
     db: sqlite3,
-    name: String
+    database: String
 ): SqliteDbReadonlyResult = convertDbReadonlyResult(memScoped {
-    native.sqlite3_db_readonly(db.pointer, name.allocateUtf8())
+    native.sqlite3_db_readonly(db.pointer, database.allocateUtf8())
 })
 
 public actual fun sqlite3_db_release_memory(db: sqlite3): SqliteResultCode =
@@ -759,8 +761,8 @@ public actual fun sqlite3_errmsg(db: sqlite3): String? =
 public actual fun sqlite3_error_offset(db: sqlite3): Int =
     native.sqlite3_error_offset(db.pointer)
 
-public actual fun sqlite3_errstr(resultCode: Int): String? =
-    native.sqlite3_errstr(resultCode).toKStringFromUtf8OrNull()
+public actual fun sqlite3_errstr(resultCode: SqliteResultCode): String? =
+    native.sqlite3_errstr(resultCode.code).toKStringFromUtf8OrNull()
 
 public actual fun <AppData> sqlite3_exec(
     db: sqlite3,
@@ -770,14 +772,16 @@ public actual fun <AppData> sqlite3_exec(
     callback: SqliteExecCallback<AppData>?
 ): SqliteResultCode = convertResult(useMemoryManager {
     memScoped {
-        useParam(outErrorMessage) { errorMessagePtr ->
-            native.sqlite3_exec(
-                db.pointer,
-                sql.allocateUtf8(),
-                functionPointer(callback, ::ExecHandler),
-                stableRefPointer(callback, appData),
-                errorMessagePtr
-            )
+        outErrorMessage.overriding(freeOnRead = true) {
+            useParam(outErrorMessage) { errorMessagePtr ->
+                native.sqlite3_exec(
+                    db.pointer,
+                    sql.allocateUtf8(),
+                    functionPointer(callback, ::ExecHandler),
+                    stableRefPointer(callback, appData),
+                    errorMessagePtr
+                )
+            }
         }
     }
 })
@@ -789,8 +793,8 @@ public actual fun sqlite3_expanded_sql(stmt: sqlite3_stmt): String? {
     return expandedSql
 }
 
-public actual fun sqlite3_extended_errcode(db: sqlite3): Int =
-    native.sqlite3_extended_errcode(db.pointer)
+public actual fun sqlite3_extended_errcode(db: sqlite3): SqliteResultCode =
+    convertResult(native.sqlite3_extended_errcode(db.pointer))
 
 public actual fun sqlite3_extended_result_codes(
     db: sqlite3,
@@ -861,13 +865,11 @@ public actual fun sqlite3_keyword_name(
     index: Int,
     outName: Utf8OutputParam,
 ): SqliteResultCode = convertResult(memScoped {
-    useParam(outName) { namePtr ->
-        val size = Int32OutputParam(0)
+    val outSize = Int32OutputParam(0)
 
-        useParam(size) { sizePtr ->
+    outName.overriding(customSize = outSize) {
+        useParams(outSize, outName) { sizePtr, namePtr ->
             native.sqlite3_keyword_name(index, namePtr, sizePtr)
-        }.also {
-            outName.size = size.value
         }
     }
 })
@@ -1184,14 +1186,14 @@ public actual fun sqlite3_result_text64(
     context: sqlite3_context,
     buffer: Buffer,
     size: Long,
-    encoding: SqliteTextEncoding.Set1,
+    encoding: SqliteTextEncoding.ResultText,
     destroy: SqliteDestroyCallback<Buffer>?
 ): Unit = native.sqlite3_result_text64(
     context.pointer,
     buffer.pointer,
     size,
     bufferDisposer(buffer, destroy),
-    encoding.utf8OrThrow().value.toByte()
+    encoding.value.toByte()
 )
 
 public actual fun sqlite3_result_value(
@@ -1511,7 +1513,7 @@ public actual fun sqlite3_value_double(value: sqlite3_value): Double =
 public actual fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value? =
     native.sqlite3_value_dup(value.pointer).orNull?.let(::sqlite3_value)
 
-public actual fun sqlite3_value_encoding(value: sqlite3_value): SqliteTextEncoding.Set2 =
+public actual fun sqlite3_value_encoding(value: sqlite3_value): SqliteTextEncoding.ValueEncoding =
     convertTextEncoding(native.sqlite3_value_encoding(value.pointer))
 
 public actual fun sqlite3_value_free(value: sqlite3_value): Unit =

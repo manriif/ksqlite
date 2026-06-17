@@ -17,9 +17,19 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Flag or ORed flags for use with [ksqlite.capi.sqlite3_open_v2] only.
+     * Flag or ORed flags for use with `sqlite3_open_v2()` only.
      */
     public sealed class Db(value: Int) : SqliteOpenFlag(value) {
+
+        /**
+         * Holder for flags.
+         */
+        @ConsistentCopyVisibility
+        public data class Mask internal constructor(override val value: Int) : Db(value) {
+
+            override fun contains(flag: OptionalDb): Boolean =
+                (value and flag.value) == flag.value
+        }
 
         /**
          * Returns a [Vfs] which could be used to add optional flags for VFS.
@@ -29,13 +39,26 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
         /**
          * Returns a [Db] which is ORed with [flag].
          */
-        public open infix fun or(flag: OptionalDb): Db = Mask(value or flag.value)
+        public infix fun or(flag: OptionalDb): Db = Mask(value or flag.value)
 
         /**
-         * Holder for flags.
+         * Returns an [Db] which is ANDed with [flag].
          */
-        @ConsistentCopyVisibility
-        public data class Mask internal constructor(override val value: Int) : Db(value)
+        public infix fun and(flag: OptionalDb): Db =
+            Mask(value and flag.value)
+
+        /**
+         * Returns an [Db] which has [flag] removed.
+         */
+        public infix fun without(flag: OptionalDb): Db =
+            Mask(value and flag.value.inv())
+
+        /**
+         * Returns `true` if [flag] is equals to `this`.
+         * It this is a mask, returns `true` if it contains [flag].
+         */
+        public open operator fun contains(flag: OptionalDb): Boolean =
+            flag == this || flag.value == value
     }
 
     /**
@@ -44,12 +67,12 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
     public sealed class Required(value: Int) : Db(value)
 
     /**
-     * Optional flag for use with [ksqlite.capi.sqlite3_open_v2] and VFS.
+     * Optional flag for use with `sqlite3_open_v2()` and VFS.
      */
     public sealed class Optional(value: Int) : SqliteOpenFlag(value)
 
     /**
-     * Optional flag for use with [ksqlite.capi.sqlite3_open_v2] only.
+     * Optional flag for use with `sqlite3_open_v2()` only.
      */
     public sealed class OptionalDb(value: Int) : Optional(value)
 
@@ -150,15 +173,38 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
     public sealed class Vfs(value: Int) : SqliteOpenFlag(value) {
 
         /**
+         * Holder for VFS only flags.
+         */
+        @ConsistentCopyVisibility
+        public data class Mask internal constructor(override val value: Int) : Vfs(value) {
+
+            override fun contains(flag: Optional): Boolean =
+                (value and flag.value) == flag.value
+        }
+
+        /**
          * Returns a [Vfs] which is ORed with [flag].
          */
         public infix fun or(flag: Optional): Vfs = Mask(value or flag.value)
 
         /**
-         * Holder for VFS only flags.
+         * Returns an [Vfs] which is ANDed with [flag].
          */
-        @ConsistentCopyVisibility
-        public data class Mask internal constructor(override val value: Int) : Vfs(value)
+        public infix fun and(flag: Optional): Vfs =
+            Mask(value and flag.value)
+
+        /**
+         * Returns an [Vfs] which has [flag] removed.
+         */
+        public infix fun without(flag: Optional): Vfs =
+            Mask(value and flag.value.inv())
+
+        /**
+         * Returns `true` if [flag] is equals to `this`.
+         * It this is a mask, returns `true` if it contains [flag].
+         */
+        public open operator fun contains(flag: Optional): Boolean =
+            flag == this || flag.value == value
     }
 
     /**

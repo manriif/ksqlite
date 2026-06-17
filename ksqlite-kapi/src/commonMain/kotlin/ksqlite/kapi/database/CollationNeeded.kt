@@ -8,11 +8,11 @@ import ksqlite.types.SqliteTextEncoding
 public fun interface CollationNeeded {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/auto_extension.html).
+     * Details on parameters can be found [here](https://sqlite.org/c3ref/collation_needed.html).
      */
     public fun apply(
         connection: DatabaseConnection,
-        encoding: SqliteTextEncoding.Set2,
+        encoding: SqliteTextEncoding.CollationNeeded,
         name: String
     )
 }
