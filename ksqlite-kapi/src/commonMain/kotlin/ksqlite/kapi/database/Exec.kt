@@ -8,14 +8,14 @@ public fun interface Exec {
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/c3ref/exec.html).
      *
-     * If the execution must be aborted, [abort] must be called.
-     *
      * The application must not access more than [columnCount] elements from [columnValues] and
      * [columnNames] even if they contain more than [columnCount] elements.
+     *
+     * To abort the execution, `true` must be returned, `false` to keep it continue.
      */
-    public fun ExecScope.apply(
+    public fun apply(
         columnCount: Int,
         columnValues: Array<String?>,
         columnNames: Array<String>
-    )
+    ): Boolean
 }

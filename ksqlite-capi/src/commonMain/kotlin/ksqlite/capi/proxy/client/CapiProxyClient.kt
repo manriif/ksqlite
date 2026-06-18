@@ -1204,7 +1204,7 @@ public interface CapiProxyClient {
     )
 
     /**
-	 * See [ksqlite.capi.sqlite3_serialize].
+	 * See [ksqlite.capi.serializeInternal].
 	 */
 	public suspend fun sqlite3_serialize(
         db: sqlite3,

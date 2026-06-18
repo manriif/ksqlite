@@ -185,6 +185,14 @@ public actual class SqliteBlobOutputParam actual constructor() :
     }
 }
 
+public actual class SqliteSnapshotOutputParam actual constructor() :
+    PointerOutputParam<sqlite3_snapshot>() {
+
+    override fun WasmMemory.create(pointer: WasmPointer): sqlite3_snapshot {
+        return sqlite3_snapshot(pointer)
+    }
+}
+
 public actual class SqliteStmtOutputParam actual constructor() :
     PointerOutputParam<sqlite3_stmt>() {
 

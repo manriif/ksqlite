@@ -8,7 +8,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * Helper for object implementing [AutoCloseable].
  */
 @PublishedApi
-internal abstract class BaseClosableScope: AutoCloseable {
+internal abstract class BaseClosableScope : AutoCloseable {
 
     @PublishedApi
     internal abstract val closed: Boolean
@@ -17,6 +17,13 @@ internal abstract class BaseClosableScope: AutoCloseable {
      * Notifies about scope closing.
      */
     open fun onClose() = Unit
+
+    /**
+     * Throws [IllegalStateException] if [closed] is `true`.
+     */
+    internal fun ensureNotClosed(lazyMessage: () -> String = { "Scope is closed" }) {
+        check(!closed, lazyMessage)
+    }
 
     /**
      * Returns [block]'s result or throws [IllegalStateException] if [closed] is `true`.
@@ -54,7 +61,7 @@ internal open class ClosableScope : BaseClosableScope() {
  */
 internal class DelegatingCloseableScope(
     private val onClose: () -> Unit
-): ClosableScope() {
+) : ClosableScope() {
 
     override fun onClose() {
         onClose.invoke()
@@ -85,7 +92,7 @@ internal open class AtomicClosableScope : BaseClosableScope() {
  */
 internal class DelegatingAtomicCloseableScope(
     private val onClose: () -> Unit
-): AtomicClosableScope() {
+) : AtomicClosableScope() {
 
     override fun onClose() {
         onClose.invoke()

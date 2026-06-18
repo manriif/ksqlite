@@ -1,6 +1,9 @@
 package ksqlite.capi
 
 import kotlinx.cinterop.CPointerVarOf
+import kotlinx.cinterop.convert
+import kotlinx.cinterop.cstr
+import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.toLong
 import ksqlite.capi.callbacks.SqliteDestroyCallback
@@ -9,12 +12,17 @@ import ksqlite.capi.memory.stableRefAppData
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.withMemoryManager
+import ksqlite.capi.types.Int64OutputParam
+import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.types.useParam
+import ksqlite.types.SqliteSerializeFlag
 import ksqlite.foreign.sqlite3_aggregate_context as native_sqlite3_aggregate_context
 import ksqlite.foreign.sqlite3_column_blob as native_sqlite3_column_blob
 import ksqlite.foreign.sqlite3_get_auxdata as native_sqlite3_get_auxdata
+import ksqlite.foreign.sqlite3_serialize as native_sqlite3_serialize
 import ksqlite.foreign.sqlite3_set_auxdata as native_sqlite3_set_auxdata
 import ksqlite.foreign.sqlite3_user_data as native_sqlite3_user_data
 import ksqlite.foreign.sqlite3_value_blob as native_sqlite3_value_blob
@@ -71,6 +79,22 @@ internal actual fun userDataInternal(context: sqlite3_context): ApplicationDefin
     val pointer = native_sqlite3_user_data(context.pointer) ?: return null
     return stableRefData<ApplicationDefinedFunction<*>>(pointer)
 }
+
+public actual fun serializeInternal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer? = Buffer.from(
+    pointer = memScoped {
+        useParam(outSize) { sizePtr ->
+            val mFlags = flags?.value?.convert() ?: 0u
+            native_sqlite3_serialize(db.pointer, database?.cstr?.ptr, sizePtr, mFlags)
+        }
+    },
+    size = outSize.value
+)
+
 
 @PublishedApi
 internal actual fun valuePointerInternal(

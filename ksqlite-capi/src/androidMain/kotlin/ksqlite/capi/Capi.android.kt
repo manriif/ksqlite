@@ -89,11 +89,10 @@ import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
-import ksqlite.types.SqliteLimit
+import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
@@ -250,7 +249,6 @@ import ksqlite.foreign.sqlite3_result_value as jni_sqlite3_result_value
 import ksqlite.foreign.sqlite3_result_zeroblob as jni_sqlite3_result_zeroblob
 import ksqlite.foreign.sqlite3_result_zeroblob64 as jni_sqlite3_result_zeroblob64
 import ksqlite.foreign.sqlite3_rollback_hook as jni_sqlite3_rollback_hook
-import ksqlite.foreign.sqlite3_serialize as jni_sqlite3_serialize
 import ksqlite.foreign.sqlite3_set_authorizer as jni_sqlite3_set_authorizer
 import ksqlite.foreign.sqlite3_set_errmsg as jni_sqlite3_set_errmsg
 import ksqlite.foreign.sqlite3_set_last_insert_rowid as jni_sqlite3_set_last_insert_rowid
@@ -837,7 +835,7 @@ public actual fun sqlite3_declare_vtab(
 
 public actual fun sqlite3_deserialize(
     db: sqlite3,
-    schema: String?,
+    database: String?,
     buffer: Buffer,
     dbSize: Long,
     bufferSize: Long,
@@ -845,7 +843,7 @@ public actual fun sqlite3_deserialize(
 ): SqliteResultCode = convertResult(
     jni_sqlite3_deserialize(
         db.pointer,
-        schema,
+        database,
         buffer.pointer,
         dbSize,
         bufferSize,
@@ -898,9 +896,9 @@ public actual fun sqlite3_extended_result_codes(
 
 public actual fun sqlite3_file_control(
     db: sqlite3,
-    name: String?,
+    database: String?,
     opcode: SqliteFileControlOpcode
-): SqliteResultCode = convertResult(jni_sqlite3_file_control(db.pointer, name, opcode.code))
+): SqliteResultCode = convertResult(jni_sqlite3_file_control(db.pointer, database, opcode.code))
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): SqliteResultCode =
     convertResult(jni_sqlite3_finalize(stmt.pointer))
@@ -931,10 +929,10 @@ public actual fun sqlite3_key(
 
 public actual fun sqlite3_key_v2(
     db: sqlite3,
-    dbName: String,
+    database: String,
     key: ByteArray,
     nKey: Int,
-): SqliteResultCode = convertResult(jni_sqlite3_key_v2(db.pointer, dbName, key, nKey))
+): SqliteResultCode = convertResult(jni_sqlite3_key_v2(db.pointer, database, key, nKey))
 
 public actual fun sqlite3_keyword_check(word: String): Int = jni_sqlite3_keyword_check(word)
 
@@ -954,12 +952,12 @@ public actual fun sqlite3_last_insert_rowid(db: sqlite3): Long =
 public actual fun sqlite3_libversion(): String =
     jni_sqlite3_libversion()
 
-public actual fun sqlite3_libversion_number(db: sqlite3): Int =
+public actual fun sqlite3_libversion_number(): Int =
     jni_sqlite3_libversion_number()
 
 public actual fun sqlite3_limit(
     db: sqlite3,
-    id: SqliteLimit,
+    id: SqliteRuntimeLimit,
     newVal: Int
 ): Int = jni_sqlite3_limit(db.pointer, id.id, newVal)
 
@@ -1258,20 +1256,6 @@ public actual fun <AppData> sqlite3_rollback_hook(
     )
 }
 
-public actual fun sqlite3_serialize(
-    db: sqlite3,
-    schema: String?,
-    flags: SqliteSerializeFlag?
-): Buffer? {
-    val size = Int64OutputParam(0)
-
-    val pointer = useParam(size) { sizePtr ->
-        jni_sqlite3_serialize(db.pointer, schema, sizePtr!!, flags?.value ?: 0)
-    }
-
-    return Buffer.from(pointer, size.value)
-}
-
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
@@ -1285,9 +1269,10 @@ public actual fun <AppData> sqlite3_set_authorizer(
 
 public actual fun sqlite3_set_errmsg(
     db: sqlite3,
-    errorCode: SqliteResultCode.Failure,
-    message: String?
-): SqliteResultCode = convertResult(jni_sqlite3_set_errmsg(db.pointer, errorCode.code, message))
+    errorCode: SqliteResultCode,
+    errorMessage: String?
+): SqliteResultCode =
+    convertResult(jni_sqlite3_set_errmsg(db.pointer, errorCode.code, errorMessage))
 
 public actual fun sqlite3_set_last_insert_rowid(
     db: sqlite3,
@@ -1460,8 +1445,8 @@ public actual fun <AppData> sqlite3_trace_v2(
 
 public actual fun sqlite3_txn_state(
     db: sqlite3,
-    schema: String?
-): SqliteTransactionState? = convertTransactionState(jni_sqlite3_txn_state(db.pointer, schema))
+    database: String?
+): SqliteTransactionState? = convertTransactionState(jni_sqlite3_txn_state(db.pointer, database))
 
 public actual fun <AppData> sqlite3_update_hook(
     db: sqlite3,

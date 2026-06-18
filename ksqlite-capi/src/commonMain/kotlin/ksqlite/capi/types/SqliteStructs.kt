@@ -53,6 +53,14 @@ public expect class sqlite3_context : Struct
 public typealias sqlite3_filename = String
 
 /**
+ * An instance of the snapshot object records the state of a WAL mode database for some specific
+ * point in history.
+ *
+ * [sqlite3_snapshot](https://sqlite.org/c3ref/snapshot.html)
+ */
+public expect class sqlite3_snapshot : Struct
+
+/**
  * An instance of this object represents a single SQL statement that has been compiled into binary
  * form and is ready to be evaluated.
  *

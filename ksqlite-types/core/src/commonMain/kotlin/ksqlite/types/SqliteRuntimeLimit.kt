@@ -9,7 +9,7 @@ package ksqlite.types
  *
  * [Run-Time Limit Categories](https://sqlite.org/c3ref/c_limit_attached.html)
  */
-public enum class SqliteLimit(public val id: Int) {
+public enum class SqliteRuntimeLimit(public val id: Int) {
 
     /**
 	 * The maximum size of any string or BLOB or table row, in bytes.

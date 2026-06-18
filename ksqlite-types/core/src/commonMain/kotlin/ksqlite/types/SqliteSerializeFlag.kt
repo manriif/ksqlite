@@ -2,9 +2,9 @@ package ksqlite.types
 
 /**
  * The following are allowed values for the 4th argument (the F argument) to the
- * sqlite3_serialize(D,S,P,F) interface.
+ * serializeInternal(D,S,P,F) interface.
  *
- * [Flags for sqlite3_serialize()](https://sqlite.org/c3ref/serialize.html).
+ * [Flags for serializeInternal()](https://sqlite.org/c3ref/serialize.html).
  */
 public sealed class SqliteSerializeFlag(public open val value: Int) {
 
@@ -15,7 +15,7 @@ public sealed class SqliteSerializeFlag(public open val value: Int) {
 
     /**
      * If the F argument contains the SQLITE_SERIALIZE_NOCOPY bit, then no memory allocations are
-     * made, and the sqlite3_serialize() function will return a pointer to the contiguous memory
+     * made, and the serializeInternal() function will return a pointer to the contiguous memory
      * representation of the database that SQLite is currently using for that database, or NULL if
      * no such contiguous memory representation of the database exist.
      */

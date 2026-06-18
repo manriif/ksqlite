@@ -2,7 +2,6 @@
 
 package ksqlite.capi
 
-
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
@@ -107,11 +106,10 @@ import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
-import ksqlite.types.SqliteLimit
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.SqliteSerializeFlag
+import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
@@ -267,7 +265,6 @@ import ksqlite.foreign.sqlite3_result_value as native_sqlite3_result_value
 import ksqlite.foreign.sqlite3_result_zeroblob as native_sqlite3_result_zeroblob
 import ksqlite.foreign.sqlite3_result_zeroblob64 as native_sqlite3_result_zeroblob64
 import ksqlite.foreign.sqlite3_rollback_hook as native_sqlite3_rollback_hook
-import ksqlite.foreign.sqlite3_serialize as native_sqlite3_serialize
 import ksqlite.foreign.sqlite3_set_authorizer as native_sqlite3_set_authorizer
 import ksqlite.foreign.sqlite3_set_errmsg as native_sqlite3_set_errmsg
 import ksqlite.foreign.sqlite3_set_last_insert_rowid as native_sqlite3_set_last_insert_rowid
@@ -877,7 +874,8 @@ public actual fun sqlite3_db_name(
 public actual fun sqlite3_db_readonly(
     db: sqlite3,
     database: String
-): SqliteDbReadonlyResult = convertDbReadonlyResult(native_sqlite3_db_readonly(db.pointer, database))
+): SqliteDbReadonlyResult =
+    convertDbReadonlyResult(native_sqlite3_db_readonly(db.pointer, database))
 
 public actual fun sqlite3_db_release_memory(db: sqlite3): SqliteResultCode =
     convertResult(native_sqlite3_db_release_memory(db.pointer))
@@ -911,7 +909,7 @@ public actual fun sqlite3_declare_vtab(
 
 public actual fun sqlite3_deserialize(
     db: sqlite3,
-    schema: String?,
+    database: String?,
     buffer: Buffer,
     dbSize: Long,
     bufferSize: Long,
@@ -919,7 +917,7 @@ public actual fun sqlite3_deserialize(
 ): SqliteResultCode = convertResult(
     native_sqlite3_deserialize(
         db.pointer,
-        schema,
+        database,
         buffer.pointer.reinterpret(),
         dbSize,
         bufferSize,
@@ -985,10 +983,10 @@ public actual fun sqlite3_extended_result_codes(
 
 public actual fun sqlite3_file_control(
     db: sqlite3,
-    name: String?,
+    database: String?,
     opcode: SqliteFileControlOpcode
 ): SqliteResultCode = convertResult(
-    native_sqlite3_file_control(db.pointer, name, opcode.code, null)
+    native_sqlite3_file_control(db.pointer, database, opcode.code, null)
 )
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): SqliteResultCode =
@@ -1020,11 +1018,11 @@ public actual fun sqlite3_key(
 
 public actual fun sqlite3_key_v2(
     db: sqlite3,
-    dbName: String,
+    database: String,
     key: ByteArray,
     nKey: Int,
 ): SqliteResultCode =
-    convertResult(native_sqlite3_key_v2(db.pointer, dbName, key.refTo(0), nKey))
+    convertResult(native_sqlite3_key_v2(db.pointer, database, key.refTo(0), nKey))
 
 public actual fun sqlite3_keyword_check(word: String): Int = memScoped {
     val cWord = word.cstr
@@ -1053,12 +1051,12 @@ public actual fun sqlite3_last_insert_rowid(db: sqlite3): Long =
 public actual fun sqlite3_libversion(): String =
     native_sqlite3_libversion()!!.toKStringFromUtf8()
 
-public actual fun sqlite3_libversion_number(db: sqlite3): Int =
+public actual fun sqlite3_libversion_number(): Int =
     native_sqlite3_libversion_number()
 
 public actual fun sqlite3_limit(
     db: sqlite3,
-    id: SqliteLimit,
+    id: SqliteRuntimeLimit,
     newVal: Int
 ): Int = native_sqlite3_limit(db.pointer, id.id, newVal)
 
@@ -1382,23 +1380,6 @@ public actual fun <AppData> sqlite3_rollback_hook(
     )
 }
 
-public actual fun sqlite3_serialize(
-    db: sqlite3,
-    schema: String?,
-    flags: SqliteSerializeFlag?
-): Buffer? {
-    val size = Int64OutputParam(0)
-
-    val pointer = memScoped {
-        useParam(size) { sizePtr ->
-            val mFlags = flags?.value?.convert() ?: 0u
-            native_sqlite3_serialize(db.pointer, schema?.cstr?.ptr, sizePtr, mFlags)
-        }
-    }
-
-    return Buffer.from(pointer, size.value)
-}
-
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
@@ -1413,9 +1394,10 @@ public actual fun <AppData> sqlite3_set_authorizer(
 
 public actual fun sqlite3_set_errmsg(
     db: sqlite3,
-    errorCode: SqliteResultCode.Failure,
-    message: String?
-): SqliteResultCode = convertResult(native_sqlite3_set_errmsg(db.pointer, errorCode.code, message))
+    errorCode: SqliteResultCode,
+    errorMessage: String?
+): SqliteResultCode =
+    convertResult(native_sqlite3_set_errmsg(db.pointer, errorCode.code, errorMessage))
 
 public actual fun sqlite3_set_last_insert_rowid(
     db: sqlite3,
@@ -1590,8 +1572,8 @@ public actual fun <AppData> sqlite3_trace_v2(
 
 public actual fun sqlite3_txn_state(
     db: sqlite3,
-    schema: String?
-): SqliteTransactionState? = convertTransactionState(native_sqlite3_txn_state(db.pointer, schema))
+    database: String?
+): SqliteTransactionState? = convertTransactionState(native_sqlite3_txn_state(db.pointer, database))
 
 public actual fun <AppData> sqlite3_update_hook(
     db: sqlite3,

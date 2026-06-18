@@ -8,10 +8,10 @@ package ksqlite.types
  *
  * [Authorizer Return Codes](https://sqlite.org/c3ref/c_deny.html).
  */
-public enum class SqliteAuthorizerCode(public val code: Int) {
+public enum class SqliteAuthorizerStatus(public val code: Int) {
 
     /**
-     * Same semantic and value as [SqliteResultCode.OK].
+     * Allow the action.
      */
     OK(SqliteResultCode.OK.code),
 

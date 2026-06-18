@@ -21,6 +21,7 @@ import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
 import ksqlite.capi.callbacks.SqliteRollbackHookCallback
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
+import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
@@ -40,6 +41,7 @@ import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
+import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.VariadicValue
@@ -68,6 +70,7 @@ import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteOutputParam
+import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
 import ksqlite.capi.types.SqliteVTabConfigOption
 import ksqlite.capi.types.SqliteValueOutputParam
@@ -78,6 +81,7 @@ import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
+import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
@@ -92,6 +96,7 @@ import ksqlite.foreign.js.copyTo
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.size
 import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteCheckpointMode
 import ksqlite.types.SqliteCompleteResult
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteDataType
@@ -101,11 +106,10 @@ import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
-import ksqlite.types.SqliteLimit
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.SqliteSerializeFlag
+import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
@@ -746,7 +750,7 @@ public actual fun sqlite3_declare_vtab(
 
 public actual fun sqlite3_deserialize(
     db: sqlite3,
-    schema: String?,
+    database: String?,
     buffer: Buffer,
     dbSize: Long,
     bufferSize: Long,
@@ -754,7 +758,7 @@ public actual fun sqlite3_deserialize(
 ): SqliteResultCode = convertResult(heapScoped {
     exports.sqlite3_deserialize(
         db.pointer,
-        schema.allocateUtf8Pointer(),
+        database.allocateUtf8Pointer(),
         buffer.pointer,
         dbSize.toJsBigInt(),
         bufferSize.toJsBigInt(),
@@ -820,12 +824,12 @@ public actual fun sqlite3_extended_result_codes(
 
 public actual fun sqlite3_file_control(
     db: sqlite3,
-    name: String?,
+    database: String?,
     opcode: SqliteFileControlOpcode
 ): SqliteResultCode = convertResult(heapScoped {
     exports.sqlite3_file_control(
         db.pointer,
-        name.allocateUtf8Pointer(),
+        database.allocateUtf8Pointer(),
         opcode.code,
         NullPtr
     )
@@ -839,6 +843,9 @@ public actual fun sqlite3_free(buffer: Buffer): Unit =
 
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     exports.sqlite3_get_autocommit(db.pointer)
+
+public actual fun sqlite3_hard_heap_limit64(limit: Long): Long =
+    exports.sqlite3_hard_heap_limit64(limit.toJsBigInt()).toLong()
 
 public actual fun sqlite3_initialize(): SqliteResultCode =
     convertResult(exports.sqlite3_initialize())
@@ -859,12 +866,12 @@ public actual fun sqlite3_key(
 
 public actual fun sqlite3_key_v2(
     db: sqlite3,
-    dbName: String,
+    database: String,
     key: ByteArray,
     nKey: Int,
 ): SqliteResultCode = convertResult(heapScoped {
     bufferScoped(key, memory) { keyPtr ->
-        exports.sqlite3_key_v2(db.pointer, dbName.allocateUtf8Pointer(), keyPtr, nKey)
+        exports.sqlite3_key_v2(db.pointer, database.allocateUtf8Pointer(), keyPtr, nKey)
     }
 })
 
@@ -895,12 +902,12 @@ public actual fun sqlite3_last_insert_rowid(db: sqlite3): Long =
 public actual fun sqlite3_libversion(): String =
     exports.sqlite3_libversion().toKStringFromUtf8()
 
-public actual fun sqlite3_libversion_number(db: sqlite3): Int =
+public actual fun sqlite3_libversion_number(): Int =
     exports.sqlite3_libversion_number()
 
 public actual fun sqlite3_limit(
     db: sqlite3,
-    id: SqliteLimit,
+    id: SqliteRuntimeLimit,
     newVal: Int
 ): Int = exports.sqlite3_limit(db.pointer, id.id, newVal)
 
@@ -1250,23 +1257,6 @@ public actual fun <AppData> sqlite3_rollback_hook(
     )
 }
 
-public actual fun sqlite3_serialize(
-    db: sqlite3,
-    schema: String?,
-    flags: SqliteSerializeFlag?
-): Buffer? {
-    val size = Int64OutputParam(0)
-
-    val pointer = heapScoped {
-        useParam(size) { sizePtr ->
-            val mFlags = flags?.value ?: 0
-            exports.sqlite3_serialize(db.pointer, schema.allocateUtf8Pointer(), sizePtr, mFlags)
-        }
-    }
-
-    return Buffer.from(pointer, size.value)
-}
-
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
@@ -1281,10 +1271,10 @@ public actual fun <AppData> sqlite3_set_authorizer(
 
 public actual fun sqlite3_set_errmsg(
     db: sqlite3,
-    errorCode: SqliteResultCode.Failure,
-    message: String?
+    errorCode: SqliteResultCode,
+    errorMessage: String?
 ): SqliteResultCode = convertResult(heapScoped {
-    exports.sqlite3_set_errmsg(db.pointer, errorCode.code, message.allocateUtf8Pointer())
+    exports.sqlite3_set_errmsg(db.pointer, errorCode.code, errorMessage.allocateUtf8Pointer())
 })
 
 public actual fun sqlite3_set_last_insert_rowid(
@@ -1294,6 +1284,42 @@ public actual fun sqlite3_set_last_insert_rowid(
 
 public actual fun sqlite3_shutdown(): SqliteResultCode =
     convertResult(exports.sqlite3_shutdown())
+
+public actual fun sqlite3_snapshot_cmp(
+    snapshot1: sqlite3_snapshot,
+    snapshot2: sqlite3_snapshot
+): Int = exports.sqlite3_snapshot_cmp(snapshot1.pointer, snapshot2.pointer)
+
+public actual fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Unit =
+    exports.sqlite3_snapshot_free(snapshot.pointer)
+
+public actual fun sqlite3_snapshot_get(
+    db: sqlite3,
+    name: String?,
+    outSnapshot: SqliteSnapshotOutputParam
+): SqliteResultCode = convertResult(heapScoped {
+    useParam(outSnapshot) { snapshotPtr ->
+        exports.sqlite3_snapshot_get(db.pointer, name.allocateUtf8Pointer(), snapshotPtr)
+    }
+})
+
+public actual fun sqlite3_snapshot_open(
+    db: sqlite3,
+    name: String?,
+    snapshot: sqlite3_snapshot
+): SqliteResultCode = convertResult(heapScoped {
+    exports.sqlite3_snapshot_open(db.pointer, name.allocateUtf8Pointer(), snapshot.pointer)
+})
+
+public actual fun sqlite3_snapshot_recover(
+    db: sqlite3,
+    name: String?
+): SqliteResultCode = convertResult(heapScoped {
+    exports.sqlite3_snapshot_recover(db.pointer, name.allocateUtf8Pointer())
+})
+
+public actual fun sqlite3_soft_heap_limit64(limit: Long): Long =
+    exports.sqlite3_soft_heap_limit64(limit.toJsBigInt()).toLong()
 
 public actual fun sqlite3_sourceid(): String =
     exports.sqlite3_sourceid().toKStringFromUtf8()
@@ -1445,9 +1471,9 @@ public actual fun <AppData> sqlite3_trace_v2(
 
 public actual fun sqlite3_txn_state(
     db: sqlite3,
-    schema: String?
+    database: String?
 ): SqliteTransactionState? = convertTransactionState(heapScoped {
-    exports.sqlite3_txn_state(db.pointer, schema.allocateUtf8Pointer())
+    exports.sqlite3_txn_state(db.pointer, database.allocateUtf8Pointer())
 })
 
 public actual fun <AppData> sqlite3_update_hook(
@@ -1608,3 +1634,45 @@ public actual fun sqlite3_vtab_rhs_value(
 ): SqliteResultCode = convertResult(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_vtab_rhs_value(info.pointer, index, valuePtr)
 })
+
+public actual fun sqlite3_wal_autocheckpoint(
+    db: sqlite3,
+    nFrame: Int
+): SqliteResultCode = convertResult(exports.sqlite3_wal_autocheckpoint(db.pointer, nFrame))
+
+public actual fun sqlite3_wal_checkpoint(
+    db: sqlite3,
+    name: String?
+): SqliteResultCode = convertResult(heapScoped {
+    exports.sqlite3_wal_checkpoint(db.pointer, name.allocateUtf8Pointer())
+})
+
+public actual fun sqlite3_wal_checkpoint_v2(
+    db: sqlite3,
+    name: String?,
+    mode: SqliteCheckpointMode,
+    outNLog: Int32OutputParam?,
+    outNCkpt: Int32OutputParam?
+): SqliteResultCode = convertResult(heapScoped {
+    useParams(outNLog, outNCkpt) { nLogPtr, nCkptPtr ->
+        exports.sqlite3_wal_checkpoint_v2(
+            db.pointer,
+            name.allocateUtf8Pointer(),
+            mode.id,
+            nLogPtr,
+            nCkptPtr
+        )
+    }
+})
+
+public actual fun <AppData> sqlite3_wal_hook(
+    db: sqlite3,
+    appData: AppData,
+    callback: SqliteWalHookCallback<AppData>?
+): Unit = db.withMemoryManager {
+    exports.sqlite3_wal_hook(
+        db.pointer,
+        functionPointer(callback, ::WalHookHandler),
+        keyedStableRefPointer(KEY_WAL_HOOK, callback, appData)
+    )
+}

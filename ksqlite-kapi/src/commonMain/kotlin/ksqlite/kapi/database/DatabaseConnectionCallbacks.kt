@@ -1,12 +1,15 @@
 package ksqlite.kapi.database
 
+import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
 import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
 import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.callbacks.SqliteCommitHookCallback
 import ksqlite.capi.callbacks.SqliteExecCallback
-import ksqlite.kapi.helpers.ksqliteLog
+import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
+import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
+import ksqlite.capi.callbacks.SqliteRollbackHookCallback
 import ksqlite.kapi.sqliteRequireConnection
 
 /**
@@ -64,20 +67,53 @@ internal val CollationCallback = SqliteCollationCallback { callback: Collation, 
  * Invokes [Exec.apply].
  */
 internal val ExecCallback = SqliteExecCallback { callback: Exec, count, values, names ->
-    try {
-        with(callback) {
-            ExecScopeImpl.apply(
-                columnCount = count,
-                columnValues = values,
-                columnNames = names
+    if (callback.apply(count, columnValues = values, columnNames = names)) 1 else 0
+}
+
+/**
+ * Invokes [PreupdateHook.apply].
+ */
+internal val PreupdateHookCallback = SqlitePreupdateHookCallback { callback: PreupdateHook,
+                                                                   db,
+                                                                   action,
+                                                                   databaseName,
+                                                                   tableName,
+                                                                   oldRowid,
+                                                                   newRowid ->
+    callback.run {
+        PreupdateHookScopeImpl(db).use { scope ->
+            scope.apply(
+                connection = sqliteRequireConnection(db),
+                action = action,
+                databaseName = databaseName,
+                tableName = tableName,
+                oldRowid = oldRowid,
+                newRowid = newRowid
             )
         }
-
-        0
-    } catch (_: ExecAbortException) {
-        1
-    } catch (unexpected: Throwable) {
-        ksqliteLog(unexpected)
-        throw unexpected
     }
+}
+
+/**
+ * Invokes [ProgressHandler.apply].
+ */
+internal val ProgressHandlerCallback = SqliteProgressHandlerCallback { callback: ProgressHandler ->
+    if (callback.apply()) 1 else 0
+}
+
+/**
+ * Invokes [RollbackHook.apply].
+ */
+internal val RollbackHookCallback = SqliteRollbackHookCallback(RollbackHook::apply)
+
+/**
+ * Invokes [Authorizer.apply].
+ */
+internal val AuthorizerCallback = SqliteAuthorizerCallback { callback: Authorizer,
+                                                             action,
+                                                             detail1,
+                                                             detail2,
+                                                             detail3,
+                                                             detail4 ->
+    callback.apply(action, detail1, detail2, detail3, detail4)
 }

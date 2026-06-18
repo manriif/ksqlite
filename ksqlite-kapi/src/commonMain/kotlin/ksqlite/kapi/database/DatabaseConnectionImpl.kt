@@ -18,13 +18,30 @@ import ksqlite.capi.sqlite3_db_cacheflush
 import ksqlite.capi.sqlite3_db_filename
 import ksqlite.capi.sqlite3_db_name
 import ksqlite.capi.sqlite3_db_readonly
+import ksqlite.capi.sqlite3_db_release_memory
 import ksqlite.capi.sqlite3_db_status64
 import ksqlite.capi.sqlite3_deserialize
 import ksqlite.capi.sqlite3_drop_modules
 import ksqlite.capi.sqlite3_exec
 import ksqlite.capi.sqlite3_extended_result_codes
+import ksqlite.capi.sqlite3_file_control
+import ksqlite.capi.sqlite3_get_autocommit
+import ksqlite.capi.sqlite3_interrupt
+import ksqlite.capi.sqlite3_is_interrupted
+import ksqlite.capi.sqlite3_key_v2
+import ksqlite.capi.sqlite3_last_insert_rowid
+import ksqlite.capi.sqlite3_limit
+import ksqlite.capi.sqlite3_prepare_v3
+import ksqlite.capi.sqlite3_preupdate_hook
+import ksqlite.capi.sqlite3_progress_handler
+import ksqlite.capi.sqlite3_rekey_v2
+import ksqlite.capi.sqlite3_rollback_hook
+import ksqlite.capi.sqlite3_serialize
+import ksqlite.capi.sqlite3_set_authorizer
+import ksqlite.capi.sqlite3_set_last_insert_rowid
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
+import ksqlite.capi.types.SqliteStmtOutputParam
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
@@ -33,6 +50,7 @@ import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.blob.BlobImpl
 import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.buffer.ReadableBuffer
 import ksqlite.kapi.functions.AggregateFunction
 import ksqlite.kapi.functions.AggregateFunctionFinalCallback
 import ksqlite.kapi.functions.AggregateFunctionStepCallback
@@ -47,7 +65,10 @@ import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
 import ksqlite.kapi.helpers.usingParams
+import ksqlite.kapi.statement.Statement
+import ksqlite.kapi.statement.StatementImpl
 import ksqlite.kapi.throwSQLiteException
+import ksqlite.kapi.value.StatusValue
 import ksqlite.kapi.vtab.VTab
 import ksqlite.kapi.vtab.VTabBeginCallback
 import ksqlite.kapi.vtab.VTabBestIndexCallback
@@ -78,8 +99,12 @@ import ksqlite.kapi.vtab.VirtualTableOptionalFunction
 import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
+import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
+import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
+import ksqlite.types.SqliteRuntimeLimit
+import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.vtab.SqliteModuleVersion
 
@@ -96,6 +121,16 @@ internal class DatabaseConnectionImpl(
 
     override val changes: Long
         get() = scope.notClosed { sqlite3_changes64(db) }
+
+    override val isAutocommit: Boolean
+        get() = scope.notClosed { sqlite3_get_autocommit(db) != 0 }
+
+    override val isInterrupted: Boolean
+        get() = scope.notClosed { sqlite3_is_interrupted(db) == 1 }
+
+    override var lastInsertRowid: Long
+        get() = scope.notClosed { sqlite3_last_insert_rowid(db) }
+        set(value) = scope.notClosed { sqlite3_set_last_insert_rowid(db, value) }
 
     override fun setAutovacuumPages(handler: AutovacuumPages?) = updateHandlerWithResult(
         handler = handler,
@@ -418,14 +453,17 @@ internal class DatabaseConnectionImpl(
         }
     }
 
+    override fun releaseMemory() =
+        scope.notClosed { sqliteResultCheck(sqlite3_db_release_memory(db)) }
+
     override fun getStatus(
         option: SqliteDbStatusOption,
         reset: Boolean
-    ): DatabaseConnectionOptionStatus = scope.notClosed {
+    ): StatusValue = scope.notClosed {
         usingParams(
             param1 = Int64OutputParam(-1),
             param2 = Int64OutputParam(-1),
-            transform = ::DatabaseConnectionOptionStatus
+            transform = ::StatusValue
         ) { outCur, outHighwater ->
             sqliteResultCheck(
                 sqlite3_db_status64(
@@ -441,7 +479,7 @@ internal class DatabaseConnectionImpl(
 
     override fun deserialize(
         serializedDatabase: Buffer,
-        database: String?,
+        database: String,
         databaseSize: Long,
         bufferSize: Long,
         flags: SqliteDeserializeFlag?
@@ -462,7 +500,7 @@ internal class DatabaseConnectionImpl(
         sqliteResultCheck(
             sqlite3_deserialize(
                 db = db,
-                schema = database,
+                database = database,
                 buffer = serializedDatabase.buffer,
                 dbSize = databaseSize,
                 bufferSize = bufferSize,
@@ -525,6 +563,77 @@ internal class DatabaseConnectionImpl(
 
         sqliteResultCheck(result)
     }
+
+    override fun controlFile(opcode: SqliteFileControlOpcode, database: String?) =
+        scope.notClosed { sqliteResultCheck(sqlite3_file_control(db, database, opcode)) }
+
+    override fun interrupt() = scope.notClosed { sqlite3_interrupt(db) }
+
+    override fun setKey(key: ByteArray, size: Int, database: String) =
+        scope.notClosed { sqliteResultCheck(sqlite3_key_v2(db, database, key, size)) }
+
+    override fun getLimit(limit: SqliteRuntimeLimit): Int =
+        scope.notClosed { sqlite3_limit(db, limit, -1) }
+
+    override fun setLimit(limit: SqliteRuntimeLimit, value: Int) = scope.notClosed {
+        val _ = sqlite3_limit(db, limit, value)
+    }
+
+    override fun prepare(sql: String, flags: SqlitePrepareFlag?): Statement = scope.notClosed {
+        val stmt = usingParam(SqliteStmtOutputParam()) { outStmt ->
+            sqliteResultCheck(sqlite3_prepare_v3(db, sql, flags, outStmt))
+        }
+
+        return StatementImpl(this, stmt)
+    }
+
+    override fun setPreupdateHook(handler: PreupdateHook?) = updateHandler(
+        handler = handler,
+        clear = { sqlite3_preupdate_hook(db, null, null) },
+        set = { sqlite3_preupdate_hook(db, it, PreupdateHookCallback) }
+    )
+
+    override fun setProgressHandler(
+        operationCount: Int,
+        handler: ProgressHandler?
+    ) = if (operationCount > 0) {
+        updateHandler(
+            handler = handler,
+            clear = { sqlite3_progress_handler(db, operationCount, null, null) },
+            set = { sqlite3_progress_handler(db, operationCount, it, ProgressHandlerCallback) }
+        )
+    } else {
+        // Non-positive operationCount simply disable the handler according to SQLite
+        scope.notClosed {
+            sqlite3_progress_handler(db, operationCount, null, null)
+        }
+    }
+
+    override fun setReKey(key: ByteArray, size: Int, database: String) =
+        scope.notClosed { sqliteResultCheck(sqlite3_rekey_v2(db, database, key, size)) }
+
+    override fun setRollbackHook(handler: RollbackHook?) = updateHandler(
+        handler = handler,
+        clear = { sqlite3_rollback_hook(db, null, null) },
+        set = { sqlite3_rollback_hook(db, it, RollbackHookCallback) }
+    )
+
+    override fun serialize(
+        flags: SqliteSerializeFlag?,
+        database: String
+    ): SerializeResult = scope.notClosed {
+        when (val result = sqlite3_serialize(db, database, flags)) {
+            is Failure -> SerializeResult.Failure(result.databaseSize)
+            is Immutable -> SerializeResult.Immutable(ReadableBuffer(result.buffer))
+            is Mutable -> SerializeResult.Mutable(Buffer(result.buffer))
+        }
+    }
+
+    override fun setAuthorizer(handler: Authorizer?) = updateHandlerWithResult(
+        handler = handler,
+        clear = { sqlite3_set_authorizer(db, null, null) },
+        set = { sqlite3_set_authorizer(db, it, AuthorizerCallback) }
+    )
 
     ///////////////////////////////////////////////////////////////////////////
     // Handler

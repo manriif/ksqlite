@@ -21,10 +21,10 @@ internal class AuthorizerHandler<AppData> :
         callback.apply(
             appData = appData,
             action = convertActionCode(opId),
-            param3 = string1,
-            param4 = string2,
-            param5 = string3,
-            param6 = string4
+            detail1 = string1,
+            detail2 = string2,
+            detail3 = string3,
+            detail4 = string4
         ).code
     }
 }

@@ -2,7 +2,6 @@
 
 package ksqlite.capi
 
-import ksqlite.foreign.Sqlite3WasmExports
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.HeapAllocatorScope
@@ -16,12 +15,17 @@ import ksqlite.capi.memory.stableRefAppData
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.withMemoryManager
+import ksqlite.capi.types.Int64OutputParam
+import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.types.useParam
+import ksqlite.foreign.Sqlite3WasmExports
 import ksqlite.foreign.wasm.IR
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.sizeofIR
+import ksqlite.types.SqliteSerializeFlag
 import kotlin.js.toLong
 
 private val pointerSize = wasm.sizeofIR(IR.Ptr)
@@ -75,6 +79,21 @@ internal actual fun userDataInternal(context: sqlite3_context): ApplicationDefin
     val pointer = exports.sqlite3_user_data(context.pointer).orNull ?: return null
     return context.db.memory.stableRefData<ApplicationDefinedFunction<*>>(pointer)
 }
+
+public actual fun serializeInternal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer? = Buffer.from(
+    pointer = heapScoped {
+        useParam(outSize) { sizePtr ->
+            val mFlags = flags?.value ?: 0
+            exports.sqlite3_serialize(db.pointer, database.allocateUtf8Pointer(), sizePtr, mFlags)
+        }
+    },
+    size = outSize.value
+)
 
 @PublishedApi
 internal actual fun valuePointerInternal(

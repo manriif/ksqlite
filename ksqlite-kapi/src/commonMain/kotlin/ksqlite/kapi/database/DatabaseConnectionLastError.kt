@@ -30,4 +30,14 @@ public interface DatabaseConnectionLastError {
      * recent error.
      */
     public val offset: Int
+
+    /**
+     * Sets the [code] to [errorCode] and [message] to [errorMessage].
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error occurs.
+     */
+    public fun update(
+        errorCode: SqliteResultCode,
+        errorMessage: String? = null
+    )
 }

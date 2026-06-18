@@ -7,19 +7,29 @@ import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.functions.AggregateFunction
 import ksqlite.kapi.functions.ScalarFunction
 import ksqlite.kapi.functions.WindowFunction
+import ksqlite.kapi.statement.Statement
+import ksqlite.kapi.value.StatusValue
 import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
+import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
+import ksqlite.types.SqlitePrepareFlag
+import ksqlite.types.SqliteRuntimeLimit
+import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.vtab.SqliteModuleVersion
 
 /**
- * [Database connection](https://sqlite.org/c3ref/sqlite3.html).
+ * Exposes the [Database Connection](https://sqlite.org/c3ref/sqlite3.html) API and the
+ * [Encryption](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/) API.
  */
 public abstract class DatabaseConnection internal constructor() : AutoCloseable {
 
+    /**
+     * Database connection handle.
+     */
     internal abstract val db: sqlite3
 
     /**
@@ -37,6 +47,22 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      * Most recent error information.
      */
     public abstract val lastError: DatabaseConnectionLastError
+
+    /**
+     * Whether the connection is in autocommit mode.
+     */
+    public abstract val isAutocommit: Boolean
+
+    /**
+     * Whether an interrupt is currently in effect.
+     */
+    public abstract val isInterrupted: Boolean
+
+    /**
+     * Rowid of the most recent successful INSERT into a rowid table or virtual table on this
+     * connection.
+     */
+    public abstract var lastInsertRowid: Long
 
     /**
      * Sets the callback that is invoked prior to each autovacuum of the database file.
@@ -232,12 +258,19 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun isReadOnly(database: String): Boolean
 
     /**
+     * Attempts to free as much heap memory as possible from this connection.
+     *
+     * @throws ksqlite.kapi.SQLiteException if something went wrong.
+     */
+    public abstract fun releaseMemory()
+
+    /**
      * Returns the status for the given options.
      */
     public abstract fun getStatus(
         option: SqliteDbStatusOption,
         reset: Boolean = false
-    ): DatabaseConnectionOptionStatus
+    ): StatusValue
 
     /**
      * Disconnects from [database] and then reopens [database] as an in-memory database based on the
@@ -252,7 +285,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      */
     public abstract fun deserialize(
         serializedDatabase: Buffer,
-        database: String? = null,
+        database: String = MAIN_DB_NAME,
         databaseSize: Long = serializedDatabase.byteSize,
         bufferSize: Long = databaseSize,
         flags: SqliteDeserializeFlag? = null
@@ -276,4 +309,104 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
         sql: String,
         callback: Exec? = null
     )
+
+    /**
+     * Makes a direct call to the xFileControl method for the sqlite3_io_methods object associated
+     * with [database].
+     *
+     * @throws ksqlite.kapi.SQLiteException if the control fails.
+     */
+    public abstract fun controlFile(
+        opcode: SqliteFileControlOpcode,
+        database: String? = null,
+    )
+
+    /**
+     * Causes any pending database operation to abort and return at its earliest opportunity.
+     */
+    public abstract fun interrupt()
+
+    /**
+     * Sets the database key to use when accessing an encrypted database.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while setting the key.
+     */
+    public abstract fun setKey(
+        key: ByteArray,
+        size: Int = key.size,
+        database: String = MAIN_DB_NAME,
+    )
+
+    /**
+     * Returns the current value of the given [limit] category.
+     */
+    public abstract fun getLimit(limit: SqliteRuntimeLimit): Int
+
+    /**
+     * Sets the value of the given [limit] category.
+     */
+    public abstract fun setLimit(
+        limit: SqliteRuntimeLimit,
+        value: Int
+    )
+
+    /**
+     * Creates and returns a [Statement].
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while preparing the statement.
+     */
+    public abstract fun prepare(
+        sql: String,
+        flags: SqlitePrepareFlag? = null
+    ): Statement
+
+    /**
+     * Sets the callback that is invoked prior to each INSERT, UPDATE, and DELETE operation.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun setPreupdateHook(handler: PreupdateHook?)
+
+    /**
+     * Sets the callback that is invoked periodically during long-running calls.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun setProgressHandler(
+        operationCount: Int,
+        handler: ProgressHandler?
+    )
+
+    /**
+     * Changes the database encryption key.
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while setting the key.
+     */
+    public abstract fun setReKey(
+        key: ByteArray,
+        size: Int = key.size,
+        database: String = MAIN_DB_NAME,
+    )
+
+    /**
+     * Sets the callback that get invoked whenever a transaction is rolled back.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun setRollbackHook(handler: RollbackHook?)
+
+    /**
+     * Returns a [Buffer] that is a serialization of the given [database].
+     */
+    public abstract fun serialize(
+        flags: SqliteSerializeFlag? = null,
+        database: String = MAIN_DB_NAME
+    ): SerializeResult
+
+    /**
+     * Sets the callback that get invoked whenever an SQL statements is being compiled by [prepare].
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun setAuthorizer(handler: Authorizer?)
 }

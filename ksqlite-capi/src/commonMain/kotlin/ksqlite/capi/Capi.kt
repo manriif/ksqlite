@@ -21,6 +21,7 @@ import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
 import ksqlite.capi.callbacks.SqliteRollbackHookCallback
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
+import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.ReadableBuffer
 import ksqlite.capi.types.Int32OutputParam
@@ -29,6 +30,8 @@ import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteOutputParam
+import ksqlite.capi.types.SqliteSerializeResult
+import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
 import ksqlite.capi.types.SqliteVTabConfigOption
 import ksqlite.capi.types.SqliteValueOutputParam
@@ -38,12 +41,14 @@ import ksqlite.capi.types.sqlite3_backup
 import ksqlite.capi.types.sqlite3_blob
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_filename
+import ksqlite.capi.types.sqlite3_snapshot
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteCheckpointMode
 import ksqlite.types.SqliteCompleteResult
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteDataType
@@ -53,10 +58,10 @@ import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
-import ksqlite.types.SqliteLimit
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
+import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
@@ -979,7 +984,7 @@ public expect fun sqlite3_declare_vtab(
  */
 public expect fun sqlite3_deserialize(
     db: sqlite3,
-    schema: String?,
+    database: String?,
     buffer: Buffer,
     dbSize: Long,
     bufferSize: Long,
@@ -1080,7 +1085,7 @@ public expect fun sqlite3_extended_result_codes(
  */
 public expect fun sqlite3_file_control(
     db: sqlite3,
-    name: String?,
+    database: String?,
     opcode: SqliteFileControlOpcode,
 ): SqliteResultCode
 
@@ -1128,6 +1133,20 @@ public inline fun <reified Data : Any> sqlite3_get_auxdata(
     context: sqlite3_context,
     index: Int
 ): Data? = castOrThrows(userDataInternal(context)?.getAuxiliaryDataOrNull(context, index))
+
+/**
+ * Set the hard heap-size limit for the library. An argument of zero disables the hard heap limit.
+ * A negative argument is a no-op used to obtain the return value without affecting the hard heap
+ * limit.
+ *
+ * The return value is the value of the hard heap limit just prior to calling this interface.
+ *
+ * Setting the hard heap limit will also activate the soft heap limit and constrain the soft heap
+ * limit to be no more than the hard heap limit.
+ *
+ * [sqlite3_hard_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
+ */
+public expect fun sqlite3_hard_heap_limit64(limit: Long): Long
 
 /**
  * Initialize SQLite.
@@ -1200,7 +1219,7 @@ public expect fun sqlite3_key(
  */
 public expect fun sqlite3_key_v2(
     db: sqlite3,
-    dbName: String,
+    database: String,
     key: ByteArray,
     nKey: Int,
 ): SqliteResultCode
@@ -1255,7 +1274,7 @@ public expect fun sqlite3_libversion(): String
  *
  * [sqlite3_libversion_number()](https://sqlite.org/c3ref/libversion.html)
  */
-public expect fun sqlite3_libversion_number(db: sqlite3): Int
+public expect fun sqlite3_libversion_number(): Int
 
 /**
  * Change the value of a limit. Report the old value. If an invalid limit index is supplied,
@@ -1269,7 +1288,7 @@ public expect fun sqlite3_libversion_number(db: sqlite3): Int
  */
 public expect fun sqlite3_limit(
     db: sqlite3,
-    id: SqliteLimit,
+    id: SqliteRuntimeLimit,
     newVal: Int
 ): Int
 
@@ -1802,13 +1821,24 @@ public expect fun <AppData> sqlite3_rollback_hook(
 /**
  * Return the serialization of a database.
  *
- * [sqlite3_serialize()](https://sqlite.org/c3ref/serialize.html)
+ * [serializeInternal()](https://sqlite.org/c3ref/serialize.html)
  */
-public expect fun sqlite3_serialize(
+public fun sqlite3_serialize(
     db: sqlite3,
-    schema: String?,
+    database: String?,
     flags: SqliteSerializeFlag?
-): Buffer?
+): SqliteSerializeResult {
+    val outSize = Int64OutputParam(0L)
+
+    val buffer = serializeInternal(db, database, outSize, flags)
+        ?: return SqliteSerializeResult.Failure(outSize.value)
+
+    if (flags != null && SqliteSerializeFlag.NOCOPY in flags) {
+        return SqliteSerializeResult.Immutable(buffer.readOnly())
+    }
+
+    return SqliteSerializeResult.Mutable(buffer)
+}
 
 /**
  * Set or clear the access authorization function.
@@ -1849,8 +1879,8 @@ public inline fun <reified Data : Any> sqlite3_set_auxdata(
  */
 public expect fun sqlite3_set_errmsg(
     db: sqlite3,
-    errorCode: SqliteResultCode.Failure,
-    message: String?
+    errorCode: SqliteResultCode,
+    errorMessage: String?
 ): SqliteResultCode
 
 /**
@@ -1873,6 +1903,70 @@ public expect fun sqlite3_set_last_insert_rowid(
  * [sqlite3_shutdown()](https://sqlite.org/c3ref/initialize.html)
  */
 public expect fun sqlite3_shutdown(): SqliteResultCode
+
+/**
+ * Return a +ve value if snapshot [snapshot1] is newer than [snapshot2]. A -ve value if [snapshot1]
+ * is older than [snapshot2] and zero if [snapshot1] and [snapshot2] are the same snapshot.
+ *
+ * [sqlite3_snapshot_cmp()](https://sqlite.org/c3ref/snapshot_cmp.html)
+ */
+public expect fun sqlite3_snapshot_cmp(
+    snapshot1: sqlite3_snapshot,
+    snapshot2: sqlite3_snapshot
+): Int
+
+/**
+ * Free a snapshot handle obtained from [sqlite3_snapshot_get].
+ *
+ * [sqlite3_snapshot_free()](https://sqlite.org/c3ref/snapshot_free.html)
+ */
+public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot)
+
+/**
+ * Obtain a snapshot handle for the snapshot of database zDb currently being read by handle db.
+ *
+ * [sqlite3_snapshot_get()](https://sqlite.org/c3ref/snapshot_get.html)
+ */
+public expect fun sqlite3_snapshot_get(
+    db: sqlite3,
+    name: String?,
+    outSnapshot: SqliteSnapshotOutputParam
+): SqliteResultCode
+
+/**
+ * Open a read-transaction on the snapshot identified by [snapshot].
+ *
+ * [sqlite3_snapshot_open()](https://sqlite.org/c3ref/snapshot_open.html)
+ */
+public expect fun sqlite3_snapshot_open(
+    db: sqlite3,
+    name: String?,
+    snapshot: sqlite3_snapshot
+): SqliteResultCode
+
+/**
+ * Recover as many snapshots as possible from the wal file associated with schema zDb of database
+ * [db].
+ *
+ * [sqlite3_snapshot_recover()](https://sqlite.org/c3ref/snapshot_recover.html)
+ */
+public expect fun sqlite3_snapshot_recover(
+    db: sqlite3,
+    name: String?
+): SqliteResultCode
+
+/**
+ * Set the soft heap-size limit for the library. An argument of zero disables the limit. A negative
+ * argument is a no-op used to obtain the return value.
+ *
+ * The return value is the value of the heap limit just before this interface was called.
+ *
+ * If the hard heap limit is enabled, then the soft heap limit cannot  be disabled nor raised above
+ * the hard heap limit.
+ *
+ * [sqlite3_soft_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
+ */
+public expect fun sqlite3_soft_heap_limit64(limit: Long): Long
 
 /**
  * Return a string that identifies the specific version of the source code that was used to build
@@ -2062,13 +2156,13 @@ public expect fun <AppData> sqlite3_trace_v2(
 
 /**
  * Return the transaction state for a single database, or the maximum transaction state over all
- * attached databases if [schema] is null.
+ * attached databases if [database] is null.
  *
  * [sqlite3_txn_state()](https://sqlite.org/c3ref/txn_state.html)
  */
 public expect fun sqlite3_txn_state(
     db: sqlite3,
-    schema: String?
+    database: String?
 ): SqliteTransactionState?
 
 /**
@@ -2390,3 +2484,62 @@ public expect fun sqlite3_vtab_rhs_value(
     index: Int,
     outValue: SqliteValueOutputParam?
 ): SqliteResultCode
+
+/**
+ * Configure an [sqlite3_wal_hook] callback to automatically checkpoint a database after committing
+ * a transaction if there are [nFrame] or more frames in the log file. Passing zero or a negative
+ * value as the [nFrame] parameter disables automatic checkpoints entirely.
+ *
+ * The callback registered by this function replaces any existing callback egistered using
+ * [sqlite3_wal_hook]. Likewise, registering a callback using [sqlite3_wal_hook] disables the
+ * automatic checkpoint mechanism configured by this function.
+ *
+ * [sqlite3_wal_autocheckpoint()](https://sqlite.org/c3ref/wal_autocheckpoint.html)
+ */
+public expect fun sqlite3_wal_autocheckpoint(
+    db: sqlite3,
+    nFrame: Int
+): SqliteResultCode
+
+/**
+ * Checkpoint database [name]. If [name] is NULL, or if the buffer [name] points to contains a
+ * zero-length string, all attached databases are checkpointed.
+ *
+ * [sqlite3_wal_checkpoint()](https://sqlite.org/c3ref/wal_checkpoint.html)
+ */
+public expect fun sqlite3_wal_checkpoint(
+    db: sqlite3,
+    name: String?
+): SqliteResultCode
+
+/**
+ * Checkpoint database [name]. If [name] is NULL, or if the buffer [name] points to contains a
+ * zero-length string, all attached databases are checkpointed.
+ *
+ * [sqlite3_wal_checkpoint_v2()](https://sqlite.org/c3ref/wal_checkpoint_v2.html)
+ */
+public expect fun sqlite3_wal_checkpoint_v2(
+    db: sqlite3,
+    name: String?,
+    mode: SqliteCheckpointMode,
+    outNLog: Int32OutputParam?,
+    outNCkpt: Int32OutputParam?
+): SqliteResultCode
+
+/**
+ * Register a callback to be invoked each time a transaction is written into the write-ahead-log by
+ * this database connection.
+ *
+ * [sqlite3_wal_hook()](https://sqlite.org/c3ref/wal_hook.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The previous hook is returned by SQLite but is not returned by KSQlite for now.
+ */
+public expect fun <AppData> sqlite3_wal_hook(
+    db: sqlite3,
+    appData: AppData,
+    callback: SqliteWalHookCallback<AppData>?
+)

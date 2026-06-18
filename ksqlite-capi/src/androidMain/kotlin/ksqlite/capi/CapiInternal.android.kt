@@ -2,7 +2,6 @@
 
 package ksqlite.capi
 
-import ksqlite.foreign.OutputPointer
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
@@ -10,14 +9,20 @@ import ksqlite.capi.memory.JniPointer
 import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.orNull
+import ksqlite.capi.types.Int64OutputParam
+import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.types.useParam
+import ksqlite.foreign.OutputPointer
 import ksqlite.foreign.nativeFreeAndMalloc
+import ksqlite.types.SqliteSerializeFlag
 import kotlin.reflect.KMutableProperty0
 import ksqlite.foreign.sqlite3_aggregate_context as jni_sqlite3_aggregate_context
 import ksqlite.foreign.sqlite3_column_buffer as jni_sqlite3_column_buffer
 import ksqlite.foreign.sqlite3_get_auxdata as jni_sqlite3_get_auxdata
+import ksqlite.foreign.sqlite3_serialize as jni_sqlite3_serialize
 import ksqlite.foreign.sqlite3_set_auxdata as jni_sqlite3_set_auxdata
 import ksqlite.foreign.sqlite3_user_data as jni_sqlite3_user_data
 import ksqlite.foreign.sqlite3_value_buffer as jni_sqlite3_value_buffer
@@ -54,6 +59,18 @@ internal actual fun setAuxdataInternal(
 @PublishedApi
 internal actual fun userDataInternal(context: sqlite3_context): ApplicationDefinedFunction<*>? =
     jni_sqlite3_user_data(context.pointer) as? ApplicationDefinedFunction<*>
+
+public actual fun serializeInternal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer? = Buffer.from(
+    pointer = useParam(outSize) { sizePtr ->
+        jni_sqlite3_serialize(db.pointer, database, sizePtr!!, flags?.value ?: 0)
+    },
+    size = outSize.value
+)
 
 @PublishedApi
 internal actual fun valuePointerInternal(

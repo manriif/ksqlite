@@ -28,8 +28,8 @@ internal class PreupdateHookHandler<AppData> :
             action = convertActionCode(op),
             dbName = dbName,
             tableName = dbTable,
-            preRowId = iKey1,
-            postRowId = iKey2
+            oldRowid = iKey1,
+            newRowid = iKey2
         )
     }
 }

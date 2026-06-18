@@ -1,9 +1,12 @@
 package ksqlite.kapi
 
+import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.buffer.readBytes
 import ksqlite.kapi.config.AnyTimeConfiguration
 import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.database.AutoExtension
 import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.value.StatusValue
 import ksqlite.types.SqliteOpenFlag
 
 /**
@@ -17,16 +20,28 @@ public interface SQLite : AutoCloseable {
     public val config: AnyTimeConfiguration
 
     /**
-     * Opens a new database connection.
+     * Soft limit on the amount of heap memory that may be allocated by SQLite.
      *
-     * @throws SQLiteException if an error happens while opening the connection or if an
-     * [AutoExtension] fails.
+     * @throws SQLiteException if setting the value failed.
      */
-    public fun open(
-        fileName: String,
-        flags: SqliteOpenFlag.Db = SqliteOpenFlag.READONLY,
-        vfs: String? = null
-    ): DatabaseConnection
+    public var hardHeapLimit: Long
+
+    /**
+     * Number of bytes of memory currently outstanding.
+     */
+    public val memoryUsed: Long
+
+    /**
+     * Maximum value of [memoryUsed] since the high-water mark was last reset.
+     */
+    public val memoryHighwater: Long
+
+    /**
+     * Hard limit on the amount of heap memory that may be allocated by SQLite.
+     *
+     * @throws SQLiteException if setting the value failed.
+     */
+    public var softHeapLimit: Long
 
     /**
      * Registers the [autoExtension] callback.
@@ -39,6 +54,42 @@ public interface SQLite : AutoCloseable {
      * This method has no effect if the [autoExtension] is not registered.
      */
     public fun removeAutoExtension(autoExtension: AutoExtension)
+
+    /**
+     * Unregisters all the [AutoExtension] previously registered.
+     */
+    public fun clearAutoExtensions()
+
+    /**
+     * Returns the number of bytes of memory currently outstanding and the highwater mark.
+     */
+    public fun getMemoryStatus(resetHighwater: Boolean): StatusValue
+
+    /**
+     * Opens an SQLite database file as specified by [fileName] and returns a [DatabaseConnection].
+     *
+     * @throws SQLiteException if an error happens while opening the database or if a registered
+     * [AutoExtension] fails.
+     */
+    public fun open(
+        fileName: String,
+        flags: SqliteOpenFlag.Db = SqliteOpenFlag.READONLY,
+        vfs: String? = null
+    ): DatabaseConnection
+
+    /**
+     * Stores [size] bytes of randomness into [output].
+     */
+    public fun generateRandomBytes(
+        output: Buffer,
+        size: Int
+    )
+
+    /**
+     * Attempts to free [size] bytes of heap memory by deallocating non-essential memory allocations
+     * held by the database library.
+     */
+    public fun releaseMemory(size: Int): Int
 
     /**
      * Invokes `sqlite3_shutdown()` and resets global SQLite state.
@@ -57,23 +108,7 @@ public interface SQLite : AutoCloseable {
     /**
      * Provides access to SQLite APIs that do not require SQLite initialization.
      */
-    public companion object {
-
-        /**
-         * Returns the options that were defined at compile-time.
-         * The `SQLITE_` prefix is omitted for each option.
-         */
-        public val compileOptions: List<String>
-            get() = SqliteCompileOptions
-
-        /**
-         * Returns `true` if `this` seems to form a complete SQL statement. If additional input is
-         * needed before sending tbe text into SQLite for parsing, then `false` is returned.
-         *
-         * @throws SQLiteException if a memory allocation fails.
-         */
-        public fun String.isCompleteSqlStatement(): Boolean = sqliteIsComplete(this)
-    }
+    public companion object : SQLiteStatic by SQLiteStaticImpl
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -94,3 +129,16 @@ public interface SQLite : AutoCloseable {
  */
 public fun SQLite(configure: (ConfigurationScope.() -> Unit)? = null): SQLite =
     sqliteInitialize(configure)
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a [ByteArray] of given [size] filled with random bytes.
+ */
+public fun SQLite.generateRandomBytes(size: Int): ByteArray {
+    val output = Buffer.allocate(size)
+    generateRandomBytes(output, size)
+    return output.readBytes()
+}

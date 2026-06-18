@@ -27,11 +27,14 @@ import ksqlite.capi.memory.Buffer as CapiBuffer
  *
  * The [Buffer] must be closed once no longer needed to release allocated resources.
  */
-public class Buffer internal constructor(override var buffer: CapiBuffer) :
+public class Buffer internal constructor(buffer: CapiBuffer) :
     ReadableBuffer(buffer),
     AutoCloseable {
 
     private val refCount = AtomicInt(0)
+
+    override var buffer: CapiBuffer = buffer
+        private set
 
     override val scope = DelegatingCloseableScope {
         ensureNotReferenced()

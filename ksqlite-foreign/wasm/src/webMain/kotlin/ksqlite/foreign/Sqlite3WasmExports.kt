@@ -555,6 +555,10 @@ public external interface Sqlite3WasmExports : JsAny {
         p1: Int,
     ): JsBigInt
 
+    public fun sqlite3_hard_heap_limit64(
+        p0: JsBigInt,
+    ): JsBigInt
+
     public fun sqlite3_initialize(): Int
 
     public fun sqlite3_interrupt(
@@ -883,6 +887,36 @@ public external interface Sqlite3WasmExports : JsAny {
 
     public fun sqlite3_shutdown(): Int
 
+    public fun sqlite3_snapshot_cmp(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    public fun sqlite3_snapshot_free(
+        p0: JsBigInt,
+    )
+
+    public fun sqlite3_snapshot_get(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): Int
+
+    public fun sqlite3_snapshot_open(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): Int
+
+    public fun sqlite3_snapshot_recover(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    public fun sqlite3_soft_heap_limit64(
+        p0: JsBigInt,
+    ): JsBigInt
+
     public fun sqlite3_sourceid(): JsBigInt
 
     public fun sqlite3_sql(
@@ -1138,6 +1172,30 @@ public external interface Sqlite3WasmExports : JsAny {
         p1: Int,
         p2: JsBigInt,
     ): Int
+
+    public fun sqlite3_wal_autocheckpoint(
+        p0: JsBigInt,
+        p1: Int,
+    ): Int
+
+    public fun sqlite3_wal_checkpoint(
+        p0: JsBigInt,
+        p1: JsBigInt,
+    ): Int
+
+    public fun sqlite3_wal_checkpoint_v2(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+        p3: JsBigInt,
+        p4: JsBigInt,
+    ): Int
+
+    public fun sqlite3_wal_hook(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    )
 
     ///////////////////////////////////////////////////////////////////////////
     // Extras

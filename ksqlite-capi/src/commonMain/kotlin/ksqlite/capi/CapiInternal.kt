@@ -2,9 +2,12 @@ package ksqlite.capi
 
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.types.Int64OutputParam
+import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.types.SqliteSerializeFlag
 
 ///////////////////////////////////////////////////////////////////////////
 // Buffer
@@ -64,6 +67,16 @@ internal expect fun setAuxdataInternal(
  */
 @PublishedApi
 internal expect fun userDataInternal(context: sqlite3_context): ApplicationDefinedFunction<*>?
+
+/**
+ * Returns a buffer to the serialized database.
+ */
+internal expect fun serializeInternal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer?
 
 /**
  * Returns the pointer value.

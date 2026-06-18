@@ -27,9 +27,9 @@ private fun authorizerHandler(
     callback.apply(
         appData = appData,
         action = convertActionCode(action),
-        param3 = param3?.toKStringFromUtf8(),
-        param4 = param4?.toKStringFromUtf8(),
-        param5 = param5?.toKStringFromUtf8(),
-        param6 = param6?.toKStringFromUtf8()
+        detail1 = param3?.toKStringFromUtf8(),
+        detail2 = param4?.toKStringFromUtf8(),
+        detail3 = param5?.toKStringFromUtf8(),
+        detail4 = param6?.toKStringFromUtf8()
     ).code
 }

@@ -14,13 +14,14 @@ public open class ReadableBuffer internal constructor(
     scope: ClosableScope? = null,
 ) {
 
-    internal open val scope = scope ?: ClosableScope()
+    @Suppress("CanBePrimaryConstructorProperty")
+    internal open val scope: ClosableScope? = scope
 
     /**
      * Size of the memory region in bytes.
      */
     public val byteSize: Long
-        get() = scope.notClosed { buffer.byteSize }
+        get() = scope?.notClosed(block = buffer::byteSize) ?: buffer.byteSize
 
     /**
      * Reads [size] bytes from the native memory block into [destination].
@@ -38,7 +39,9 @@ public open class ReadableBuffer internal constructor(
         size: Int = destination.size,
         sourceOffset: Long = 0,
         destinationOffset: Int = 0
-    ): Unit = scope.notClosed {
+    ) {
+        scope?.ensureNotClosed()
+
         buffer.read(
             destination = destination,
             size = size,
@@ -67,8 +70,10 @@ public fun ReadableBuffer.read(
     size: Int,
     sourceOffset: Long = 0,
     destinationOffset: Int = 0,
-): ByteArray = scope.notClosed {
-    buffer.read(
+): ByteArray {
+    scope?.ensureNotClosed()
+
+    return buffer.read(
         size = size,
         sourceOffset = sourceOffset,
         destinationOffset = destinationOffset
@@ -78,8 +83,10 @@ public fun ReadableBuffer.read(
 /**
  * Reads at most [Int.MAX_VALUE] bytes from `this` buffer.
  */
-public fun ReadableBuffer.readBytes(): ByteArray =
-    scope.notClosed { buffer.readBytes() }
+public fun ReadableBuffer.readBytes(): ByteArray {
+    scope?.ensureNotClosed()
+    return buffer.readBytes()
+}
 
 /**
  * Reads all bytes from `this` buffer.
@@ -87,5 +94,7 @@ public fun ReadableBuffer.readBytes(): ByteArray =
  * @throws UnsupportedOperationException if not all bytes in `this` buffer can fit into a
  * [ByteArray].
  */
-public fun ReadableBuffer.readBytesOrThrow(): ByteArray =
-    scope.notClosed { buffer.readBytesOrThrow() }
+public fun ReadableBuffer.readBytesOrThrow(): ByteArray {
+    scope?.ensureNotClosed()
+    return buffer.readBytesOrThrow()
+}

@@ -35,8 +35,8 @@ internal class PreupdateHookHandler :
             action = convertActionCode(action),
             dbName = dbName.toKStringFromUtf8(),
             tableName = tableName.toKStringFromUtf8(),
-            preRowId = iKey1,
-            postRowId = iKey2
+            oldRowid = iKey1,
+            newRowid = iKey2
         )
     }
 }

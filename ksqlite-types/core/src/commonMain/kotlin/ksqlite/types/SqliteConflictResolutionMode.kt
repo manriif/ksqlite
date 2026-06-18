@@ -26,7 +26,7 @@ public enum class SqliteConflictResolutionMode(public val mode: Int) {
      * algorithm is used. However, the IGNORE conflict resolution algorithm works like ABORT for
      * foreign key constraint errors.
      */
-    IGNORE(SqliteAuthorizerCode.IGNORE.code),
+    IGNORE(SqliteAuthorizerStatus.IGNORE.code),
 
     /**
      * When an applicable constraint violation occurs, the FAIL resolution algorithm aborts the

@@ -79,6 +79,13 @@ public expect class SqliteBlobOutputParam() : OutputParam<sqlite3_blob?> {
 }
 
 /**
+ * Wrapper around [sqlite3_snapshot] intended to be passed as parameter and written by SQLite.
+ */
+public expect class SqliteSnapshotOutputParam() : OutputParam<sqlite3_snapshot?> {
+    override val value: sqlite3_snapshot?
+}
+
+/**
  * Wrapper around [sqlite3_stmt] intended to be passed as parameter and written by SQLite.
  */
 public expect class SqliteStmtOutputParam() : OutputParam<sqlite3_stmt?> {

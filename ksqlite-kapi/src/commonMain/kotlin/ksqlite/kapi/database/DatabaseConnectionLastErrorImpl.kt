@@ -4,8 +4,10 @@ import ksqlite.capi.sqlite3_errcode
 import ksqlite.capi.sqlite3_errmsg
 import ksqlite.capi.sqlite3_error_offset
 import ksqlite.capi.sqlite3_extended_errcode
+import ksqlite.capi.sqlite3_set_errmsg
 import ksqlite.capi.types.sqlite3
 import ksqlite.kapi.helpers.BaseClosableScope
+import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.types.SqliteResultCode
 
 internal class DatabaseConnectionLastErrorImpl(
@@ -24,4 +26,9 @@ internal class DatabaseConnectionLastErrorImpl(
 
     override val offset: Int
         get() = scope.notClosed { sqlite3_error_offset(db) }
+
+    override fun update(
+        errorCode: SqliteResultCode,
+        errorMessage: String?
+    ) = scope.notClosed { sqliteResultCheck(sqlite3_set_errmsg(db, errorCode, errorMessage)) }
 }

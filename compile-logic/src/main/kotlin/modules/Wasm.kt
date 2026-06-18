@@ -42,9 +42,10 @@ private val WasmExtraResourceFileNames = listOf(
 
 /**
  * Extra functions which aren't exported by default in the wasm build.
- * Exports with care are theses aren't tested by the official wasm team.
+ * Exports with care as theses aren't tested by the official wasm team.
+ *
  * Some aren't that meaningful to use in web platforms but are exported to align at maximum with
- * other platforms.
+ * other platforms and avoid plenty of expect/actual.
  */
 private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "autovacuum_pages",
@@ -68,6 +69,7 @@ private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "db_cacheflush",
     "db_config",
     "db_release_memory",
+    "hard_heap_limit64",
     "log",
     "memory_used",
     "memory_highwater",
@@ -76,9 +78,19 @@ private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "result_blob64",
     "result_text64",
     "result_value",
+    "snapshot_cmp",
+    "snapshot_free",
+    "snapshot_get",
+    "snapshot_open",
+    "snapshot_recover",
+    "soft_heap_limit64",
     "system_errno",
     "value_encoding",
-    "vtab_config"
+    "vtab_config",
+    "wal_autocheckpoint",
+    "wal_checkpoint",
+    "wal_checkpoint_v2",
+    "wal_hook"
 ).sqlitePrefixed()
 
 /**

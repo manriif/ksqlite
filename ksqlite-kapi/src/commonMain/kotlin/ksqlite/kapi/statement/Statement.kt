@@ -2,7 +2,7 @@ package ksqlite.kapi.statement
 
 import ksqlite.kapi.database.DatabaseConnection
 
-public interface Statement {
+public interface Statement : AutoCloseable {
 
     /**
      * Database connection to which this statement belongs.
@@ -10,12 +10,36 @@ public interface Statement {
     public val connection: DatabaseConnection
 
     /**
-     * Returns the number of column in the result set.
+     * Number of column in the result set.
      */
     public val columnCount: Int
 
     /**
-     * Resets all host parameters to `null`.
+     * SQL associated with the statement with bound parameters expanded.
      */
-    public fun clearBindings()
+    public val expandedSql: String?
+
+    /**
+     * Resets all host parameters to `null`.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
+     */
+    public fun clear()
+
+    /**
+     * Resets the prepared statement object back to its initial state, making it ready to be
+     * re-executed.
+     *
+     * Bindings values are not affected, [clear] must be used instead.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
+     */
+    public fun reset()
+
+    /**
+     * Deletes a prepared statement.
+     *
+     * @throws ksqlite.kapi.SQLiteException if finalizing the statement fails.
+     */
+    override fun close()
 }
