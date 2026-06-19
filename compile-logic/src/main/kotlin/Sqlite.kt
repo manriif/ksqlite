@@ -259,7 +259,7 @@ private val Sqlite3Functions = mapOf(
     "libversion" to true,
     "libversion_number" to true,
     "sourceid" to true,
-    "threadsafe" to false,
+    "threadsafe" to true,
     "version" to true,
 
     // Compilation Options

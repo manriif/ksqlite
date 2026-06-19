@@ -8,7 +8,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * Helper for object implementing [AutoCloseable].
  */
 @PublishedApi
-internal abstract class BaseClosableScope : AutoCloseable {
+internal abstract class ClosableScope : AutoCloseable {
 
     @PublishedApi
     internal abstract val closed: Boolean
@@ -21,7 +21,8 @@ internal abstract class BaseClosableScope : AutoCloseable {
     /**
      * Throws [IllegalStateException] if [closed] is `true`.
      */
-    internal fun ensureNotClosed(lazyMessage: () -> String = { "Scope is closed" }) {
+    @PublishedApi
+    internal open fun ensureNotClosed(lazyMessage: () -> String = { "Scope is closed" }) {
         check(!closed, lazyMessage)
     }
 
@@ -30,19 +31,19 @@ internal abstract class BaseClosableScope : AutoCloseable {
      */
     @PublishedApi
     internal inline fun <R> notClosed(
-        lazyMessage: () -> String = { "Scope is closed" },
+        crossinline lazyMessage: () -> String = { "Scope is closed" },
         block: () -> R
     ): R {
-        check(!closed, lazyMessage)
+        ensureNotClosed { lazyMessage() }
         return block()
     }
 }
 
 /**
- * Unsafe [BaseClosableScope].
+ * Unsafe [ClosableScope].
  */
 @PublishedApi
-internal open class ClosableScope : BaseClosableScope() {
+internal open class UnsafeClosableScope : ClosableScope() {
 
     @Volatile
     final override var closed: Boolean = false
@@ -57,11 +58,11 @@ internal open class ClosableScope : BaseClosableScope() {
 }
 
 /**
- * Subclass of [ClosableScope] invoking [onClose] when the scope is closed.
+ * Subclass of [UnsafeClosableScope] invoking [onClose] when the scope is closed.
  */
 internal class DelegatingCloseableScope(
     private val onClose: () -> Unit
-) : ClosableScope() {
+) : UnsafeClosableScope() {
 
     override fun onClose() {
         onClose.invoke()
@@ -69,11 +70,11 @@ internal class DelegatingCloseableScope(
 }
 
 /**
- * Helper for objects implementing [AutoCloseable].
+ * Thread-safe [ClosableScope].
  */
 @PublishedApi
 @OptIn(ExperimentalAtomicApi::class)
-internal open class AtomicClosableScope : BaseClosableScope() {
+internal open class AtomicClosableScope : ClosableScope() {
 
     private val _closed = AtomicBoolean(false)
 
@@ -97,4 +98,24 @@ internal class DelegatingAtomicCloseableScope(
     override fun onClose() {
         onClose.invoke()
     }
+}
+
+/**
+ * Closable scope which is closed if either [parent] or [child] is closed.
+ * The [close] operation is forwarded to [child].
+ */
+internal open class CombinedClosableScope(
+    private val parent: ClosableScope,
+    private val child: ClosableScope
+) : ClosableScope() {
+
+    final override val closed: Boolean
+        get() = child.closed || parent.closed
+
+    override fun ensureNotClosed(lazyMessage: () -> String) {
+        check(!child.closed, lazyMessage)
+        check(!parent.closed) { "Parent scope is closed" }
+    }
+
+    final override fun close() = child.close()
 }

@@ -14,7 +14,7 @@ import ksqlite.capi.sqlite3_vtab_rhs_value
 import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.vtab.sqlite3_index_info
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.ContextClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.value.ProtectedValue
@@ -28,7 +28,7 @@ import kotlin.concurrent.Volatile
 
 internal class VirtualTableCreateOrConnectScopeImpl(private val db: sqlite3) :
     VirtualTableCreateOrConnectScope,
-    ClosableScope() {
+    UnsafeClosableScope() {
 
     override val config = VirtualTableConfigurationImpl(db, this)
 
@@ -42,7 +42,7 @@ internal class VirtualTableCreateOrConnectScopeImpl(private val db: sqlite3) :
 internal class VirtualTableBestIndexScopeImpl(
     private val info: sqlite3_index_info,
 ) : VirtualTableBestIndexScope,
-    ClosableScope() {
+    UnsafeClosableScope() {
 
     override val distinct: Int
         get() = notClosed { sqlite3_vtab_distinct(info) }
@@ -75,7 +75,7 @@ internal class VirtualTableColumnScopeImpl(private val scope: ContextClosableSco
 
 internal class VirtualTableFilterScopeImpl :
     VirtualTableFilterScope,
-    ClosableScope() {
+    UnsafeClosableScope() {
 
     @Volatile
     private var lastValue: ProtectedValue? = null
@@ -100,7 +100,7 @@ internal class VirtualTableFilterScopeImpl :
 
         sqliteResultCheck(result)
 
-        val valueScope = ClosableScope()
+        val valueScope = UnsafeClosableScope()
         val value = outValue.value?.toProtectedValue(valueScope)
         lastValue = value
 
@@ -120,7 +120,7 @@ internal class VirtualTableFilterScopeImpl :
 
 internal class VirtualTableFindFunctionScopeImpl :
     VirtualTableFindFunctionScope,
-    ClosableScope() {
+    UnsafeClosableScope() {
 
     var customCode: SqliteVTabConstraintOperatorCode.Custom? = null
         private set
@@ -132,7 +132,7 @@ internal class VirtualTableFindFunctionScopeImpl :
 
 internal class VirtualTableUpdateScopeImpl(private val db: sqlite3) :
     VirtualTableUpdateScope,
-    ClosableScope() {
+    UnsafeClosableScope() {
 
     override val onConflict: SqliteConflictResolutionMode
         get() = notClosed { sqlite3_vtab_on_conflict(db) }
@@ -143,7 +143,7 @@ internal class VirtualTableUpdateScopeImpl(private val db: sqlite3) :
 
 internal class VirtualTableIntegrityScopeImpl :
     VirtualTableIntegrityScope,
-    ClosableScope() {
+    UnsafeClosableScope() {
 
     var message: String? = null
         private set

@@ -7,27 +7,15 @@ import ksqlite.capi.sqlite3_preupdate_new
 import ksqlite.capi.sqlite3_preupdate_old
 import ksqlite.capi.types.SqliteValueOutputParam
 import ksqlite.capi.types.sqlite3
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.kapi.value.toProtectedValue
 
-/**
- * Special exception emitted to abort SQL statement execution.
- */
-internal class ExecAbortException : Exception()
-
-internal object ExecScopeImpl : ExecScope {
-
-    override fun abort(): Nothing {
-        throw ExecAbortException()
-    }
-}
-
 internal class PreupdateHookScopeImpl(private val db: sqlite3) :
     PreupdateHookScope,
-    ClosableScope() {
+    UnsafeClosableScope() {
 
     override val count: Int
         get() = notClosed { sqlite3_preupdate_count(db) }

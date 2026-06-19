@@ -1002,6 +1002,8 @@ public external interface Sqlite3WasmExports : JsAny {
         p8: JsBigInt,
     ): Int
 
+    public fun sqlite3_threadsafe(): Int
+
     public fun sqlite3_total_changes(
         p0: JsBigInt,
     ): Int

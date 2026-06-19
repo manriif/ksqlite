@@ -8,6 +8,7 @@ import ksqlite.kapi.database.AutoExtension
 import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.value.StatusValue
 import ksqlite.types.SqliteOpenFlag
+import ksqlite.types.SqliteStatusOption
 
 /**
  * [SQLite](https://sqlite.org/docs.html) entry point.
@@ -63,7 +64,7 @@ public interface SQLite : AutoCloseable {
     /**
      * Returns the number of bytes of memory currently outstanding and the highwater mark.
      */
-    public fun getMemoryStatus(resetHighwater: Boolean): StatusValue
+    public fun getMemoryStatus(reset: Boolean): StatusValue
 
     /**
      * Opens an SQLite database file as specified by [fileName] and returns a [DatabaseConnection].
@@ -90,6 +91,14 @@ public interface SQLite : AutoCloseable {
      * held by the database library.
      */
     public fun releaseMemory(size: Int): Int
+
+    /**
+     * Returns the status for the given options.
+     */
+    public fun getStatus(
+        option: SqliteStatusOption,
+        reset: Boolean = false
+    ): StatusValue
 
     /**
      * Invokes `sqlite3_shutdown()` and resets global SQLite state.

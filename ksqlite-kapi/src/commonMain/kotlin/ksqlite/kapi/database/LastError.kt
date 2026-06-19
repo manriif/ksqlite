@@ -8,7 +8,7 @@ import ksqlite.types.SqliteResultCode
  * Note that value returned by the member properties may change while the database connection is
  * used.
  */
-public interface DatabaseConnectionLastError {
+public interface LastError {
 
     /**
      * UTF-8 encoded English language explanation.
@@ -30,6 +30,12 @@ public interface DatabaseConnectionLastError {
      * recent error.
      */
     public val offset: Int
+
+    /**
+     * OS-dependant error code or error number that caused the most recent I/O error or failure to
+     * open a file.
+     */
+    public val systemError: Int
 
     /**
      * Sets the [code] to [errorCode] and [message] to [errorMessage].

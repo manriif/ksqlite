@@ -85,6 +85,7 @@ private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "snapshot_recover",
     "soft_heap_limit64",
     "system_errno",
+    "threadsafe",
     "value_encoding",
     "vtab_config",
     "wal_autocheckpoint",

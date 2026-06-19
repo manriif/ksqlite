@@ -52,7 +52,7 @@ internal class UpdateHookHandler<AppData> :
             action = convertActionCode(opId),
             dbName = dbName,
             tableName = tableName,
-            rowId = rowId
+            rowid = rowId
         )
     }
 }

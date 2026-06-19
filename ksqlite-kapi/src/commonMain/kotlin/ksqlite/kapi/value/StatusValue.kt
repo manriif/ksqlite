@@ -3,7 +3,15 @@ package ksqlite.kapi.value
 /**
  * Holder for a status-like value and its highwater.
  */
-public data class StatusValue(
-    val current: Long,
-    val highwater: Long
-)
+public interface StatusValue {
+
+    /**
+     * Current value.
+     */
+    public val current: Long
+
+    /**
+     * Highest value before reset.
+     */
+    public val highwater: Long
+}

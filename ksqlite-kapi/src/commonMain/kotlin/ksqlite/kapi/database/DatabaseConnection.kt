@@ -4,10 +4,11 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.kapi.MAIN_DB_NAME
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.buffer.Buffer
-import ksqlite.kapi.functions.AggregateFunction
-import ksqlite.kapi.functions.ScalarFunction
-import ksqlite.kapi.functions.WindowFunction
-import ksqlite.kapi.statement.Statement
+import ksqlite.kapi.function.AggregateFunction
+import ksqlite.kapi.function.ScalarFunction
+import ksqlite.kapi.function.WindowFunction
+import ksqlite.kapi.snapshot.Snapshot
+import ksqlite.kapi.statement.PreparedStatement
 import ksqlite.kapi.value.StatusValue
 import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.types.SqliteBlobOpenFlag
@@ -19,6 +20,8 @@ import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteTextEncoding
+import ksqlite.types.SqliteTraceEventCode
+import ksqlite.types.SqliteTransactionState
 import ksqlite.types.vtab.SqliteModuleVersion
 
 /**
@@ -46,7 +49,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     /**
      * Most recent error information.
      */
-    public abstract val lastError: DatabaseConnectionLastError
+    public abstract val lastError: LastError
 
     /**
      * Whether the connection is in autocommit mode.
@@ -63,6 +66,18 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      * connection.
      */
     public abstract var lastInsertRowid: Long
+
+    /**
+     * Total number of rows inserted, modified or deleted by all INSERT, UPDATE or DELETE statements
+     * completed since the database connection was opened, including those executed as part of
+     * trigger programs.
+     */
+    public abstract val totalChanges: Long
+
+    /**
+     * Write-Ahead Log operating on this connection.
+     */
+    public abstract val wal: WriteAheadLog
 
     /**
      * Sets the callback that is invoked prior to each autovacuum of the database file.
@@ -285,7 +300,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      */
     public abstract fun deserialize(
         serializedDatabase: Buffer,
-        database: String = MAIN_DB_NAME,
+        database: String? = null,
         databaseSize: Long = serializedDatabase.byteSize,
         bufferSize: Long = databaseSize,
         flags: SqliteDeserializeFlag? = null
@@ -351,14 +366,14 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     )
 
     /**
-     * Creates and returns a [Statement].
+     * Creates and returns a [PreparedStatement].
      *
      * @throws ksqlite.kapi.SQLiteException if an error happened while preparing the statement.
      */
     public abstract fun prepare(
         sql: String,
         flags: SqlitePrepareFlag? = null
-    ): Statement
+    ): PreparedStatement
 
     /**
      * Sets the callback that is invoked prior to each INSERT, UPDATE, and DELETE operation.
@@ -400,7 +415,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      */
     public abstract fun serialize(
         flags: SqliteSerializeFlag? = null,
-        database: String = MAIN_DB_NAME
+        database: String? = null
     ): SerializeResult
 
     /**
@@ -409,4 +424,69 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
     public abstract fun setAuthorizer(handler: Authorizer?)
+
+    /**
+     * Records the current state of the given [database] and returns a [Snapshot].
+     *
+     * @throws ksqlite.kapi.SQLiteException if a failure occurs while creating the snapshot.
+     */
+    public abstract fun createSnapshot(database: String? = null): Snapshot
+
+    /**
+     * Starts a new read transaction or upgrades an existing one for [database] of this database
+     * such that the read transaction refers to historical [snapshot], rather than the most recent
+     * change to the database.
+     *
+     * @throws ksqlite.kapi.SQLiteException if a failure occurred while attempting to open the
+     * snapshot.
+     */
+    public abstract fun openSnapshot(
+        snapshot: Snapshot,
+        database: String? = null
+    )
+
+    /**
+     * Attempts to scan the WAL file associated with [database] of this connection and make all
+     * valid snapshots available to [openSnapshot].
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
+     */
+    public abstract fun recoverSnapshots(database: String? = null)
+
+    /**
+     * Returns information about the column [column] of table [table] in database [database].
+     *
+     * @throws ksqlite.kapi.SQLiteException if an error happened while collecting information.
+     */
+    public abstract fun tableColumnMetadata(
+        table: String,
+        column: String,
+        database: String? = null
+    ): TableColumnMetadata
+
+    /**
+     * Sets the callback that get invoked whenever any of the events identified by [eventCodes]
+     * occur.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun setTrace(
+        eventCodes: SqliteTraceEventCode?,
+        handler: Trace?
+    )
+
+    /**
+     * Returns the current transaction state of [database].
+     *
+     * @throws ksqlite.kapi.SQLiteException if the [database] is not valid.
+     */
+    public abstract fun getTransactionState(database: String? = null): SqliteTransactionState
+
+    /**
+     * Sets the callback that is invoked whenever a row is updated, inserted or deleted in a rowid
+     * table.
+     *
+     * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+     */
+    public abstract fun setUpdateHook(handler: UpdateHook?)
 }

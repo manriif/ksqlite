@@ -5608,6 +5608,15 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1table_1column_1metadata(
 
 extern "C"
 JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3_1threadsafe(
+    JNIEnv* env,
+    jclass clazz
+) {
+    return sqlite3_threadsafe();
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
 Java_ksqlite_foreign_KsqliteJni_sqlite3_1total_1changes(
     JNIEnv* env,
     jclass clazz,
@@ -5657,7 +5666,7 @@ static int traceCaller(
     }
 
     HookEnterDbState(trace);
-    const auto rc = env->CallIntMethod(instance,apply, code, pPointer, xPointer);
+    const auto rc = env->CallIntMethod(instance, apply, code, pPointer, xPointer);
     HookLeave();
 
     LocalRefDestroy(xPointer);
@@ -6789,7 +6798,7 @@ Java_ksqlite_foreign_KsqliteJni_nativeVTabDeinit(
     const auto pFunctions = pVTab->pFunctions;
 
     if (pFunctions != nullptr) {
-        const auto &functions = *pFunctions;
+        const auto& functions = *pFunctions;
 
         for (const auto& pFunction: functions) {
             destroyFunction(env, pFunction);

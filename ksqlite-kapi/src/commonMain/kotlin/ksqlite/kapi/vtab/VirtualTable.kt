@@ -1,7 +1,7 @@
 package ksqlite.kapi.vtab
 
 import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.functions.ScalarFunction
+import ksqlite.kapi.function.ScalarFunction
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.types.vtab.SqliteIndexInfo
 import ksqlite.types.vtab.SqliteVTab

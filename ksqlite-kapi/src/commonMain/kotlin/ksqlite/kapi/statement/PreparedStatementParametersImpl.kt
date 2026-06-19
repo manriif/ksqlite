@@ -15,6 +15,7 @@ import ksqlite.capi.sqlite3_bind_text64
 import ksqlite.capi.sqlite3_bind_value
 import ksqlite.capi.sqlite3_bind_zeroblob
 import ksqlite.capi.sqlite3_bind_zeroblob64
+import ksqlite.capi.sqlite3_clear_bindings
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.helpers.ClosableScope
@@ -24,24 +25,25 @@ import ksqlite.kapi.value.Value
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteTextEncoding
 
-internal class StatementBindScopeImpl(private val stmt: sqlite3_stmt) :
-    StatementBindScope,
-    ClosableScope() {
+internal class PreparedStatementParametersImpl(
+    private val stmt: sqlite3_stmt,
+    private val scope: ClosableScope
+) : PreparedStatementParameters {
 
-    override val parameterCount: Int
-        get() = notClosed { sqlite3_bind_parameter_count(stmt) }
+    override val count: Int
+        get() = scope.notClosed { sqlite3_bind_parameter_count(stmt) }
 
-    override fun parameterIndex(name: String): Int =
-        notClosed { sqlite3_bind_parameter_index(stmt, name) }
+    override fun getIndex(name: String): Int =
+        scope.notClosed { sqlite3_bind_parameter_index(stmt, name) }
 
-    override fun parameterName(index: Int): String? =
-        notClosed { sqlite3_bind_parameter_name(stmt, index) }
+    override fun getName(index: Int): String? =
+        scope.notClosed { sqlite3_bind_parameter_name(stmt, index) }
 
     /**
      * Invokes [block] throwing [ksqlite.kapi.SQLiteException] if it returns a failure code.
      */
     private inline fun bind(block: () -> SqliteResultCode) =
-        notClosed { sqliteResultCheck(block()) }
+        scope.notClosed { sqliteResultCheck(block()) }
 
     override fun bind(index: Int, value: Nothing?): Unit =
         bind { sqlite3_bind_null(stmt, index) }
@@ -104,4 +106,8 @@ internal class StatementBindScopeImpl(private val stmt: sqlite3_stmt) :
 
     override fun bind(index: Int, value: Any, type: String?) =
         bind { sqlite3_bind_pointer(stmt, index, value, type, autoCloser(value)) }
+
+    override fun clear() = scope.notClosed {
+        sqliteResultCheck(sqlite3_clear_bindings(stmt))
+    }
 }

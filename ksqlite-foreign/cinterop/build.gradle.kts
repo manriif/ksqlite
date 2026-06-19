@@ -18,6 +18,8 @@ fun KotlinNativeTarget.configureNativeTarget() {
         excludedFunctions = sqliteFunctions(false)
         noStringConversion = KsqliteNoStringConversions
 
+        // TODO remove this before the library goes stable and this is still an exprimental feature
+        //  or if some problems have been encountered
         extraOpts("-Xccall-mode", "direct")
 
         generateDefFileTaskProvider.configure {

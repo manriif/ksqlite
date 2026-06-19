@@ -14,7 +14,7 @@ public fun interface SqliteWalHookCallback<AppData> {
     public fun apply(
         appData: AppData,
         db: sqlite3,
-        dbName: String,
-        nPage: Int
+        databaseName: String,
+        pageCount: Int
     ): SqliteResultCode.OkOrFailure
 }

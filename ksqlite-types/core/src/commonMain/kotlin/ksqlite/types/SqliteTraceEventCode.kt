@@ -10,12 +10,12 @@ package ksqlite.types
  *
  * [SQL Trace Event Codes](https://sqlite.org/c3ref/c_trace.html).
  */
-public sealed class SqliteTraceCode(public open val code: Int) {
+public sealed class SqliteTraceEventCode(public open val value: Int) {
 
     /**
      * Flag that is a constant.
      */
-    public sealed class Constant(value: Int) : SqliteTraceCode(value)
+    public sealed class Constant(value: Int) : SqliteTraceEventCode(value)
 
     /**
      * An SQLITE_TRACE_STMT callback is invoked when a prepared statement first begins running and
@@ -58,13 +58,35 @@ public sealed class SqliteTraceCode(public open val code: Int) {
      * Holder for the flags to be passed to the trace API function.
      */
     @ConsistentCopyVisibility
-    public data class Mask internal constructor(override val code: Int) :
-        SqliteTraceCode(code)
+    public data class Mask internal constructor(override val value: Int) :
+        SqliteTraceEventCode(value) {
+
+        override fun contains(flag: SqliteTraceEventCode): Boolean =
+            (value and flag.value) == flag.value
+    }
 
     /**
-     * Returns an [SqliteTraceCode] which is ORed with [flag].
+     * Returns an [SqliteTraceEventCode] which is ORed with [flag].
      */
-    public infix fun or(flag: SqliteTraceCode): SqliteTraceCode {
-        return Mask(code or flag.code)
-    }
+    public infix fun or(flag: SqliteTraceEventCode): SqliteTraceEventCode =
+        Mask(value or flag.value)
+
+    /**
+     * Returns an [SqliteTraceEventCode] which is ANDed with [flag].
+     */
+    public infix fun and(flag: SqliteTraceEventCode): SqliteTraceEventCode =
+        Mask(value and flag.value)
+
+    /**
+     * Returns an [SqliteTraceEventCode] which has [flag] removed.
+     */
+    public infix fun without(flag: SqliteTraceEventCode): SqliteTraceEventCode =
+        Mask(value and flag.value.inv())
+
+    /**
+     * Returns `true` if [flag] is equals to `this`.
+     * It this is a mask, returns `true` if it contains [flag].
+     */
+    public open operator fun contains(flag: SqliteTraceEventCode): Boolean =
+        flag == this || flag.value == value
 }

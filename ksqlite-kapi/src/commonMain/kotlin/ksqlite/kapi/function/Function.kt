@@ -1,4 +1,4 @@
-package ksqlite.kapi.functions
+package ksqlite.kapi.function
 
 /**
  * [Application-Defined SQL Functions](https://sqlite.org/appfunc.html).

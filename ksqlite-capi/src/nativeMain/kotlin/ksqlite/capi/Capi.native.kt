@@ -113,7 +113,7 @@ import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
-import ksqlite.types.SqliteTraceCode
+import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.SqliteTransactionState
 import ksqlite.types.internal.convertCompleteResult
 import ksqlite.types.internal.convertConflictResolutionMode
@@ -291,6 +291,7 @@ import ksqlite.foreign.sqlite3_strlike as native_sqlite3_strlike
 import ksqlite.foreign.sqlite3_strnicmp as native_sqlite3_strnicmp
 import ksqlite.foreign.sqlite3_system_errno as native_sqlite3_system_errno
 import ksqlite.foreign.sqlite3_table_column_metadata as native_sqlite3_table_column_metadata
+import ksqlite.foreign.sqlite3_threadsafe as native_sqlite3_threadsafe
 import ksqlite.foreign.sqlite3_total_changes as native_sqlite3_total_changes
 import ksqlite.foreign.sqlite3_total_changes64 as native_sqlite3_total_changes64
 import ksqlite.foreign.sqlite3_trace_v2 as native_sqlite3_trace_v2
@@ -1506,8 +1507,8 @@ public actual fun sqlite3_strlike(
 public actual fun sqlite3_strnicmp(
     first: String,
     second: String,
-    maxCharacters: Int
-): Int = native_sqlite3_strnicmp(first, second, maxCharacters)
+    maxBytes: Int
+): Int = native_sqlite3_strnicmp(first, second, maxBytes)
 
 public actual fun sqlite3_system_errno(db: sqlite3): Int =
     native_sqlite3_system_errno(db.pointer)
@@ -1518,13 +1519,13 @@ public actual fun sqlite3_table_column_metadata(
     tableName: String,
     columnName: String,
     outDataType: Utf8OutputParam?,
-    outCollationName: Utf8OutputParam?,
+    outCollationSequence: Utf8OutputParam?,
     outNotNull: Int32OutputParam?,
     outPrimaryKey: Int32OutputParam?,
     outAutoIncrement: Int32OutputParam?
 ): SqliteResultCode = convertResult(memScoped {
     val dataTypePtr = outDataType?.attach(this)
-    val collationNamePtr = outCollationName?.attach(this)
+    val collationNamePtr = outCollationSequence?.attach(this)
     val notNullPtr = outNotNull?.attach(this)
     val primaryKeyPtr = outPrimaryKey?.attach(this)
     val autoIncrementPtr = outAutoIncrement?.attach(this)
@@ -1543,12 +1544,14 @@ public actual fun sqlite3_table_column_metadata(
         )
     } finally {
         dataTypePtr?.let(outDataType::detach)
-        collationNamePtr?.let(outCollationName::detach)
+        collationNamePtr?.let(outCollationSequence::detach)
         notNullPtr?.let(outNotNull::detach)
         primaryKeyPtr?.let(outPrimaryKey::detach)
         autoIncrementPtr?.let(outAutoIncrement::detach)
     }
 })
+
+public actual fun sqlite3_threadsafe(): Int = native_sqlite3_threadsafe()
 
 public actual fun sqlite3_total_changes(db: sqlite3): Int =
     native_sqlite3_total_changes(db.pointer)
@@ -1558,13 +1561,13 @@ public actual fun sqlite3_total_changes64(db: sqlite3): Long =
 
 public actual fun <AppData> sqlite3_trace_v2(
     db: sqlite3,
-    mask: SqliteTraceCode?,
+    mask: SqliteTraceEventCode?,
     appData: AppData,
     callback: SqliteTraceCallback<AppData>?
 ): SqliteResultCode = convertResult(
     native_sqlite3_trace_v2(
         db.pointer,
-        mask?.code?.convert() ?: 0U,
+        mask?.value?.convert() ?: 0U,
         callbackHandler(callback, TraceHandler),
         db.memory.keyedStableRefPointer(KEY_TRACE, callback, appData)
     )
@@ -1734,18 +1737,18 @@ public actual fun sqlite3_wal_autocheckpoint(
 
 public actual fun sqlite3_wal_checkpoint(
     db: sqlite3,
-    name: String?
-): SqliteResultCode = convertResult(native_sqlite3_wal_checkpoint(db.pointer, name))
+    database: String?
+): SqliteResultCode = convertResult(native_sqlite3_wal_checkpoint(db.pointer, database))
 
 public actual fun sqlite3_wal_checkpoint_v2(
     db: sqlite3,
-    name: String?,
+    database: String?,
     mode: SqliteCheckpointMode,
     outNLog: Int32OutputParam?,
     outNCkpt: Int32OutputParam?
 ): SqliteResultCode = convertResult(memScoped {
     useParams(outNLog, outNCkpt) { nLogPtr, nCkptPtr ->
-        native_sqlite3_wal_checkpoint_v2(db.pointer, name?.cstr?.ptr, mode.id, nLogPtr, nCkptPtr)
+        native_sqlite3_wal_checkpoint_v2(db.pointer, database?.cstr?.ptr, mode.id, nLogPtr, nCkptPtr)
     }
 })
 

@@ -32,8 +32,8 @@ internal class WalHookHandler : Handler() {
         callback.apply(
             appData = appData,
             db = sqlite3(db),
-            dbName = dbName.toKStringFromUtf8(),
-            nPage = nPage
+            databaseName = dbName.toKStringFromUtf8(),
+            pageCount = nPage
         ).code
     }
 }

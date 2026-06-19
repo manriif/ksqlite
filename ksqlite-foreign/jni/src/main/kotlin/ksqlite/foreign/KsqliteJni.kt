@@ -961,6 +961,8 @@ public external fun sqlite3_table_column_metadata(
     outAutoIncrement: OutputPointer.OfInt32?
 ): Int
 
+public external fun sqlite3_threadsafe(): Int
+
 public external fun sqlite3_total_changes(db: Long): Int
 
 public external fun sqlite3_total_changes64(db: Long): Long

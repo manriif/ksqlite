@@ -32,6 +32,19 @@ public interface SQLiteStatic {
     public val sourceId: String
 
     /**
+     * Comparator that compare the contents of two buffers containing UTF-8 strings in a
+     * case-independent fashion, using the same definition of "case independence" that SQLite uses
+     * internally when comparing identifiers.
+     */
+    public val caseIndependentComparator: Comparator<String>
+
+    /**
+     * Whether SQLite was compiled with mutexing code omitted due to the SQLITE_THREADSAFE
+     * compile-time option being set to 0.
+     */
+    public val isThreadSafe: Boolean
+
+    /**
      * Returns `true` if `this` seems to form a complete SQL statement. If additional input is
      * needed before sending tbe text into SQLite for parsing, then `false` is returned.
      *
@@ -58,4 +71,30 @@ public interface SQLiteStatic {
         errorCode: Int,
         message: String
     )
+
+    /**
+     * Returns `true` if and only if [input] matches the GLOB [pattern].
+     */
+    public fun matchGlob(
+        pattern: String,
+        input: String
+    ): Boolean
+
+    /**
+     * Returns `true` if and only if [input] matches the LIKE [pattern] with [escape] character.
+     */
+    public fun matchLike(
+        pattern: String,
+        input: String,
+        escape: Char
+    ): Boolean
+
+    /**
+     * Returns a comparator that compare the contents of two buffers containing UTF-8 strings in a
+     * case-independent fashion, using the same definition of "case independence" that SQLite uses
+     * internally when comparing identifiers.
+     *
+     * The returned comparator only compares at most [maxBytes].
+     */
+    public fun createCaseIndependentComparator(maxBytes: Int): Comparator<String>
 }

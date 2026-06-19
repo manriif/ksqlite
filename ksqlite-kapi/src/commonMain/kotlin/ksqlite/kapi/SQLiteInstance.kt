@@ -5,10 +5,12 @@ import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.sqlite3_initialize
 import ksqlite.capi.sqlite3_shutdown
 import ksqlite.capi.types.sqlite3
+import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.config.ConfigurationScopeImpl
 import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.helpers.sqliteResultCheck
+import ksqlite.kapi.statement.PreparedStatement
 
 private var SQLiteInstance: SQLiteImpl? = null
 private var SQLiteInstanceLock = Lock()
@@ -49,3 +51,9 @@ internal fun sqliteInitialize(configure: (ConfigurationScope.() -> Unit)? = null
  */
 internal fun sqliteRequireConnection(db: sqlite3): DatabaseConnection =
     SQLiteInstanceLock.withLock { sqlite.requireConnection(db) }
+
+/**
+ * Retrieves the [PreparedStatement] associated with [stmt].
+ */
+internal fun sqliteRequireStatement(stmt: sqlite3_stmt): PreparedStatement =
+    SQLiteInstanceLock.withLock { sqlite.requireStatement(stmt) }

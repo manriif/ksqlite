@@ -1,27 +1,27 @@
 package ksqlite.types.internal
 
-import ksqlite.types.SqliteTraceCode
+import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.SqliteTransactionState
 
 /**
- * Returns all constants [SqliteTraceCode.Constant]s.
+ * Returns all constants [SqliteTraceEventCode.Constant]s.
  */
-private fun sqliteTraceConstants(): Set<SqliteTraceCode.Constant> = setOf(
-    SqliteTraceCode.STMT,
-    SqliteTraceCode.PROFILE,
-    SqliteTraceCode.ROW,
-    SqliteTraceCode.CLOSE
+private fun sqliteTraceConstants(): Set<SqliteTraceEventCode.Constant> = setOf(
+    SqliteTraceEventCode.STMT,
+    SqliteTraceEventCode.PROFILE,
+    SqliteTraceEventCode.ROW,
+    SqliteTraceEventCode.CLOSE
 )
 
 /**
- * [ksqlite.types.SqliteTraceCode.Constant]s associated by their code value.
+ * [ksqlite.types.SqliteTraceEventCode.Constant]s associated by their code value.
  */
-private val TraceConstantMap = sqliteTraceConstants().associateBy(SqliteTraceCode::code)
+private val TraceConstantMap = sqliteTraceConstants().associateBy(SqliteTraceEventCode::value)
 
 /**
  * Converts [code] to [SqliteTransactionState].
  */
-public fun convertTraceCode(code: Int): SqliteTraceCode.Constant {
+public fun convertTraceCode(code: Int): SqliteTraceEventCode.Constant {
     return checkNotNull(TraceConstantMap[code]) {
         "Unknown sqlite trace code $code"
     }

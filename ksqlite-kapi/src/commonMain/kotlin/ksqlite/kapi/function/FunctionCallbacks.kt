@@ -1,4 +1,4 @@
-package ksqlite.kapi.functions
+package ksqlite.kapi.function
 
 import ksqlite.capi.callbacks.SqliteFunctionFinalCallback
 import ksqlite.capi.callbacks.SqliteFunctionFuncCallback

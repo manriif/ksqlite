@@ -1,4 +1,4 @@
-package ksqlite.kapi.functions
+package ksqlite.kapi.function
 
 import ksqlite.capi.sqlite3_get_auxdata
 import ksqlite.capi.sqlite3_set_auxdata

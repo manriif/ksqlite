@@ -1,13 +1,10 @@
-package ksqlite.kapi.functions
+package ksqlite.kapi.function
 
 import ksqlite.capi.sqlite3_aggregate_context
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 
 /**
  * Scope for use with [AggregateFunction.step] and [WindowFunction.inverse].
- *
- * Internal note: [AggregateFunctionStepScope] is exposed as a class because of [getOrCreateContext]
- * which is required to be an inline function with a reified type.
  */
 public class AggregateFunctionStepScope internal constructor(
     @PublishedApi

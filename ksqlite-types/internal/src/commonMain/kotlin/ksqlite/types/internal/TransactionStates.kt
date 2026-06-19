@@ -11,7 +11,11 @@ private val SqliteTransactionStateMap =
 /**
  * Converts [state] to [SqliteTransactionState].
  */
-public fun convertTransactionState(state: Int): SqliteTransactionState {
+public fun convertTransactionState(state: Int): SqliteTransactionState? {
+    if (state == -1) {
+        return null
+    }
+
     return checkNotNull(SqliteTransactionStateMap[state]) {
         "Unknown sqlite transaction state $state"
     }

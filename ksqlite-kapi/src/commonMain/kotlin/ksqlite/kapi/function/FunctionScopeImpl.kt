@@ -1,4 +1,4 @@
-package ksqlite.kapi.functions
+package ksqlite.kapi.function
 
 import ksqlite.capi.sqlite3_context_db_handle
 import ksqlite.capi.sqlite3_result_error

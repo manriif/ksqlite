@@ -39,11 +39,22 @@ import ksqlite.capi.sqlite3_rollback_hook
 import ksqlite.capi.sqlite3_serialize
 import ksqlite.capi.sqlite3_set_authorizer
 import ksqlite.capi.sqlite3_set_last_insert_rowid
+import ksqlite.capi.sqlite3_snapshot_get
+import ksqlite.capi.sqlite3_snapshot_open
+import ksqlite.capi.sqlite3_snapshot_recover
+import ksqlite.capi.sqlite3_table_column_metadata
+import ksqlite.capi.sqlite3_total_changes64
+import ksqlite.capi.sqlite3_trace_v2
+import ksqlite.capi.sqlite3_txn_state
+import ksqlite.capi.sqlite3_update_hook
+import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
+import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.capi.types.sqlite3
+import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
 import ksqlite.capi.vtab.callbacks.SqliteVTabCreateCallback
 import ksqlite.capi.vtab.sqlite3_module
@@ -51,22 +62,24 @@ import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.blob.BlobImpl
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.buffer.ReadableBuffer
-import ksqlite.kapi.functions.AggregateFunction
-import ksqlite.kapi.functions.AggregateFunctionFinalCallback
-import ksqlite.kapi.functions.AggregateFunctionStepCallback
-import ksqlite.kapi.functions.ScalarFunction
-import ksqlite.kapi.functions.ScalarFunctionFuncCallback
-import ksqlite.kapi.functions.WindowFunction
-import ksqlite.kapi.functions.WindowFunctionInverseCallback
-import ksqlite.kapi.functions.WindowFunctionValueCallback
+import ksqlite.kapi.function.AggregateFunction
+import ksqlite.kapi.function.AggregateFunctionFinalCallback
+import ksqlite.kapi.function.AggregateFunctionStepCallback
+import ksqlite.kapi.function.ScalarFunction
+import ksqlite.kapi.function.ScalarFunctionFuncCallback
+import ksqlite.kapi.function.WindowFunction
+import ksqlite.kapi.function.WindowFunctionInverseCallback
+import ksqlite.kapi.function.WindowFunctionValueCallback
 import ksqlite.kapi.helpers.AutoCloser
 import ksqlite.kapi.helpers.DelegatingAtomicCloseableScope
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
 import ksqlite.kapi.helpers.usingParams
-import ksqlite.kapi.statement.Statement
-import ksqlite.kapi.statement.StatementImpl
+import ksqlite.kapi.snapshot.Snapshot
+import ksqlite.kapi.snapshot.SnapshotImpl
+import ksqlite.kapi.statement.PreparedStatement
+import ksqlite.kapi.statement.PreparedStatementImpl
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.kapi.value.StatusValue
 import ksqlite.kapi.vtab.VTab
@@ -106,18 +119,21 @@ import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteTextEncoding
+import ksqlite.types.SqliteTraceEventCode
+import ksqlite.types.SqliteTransactionState
 import ksqlite.types.vtab.SqliteModuleVersion
 
 internal class DatabaseConnectionImpl(
     override val db: sqlite3,
-    private val onConnectionClosed: () -> Unit
+    private val listener: Listener,
 ) : DatabaseConnection() {
 
     private val scope = DelegatingAtomicCloseableScope(::closeConnection)
     private val closeables = ConcurrentMutableSet<AutoCloseable>()
 
     override val config = DatabaseConnectionConfigurationImpl(db, scope)
-    override val lastError = DatabaseConnectionLastErrorImpl(db, scope)
+    override val lastError = LastErrorImpl(db, scope)
+    override val wal = WriteAheadLogImpl(db, scope)
 
     override val changes: Long
         get() = scope.notClosed { sqlite3_changes64(db) }
@@ -131,6 +147,44 @@ internal class DatabaseConnectionImpl(
     override var lastInsertRowid: Long
         get() = scope.notClosed { sqlite3_last_insert_rowid(db) }
         set(value) = scope.notClosed { sqlite3_set_last_insert_rowid(db, value) }
+
+    override val totalChanges: Long
+        get() = scope.notClosed { sqlite3_total_changes64(db) }
+
+    /**
+     * Updates a [Handler], invoking [clear] to clear any exiting handler if [handler] is `null` or
+     * invoking [set] to replace existing one with non `null` [handler] instance.
+     */
+    private inline fun <Handler> updateHandlerWithResult(
+        handler: Handler?,
+        clear: () -> SqliteResultCode,
+        set: (Handler) -> SqliteResultCode
+    ) = scope.notClosed { sqliteResultCheck(handler?.let(set) ?: clear()) }
+
+    /**
+     * Updates a [Handler], invoking [clear] to clear any exiting handler if [handler] is `null` or
+     * invoking [set] to replace existing one with non `null` [handler] instance.
+     */
+    private inline fun <Handler> updateHandler(
+        handler: Handler?,
+        clear: () -> Unit,
+        set: (Handler) -> Unit
+    ) = scope.notClosed { handler?.let(set) ?: clear() }
+
+    /**
+     * Closes the connection and frees resources.
+     */
+    private fun closeConnection() {
+        db.resultCheck(sqlite3_close_v2(db))
+
+        closeables
+            .onEach { it.close() }
+            .clear()
+
+        listener.onConnectionClosed(db)
+    }
+
+    override fun close() = scope.close()
 
     override fun setAutovacuumPages(handler: AutovacuumPages?) = updateHandlerWithResult(
         handler = handler,
@@ -479,7 +533,7 @@ internal class DatabaseConnectionImpl(
 
     override fun deserialize(
         serializedDatabase: Buffer,
-        database: String,
+        database: String?,
         databaseSize: Long,
         bufferSize: Long,
         flags: SqliteDeserializeFlag?
@@ -579,12 +633,23 @@ internal class DatabaseConnectionImpl(
         val _ = sqlite3_limit(db, limit, value)
     }
 
-    override fun prepare(sql: String, flags: SqlitePrepareFlag?): Statement = scope.notClosed {
+    override fun prepare(
+        sql: String,
+        flags: SqlitePrepareFlag?
+    ): PreparedStatement = scope.notClosed {
         val stmt = usingParam(SqliteStmtOutputParam()) { outStmt ->
             sqliteResultCheck(sqlite3_prepare_v3(db, sql, flags, outStmt))
         }
 
-        return StatementImpl(this, stmt)
+        val statement = PreparedStatementImpl(
+            connection = this,
+            parentScope = scope,
+            stmt = stmt,
+            listener = listener::onStatementClosed
+        )
+
+        listener.onStatementCreated(stmt, statement)
+        return statement
     }
 
     override fun setPreupdateHook(handler: PreupdateHook?) = updateHandler(
@@ -620,7 +685,7 @@ internal class DatabaseConnectionImpl(
 
     override fun serialize(
         flags: SqliteSerializeFlag?,
-        database: String
+        database: String?
     ): SerializeResult = scope.notClosed {
         when (val result = sqlite3_serialize(db, database, flags)) {
             is Failure -> SerializeResult.Failure(result.databaseSize)
@@ -635,46 +700,108 @@ internal class DatabaseConnectionImpl(
         set = { sqlite3_set_authorizer(db, it, AuthorizerCallback) }
     )
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Handler
-    ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Updates a [Handler], invoking [clear] to clear any exiting handler if [handler] is `null` or
-     * invoking [set] to replace existing one with non `null` [handler] instance.
-     */
-    private inline fun <Handler> updateHandlerWithResult(
-        handler: Handler?,
-        clear: () -> SqliteResultCode,
-        set: (Handler) -> SqliteResultCode
-    ) = scope.notClosed { sqliteResultCheck(handler?.let(set) ?: clear()) }
-
-    /**
-     * Updates a [Handler], invoking [clear] to clear any exiting handler if [handler] is `null` or
-     * invoking [set] to replace existing one with non `null` [handler] instance.
-     */
-    private inline fun <Handler> updateHandler(
-        handler: Handler?,
-        clear: () -> Unit,
-        set: (Handler) -> Unit
-    ) = scope.notClosed { handler?.let(set) ?: clear() }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Closing
-    ///////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Closes the connection and frees resources.
-     */
-    private fun closeConnection() {
-        db.resultCheck(sqlite3_close_v2(db))
-
-        closeables
-            .onEach { it.close() }
-            .clear()
-
-        onConnectionClosed()
+    override fun createSnapshot(database: String?): Snapshot = scope.notClosed {
+        SnapshotImpl(usingParam(SqliteSnapshotOutputParam()) { outSnapshot ->
+            sqliteResultCheck(sqlite3_snapshot_get(db, database, outSnapshot))
+        })
     }
 
-    override fun close() = scope.close()
+    override fun openSnapshot(
+        snapshot: Snapshot,
+        database: String?
+    ) = scope.notClosed {
+        sqliteResultCheck(sqlite3_snapshot_open(db, database, snapshot.snapshot))
+    }
+
+    override fun recoverSnapshots(database: String?) =
+        scope.notClosed { sqliteResultCheck(sqlite3_snapshot_recover(db, database)) }
+
+    override fun tableColumnMetadata(
+        table: String,
+        column: String,
+        database: String?
+    ): TableColumnMetadata = scope.notClosed {
+        val outDataType = Utf8OutputParam()
+        val outCollationSequence = Utf8OutputParam()
+        val outNotNull = Int32OutputParam(0)
+        val outPrimaryKey = Int32OutputParam(0)
+        val outAutoIncrement = Int32OutputParam(0)
+
+        sqliteResultCheck(
+            sqlite3_table_column_metadata(
+                db = db,
+                dbName = database,
+                tableName = table,
+                columnName = column,
+                outDataType = outDataType,
+                outCollationSequence = outCollationSequence,
+                outNotNull = outNotNull,
+                outPrimaryKey = outPrimaryKey,
+                outAutoIncrement = outAutoIncrement
+            )
+        )
+
+        TableColumnMetadataImpl(
+            dataType = checkNotNull(outDataType.value),
+            collationSequence = checkNotNull(outCollationSequence.value),
+            isNullable = outNotNull.value == 0,
+            isPrimaryKey = outPrimaryKey.value != 0,
+            isAutoIncrement = outAutoIncrement.value != 0,
+        )
+    }
+
+    override fun setTrace(
+        eventCodes: SqliteTraceEventCode?,
+        handler: Trace?
+    ) = if (eventCodes != null && eventCodes.value != 0) {
+        updateHandlerWithResult(
+            handler = handler,
+            clear = { sqlite3_trace_v2(db, eventCodes, null, null) },
+            set = { sqlite3_trace_v2(db, eventCodes, it, TraceCallback) }
+        )
+    } else {
+        // Empty event code simply disable the handler according to SQLite
+        scope.notClosed {
+            sqliteResultCheck(sqlite3_trace_v2(db, eventCodes, null, null))
+        }
+    }
+
+    override fun getTransactionState(database: String?): SqliteTransactionState = scope.notClosed {
+        sqlite3_txn_state(db, database)
+            ?: throwSQLiteException("Database $database is not a valid schema")
+    }
+
+    override fun setUpdateHook(handler: UpdateHook?) = updateHandler(
+        handler = handler,
+        clear = { sqlite3_update_hook(db, null, null) },
+        set = { sqlite3_update_hook(db, it, UpdateHookCallback) }
+    )
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Listener
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Listener for connection events.
+     */
+    interface Listener {
+
+        /**
+         * Notifies about statement creation.
+         */
+        fun onStatementCreated(
+            stmt: sqlite3_stmt,
+            statement: PreparedStatement
+        )
+
+        /**
+         * Notifies about statement closing.
+         */
+        fun onStatementClosed(stmt: sqlite3_stmt)
+
+        /**
+         * Notifies about database closing
+         */
+        fun onConnectionClosed(db: sqlite3)
+    }
 }

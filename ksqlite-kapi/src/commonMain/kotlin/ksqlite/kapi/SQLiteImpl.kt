@@ -9,8 +9,11 @@ import ksqlite.capi.sqlite3_open_v2
 import ksqlite.capi.sqlite3_randomness
 import ksqlite.capi.sqlite3_release_memory
 import ksqlite.capi.sqlite3_soft_heap_limit64
+import ksqlite.capi.sqlite3_status64
+import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.sqlite3
+import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.config.AnyTimeConfigurationImpl
 import ksqlite.kapi.database.AutoExtension
@@ -19,15 +22,21 @@ import ksqlite.kapi.database.DatabaseConnectionImpl
 import ksqlite.kapi.helpers.AtomicClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
+import ksqlite.kapi.helpers.usingParams
+import ksqlite.kapi.statement.PreparedStatement
 import ksqlite.kapi.value.StatusValue
+import ksqlite.kapi.value.StatusValueImpl
 import ksqlite.types.SqliteOpenFlag
+import ksqlite.types.SqliteStatusOption
 
 internal class SQLiteImpl(private val shutdown: () -> Unit) :
     SQLite,
     AtomicClosableScope() {
 
+    private val listener = Listener()
     private val autoExtensions = ConcurrentMutableSet<AutoExtension>()
-    private val connections = ConcurrentMutableMap<sqlite3, DatabaseConnectionImpl>()
+    private val connections = ConcurrentMutableMap<sqlite3, DatabaseConnection>()
+    private val statements = ConcurrentMutableMap<sqlite3_stmt, PreparedStatement>()
 
     override val config = AnyTimeConfigurationImpl()
 
@@ -63,6 +72,15 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
         }
     }
 
+    /**
+     * Retrieves the statement associated with [stmt].
+     */
+    fun requireStatement(stmt: sqlite3_stmt): PreparedStatement = notClosed {
+        checkNotNull(statements[stmt]) {
+            "No statement is associated with statement handle $stmt"
+        }
+    }
+
     override fun addAutoExtension(autoExtension: AutoExtension): Unit =
         notClosed { autoExtensions.add(autoExtension) }
 
@@ -72,9 +90,9 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     override fun clearAutoExtensions(): Unit =
         notClosed { autoExtensions.clear() }
 
-    override fun getMemoryStatus(resetHighwater: Boolean): StatusValue = StatusValue(
+    override fun getMemoryStatus(reset: Boolean): StatusValue = StatusValueImpl(
         current = sqlite3_memory_used(),
-        highwater = sqlite3_memory_highwater(if (resetHighwater) 1 else 0)
+        highwater = sqlite3_memory_highwater(if (reset) 1 else 0)
     )
 
     override fun open(
@@ -88,9 +106,7 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
             sqliteResultCheck(sqlite3_open_v2(fileName, outDb, flags, vfs))
         }
 
-        val connection = DatabaseConnectionImpl(db) {
-            connections.remove(db)
-        }
+        val connection = DatabaseConnectionImpl(db, listener)
 
         try {
             extensions.forEach { extension ->
@@ -122,10 +138,58 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     override fun releaseMemory(size: Int): Int =
         notClosed { sqlite3_release_memory(size) }
 
+    override fun getStatus(
+        option: SqliteStatusOption,
+        reset: Boolean
+    ): StatusValue = notClosed {
+        usingParams(
+            param1 = Int64OutputParam(-1),
+            param2 = Int64OutputParam(-1),
+            transform = ::StatusValueImpl
+        ) { outCur, outHighwater ->
+            sqliteResultCheck(
+                sqlite3_status64(
+                    option = option,
+                    outCurrent = outCur,
+                    outHighwater = outHighwater,
+                    resetFlag = if (reset) 1 else 0,
+                )
+            )
+        }
+    }
+
     override fun onClose() {
         config.close()
         autoExtensions.clear()
         connections.clear()
         shutdown()
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Listener
+    ///////////////////////////////////////////////////////////////////////////
+
+    private inner class Listener : DatabaseConnectionImpl.Listener {
+
+        override fun onStatementCreated(
+            stmt: sqlite3_stmt,
+            statement: PreparedStatement
+        ) {
+            check(statements.put(stmt, statement) == null) {
+                "A statement is already associated with the statement handle $stmt"
+            }
+        }
+
+        override fun onStatementClosed(stmt: sqlite3_stmt) {
+            check(statements.remove(stmt) != null) {
+                "Expected a statement to be registered with the statement handle $stmt"
+            }
+        }
+
+        override fun onConnectionClosed(db: sqlite3) {
+            check(connections.remove(db) != null) {
+                "Expected a connection to be registered with the database connection handle $db"
+            }
+        }
     }
 }

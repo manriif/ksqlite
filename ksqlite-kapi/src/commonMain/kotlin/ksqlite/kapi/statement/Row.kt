@@ -5,12 +5,12 @@ import ksqlite.kapi.value.UnprotectedValue
 import ksqlite.types.SqliteDataType
 
 /**
- *
+ * Exposes the API to extract values from an SQLite row.
  *
  * SQLite may perform an implicit type conversion to match the requested value type. If conversion
  * is not feasible then `null` is returned.
  */
-public interface ResultSet {
+public interface Row {
 
     /**
      * Returns the number of column in the current row of the result set.

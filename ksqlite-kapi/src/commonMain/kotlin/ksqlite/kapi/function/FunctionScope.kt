@@ -1,4 +1,4 @@
-package ksqlite.kapi.functions
+package ksqlite.kapi.function
 
 import ksqlite.types.SqliteResultCode
 import ksqlite.kapi.database.DatabaseConnection

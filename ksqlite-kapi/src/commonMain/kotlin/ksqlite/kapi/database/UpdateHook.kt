@@ -1,19 +1,18 @@
-package ksqlite.capi.callbacks
+package ksqlite.kapi.database
 
 import ksqlite.types.SqliteActionCode
 
 /**
- * Callback to use with [ksqlite.capi.sqlite3_update_hook].
+ * Callback to use with [DatabaseConnection.setUpdateHook].
  */
-public fun interface SqliteUpdateHookCallback<AppData> {
+public fun interface UpdateHook {
 
     /**
      * Details on parameters can be found [here](https://sqlite.org/c3ref/update_hook.html).
      */
     public fun apply(
-        appData: AppData,
         action: SqliteActionCode.Dml,
-        dbName: String,
+        databaseName: String,
         tableName: String,
         rowid: Long
     )

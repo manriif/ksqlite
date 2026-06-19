@@ -10,7 +10,15 @@ import ksqlite.capi.callbacks.SqliteExecCallback
 import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
 import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
 import ksqlite.capi.callbacks.SqliteRollbackHookCallback
+import ksqlite.capi.callbacks.SqliteTraceCallback
+import ksqlite.capi.callbacks.SqliteUpdateHookCallback
+import ksqlite.capi.callbacks.SqliteWalHookCallback
+import ksqlite.capi.types.SqliteTraceEvent
+import ksqlite.kapi.helpers.ksqliteLog
+import ksqlite.kapi.helpers.runCatchingSQLiteException
 import ksqlite.kapi.sqliteRequireConnection
+import ksqlite.kapi.sqliteRequireStatement
+import ksqlite.types.SqliteResultCode
 
 /**
  * Invokes [AutovacuumPages.apply].
@@ -115,5 +123,73 @@ internal val AuthorizerCallback = SqliteAuthorizerCallback { callback: Authorize
                                                              detail2,
                                                              detail3,
                                                              detail4 ->
-    callback.apply(action, detail1, detail2, detail3, detail4)
+    callback.apply(
+        action = action,
+        detail1 = detail1,
+        detail2 = detail2,
+        detail3 = detail3,
+        detail4 = detail4
+    )
+}
+
+/**
+ * Invokes [Trace.apply].
+ */
+internal val TraceCallback = SqliteTraceCallback { callback: Trace, event ->
+    callback.apply(
+        when (event) {
+            is SqliteTraceEvent.Row -> TraceEvent.Row(sqliteRequireStatement(event.stmt))
+
+            is SqliteTraceEvent.Stmt -> TraceEvent.Stmt(
+                statement = sqliteRequireStatement(event.stmt),
+                sql = event.sql
+            )
+
+            is SqliteTraceEvent.Profile -> TraceEvent.Profile(
+                statement = sqliteRequireStatement(event.stmt),
+                nanos = event.nanos
+            )
+
+            is SqliteTraceEvent.Close -> TraceEvent.Close(sqliteRequireConnection(event.db))
+        }
+    )
+
+    0
+}
+
+/**
+ * Invokes [UpdateHook.apply].
+ */
+internal val UpdateHookCallback = SqliteUpdateHookCallback { callback: UpdateHook,
+                                                             action,
+                                                             databaseName,
+                                                             tableName,
+                                                             rowid ->
+    callback.apply(
+        action = action,
+        databaseName = databaseName,
+        tableName = tableName,
+        rowid = rowid
+    )
+}
+
+/**
+ * Invokes [WriteAheadLogHook.apply].
+ */
+internal val WriteAheadLogHookCallback = SqliteWalHookCallback { callback: WriteAheadLogHook,
+                                                                 db,
+                                                                 databaseName,
+                                                                 pageCount ->
+    callback.runCatchingSQLiteException({ error ->
+        ksqliteLog(error, error.result)
+        error.result
+    }) {
+        callback.apply(
+            connection = sqliteRequireConnection(db),
+            databaseName = databaseName,
+            pageCount = pageCount
+        )
+
+        SqliteResultCode.OK
+    }
 }

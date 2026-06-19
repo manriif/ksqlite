@@ -7,7 +7,7 @@ import ksqlite.capi.sqlite3_blob_reopen
 import ksqlite.capi.sqlite3_blob_write
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_blob
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
 
@@ -15,7 +15,7 @@ internal class BlobImpl(
     private val db: sqlite3,
     private val blob: sqlite3_blob
 ) : Blob,
-    ClosableScope() {
+    UnsafeClosableScope() {
 
     override val bytes: Int
         get() = notClosed { sqlite3_blob_bytes(blob) }

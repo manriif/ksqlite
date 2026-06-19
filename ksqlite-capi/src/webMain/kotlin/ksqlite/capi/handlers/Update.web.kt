@@ -77,7 +77,7 @@ internal class UpdateHookHandler : Handler() {
             action = convertActionCode(action),
             dbName = dbName.toKStringFromUtf8(),
             tableName = tableName.toKStringFromUtf8(),
-            rowId = rowId
+            rowid = rowId
         )
     }
 }

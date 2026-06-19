@@ -5,26 +5,27 @@ import ksqlite.kapi.value.Value
 import ksqlite.types.SqliteTextEncoding
 
 /**
- * Scope used to bind values to prepared statements
+ * Exposes the API to deal with [PreparedStatement]'s parameters.
  *
  * [Binding Values To Prepared Statements](https://sqlite.org/c3ref/bind_blob.html).
+ * [Binding Parameters and Reusing Prepared Statements](https://sqlite.org/cintro.html#binding_parameters_and_reusing_prepared_statements)
  */
-public interface StatementBindScope {
+public interface PreparedStatementParameters {
 
     /**
-     * Returns the number of parameter that can be potentially bound to.
+     * Number of parameter that can be potentially bound to.
      */
-    public val parameterCount: Int
+    public val count: Int
 
     /**
      * Returns the index of an SQL parameter given its name.
      */
-    public fun parameterIndex(name: String): Int
+    public fun getIndex(name: String): Int
 
     /**
      * Returns the name of the SQL parameter at [index].
      */
-    public fun parameterName(index: Int): String?
+    public fun getName(index: Int): String?
 
     /**
      * Sets `null` as the value for the parameter at [index].
@@ -177,6 +178,13 @@ public interface StatementBindScope {
         value: Any,
         type: String? = null
     )
+
+    /**
+     * Resets all host parameters to `null`.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the operation fails.
+     */
+    public fun clear()
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -189,7 +197,7 @@ public interface StatementBindScope {
  *
  * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
  */
-public fun StatementBindScope.bind(
+public fun PreparedStatementParameters.bind(
     index: Int,
     value: ByteArray?
 ): Unit = value?.let { bind(index, it) } ?: bind(index, null)
@@ -200,7 +208,7 @@ public fun StatementBindScope.bind(
  *
  * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
  */
-public fun StatementBindScope.bind(
+public fun PreparedStatementParameters.bind(
     index: Int,
     value: Int?
 ): Unit = value?.let { bind(index, it) } ?: bind(index, null)
@@ -211,7 +219,7 @@ public fun StatementBindScope.bind(
  *
  * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
  */
-public fun StatementBindScope.bind(
+public fun PreparedStatementParameters.bind(
     index: Int,
     value: Long?
 ): Unit = value?.let { bind(index, it) } ?: bind(index, null)
@@ -222,7 +230,7 @@ public fun StatementBindScope.bind(
  *
  * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
  */
-public fun StatementBindScope.bind(
+public fun PreparedStatementParameters.bind(
     index: Int,
     value: Double?
 ): Unit = value?.let { bind(index, it) } ?: bind(index, null)
@@ -233,7 +241,7 @@ public fun StatementBindScope.bind(
  *
  * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
  */
-public fun StatementBindScope.bind(
+public fun PreparedStatementParameters.bind(
     index: Int,
     value: String?
 ): Unit = value?.let { bind(index, it) } ?: bind(index, null)
@@ -244,7 +252,7 @@ public fun StatementBindScope.bind(
  *
  * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
  */
-public fun StatementBindScope.bind(
+public fun PreparedStatementParameters.bind(
     index: Int,
     value: Any?,
     type: String? = null
@@ -256,7 +264,7 @@ public fun StatementBindScope.bind(
  *
  * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
  */
-public fun StatementBindScope.bind(
+public fun PreparedStatementParameters.bind(
     index: Int,
     value: Value?
 ): Unit = value?.let { bind(index, it) } ?: bind(index, null)

@@ -8,7 +8,7 @@ import ksqlite.types.SqliteActionCode
 public fun interface PreupdateHook {
 
     /**
-     * Details on parameters can be found [here](https://sqlite.org/c3ref/collation_needed.html).
+     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/preupdate_blobwrite.html).
      */
     public fun PreupdateHookScope.apply(
         connection: DatabaseConnection,

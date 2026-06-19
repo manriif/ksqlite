@@ -21,7 +21,7 @@ import ksqlite.capi.vtab.callbacks.SqliteVTabRowidCallback
 import ksqlite.capi.vtab.callbacks.SqliteVTabTransactionCallback
 import ksqlite.capi.vtab.callbacks.SqliteVTabUpdateCallback
 import ksqlite.kapi.database.DatabaseConnection
-import ksqlite.kapi.functions.ScalarFunctionFuncCallback
+import ksqlite.kapi.function.ScalarFunctionFuncCallback
 import ksqlite.kapi.helpers.AutoCloser
 import ksqlite.kapi.helpers.ContextClosableScope
 import ksqlite.kapi.helpers.runCatchingSQLiteException

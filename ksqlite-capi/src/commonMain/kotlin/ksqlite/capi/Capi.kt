@@ -66,7 +66,7 @@ import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
-import ksqlite.types.SqliteTraceCode
+import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.SqliteTransactionState
 
 /**
@@ -2100,7 +2100,7 @@ public expect fun sqlite3_strlike(
 public expect fun sqlite3_strnicmp(
     first: String,
     second: String,
-    maxCharacters: Int
+    maxBytes: Int
 ): Int
 
 /**
@@ -2122,11 +2122,17 @@ public expect fun sqlite3_table_column_metadata(
     tableName: String,
     columnName: String,
     outDataType: Utf8OutputParam?,
-    outCollationName: Utf8OutputParam?,
+    outCollationSequence: Utf8OutputParam?,
     outNotNull: Int32OutputParam?,
     outPrimaryKey: Int32OutputParam?,
     outAutoIncrement: Int32OutputParam?
 ): SqliteResultCode
+
+/**
+ * The sqlite3_threadsafe() function returns zero if and only if SQLite was compiled with mutexing
+ * code omitted due to the SQLITE_THREADSAFE compile-time option being set to 0.
+ */
+public expect fun sqlite3_threadsafe(): Int
 
 /**
  * Return the number of changes since the database handle was opened.
@@ -2149,7 +2155,7 @@ public expect fun sqlite3_total_changes64(db: sqlite3): Long
  */
 public expect fun <AppData> sqlite3_trace_v2(
     db: sqlite3,
-    mask: SqliteTraceCode?,
+    mask: SqliteTraceEventCode?,
     appData: AppData,
     callback: SqliteTraceCallback<AppData>?
 ): SqliteResultCode
@@ -2502,25 +2508,25 @@ public expect fun sqlite3_wal_autocheckpoint(
 ): SqliteResultCode
 
 /**
- * Checkpoint database [name]. If [name] is NULL, or if the buffer [name] points to contains a
+ * Checkpoint database [database]. If [database] is NULL, or if the buffer [database] points to contains a
  * zero-length string, all attached databases are checkpointed.
  *
  * [sqlite3_wal_checkpoint()](https://sqlite.org/c3ref/wal_checkpoint.html)
  */
 public expect fun sqlite3_wal_checkpoint(
     db: sqlite3,
-    name: String?
+    database: String?
 ): SqliteResultCode
 
 /**
- * Checkpoint database [name]. If [name] is NULL, or if the buffer [name] points to contains a
+ * Checkpoint database [database]. If [database] is NULL, or if the buffer [database] points to contains a
  * zero-length string, all attached databases are checkpointed.
  *
  * [sqlite3_wal_checkpoint_v2()](https://sqlite.org/c3ref/wal_checkpoint_v2.html)
  */
 public expect fun sqlite3_wal_checkpoint_v2(
     db: sqlite3,
-    name: String?,
+    database: String?,
     mode: SqliteCheckpointMode,
     outNLog: Int32OutputParam?,
     outNCkpt: Int32OutputParam?

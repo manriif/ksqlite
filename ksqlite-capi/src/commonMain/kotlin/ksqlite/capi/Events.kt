@@ -6,7 +6,7 @@ import ksqlite.capi.types.SqliteTraceEvent
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.types.SqliteSqlLogEvent
-import ksqlite.types.SqliteTraceCode
+import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.internal.convertTraceCode
 
 ///////////////////////////////////////////////////////////////////////////
@@ -53,17 +53,17 @@ internal fun <P, X, AppData> dispatchTraceEvent(
 ): Int = callback.apply(
     appData = appData,
     event = when (convertTraceCode(code)) {
-        SqliteTraceCode.STMT -> SqliteTraceEvent.Stmt(
+        SqliteTraceEventCode.STMT -> SqliteTraceEvent.Stmt(
             stmt = toStatement(pPointer!!),
             sql = toString(xPointer!!)
         )
 
-        SqliteTraceCode.PROFILE -> SqliteTraceEvent.Profile(
+        SqliteTraceEventCode.PROFILE -> SqliteTraceEvent.Profile(
             stmt = toStatement(pPointer!!),
             nanos = toLong(xPointer!!)
         )
 
-        SqliteTraceCode.ROW -> SqliteTraceEvent.Row(toStatement(pPointer!!))
-        SqliteTraceCode.CLOSE -> SqliteTraceEvent.Close(toDb(pPointer!!))
+        SqliteTraceEventCode.ROW -> SqliteTraceEvent.Row(toStatement(pPointer!!))
+        SqliteTraceEventCode.CLOSE -> SqliteTraceEvent.Close(toDb(pPointer!!))
     }
 )

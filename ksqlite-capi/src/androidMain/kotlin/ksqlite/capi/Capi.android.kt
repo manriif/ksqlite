@@ -96,7 +96,7 @@ import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
-import ksqlite.types.SqliteTraceCode
+import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.SqliteTransactionState
 import ksqlite.types.internal.convertCompleteResult
 import ksqlite.types.internal.convertConflictResolutionMode
@@ -276,6 +276,7 @@ import ksqlite.foreign.sqlite3_strnicmp as jni_sqlite3_strnicmp
 import ksqlite.foreign.sqlite3_system_errno as jni_sqlite3_system_errno
 import ksqlite.foreign.sqlite3_table_column_metadata as jni_sqlite3_table_column_metadata
 import ksqlite.foreign.sqlite3_total_changes as jni_sqlite3_total_changes
+import ksqlite.foreign.sqlite3_threadsafe as jni_sqlite3_threadsafe
 import ksqlite.foreign.sqlite3_total_changes64 as jni_sqlite3_total_changes64
 import ksqlite.foreign.sqlite3_trace_v2 as jni_sqlite3_trace_v2
 import ksqlite.foreign.sqlite3_txn_state as jni_sqlite3_txn_state
@@ -1378,8 +1379,8 @@ public actual fun sqlite3_strlike(
 public actual fun sqlite3_strnicmp(
     first: String,
     second: String,
-    maxCharacters: Int
-): Int = jni_sqlite3_strnicmp(first, second, maxCharacters)
+    maxBytes: Int
+): Int = jni_sqlite3_strnicmp(first, second, maxBytes)
 
 public actual fun sqlite3_system_errno(db: sqlite3): Int =
     jni_sqlite3_system_errno(db.pointer)
@@ -1390,13 +1391,13 @@ public actual fun sqlite3_table_column_metadata(
     tableName: String,
     columnName: String,
     outDataType: Utf8OutputParam?,
-    outCollationName: Utf8OutputParam?,
+    outCollationSequence: Utf8OutputParam?,
     outNotNull: Int32OutputParam?,
     outPrimaryKey: Int32OutputParam?,
     outAutoIncrement: Int32OutputParam?
 ): SqliteResultCode {
     val dataTypePtr = outDataType?.attach()
-    val collationNamePtr = outCollationName?.attach()
+    val collationNamePtr = outCollationSequence?.attach()
     val notNullPtr = outNotNull?.attach()
     val primaryKeyPtr = outPrimaryKey?.attach()
     val autoIncrementPtr = outAutoIncrement?.attach()
@@ -1415,7 +1416,7 @@ public actual fun sqlite3_table_column_metadata(
         )
     } finally {
         dataTypePtr?.let(outDataType::detach)
-        collationNamePtr?.let(outCollationName::detach)
+        collationNamePtr?.let(outCollationSequence::detach)
         notNullPtr?.let(outNotNull::detach)
         primaryKeyPtr?.let(outPrimaryKey::detach)
         autoIncrementPtr?.let(outAutoIncrement::detach)
@@ -1423,6 +1424,8 @@ public actual fun sqlite3_table_column_metadata(
 
     return convertResult(resultCode)
 }
+
+public actual fun sqlite3_threadsafe(): Int = jni_sqlite3_threadsafe()
 
 public actual fun sqlite3_total_changes(db: sqlite3): Int =
     jni_sqlite3_total_changes(db.pointer)
@@ -1432,13 +1435,13 @@ public actual fun sqlite3_total_changes64(db: sqlite3): Long =
 
 public actual fun <AppData> sqlite3_trace_v2(
     db: sqlite3,
-    mask: SqliteTraceCode?,
+    mask: SqliteTraceEventCode?,
     appData: AppData,
     callback: SqliteTraceCallback<AppData>?
 ): SqliteResultCode = convertResult(
     jni_sqlite3_trace_v2(
         db.pointer,
-        mask?.code ?: 0,
+        mask?.value ?: 0,
         callbackHandler(callback, appData, ::TraceHandler)
     )
 )
@@ -1588,17 +1591,17 @@ public actual fun sqlite3_wal_autocheckpoint(
 
 public actual fun sqlite3_wal_checkpoint(
     db: sqlite3,
-    name: String?
-): SqliteResultCode = convertResult(jni_sqlite3_wal_checkpoint(db.pointer, name))
+    database: String?
+): SqliteResultCode = convertResult(jni_sqlite3_wal_checkpoint(db.pointer, database))
 
 public actual fun sqlite3_wal_checkpoint_v2(
     db: sqlite3,
-    name: String?,
+    database: String?,
     mode: SqliteCheckpointMode,
     outNLog: Int32OutputParam?,
     outNCkpt: Int32OutputParam?
 ): SqliteResultCode = convertResult(useParams(outNLog, outNCkpt) { nLogPtr, nCkptPtr ->
-    jni_sqlite3_wal_checkpoint_v2(db.pointer, name, mode.id, nLogPtr, nCkptPtr)
+    jni_sqlite3_wal_checkpoint_v2(db.pointer, database, mode.id, nLogPtr, nCkptPtr)
 })
 
 public actual fun <AppData> sqlite3_wal_hook(

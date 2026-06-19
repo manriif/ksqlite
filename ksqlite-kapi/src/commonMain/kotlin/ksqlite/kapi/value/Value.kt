@@ -18,6 +18,7 @@ import ksqlite.capi.sqlite3_value_type
 import ksqlite.capi.types.sqlite3_value
 import ksqlite.kapi.buffer.ReadableBuffer
 import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.kapi.helpers.DelegatingCloseableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 import ksqlite.types.SqliteDataType
 import ksqlite.types.SqliteTextEncoding
@@ -154,17 +155,16 @@ public class UnprotectedValue internal constructor(
 /**
  * [Value] obtained from [Value.duplicate] and for which the caller take ownership.
  */
-public class DuplicatedValue internal constructor(value: sqlite3_value) :
-    ProtectedValue(value, ClosableScope()) {
+public class DuplicatedValue internal constructor(value: sqlite3_value) : ProtectedValue(
+    value = value,
+    scope = DelegatingCloseableScope { sqlite3_value_free(value) }
+) {
 
     /**
      * Frees the value previously obtained using [duplicate].
      * This value can no longer be used after that call.
      */
-    public fun free() {
-        scope.notClosed { sqlite3_value_free(value) }
-        scope.close()
-    }
+    public fun free(): Unit = scope.close()
 }
 
 ///////////////////////////////////////////////////////////////////////////
