@@ -18,6 +18,7 @@ plugins {
     alias(kompleLibs.plugins.tool.gnuSed)
     alias(kompleLibs.plugins.tool.jextract)
     alias(kompleLibs.plugins.tool.wabt)
+    alias(kompleLibs.plugins.tool.zig)
 
     alias(libs.plugins.ksqlite)
 }
@@ -97,6 +98,8 @@ komple {
                 ksqlite.ksqliteDirectory,
                 ksqlite.sqliteDirectory
             )
+
+            compilerOptions.addAll(SqliteCompilerOptions)
 
             Platform.run {
                 listOf(linuxArm64, linuxX64, macosArm64, macosX64).forEach { platform ->

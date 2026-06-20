@@ -70,6 +70,11 @@ val SqliteDefinitions = mapOf(
     "SQLITE_USE_URI" to "1",
 )
 
+val SqliteCompilerOptions = listOf(
+    "-g0",
+    "-DNDEBUG"
+)
+
 /**
  * Linker options for Unix based OS.
  */

@@ -173,14 +173,11 @@ fun KotlinMultiplatformExtension.webTargets() = buildList {
 /**
  * Adds Native targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-@Suppress("DEPRECATION")
-// TODO uncomment targets
 fun KotlinMultiplatformExtension.nativeTargets(): List<KotlinNativeTarget> = buildList {
-    /*addAll(androidNativeTargets())
+    addAll(androidNativeTargets())
     addAll(appleTargets())
     addAll(linuxTargets())
-    addAll(windowsTargets())*/
-    add(macosArm64())
+    addAll(windowsTargets())
 }
 
 /**
