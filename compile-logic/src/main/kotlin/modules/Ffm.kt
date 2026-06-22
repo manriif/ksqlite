@@ -5,6 +5,8 @@ import komple.project.c.CCompilation
 import komple.project.c.CProject
 
 private const val NATIVE_LIBS_RESOURCE_DIR_NAME = "native"
+private const val OS_NAME = "osName"
+private const val OS_ARCH = "osArch"
 
 /**
  * Returns the path to the directory where the generated shared library for `this` [Platform] should
@@ -20,29 +22,39 @@ fun Platform.ksqliteFfmResourceLibDirectory(): String {
 fun createKsqliteFfmRuntimeMetadataContent(
     cProject: CProject,
     compilations: List<CCompilation>
-): String = """
-    |package ${cProject.packageName.get()}
+): String = $$"""
+    |package $${cProject.packageName.get()}
     |
     |/**
     | * Name of the Ksqlite native library.
     | */
-    |public const val KSQLITE_NATIVE_LIB_NAME: String = "${cProject.libraryName.get()}"
+    |internal const val KSQLITE_NATIVE_LIB_NAME: String = "$${cProject.libraryName.get()}"
     |
-    |${
-    compilations.joinToString("\n\n") { compilation ->
+    |/**
+    | * Returns the path to the native library for [$$OS_NAME] and [$$OS_ARCH].
+    | */
+    |internal fun ksqliteLibPath($$OS_NAME: String, $$OS_ARCH: String) = when {
+    |$${
+    compilations.joinToString("\n") { compilation ->
         val libName = compilation.libraryFile.get().asFile.name
         val libPath = "${compilation.platform.ksqliteFfmResourceLibDirectory()}/$libName"
-        val pathKey = "KSQLITE_NATIVE_LIB_${compilation.platform.name.uppercase()}_PATH"
-        val osName = compilation.platform.operatingSystem.name
-        val archName = compilation.platform.architecture.name
 
-        """
-            |/**
-            | * Path to the Ksqlite library for the `$osName` operating system and 
-            | * `$archName` architecture.
-            | */
-            |internal const val $pathKey: String = "$libPath"
-        """.trimMargin()
+        val runtimeOsNameTest = when (compilation.platform.operatingSystem) {
+            MacOS -> "isMacOs"
+            Linux -> "isLinux"
+            Windows -> "isWindows"
+            else -> error("Non-desktop OSs aren't supported")
+        }
+
+        val runtimeOsArchTest = when (compilation.platform.architecture) {
+            Arm64 -> "isArm64"
+            X64 -> "isAmd64"
+            else -> error("32-bit CPU architectures aren't supported")
+        }
+
+        """    $OS_NAME.$runtimeOsNameTest() && $OS_ARCH.$runtimeOsArchTest() -> "$libPath""""
     }
 }
+    |    else -> error("Unsupported platform: $$$OS_NAME $$$OS_ARCH")
+    |}
 """.trimMargin()

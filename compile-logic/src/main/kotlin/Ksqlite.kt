@@ -1,11 +1,10 @@
 import komple.gradle.task.configureWithContext
-import komple.task.TaskContext
+import komple.task.TaskStateTracker
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskContainer
 import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithAction
 import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithTypeAndAction
 import org.gradle.kotlin.dsl.registering
-import kotlin.reflect.KClass
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
@@ -73,12 +72,12 @@ fun Task.configureKsqliteTask(cacheable: Boolean) {
  * Property delegate for registering new elements in the container.
  */
 fun TaskContainer.registeringKsqlite(
-    cacheable: Boolean = true,
-    action: Task.(context: TaskContext) -> Unit
+    cacheable: Boolean = false,
+    action: Task.() -> Unit
 ): RegisteringDomainObjectDelegateProviderWithAction<out TaskContainer, Task> {
     return registering {
         configureKsqliteTask(cacheable)
-        configureWithContext(action)
+        action()
     }
 }
 
@@ -86,11 +85,23 @@ fun TaskContainer.registeringKsqlite(
  * Property delegate for registering new elements in the container.
  */
 inline fun <reified T : Task> TaskContainer.registeringKsqlite(
-    cacheable: Boolean = true,
-    noinline action: T.(context: TaskContext) -> Unit
+    cacheable: Boolean = false,
+    noinline action: T.() -> Unit
 ): RegisteringDomainObjectDelegateProviderWithTypeAndAction<out TaskContainer, T> {
     return registering(T::class) {
         configureKsqliteTask(cacheable)
+        action()
+    }
+}
+
+/**
+ * Property delegate for registering new elements in the container.
+ */
+inline fun <reified T : Task> TaskContainer.registeringKsqliteTracked(
+    cacheable: Boolean = false,
+    noinline action: T.(tracker: TaskStateTracker) -> Unit
+): RegisteringDomainObjectDelegateProviderWithTypeAndAction<out TaskContainer, T> {
+    return registeringKsqlite<T>(cacheable) {
         configureWithContext(action)
     }
 }

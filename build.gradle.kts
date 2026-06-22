@@ -1,4 +1,5 @@
 import komple.platform.Platform
+import komple.exec.addEnvironments
 import komple.project.c.COptimization
 import komple.project.c.CProject
 

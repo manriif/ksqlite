@@ -6,7 +6,7 @@ import komple.tool.extension.KompleToolExtension
 import org.gradle.api.provider.Property
 
 /**
- * Extension for Sqlite Multiple Ciphers.
+ * Extension for SQLite Multiple Ciphers.
  */
 interface SqliteMCExtension :
     KompleToolExtension,

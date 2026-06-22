@@ -1,16 +1,22 @@
-import komple.exec.createCommandExecutor
-import komple.task.doLastWhenOutputChanged
 import komple.tool.KompleTool
-import modules.compileSqliteWasm
+import komple.task.enableTracking
+import komple.task.clearAndGetAsFile
 import modules.copySqliteWasmGeneratedResources
 import org.gradle.kotlin.dsl.support.serviceOf
+import modules.WasmCompileTask
 
 plugins {
     alias(libs.plugins.conventions.kmp)
     alias(kompleLibs.plugins.komple)
 }
 
-val compileWasm by tasks.registeringKsqlite { context ->
+val compileWasm by tasks.registeringKsqliteTracked<WasmCompileTask> { tracker ->
+    this.tracker = tracker
+    ksqliteDirectory = ksqlite.ksqliteDirectory
+    sqliteDirectory = ksqlite.sqliteDirectory
+    outputDirectory = layout.buildDirectory.dir("ksqlite/wasm")
+    execEnvironment = komple.execEnvironments.wasm
+
     val requiredTools = with(komple.tools) {
         listOf(emscripten, gnuSed, wabt)
             .map(KompleTool::installTaskProvider)
@@ -18,26 +24,7 @@ val compileWasm by tasks.registeringKsqlite { context ->
     }
 
     dependsOn(*requiredTools)
-
-    val execEnvironment = komple.execEnvironments.wasm
-    val fileOperations = serviceOf<FileSystemOperations>()
-    val execOperations = serviceOf<ExecOperations>()
-    val ksqliteDirectory = ksqlite.ksqliteDirectory
-    val sqliteDirectory = ksqlite.sqliteDirectory
-    val outputDirectory = layout.buildDirectory.dir("ksqlite/wasm")
-
-    inputs.dir(sqliteDirectory)
-    outputs.dir(outputDirectory)
-
-    doLastWhenOutputChanged(context) {
-        compileSqliteWasm(
-            fileOperations = fileOperations,
-            commandExecutor = execEnvironment.createCommandExecutor(execOperations),
-            ksqliteDirectory = ksqliteDirectory.get().asFile,
-            sqliteDirectory = sqliteDirectory.get().asFile,
-            outputDirectory = fileOperations.clearAndGetFile(outputDirectory)
-        )
-    }
+    tracker.enableTracking()
 }
 
 val copyWasmResources by tasks.registeringKsqlite {
@@ -52,11 +39,12 @@ val copyWasmResources by tasks.registeringKsqlite {
         copySqliteWasmGeneratedResources(
             fileOperations = fileOperations,
             inputDirectory = inputDirectory.get(),
-            outputDirectory = fileOperations.clearAndGetFile(outputDirectory)
+            outputDirectory = fileOperations.clearAndGetAsFile(outputDirectory)
         )
     }
 }
 
+@Suppress("TaskMissingDescription")
 val zipWasmResources by tasks.registering(Zip::class) {
     from(copyWasmResources)
     archiveClassifier = "resources"

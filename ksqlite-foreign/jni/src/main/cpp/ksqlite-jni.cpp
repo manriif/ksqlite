@@ -9,10 +9,6 @@
 #include <unordered_map>
 #include <vector>
 
-// FIXME I do not know if the IDE is broken but this is declared in <jni.h> but IDE complain that
-//  it does not exists
-typedef uint8_t jboolean;
-
 #define CONCAT(A, B) A##B
 #define UNDERSCORED(V) CONCAT(V, _)
 

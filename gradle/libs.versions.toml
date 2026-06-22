@@ -35,12 +35,12 @@ gradle-pluginPublish = "2.1.1"
 jextract = "2-4"
 kotlin = "2.4.0"
 kotlinx-coroutines = "1.11.0"
-kotlin-wrappers = "2026.6.3"
-sqlite = "3.53.0"
-sqliteMultipleCiphers = "2.3.3"
+kotlin-wrappers = "2026.6.6"
+sqlite = "3.53.2"
+sqliteMultipleCiphers = "2.3.5"
 sqliteReleaseYear = "2026"
 stately = "2.1.0"
-vanniktech-mavenPublish = "0.36.0"
+vanniktech-mavenPublish = "0.37.0"
 
 [plugins]
 

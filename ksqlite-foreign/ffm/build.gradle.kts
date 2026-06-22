@@ -15,7 +15,14 @@ val generatedJavaSourceDirectory = generatedSourceDirectory.map { it.dir("java")
 val generatedKotlinSourceDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
 
 val libraries = Platform.run {
-    listOf(linuxArm64, linuxX64, macosArm64, macosX64, mingwArm64, mingwX64).map { platform ->
+    listOf(
+        linuxArm64,
+        linuxX64,
+        macosArm64,
+        macosX64,
+        mingwArm64,
+        mingwX64
+    ).map { platform ->
         komple.projects.kotlinSqlite.createLibrary(CLibraryType.Shared, platform)
     }
 }

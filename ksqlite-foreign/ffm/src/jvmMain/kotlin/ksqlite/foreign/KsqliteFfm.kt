@@ -1,16 +1,32 @@
 package ksqlite.foreign
 
-import ksqlite.KSQLITE_NATIVE_LIB_MACOS_AARCH64_PATH
-import ksqlite.KSQLITE_NATIVE_LIB_NAME
+import java.io.File
 import java.nio.file.Files
 
-private fun String.isX64(): Boolean {
-    return contains("amd64") || contains("x86_64")
-}
+/**
+ * Whether this os represents Linux.
+ */
+internal fun String.isLinux(): Boolean = contains("linux")
 
-private fun String.isArm64(): Boolean {
-    return contains("aarch64") || contains("arm64")
-}
+/**
+ * Whether this os represents macOS.
+ */
+internal fun String.isMacOs(): Boolean = contains("mac") || contains("osx")
+
+/**
+ * Whether this os represents Windows.
+ */
+internal fun String.isWindows(): Boolean = contains("windows")
+
+/**
+ * Whether this architecture represents AMD64.
+ */
+internal fun String.isAmd64(): Boolean = contains("amd64") || contains("x86_64")
+
+/**
+ * Whether this architecture represents ARM64.
+ */
+internal fun String.isArm64(): Boolean = contains("arm64") || contains("aarch64")
 
 /**
  * Loads the Kotlin SQLite library.
@@ -19,32 +35,7 @@ private fun String.isArm64(): Boolean {
 public fun ksqliteLoadLibrary() {
     val osName = System.getProperty("os.name").lowercase()
     val osArch = System.getProperty("os.arch").lowercase()
-
-    val libPath = when {
-        osName.contains("mac") || osName.contains("darwin") -> when {
-            //osArch.isX64() -> KSQLITE_NATIVE_LIB_MACOS_X86_64_PATH
-            osArch.isArm64() -> KSQLITE_NATIVE_LIB_MACOS_AARCH64_PATH
-            else -> null
-        }
-
-        osName.contains("linux") -> when {
-            //osArch.isX64() -> KSQLITE_NATIVE_LIB_LINUX_X86_64_PATH
-            //osArch.isArm64() -> KSQLITE_NATIVE_LIB_LINUX_AARCH64_PATH
-            else -> null
-        }
-
-        osName.contains("windows") -> when {
-            //osArch.isX64() -> KSQLITE_NATIVE_LIB_WINDOWS_X86_64_PATH
-            //osArch.isArm64() -> KSQLITE_NATIVE_LIB_WINDOWS_AARCH64_PATH
-            else -> null
-        }
-
-        else -> null
-    }
-
-    if (libPath == null) {
-        error("Unsupported platform: $osName $osArch")
-    }
+    val libPath = ksqliteLibPath(osName, osArch)
 
     val libraryStream = Thread
         .currentThread()
@@ -55,7 +46,7 @@ public fun ksqliteLoadLibrary() {
     val tempFile = Files
         .createTempFile("lib${KSQLITE_NATIVE_LIB_NAME}", libPath.substringAfterLast('.'))
         .toFile()
-        .apply { deleteOnExit() }
+        .also(File::deleteOnExit)
 
     val _ = libraryStream.use { input ->
         tempFile.outputStream().use { output ->

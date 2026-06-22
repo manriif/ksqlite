@@ -1,28 +1,25 @@
 package tools.sqlite
 
 import komple.platform.Host
-import komple.task.doLastWhenOutputChanged
+import komple.task.enableTracking
+import komple.task.integrity.DigestAlgorithm
 import komple.tool.configurator.DefaultKompleToolConfigurator
 import komple.tool.extension.ExtensionConfigurationScope
 import komple.tool.extension.createExtension
-import komple.tool.task.Algorithm
 import komple.tool.task.DownloadTaskRegistrationScope
 import komple.tool.task.ExtractTaskRegistrationScope
 import komple.tool.task.InstallTaskRegistrationScope
 import komple.tool.task.IntegrityTaskRegistrationScope
 import komple.tool.task.checksum
-import komple.tool.task.register
+import komple.tool.task.install
 import komple.tool.task.unzip
 import komple.tool.task.url
-import modules.configureSqliteWasmTrunk
-import org.gradle.api.DefaultTask
-import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.kotlin.dsl.assign
 import javax.inject.Inject
 
 /**
- * Configurator for Sqlite.
+ * Configurator for SQLite.
  */
 abstract class SqliteConfigurator @Inject constructor(toolName: String) :
     DefaultKompleToolConfigurator<SqliteExtension>(toolName) {
@@ -53,7 +50,7 @@ abstract class SqliteConfigurator @Inject constructor(toolName: String) :
     }
 
     override fun IntegrityTaskRegistrationScope<SqliteExtension>.registerIntegrityTask(): TaskProvider<*> {
-        return checksum(extension.checksum, Algorithm.SHA3_256)
+        return checksum(extension.checksum, DigestAlgorithm.SHA3_256)
     }
 
     override fun ExtractTaskRegistrationScope<SqliteExtension>.registerExtractTask(): TaskProvider<*> {
@@ -61,33 +58,11 @@ abstract class SqliteConfigurator @Inject constructor(toolName: String) :
     }
 
     override fun InstallTaskRegistrationScope<SqliteExtension>.registerInstallTask(): TaskProvider<*> {
-        return register<DefaultTask> { context ->
-            val fileOperations = project.serviceOf<FileSystemOperations>()
-            val ksqliteDirectory = extension.ksqliteDirectory
-            val sqliteMcDirectory = extension.sqliteMcDirectory
+        return install<SqliteInstallTask> { context ->
+            ksqliteDirectory = extension.ksqliteDirectory
+            sqliteMcDirectory = extension.sqliteMcDirectory
 
-            inputs.dir(ksqliteDirectory)
-            inputs.dir(sqliteMcDirectory)
-
-            doLastWhenOutputChanged(context) {
-                fileOperations.copy {
-                    from(sqliteMcDirectory)
-                    from(context.extractDirectory.directory)
-                    into(context.outputDirectory)
-
-                    // This file is problematic with C++ as some headers include a <version> header
-                    // which is resolved as this file due to case insensitivity on some file systems
-                    exclude("VERSION")
-                }
-
-                val sqliteDir = context.outputDirectory.asFile
-                val ksqliteDir = ksqliteDirectory.get().asFile
-
-                configureSqliteWasmTrunk(
-                    ksqliteDirectory = ksqliteDir,
-                    sqliteDirectory = sqliteDir
-                )
-            }
+            context.tracker.enableTracking()
         }
     }
 }

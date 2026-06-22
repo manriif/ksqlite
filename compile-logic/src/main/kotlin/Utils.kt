@@ -1,4 +1,3 @@
-import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
@@ -44,16 +43,6 @@ fun FileSystemOperations.copyToTempDirectory(
     }
 
     return tempDirectory
-}
-
-/**
- * Deletes [directory] and its content and returns the [File] to the [directory].
- */
-fun FileSystemOperations.clearAndGetFile(directory: Provider<Directory>): File {
-    return directory.get().asFile.also { directory ->
-        delete { delete(directory) }
-        directory.mkdirs()
-    }
 }
 
 /**
