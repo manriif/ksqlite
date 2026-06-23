@@ -4,6 +4,7 @@
 
 #ifdef SQLITE_ENABLE_SQLLOG
 // Requirement of SQLITE_ENABLE_SQLLOG
+__attribute__((unused))
 void sqlite3_init_sqllog(void) {
     // No logging by default, it is up to the application to set its own logging interceptor using
     // sqlite3_config

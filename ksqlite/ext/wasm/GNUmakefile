@@ -409,6 +409,21 @@ SQLITE_OPT.common = \
 # removing them from this list will serve only to break the speedtest1
 # builds.
 
+# KSQLITE_ADDED
+SQLITE_OPT.common += -DSQLITE_ENABLE_FTS5
+SQLITE_OPT.common += -DSQLITE_ENABLE_JSON1
+SQLITE_OPT.common += -DSQLITE_ENABLE_COLUMN_METADATA
+SQLITE_OPT.common += -DSQLITE_ENABLE_NORMALIZE
+SQLITE_OPT.common += -DSQLITE_ENABLE_OFFSET_SQL_FUNC
+SQLITE_OPT.common += -DSQLITE_ENABLE_PERCENTILE
+SQLITE_OPT.common += -DSQLITE_ENABLE_PREUPDATE_HOOK
+SQLITE_OPT.common += -DSQLITE_ENABLE_RTREE
+SQLITE_OPT.common += -DSQLITE_ENABLE_SNAPSHOT
+SQLITE_OPT.common += -DSQLITE_ENABLE_SQLLOG
+SQLITE_OPT.common += -DSQLITE_ENABLE_UNKNOWN_SQL_FUNCTION
+SQLITE_OPT.common += -DSQLITE_OMIT_AUTOINIT
+SQLITE_OPT.common += -DSQLITE_USE_URI
+
 #
 # Currently always needed but TODO is paring tester1.c-pp.js down
 # to be able to run without this:

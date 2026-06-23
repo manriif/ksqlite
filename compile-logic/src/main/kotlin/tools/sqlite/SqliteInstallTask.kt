@@ -1,9 +1,10 @@
 package tools.sqlite
 
+import SQLITE3
 import SQLITE3MC_AMALGAMATION
+import SQLITE_VERSION_FILE
 import komple.task.hasChanged
 import komple.task.install.InstallTask
-import komple.task.whenChanged
 import modules.configureSqliteWasmTrunk
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.CacheableTask
@@ -32,7 +33,7 @@ internal abstract class SqliteInstallTask : InstallTask() {
 
         if (!tracker.hasChanged()) {
             didWork = false
-            return
+            return logger.lifecycle("Reusing previously installed SQLite")
         }
 
         val inputDirectory = inputDirectory.get().asFile
@@ -45,6 +46,17 @@ internal abstract class SqliteInstallTask : InstallTask() {
         fileOperations.copy {
             from(sqliteMcDirectory) {
                 include { it.name.startsWith(SQLITE3MC_AMALGAMATION) }
+
+                // Starting from version 3.53.2, SQLite Multiple Ciphers stopped publishing the
+                // sqlite3.c and sqlite3.h in a simplification effort
+                // However that broken WASM build so we now instead rename the amalgamation files to
+                // sqlite3.c and sqlite3.h and this has the advantage of simplifying our own logic
+                // too
+                rename { fileName ->
+                    fileName.takeIf { it.startsWith(SQLITE3MC_AMALGAMATION) }?.let { name ->
+                        SQLITE3 + name.substringAfter(SQLITE3MC_AMALGAMATION)
+                    }
+                }
             }
 
             from(inputDirectory)
@@ -52,7 +64,7 @@ internal abstract class SqliteInstallTask : InstallTask() {
 
             // This file is problematic with C++ as some headers include a <version> header
             // which is resolved as this file due to case insensitivity on some file systems
-            exclude("VERSION")
+            exclude(SQLITE_VERSION_FILE)
         }
 
         configureSqliteWasmTrunk(

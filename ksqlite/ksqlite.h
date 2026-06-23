@@ -2,7 +2,7 @@
 #define KSQLITE_H
 
 #ifndef __WASM__
-#include "sqlite3mc_amalgamation.h"
+#include "sqlite3.h"
 #endif
 
 #ifdef __cplusplus
@@ -12,11 +12,13 @@ extern "C" {
 /**
  * Callback for SQLITE_CONFIG_LOG, exposed for binding generation.
  */
+__attribute__((unused))
 typedef void(*ksqlite_xLog)(void*,int,const char*);
 
 /**
  * Callback for SQLITE_CONFIG_SQLLOG, exposed for binding generation.
  */
+__attribute__((unused))
 typedef void(*ksqlite_xSqllog)(void*, sqlite3*, const char*, int);
 
 /**

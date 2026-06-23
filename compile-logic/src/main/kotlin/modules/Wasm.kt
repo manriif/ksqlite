@@ -3,7 +3,7 @@ package modules
 import KSQLITE
 import KsqliteFunctions
 import SQLITE3
-import SQLITE3MC_AMALGAMATION
+import SQLITE_VERSION_FILE
 import cHeaderFile
 import cSourceFile
 import copyToTempDirectory
@@ -190,22 +190,18 @@ private fun generateKsqliteAmalgamation(
     ksqliteAmalgamationHeaderFile: File,
     ksqliteAmalgamationSourceFile: File,
 ) {
-    val sqliteMcAmalgamationHeaderFile =
-        sqliteDirectory.resolve(cHeaderFile(SQLITE3MC_AMALGAMATION))
-
-    val sqliteMcAmalgamationSourceFile =
-        sqliteDirectory.resolve(cSourceFile(SQLITE3MC_AMALGAMATION))
-
+    val sqliteHeaderFile = sqliteDirectory.resolve(cHeaderFile(SQLITE3))
+    val sqliteSourceFile = sqliteDirectory.resolve(cSourceFile(SQLITE3))
     val ksqliteHeaderFile = ksqliteDirectory.resolve(cHeaderFile(KSQLITE))
     val ksqliteSourceFile = ksqliteDirectory.resolve(cSourceFile(KSQLITE))
 
     ksqliteAmalgamationHeaderFile.mergeFiles(
-        sqliteMcAmalgamationHeaderFile,
+        sqliteHeaderFile,
         ksqliteHeaderFile
     )
 
     ksqliteAmalgamationSourceFile.mergeFiles(
-        sqliteMcAmalgamationSourceFile,
+        sqliteSourceFile,
         ksqliteHeaderFile,
         ksqliteSourceFile
     )
@@ -221,13 +217,18 @@ private fun generateKsqliteAmalgamation(
 fun compileSqliteWasm(
     fileOperations: FileSystemOperations,
     commandExecutor: CommandExecutor,
+    sqliteVersion: String,
     ksqliteDirectory: File,
     sqliteDirectory: File,
-    outputDirectory: File,
+    outputDirectory: File
 ) {
     // A temporary directory is used to not write the original directory which will break Gradle
     // caching
     val sqliteDirectory = fileOperations.copyToTempDirectory(sqliteDirectory)
+    val versionFile = sqliteDirectory.resolve(SQLITE_VERSION_FILE)
+
+    // Restore the deleted version file as it is required for wasm build
+    versionFile.writeText("${sqliteVersion}\n")
 
     commandExecutor.execute(
         command = Command("./configure"),

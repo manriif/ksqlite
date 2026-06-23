@@ -20,6 +20,12 @@ const val SQLITE3MC = "${SQLITE3}mc"
  */
 const val SQLITE3MC_AMALGAMATION = "${SQLITE3MC}_amalgamation"
 
+/**
+ * Name of the version file that contains the SQLite version.
+ * This file is removed from the local SQLite tree but recreated for the WASM build.
+ */
+const val SQLITE_VERSION_FILE = "VERSION"
+
 ///////////////////////////////////////////////////////////////////////////
 // Naming
 ///////////////////////////////////////////////////////////////////////////

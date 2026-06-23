@@ -12,6 +12,7 @@ plugins {
 
 val compileWasm by tasks.registeringKsqliteTracked<WasmCompileTask> { tracker ->
     this.tracker = tracker
+    sqliteVersion = libs.versions.sqlite
     ksqliteDirectory = ksqlite.ksqliteDirectory
     sqliteDirectory = ksqlite.sqliteDirectory
     outputDirectory = layout.buildDirectory.dir("ksqlite/wasm")

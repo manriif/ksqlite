@@ -87,12 +87,12 @@ komple {
 
             headerFilters.from(
                 headerFile,
-                ksqlite.sqliteDirectory.file(cHeaderFile(SQLITE3MC_AMALGAMATION))
+                ksqlite.sqliteDirectory.file(cHeaderFile(SQLITE3))
             )
 
             sourceFiles.from(
                 ksqlite.ksqliteDirectory.file(cSourceFile(KSQLITE)),
-                ksqlite.sqliteDirectory.file(cSourceFile(SQLITE3MC_AMALGAMATION))
+                ksqlite.sqliteDirectory.file(cSourceFile(SQLITE3))
             )
 
             includeDirectories.from(
