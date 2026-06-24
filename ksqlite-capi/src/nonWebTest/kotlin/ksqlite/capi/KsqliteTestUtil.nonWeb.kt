@@ -1,3 +1,3 @@
 package ksqlite.capi
 
-internal actual suspend fun initializeSqliteForSynchronousTest() = Unit
+internal actual suspend fun loadSqliteForSynchronousTest(): Boolean = false

@@ -1,5 +1,5 @@
 package ksqlite.capi.proxy.client
-
+/*
 import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
 import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
@@ -1589,4 +1589,4 @@ public interface CapiProxyClient {
         index: Int,
         outValue: SqliteValueOutputParam?
     ): SqliteResultCode
-}
+}*/

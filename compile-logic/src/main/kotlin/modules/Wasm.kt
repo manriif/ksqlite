@@ -11,6 +11,7 @@ import komple.exec.Command
 import komple.exec.CommandExecutor
 import org.gradle.api.file.FileSystemOperations
 import replaceFiles
+import replacePrefix
 import sqlitePrefixed
 import java.io.File
 
@@ -27,17 +28,16 @@ private const val EXT_WASM_PATH = "ext/wasm"
 private const val GNU_MAKEFILE = "${EXT_WASM_PATH}/GNUmakefile"
 private const val EXT_WASM_API_PATH = "$EXT_WASM_PATH/api"
 private const val PRE_JS_CPP_JS = "$EXT_WASM_API_PATH/pre-js.c-pp.js"
+private const val POST_JS_FOOTER_JS = "$EXT_WASM_API_PATH/post-js-footer.js"
 private const val EXPORTED_FUNCTIONS = "$EXT_WASM_API_PATH/EXPORTED_FUNCTIONS.c-pp"
 
-private const val ASSIGN_WASM_EXPORT_GLUE = "function assignWasmExports(wasmExports) {"
+private const val SQLITE3_64BIT = "$SQLITE3-64bit"
 
 /**
  * Extra resources files that can be embedded in the library.
  */
 private val WasmExtraResourceFileNames = listOf(
-    "opfs-async-proxy.js",
-    "worker1.mjs",
-    "worker1-promiser.mjs"
+    "opfs-async-proxy.js"
 ).sqlitePrefixed('-')
 
 /**
@@ -104,8 +104,9 @@ fun configureSqliteWasmTrunk(
     replaceFiles(
         sourceDirectory = ksqliteDirectory,
         destinationDirectory = sqliteDirectory,
-        GNU_MAKEFILE,
-        PRE_JS_CPP_JS
+        POST_JS_FOOTER_JS,
+        PRE_JS_CPP_JS,
+        GNU_MAKEFILE
     )
 
     val exportedFunctionFile = sqliteDirectory.resolve(EXPORTED_FUNCTIONS)
@@ -117,56 +118,6 @@ fun configureSqliteWasmTrunk(
         }
 
         output.write(defaultExportedFunctions)
-    }
-}
-
-/**
- * Patches sqlite generated file [inputFile] and writes the patched content to [outputFile].
- * TODO seems no longer required as of 3.53.0
- */
-private fun patchGeneratedSqliteForWasm(
-    inputFile: File,
-    outputFile: File
-) {
-    outputFile.outputStream().writer().use { writer ->
-        inputFile.useLines { lines ->
-            val lineIterator = lines.iterator()
-            var assignWasmExportsFound = false
-            var inAssignWasmExports = false
-
-            while (lineIterator.hasNext() && !assignWasmExportsFound) {
-                val line = lineIterator.next()
-
-                when {
-                    inAssignWasmExports -> when {
-                        line.startsWith("  _$SQLITE3") -> {
-                            writer.append(' ')
-                            writer.appendLine(line.substringAfter('='))
-                        }
-
-                        line == "}" -> {
-                            writer.appendLine(line)
-                            assignWasmExportsFound = true
-                        }
-
-                        else -> writer.appendLine(line)
-                    }
-
-                    line == ASSIGN_WASM_EXPORT_GLUE -> {
-                        writer.appendLine(line)
-                        inAssignWasmExports = true
-                    }
-
-                    else -> writer.appendLine(line)
-                }
-            }
-
-            check(assignWasmExportsFound) {
-                "assignWasmExports() function not found in ${inputFile.name}"
-            }
-
-            lineIterator.forEachRemaining(writer::appendLine)
-        }
     }
 }
 
@@ -281,16 +232,11 @@ fun copySqliteWasmGeneratedResources(
 ) {
     val artifactsDirectory = inputDirectory.resolve(GENERATED_ARTIFACTS)
     val esm64Directory = artifactsDirectory.resolve("esm64")
-    val sqliteFile = esm64Directory.resolve("$SQLITE3-64bit.mjs")
-
-    patchGeneratedSqliteForWasm(
-        inputFile = sqliteFile,
-        outputFile = outputDirectory.resolve(sqliteFile.name)
-    )
 
     fileOperations.copy {
         from(esm64Directory) {
-            include { it.name != sqliteFile.name }
+            include { it.name.startsWith(SQLITE3_64BIT) }
+            replacePrefix(SQLITE3_64BIT, KSQLITE)
         }
 
         from(artifactsDirectory) {

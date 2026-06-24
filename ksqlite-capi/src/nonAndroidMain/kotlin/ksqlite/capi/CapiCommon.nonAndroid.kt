@@ -2,12 +2,13 @@ package ksqlite.capi
 
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.memoryOrNull
-import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.types.SqliteResultCode
 import ksqlite.capi.types.sqlite3
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_stmt
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.internal.convertResult
 
 /**
  * Returns the [sqlite3] associated with `this` [sqlite3_context].
@@ -46,7 +47,7 @@ private inline fun <Pointer : Any, Blob : Any> commonGetBlob(
     emptyBlob: Blob,
     toBlob: (pointer: Pointer, size: Int) -> Blob?,
     getSize: () -> Int,
-    getType: () -> Sqlite3DataType
+    getType: () -> SqliteDataType
 ): Blob? {
     if (pointer == null) {
         return null
@@ -60,7 +61,7 @@ private inline fun <Pointer : Any, Blob : Any> commonGetBlob(
             BLOB -> emptyBlob
             NULL -> null
             else -> error(
-                "Expected a value of type ${Sqlite3DataType.BLOB} but actual value is of type $type"
+                "Expected a value of type ${SqliteDataType.BLOB} but actual value is of type $type"
             )
         }
     } else {
@@ -75,7 +76,7 @@ private inline fun <Pointer : Any> commonGetBuffer(
     pointer: Pointer?,
     toBuffer: (pointer: Pointer, size: Long) -> Buffer?,
     getSize: () -> Int,
-    getType: () -> Sqlite3DataType
+    getType: () -> SqliteDataType
 ): Buffer? = commonGetBlob(
     pointer = pointer,
     emptyBlob = Buffer.Empty,
@@ -91,7 +92,7 @@ private inline fun <Pointer : Any> commonGetByteArray(
     pointer: Pointer?,
     toByteArray: (pointer: Pointer, size: Int) -> ByteArray,
     getSize: () -> Int,
-    getType: () -> Sqlite3DataType
+    getType: () -> SqliteDataType
 ): ByteArray? = commonGetBlob(
     pointer = pointer,
     emptyBlob = EmptyByteArray,

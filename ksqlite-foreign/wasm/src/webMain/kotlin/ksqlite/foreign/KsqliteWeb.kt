@@ -41,16 +41,16 @@ private external fun createSqliteModuleConfig(): SqliteModuleConfig
  * Invokes the sqliteInitModule default exported function returning a promise resolving the SQLite
  * instance.
  */
-@JsModule("./sqlite3-64bit.mjs")
-private external fun sqliteInitModule(config: SqliteModuleConfig = definedExternally): Promise<JsAny>
+@JsModule("./ksqlite.mjs")
+private external fun sqliteInitModule(config: SqliteModuleConfig = definedExternally): Promise<Sqlite3>
 
 /**
- * Returns a [Promise] resolving an SQLite instance.
+ * Loads the Kotlin SQLite library and returns a [Promise] resolving to an [Sqlite3] instance.
  */
-public fun sqliteInitializer(
+public fun ksqliteLoadLibrary(
     debugModule: ((args: JsArray<out JsAny>) -> Unit)?,
     locateFile: ((path: String, prefix: String) -> JsAny?)?
-): Promise<JsAny> {
+): Promise<Sqlite3> {
     val config = createSqliteModuleConfig().apply {
         debugModule?.let { debug ->
             customDebugModule = { arg1, arg2, arg3, arg4, arg5, arg6, arg7 ->

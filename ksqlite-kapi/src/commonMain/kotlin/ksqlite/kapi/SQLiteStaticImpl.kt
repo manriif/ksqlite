@@ -1,6 +1,5 @@
 package ksqlite.kapi
 
-import ksqlite.capi.sqlite3_compileoption_get
 import ksqlite.capi.sqlite3_complete
 import ksqlite.capi.sqlite3_keyword_check
 import ksqlite.capi.sqlite3_keyword_count
@@ -13,6 +12,7 @@ import ksqlite.capi.sqlite3_strglob
 import ksqlite.capi.sqlite3_stricmp
 import ksqlite.capi.sqlite3_strlike
 import ksqlite.capi.sqlite3_threadsafe
+import ksqlite.capi.sqliteCompileOptions
 import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.kapi.helpers.BoundedCaseIndependentComparator
 import ksqlite.kapi.helpers.sqliteResultCheck
@@ -22,7 +22,7 @@ import ksqlite.types.SqliteCompleteResult
 
 internal object SQLiteStaticImpl : SQLiteStatic {
 
-    override val compileOptions by lazy(::sqliteListCompileOptions)
+    override val compileOptions by lazy(::sqliteCompileOptions)
     override val caseIndependentComparator = Comparator(::sqlite3_stricmp)
 
     override val keywordCount: Int
@@ -64,30 +64,4 @@ internal object SQLiteStaticImpl : SQLiteStatic {
 
     override fun createCaseIndependentComparator(maxBytes: Int): Comparator<String> =
         BoundedCaseIndependentComparator(maxBytes)
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Compilation
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Lists all the options defined at compile-time.
- */
-@Suppress("FoldInitializerAndIfToElvis")
-private fun sqliteListCompileOptions(): List<String> {
-    var option: String? = sqlite3_compileoption_get(0)
-
-    if (option == null) {
-        return emptyList()
-    }
-
-    val options = mutableListOf(option)
-    var index = 1
-
-    do {
-        option = sqlite3_compileoption_get(index++)
-        option?.let(options::add)
-    } while (option != null)
-
-    return options.toList()
 }

@@ -12,6 +12,7 @@ import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import replacePrefix
 
 /**
  * Task responsible for installing SQLite.
@@ -52,11 +53,7 @@ internal abstract class SqliteInstallTask : InstallTask() {
                 // However that broken WASM build so we now instead rename the amalgamation files to
                 // sqlite3.c and sqlite3.h and this has the advantage of simplifying our own logic
                 // too
-                rename { fileName ->
-                    fileName.takeIf { it.startsWith(SQLITE3MC_AMALGAMATION) }?.let { name ->
-                        SQLITE3 + name.substringAfter(SQLITE3MC_AMALGAMATION)
-                    }
-                }
+                replacePrefix(SQLITE3MC_AMALGAMATION, SQLITE3)
             }
 
             from(inputDirectory)

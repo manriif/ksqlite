@@ -54,7 +54,6 @@ fun <T> Map<String, T>.sqlitePrefixed(joint: Char = '_'): Map<String, T> {
 val SqliteDefinitions = mapOf(
     "CODEC_TYPE" to "CODEC_TYPE_CHACHA20",
     "SQLITE_ENABLE_FTS5" to "1",
-    "SQLITE_ENABLE_JSON1" to "1",
     "SQLITE_ENABLE_COLUMN_METADATA" to "1",
     "SQLITE_ENABLE_MATH_FUNCTIONS" to "1",
     "SQLITE_ENABLE_MEMORY_MANAGEMENT" to "1",
@@ -63,7 +62,6 @@ val SqliteDefinitions = mapOf(
     "SQLITE_ENABLE_PERCENTILE" to "1",
     "SQLITE_ENABLE_PREUPDATE_HOOK" to "1",
     "SQLITE_ENABLE_RTREE" to "1",
-    //"SQLITE_ENABLE_SESSION" to "1",
     "SQLITE_ENABLE_SNAPSHOT" to "1",
     "SQLITE_ENABLE_SQLLOG" to "1",
     "SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION" to "1",

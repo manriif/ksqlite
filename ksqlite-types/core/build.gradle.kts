@@ -5,17 +5,4 @@ plugins {
 
 kotlin {
     allTargets()
-
-    sourceSets {
-        commonMain.dependencies {
-            implementation(projects.ksqliteCapi)
-            implementation(libs.stately.concurrentCollections) // TODO regular concurrency
-            api(libs.kotlinx.coroutinesCore)
-        }
-
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutinesTest)
-        }
-    }
 }

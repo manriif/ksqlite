@@ -58,7 +58,7 @@ public external interface StructMember : JsAny {
 /**
  * Information on a struct.
  */
-public external interface StructInfo<@Suppress("unused") S> : JsAny {
+public external interface StructInfo<@Suppress("unused") S: StructType> : JsAny {
 
     /**
      * Members of the struct.

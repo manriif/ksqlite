@@ -8,6 +8,10 @@ import kotlin.js.JsAny
 @JsFun("""(args) => console.log(...args)""")
 private external fun log(vararg args: JsAny)
 
-internal actual suspend fun initializeSqliteForSynchronousTest() {
-    initializeSqlite(debugModule = ::log)
+internal actual suspend fun loadSqliteForSynchronousTest(): Boolean {
+    if (!isSqliteInitialized) {
+        ksqliteLoad(debugModule = ::log)
+    }
+
+    return true
 }

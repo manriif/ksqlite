@@ -1,18 +1,34 @@
+@file:OptIn(ExperimentalAtomicApi::class)
+
 package ksqlite.capi
 
 import kotlinx.coroutines.test.runTest
-import kotlin.time.Duration
+import ksqlite.types.SqliteResultCode
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.test.assertEquals
+
+private val Initialized = AtomicBoolean(false)
 
 /**
- * Initializes SQLite for synchronous testing.
+ * Loads the SQLite library for synchronous testing.
+ * Returns `true` if the platform is web, `false` otherwise.
  */
-internal expect suspend fun initializeSqliteForSynchronousTest()
+internal expect suspend fun loadSqliteForSynchronousTest(): Boolean
 
 /**
  * Initializes SQLite and invokes [block]
- * TODO remove timeout
  */
-internal fun sqliteTest(block: () -> Unit) = runTest(timeout = Duration.INFINITE) {
-    initializeSqliteForSynchronousTest()
-    block()
+internal fun sqliteTest(block: (isWeb: Boolean) -> Unit) = runTest {
+    val isWeb = loadSqliteForSynchronousTest()
+
+    if (Initialized.compareAndSet(expectedValue = false, newValue = true)) {
+        assertEquals(
+            expected = SqliteResultCode.OK,
+            actual = sqlite3_initialize(),
+            message = "Failed to initialize SQLite"
+        )
+    }
+
+    block(isWeb)
 }

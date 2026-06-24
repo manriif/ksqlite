@@ -9,7 +9,7 @@ import kotlinx.cinterop.value
 import ksqlite.capi.types.s3
 import ksqlite.capi.types.s3_api
 import ksqlite.capi.types.sqlite3
-import ksqlite.sqlite3_mprintf
+import ksqlite.foreign.sqlite3_mprintf
 
 /**
  * Static C function for [autoExtensionHandler].

@@ -31,6 +31,6 @@ public actual open class sqlite3_vtab private constructor(
         get() = pointer.pointed.zErrMsg?.toKStringFromUtf8()
         set(value) = pointer.pointed.run {
             sqlite3_free(zErrMsg)
-            zErrMsg = value?.let(::sqlite3_mprintf)
+            zErrMsg = value?.let { sqlite3_mprintf(it) }
         }
 }

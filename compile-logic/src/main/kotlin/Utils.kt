@@ -1,3 +1,4 @@
+import org.gradle.api.file.CopySpec
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
@@ -66,5 +67,15 @@ fun replaceFiles(
                 input.copyTo(output)
             }
         }
+    }
+}
+
+/**
+ * Renames all files stating with [prefix] by replacing the given [prefix] with [replacer],
+ * keeping the rest of the file name.
+ */
+fun CopySpec.replacePrefix(prefix: String, replacer: String) = rename { fileName ->
+    fileName.takeIf { it.startsWith(prefix) }?.let { name ->
+        replacer + name.substringAfter(prefix)
     }
 }

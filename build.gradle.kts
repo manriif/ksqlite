@@ -54,15 +54,15 @@ komple {
     sqlite {
         version = libs.versions.sqlite
         releaseYear = libs.versions.sqliteReleaseYear
-        checksum = property("checksum.sqlite").toString()
+        checksum = providers.gradleProperty("checksum.sqlite")
         ksqliteDirectory = ksqlite.ksqliteDirectory
         sqliteMcDirectory = tools.sqliteMultipleCiphers.installDirectory
     }
 
     sqliteMultipleCiphers {
         version = libs.versions.sqliteMultipleCiphers
-        sqliteVersion = libs.versions.sqlite
-        checksum = property("checksum.sqlitemc").toString()
+        sqliteVersion = sqlite.version
+        checksum = providers.gradleProperty("checksum.sqlitemc")
     }
 
     tools {

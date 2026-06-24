@@ -57,7 +57,7 @@ internal constructor(override val pointer: CPointer<s3_index_info>) :
         get() = info.idxStr?.toKStringFromUtf8()
         set(value) {
             sqlite3_free(info.idxStr)
-            info.idxStr = value?.let(::sqlite3_mprintf)
+            info.idxStr = value?.let { sqlite3_mprintf(it) }
         }
 
     public actual override var needToFreeIdxStr: Int

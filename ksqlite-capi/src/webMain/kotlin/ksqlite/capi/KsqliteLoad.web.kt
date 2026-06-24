@@ -4,14 +4,13 @@ import ksqlite.foreign.Sqlite3
 import ksqlite.foreign.Sqlite3Capi
 import ksqlite.foreign.Sqlite3Wasm
 import ksqlite.foreign.Sqlite3WasmExports
-import ksqlite.foreign.sqliteInitializer
+import ksqlite.foreign.ksqliteLoadLibrary
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.asJsException
-import kotlin.js.unsafeCast
 
 /**
  * One single SQLite instance is allowed per application session.
@@ -46,19 +45,24 @@ internal inline val exports: Sqlite3WasmExports
     get() = wasm.exports
 
 /**
- * Loads and initializes SQLite.
+ * Whether a call to [ksqliteLoad] has been made and was successful.
+ */
+public val isSqliteInitialized: Boolean
+    get() = Sqlite3Instance != null
+
+/**
+ * Loads the Kotlin SQLite library without initializing it.
  *
  * This function must be called once before any other API call.
- * No action is performed to ensure that the function has been called only once.
  *
  * A [debugModule] can be supplied to receives initialization outputs.
  *
- * If the sqlite wasm file should be loaded in a non-conventional way, [locateFile] must be supplied
- * and will be invoked to obtain the uri to the file.
+ * If the `ksqlite.wasm` file should be loaded in a non-conventional way, [locateFile] must be
+ * supplied and will be invoked to obtain the uri to the file.
  *
- * @throws IllegalStateException if the library was already initialized.
+ * @throws IllegalStateException if the library was already loaded.
  */
-public suspend fun initializeSqlite(
+public suspend fun ksqliteLoad(
     debugModule: ((args: JsArray<out JsAny>) -> Unit)? = null,
     locateFile: ((path: String, prefix: String) -> JsAny?)? = null
 ) {
@@ -67,12 +71,12 @@ public suspend fun initializeSqlite(
     }
 
     Sqlite3Instance = suspendCoroutine { continuation ->
-        @Suppress("ThrowableNotThrown", "RemoveExplicitTypeArguments")
-        val _ = sqliteInitializer(
+        @Suppress("ThrowableNotThrown")
+        val _ = ksqliteLoadLibrary(
             debugModule = debugModule,
             locateFile = locateFile
         ).then(
-            onFulfilled = { continuation.resume(it.unsafeCast<Sqlite3>()); null },
+            onFulfilled = { continuation.resume(it); null },
             onRejected = { continuation.resumeWithException(it.asJsException()); null }
         )
     }

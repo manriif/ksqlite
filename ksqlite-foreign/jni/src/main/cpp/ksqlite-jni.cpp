@@ -997,7 +997,7 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
     KKVC.open = RequireKsqliteMethod(
         KKVC,
         "open",
-        "(JLksqlite/OutputPointer$OfPointer;)I",
+        "(JLksqlite/foreign/OutputPointer$OfPointer;)I",
         VTAB_MODULE_CALLBACKS
     );
 
@@ -1013,14 +1013,14 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
     KKVC.rowid = RequireKsqliteMethod(
         KKVC,
         "rowid",
-        "(JJLksqlite/OutputPointer$OfInt64;)I",
+        "(JJLksqlite/foreign/OutputPointer$OfInt64;)I",
         VTAB_MODULE_CALLBACKS
     );
 
     KKVC.update = RequireKsqliteMethod(
         KKVC,
         "update",
-        "(J[JLksqlite/OutputPointer$OfInt64;)I",
+        "(J[JLksqlite/foreign/OutputPointer$OfInt64;)I",
         VTAB_MODULE_CALLBACKS
     );
 
@@ -1032,7 +1032,9 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
     KKVC.findFunction = RequireKsqliteMethod(
         KKVC,
         "findFunction",
-        "(JILjava/lang/String;Lksqlite/OutputPointer$OfObject;Lksqlite/OutputPointer$OfObject;Lksqlite/OutputPointer$OfObject;)I",
+        "(JILjava/lang/String;Lksqlite/foreign/OutputPointer$OfObject;"
+        "Lksqlite/foreign/OutputPointer$OfObject;"
+        "Lksqlite/foreign/OutputPointer$OfObject;)I",
         VTAB_MODULE_CALLBACKS
     );
 
@@ -1046,7 +1048,7 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
     KKVC.integrity = RequireKsqliteMethod(
         KKVC,
         "integrity",
-        "(JLjava/lang/String;Ljava/lang/String;ILksqlite/OutputPointer$OfString;)I",
+        "(JLjava/lang/String;Ljava/lang/String;ILksqlite/foreign/OutputPointer$OfString;)I",
         VTAB_MODULE_CALLBACKS
     );
 }
@@ -2485,7 +2487,7 @@ Java_ksqlite_foreign_KsqliteJni_ksqlite_1auto_1extension(
             HookConfigure(
                 hook,
                 callback,
-                "(JJLksqlite/OutputPointer$OfString;)I",
+                "(JJLksqlite/foreign/OutputPointer$OfString;)I",
                 "AutoExtensionCallback"
             );
         }
