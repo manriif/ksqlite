@@ -6,7 +6,7 @@ import ksqlite.foreign.Sqlite3Wasm
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.handlers.Handler
 import ksqlite.capi.wasm
-import ksqlite.foreign.js.toInt8Array
+import ksqlite.foreign.js.asInt8Array
 import ksqlite.foreign.wasm.IR
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.allocCString
@@ -218,7 +218,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         override val appData: ByteArray,
     ) : PointerDisposable<ByteArray>(id, destructor) {
 
-        override val pointer = memory.allocFromTypedArray(toInt8Array(appData))
+        override val pointer = memory.allocFromTypedArray(asInt8Array(appData))
 
         init {
             registerGlobalDisposable(pointer.toLong(), this)

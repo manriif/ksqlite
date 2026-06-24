@@ -2154,28 +2154,32 @@ static inline void outputPointerSetInt64Value(
 #define OutputPointerSetPointerValue(pointer, value) \
     OutputPointerSetInt64Value(pointer, PtrToLong(value))
 
-#define OutputPointerEnter(T, jPointer, getValue, ...) \
-    const auto CONCAT(jPointer, _init) = getValue(__VA_ARGS__  __VA_OPT__(,) jPointer); \
-    T* UNDERSCORED(jPointer) = nullptr; \
-    if (jPointer != nullptr) *UNDERSCORED(jPointer) = CONCAT(jPointer, _init)
+#define OutputPointerEnter(jPointer, initType, valueType, initValue, getValue, ...) \
+    initType CONCAT(jPointer, _init) = initValue; \
+    valueType CONCAT(jPointer, _value) = initValue; \
+    if (jPointer != nullptr) {                         \
+        CONCAT(jPointer, _init) = getValue(__VA_ARGS__  __VA_OPT__(,) jPointer); \
+        CONCAT(jPointer, _value) = CONCAT(jPointer, _init);  \
+    } \
+    valueType* UNDERSCORED(jPointer) = &CONCAT(jPointer, _value)
 
 #define OutputPointerEnterInt32(jPointer) \
-    OutputPointerEnter(int, jPointer, OutputPointerGetInt32Value)
+    OutputPointerEnter(jPointer, int, int, 0, OutputPointerGetInt32Value)
 
 #define OutputPointerEnterInt64(jPointer) \
-    OutputPointerEnter(sqlite3_int64, jPointer, OutputPointerGetInt64Value)
+    OutputPointerEnter(jPointer, sqlite3_int64, sqlite3_int64, 0, OutputPointerGetInt64Value)
 
 #define OutputPointerEnterPointer(T, jPointer) \
-    OutputPointerEnter(T, jPointer, OutputPointerGetPointerValue, T)
+    OutputPointerEnter(jPointer, T, T, nullptr, OutputPointerGetPointerValue, T)
 
 #define OutputPointerEnterString(jPointer, ...) \
-    OutputPointerEnter(__VA_ARGS__ char*, jPointer, OutputPointerGetStringValue)
+    OutputPointerEnter(jPointer, char*, __VA_ARGS__ char*, nullptr, OutputPointerGetStringValue)
 
 #define OutputPointerEnterStringConst(jPointer) \
     OutputPointerEnterString(jPointer, const)
 
 #define OutputPointerLeave(jPointer, setValue, ...) \
-    if (jPointer != nullptr && rc == SQLITE_OK) \
+    if (jPointer != nullptr/* && rc == SQLITE_OK*/) \
         setValue(jPointer, *UNDERSCORED(jPointer) __VA_OPT__(,) __VA_ARGS__)
 
 #define OutputPointerLeaveInt32(jPointer) \
@@ -2189,6 +2193,7 @@ static inline void outputPointerSetInt64Value(
 
 #define OutputPointerLeaveStringLength(jPointer, length) \
     OutputPointerLeave(jPointer, OutputPointerSetStringValue, length); \
+    if (CONCAT(jPointer, _init) != nullptr && CONCAT(jPointer, _init) != CONCAT(jPointer, _value)) \
     sqlite3_free(CONCAT(jPointer, _init))
 
 #define OutputPointerLeaveString(jPointer) \

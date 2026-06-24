@@ -210,12 +210,23 @@ fun compileSqliteWasm(
     )
 
     val generatedWasmArtifactsDirectory = wasmDirectory.resolve("jswasm")
+    val esm64Directory = generatedWasmArtifactsDirectory.resolve("esm64")
+    val sqlite64BitMjs = esm64Directory.resolve("$SQLITE3_64BIT.mjs")
+
+    // Replace hard-coded-generated 'sqlite3-64bit.wasm' to 'ksqlite.wasm'
+    // TODO: make the GNUmakefile generate the ksqlite.wasm when it has been mastered
+    val patchedContent = sqlite64BitMjs
+        .readText()
+        .replace("'$SQLITE3_64BIT.wasm'", "'$KSQLITE.wasm'")
+
+    sqlite64BitMjs.writeText(patchedContent)
 
     fileOperations.copy {
         from(generatedWasmArtifactsDirectory)
         into(outputDirectory.resolve(GENERATED_ARTIFACTS))
     }
 
+    // Just to visualize what have been used to compile wasm
     fileOperations.copy {
         from(ksqliteAmalgamationHeaderFile, ksqliteAmalgamationSourceFile)
         into(outputDirectory.resolve(GENERATED_SOURCES))

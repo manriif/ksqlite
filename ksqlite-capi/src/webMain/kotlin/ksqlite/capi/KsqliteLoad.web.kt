@@ -45,36 +45,57 @@ internal inline val exports: Sqlite3WasmExports
     get() = wasm.exports
 
 /**
- * Whether a call to [ksqliteLoad] has been made and was successful.
+ * Whether a call to [sqliteLoad] has been made and was successful.
  */
-public val isSqliteInitialized: Boolean
+public val isSqliteLoaded: Boolean
     get() = Sqlite3Instance != null
 
 /**
- * Loads the Kotlin SQLite library without initializing it.
+ * Configuration for the SQLite loader.
+ */
+public interface SqliteLoaderConfig {
+
+    /**
+     * Handler for initialization outputs.
+     */
+    public var debugModule: ((args: JsArray<out JsAny>) -> Unit)?
+
+    /**
+     * Handler for file location.
+     *
+     * If file(s) such as the `ksqlite.wasm` file should be loaded in a non-conventional way, then
+     * this property must be non-null and is invoked to obtain the uri to the file.
+     */
+    public var fileLocator: ((path: String, prefix: String) -> JsAny?)?
+}
+
+private class SqliteLoaderConfigImpl(
+    override var debugModule: ((args: JsArray<out JsAny>) -> Unit)? = null,
+    override var fileLocator: ((path: String, prefix: String) -> JsAny?)? = null
+) : SqliteLoaderConfig
+
+/**
+ * Loads the SQLite library without initializing it.
+ * The load process can be customized within [configure].
  *
  * This function must be called once before any other API call.
  *
- * A [debugModule] can be supplied to receives initialization outputs.
- *
- * If the `ksqlite.wasm` file should be loaded in a non-conventional way, [locateFile] must be
- * supplied and will be invoked to obtain the uri to the file.
- *
  * @throws IllegalStateException if the library was already loaded.
  */
-public suspend fun ksqliteLoad(
-    debugModule: ((args: JsArray<out JsAny>) -> Unit)? = null,
-    locateFile: ((path: String, prefix: String) -> JsAny?)? = null
-) {
+public suspend fun sqliteLoad(configure: (SqliteLoaderConfig.() -> Unit)? = null) {
     check(Sqlite3Instance == null) {
-        "Sqlite3 is already initialized"
+        "SQLite is already initialized"
+    }
+
+    val loader = configure?.run {
+        SqliteLoaderConfigImpl().apply(this::invoke)
     }
 
     Sqlite3Instance = suspendCoroutine { continuation ->
         @Suppress("ThrowableNotThrown")
         val _ = ksqliteLoadLibrary(
-            debugModule = debugModule,
-            locateFile = locateFile
+            debugModule = loader?.debugModule,
+            locateFile = loader?.fileLocator
         ).then(
             onFulfilled = { continuation.resume(it); null },
             onRejected = { continuation.resumeWithException(it.asJsException()); null }

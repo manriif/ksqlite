@@ -49,7 +49,7 @@
         });
   delete globalThis.sqlite3InitModuleState;
 
-  // Check if custom debugModule was provided
+  // KSQLITE: Check if custom debugModule was provided
   if (Module.customDebugModule && typeof Module.customDebugModule === 'function') {
     sIMS.debugModule = Module.customDebugModule;
   }
@@ -87,7 +87,7 @@
       return this.emscriptenLocateFile(path, prefix);
     }
 //#if target:es6-module
-    // Check if custom locateFile was provided
+    // KSQLITE: Check if custom locateFile was provided
     if (Module.customLocateFile && typeof Module.customLocateFile === 'function') {
       return Module.customLocateFile(path, prefix);
     }

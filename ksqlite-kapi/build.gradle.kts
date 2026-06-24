@@ -10,7 +10,7 @@ kotlin {
         commonMain.dependencies {
             api(projects.ksqliteTypes.core)
             implementation(projects.ksqliteCapi)
-            implementation(libs.stately.concurrentCollections) // TODO regular concurrency
+            implementation(libs.stately.concurrentCollections)
         }
 
         commonTest.dependencies {

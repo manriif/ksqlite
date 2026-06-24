@@ -21,7 +21,7 @@ public interface SQLite : AutoCloseable {
     public val config: AnyTimeConfiguration
 
     /**
-     * Soft limit on the amount of heap memory that may be allocated by SQLite.
+     * Hard limit on the amount of heap memory that may be allocated by SQLite.
      *
      * @throws SQLiteException if setting the value failed.
      */
@@ -38,7 +38,7 @@ public interface SQLite : AutoCloseable {
     public val memoryHighwater: Long
 
     /**
-     * Hard limit on the amount of heap memory that may be allocated by SQLite.
+     * Soft limit on the amount of heap memory that may be allocated by SQLite.
      *
      * @throws SQLiteException if setting the value failed.
      */
@@ -117,7 +117,9 @@ public interface SQLite : AutoCloseable {
     /**
      * Provides access to SQLite APIs that do not require SQLite initialization.
      */
-    public companion object : SQLiteStatic by SQLiteStaticImpl
+    public companion object :
+        SQLiteLoader by sqliteLoader(),
+        SQLiteStatic by SQLiteStaticImpl
 }
 
 ///////////////////////////////////////////////////////////////////////////

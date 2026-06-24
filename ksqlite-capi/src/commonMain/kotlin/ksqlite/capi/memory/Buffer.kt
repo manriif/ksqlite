@@ -83,7 +83,7 @@ public abstract class WritableBuffer internal constructor(byteSize: Long) :
      */
     public fun write(
         source: ByteArray,
-        size: Int,
+        size: Int = source.size,
         sourceOffset: Int = 0,
         destinationOffset: Long = 0
     ) {

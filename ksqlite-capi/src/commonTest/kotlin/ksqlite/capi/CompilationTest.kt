@@ -10,12 +10,12 @@ import kotlin.test.assertEquals
 class CompilationTest {
 
     @Test
-    fun versionIsCorrect() = sqliteTest {
+    fun versionIsCorrect() = runSqliteTest {
         assertEquals("3.53.2", sqlite3_libversion())
     }
 
     @Test
-    fun compiledWithExpectedOptions() = sqliteTest {
+    fun compiledWithExpectedOptions() = runSqliteTest {
         val options = sqliteCompileOptions()
 
         assertContains(options, "ENABLE_FTS5")

@@ -9,6 +9,7 @@ import ksqlite.foreign.js.arrayForEachIndexed
 import ksqlite.foreign.js.arraySize
 import ksqlite.foreign.js.plus
 import ksqlite.foreign.js.toByteArray
+import ksqlite.foreign.js.asInt8Array
 import ksqlite.foreign.js.toInt8Array
 import ksqlite.foreign.wasm.CString
 import ksqlite.foreign.wasm.FunctionSignature
@@ -361,7 +362,7 @@ internal inline fun <R> bufferScoped(
     size: Int? = null,
     block: Int8Array<*>.(buffer: WasmPointer) -> R
 ): R {
-    val typedArray = size?.let { toInt8Array(buffer, it) } ?: toInt8Array(buffer)
+    val typedArray = size?.let { toInt8Array(buffer, it) } ?: asInt8Array(buffer)
     val pointer = memory.allocFromTypedArray(typedArray)
 
     return try {

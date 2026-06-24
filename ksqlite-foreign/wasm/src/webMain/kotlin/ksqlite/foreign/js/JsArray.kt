@@ -78,12 +78,12 @@ public inline fun <T : Any> arrayJoinToString(
 public inline fun toByteArray(array: Int8Array<*>): ByteArray = array.toByteArray()
 
 /**
- * Converts [array] to [Int8Array].
+ * Casts [array] to [Int8Array] if possible.
  */
-public inline fun toInt8Array(array: ByteArray): Int8Array<*> = array.toInt8Array()
+public expect fun asInt8Array(array: ByteArray): Int8Array<*>
 
 /**
- * Converts [array] to [Int8Array] retaining only first [size] bytes.
+ * Converts or casts [array] to [Int8Array] retaining only first [size] bytes.
  */
 public expect fun toInt8Array(array: ByteArray, size: Int): Int8Array<*>
 
