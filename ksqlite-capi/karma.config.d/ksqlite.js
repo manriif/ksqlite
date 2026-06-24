@@ -8,4 +8,4 @@ config.files.push({
 // Large timeout for debugging, keeping karma serving files in devtools
 config.client = config.client || {};
 config.client.mocha = config.client.mocha || {};
-config.client.mocha.timeout = 60 * 60 * 6;
+config.client.mocha.timeout = 6000000000;

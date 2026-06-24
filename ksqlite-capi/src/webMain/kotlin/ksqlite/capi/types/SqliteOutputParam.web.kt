@@ -4,7 +4,7 @@ import ksqlite.capi.exports
 import ksqlite.capi.memory.MemoryAllocator
 import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.StackAllocatorScope
-import ksqlite.capi.memory.isNull
+import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.foreign.wasm.IR
@@ -70,11 +70,7 @@ public abstract class PointerOutputParam<Value> : OutputParamBase<Value?>(null) 
     internal abstract fun WasmMemory.create(pointer: WasmPointer): Value
 
     final override fun WasmMemory.readValue(pointer: WasmPointer): Value? {
-        if (pointer.isNull) {
-            return null
-        }
-
-        return create(pointer)
+        return peekPtr(pointer).orNull?.let { create(it) }
     }
 }
 

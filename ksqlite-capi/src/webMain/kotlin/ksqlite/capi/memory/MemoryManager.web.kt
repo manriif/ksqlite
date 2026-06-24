@@ -18,7 +18,7 @@ import kotlin.reflect.KClass
 internal actual class MemoryManager : MemoryManagerBase() {
 
     private val functionPointers = mutableMapOf<KClass<*>, WasmPointer>()
-    val stableRefDisposer = functionPointer(::StableRefDisposerHandler)
+    val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
 
     val memory: Sqlite3Wasm
         inline get() = wasm
@@ -166,6 +166,21 @@ internal actual class MemoryManager : MemoryManagerBase() {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
+     * Reference to [Handler].
+     */
+    private inner class FunctionDisposable(
+        id: Long,
+        override val appData: Handler
+    ) : AutoDisposable<Handler>(id, null) {
+
+        val pointer = appData.install(this@MemoryManager.memory)
+
+        override fun release() {
+            val _ = memory.uninstallFunction(pointer)
+        }
+    }
+
+    /**
      * Disposable allocating a [WasmPointer].
      */
     private abstract inner class PointerDisposable<AppData>(
@@ -196,17 +211,6 @@ internal actual class MemoryManager : MemoryManagerBase() {
                 poke64(address, id.toJsBigInt())
             }
         }
-    }
-
-    /**
-     * Reference to [Handler].
-     */
-    private inner class FunctionDisposable(
-        id: Long,
-        override val appData: Handler
-    ) : PointerDisposable<Handler>(id, null) {
-
-        override val pointer = appData.install(this@MemoryManager.memory)
     }
 
     /**

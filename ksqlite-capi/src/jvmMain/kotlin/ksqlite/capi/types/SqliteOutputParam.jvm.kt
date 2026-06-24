@@ -4,6 +4,7 @@ import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.notNull
+import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.foreign.sqlite3.sqlite3_free
 import java.lang.foreign.MemorySegment
@@ -62,11 +63,7 @@ public abstract class PointerOutputParam<Value> : OutputParamBase<Value?>(null) 
     protected abstract fun create(pointer: MemorySegment): Value
 
     final override fun readValue(segment: MemorySegment): Value? {
-        if (segment.isNull) {
-            return null
-        }
-
-        return create(segment)
+        return segment.get(ValueLayout.ADDRESS, 0).orNull?.let(::create)
     }
 }
 
@@ -108,7 +105,10 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
     private var customSize: Int32OutputParam? = null
 
     override fun create(pointer: MemorySegment): String {
-        val part = customSize?.value?.let { pointer.asSlice(0, it.toLong()) } ?: pointer
+        val part = customSize?.value
+            ?.let { pointer.asSlice(0, it.toLong()) }
+            ?: pointer.reinterpret(Long.MAX_VALUE)
+
         val string = part.toKStringFromUtf8()
 
         if (freeOnRead) {

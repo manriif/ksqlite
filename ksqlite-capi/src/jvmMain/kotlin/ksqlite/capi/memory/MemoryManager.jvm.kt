@@ -9,8 +9,8 @@ import kotlin.reflect.KClass
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
-    private val functionPointers =  ConcurrentHashMap<KClass<*>, MemorySegment>()
-    val stableRefDisposer = functionPointer(::StableRefDisposerHandler)
+    private val functionPointers = ConcurrentHashMap<KClass<*>, MemorySegment>()
+    val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
 
     override fun clear() {
         super.clear()
