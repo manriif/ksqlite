@@ -7,13 +7,14 @@ import ksqlite.capi.sqlite3
 import ksqlite.capi.wasm
 import ksqlite.foreign.js.arrayForEachIndexed
 import ksqlite.foreign.js.arraySize
+import ksqlite.foreign.js.asInt8Array
 import ksqlite.foreign.js.plus
 import ksqlite.foreign.js.toByteArray
-import ksqlite.foreign.js.asInt8Array
 import ksqlite.foreign.js.toInt8Array
 import ksqlite.foreign.wasm.CString
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.IR
+import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmMemory
 import ksqlite.foreign.wasm.WasmPStack
@@ -25,7 +26,10 @@ import ksqlite.foreign.wasm.scopedAllocCStringStruct
 import ksqlite.foreign.wasm.scopedAllocPtr
 import ksqlite.foreign.wasm.sizeofIR
 import kotlin.js.JsAny
+import kotlin.js.JsReference
+import kotlin.js.get
 import kotlin.js.toJsBigInt
+import kotlin.js.toJsReference
 import kotlin.js.toLong
 
 ///////////////////////////////////////////////////////////////////////////
@@ -272,13 +276,24 @@ internal fun interface ReferenceFunction {
     fun apply(refPointer: WasmPointer)
 }
 
+@JsFun("(jsRef, handler) => (p0) => handler(jsRef, p0)")
+private external fun refFunction(
+    reference: JsReference<ReferenceFunction>,
+    handler: (
+        jsRef: JsReference<ReferenceFunction>,
+        refPointer: WasmPointer
+    ) -> Unit
+): JsFunction
+
 /**
  * Allocates a new upcall stub, that invokes [ReferenceFunction.apply] on [function].
  */
 internal fun WasmFunctions.installReferenceFunction(function: ReferenceFunction): WasmPointer =
     installFunction(
         signature = FunctionSignature.Void(FunctionSignature.Pointer),
-        function = function::apply
+        function = refFunction(function.toJsReference()) { jsRef, refPointer ->
+            jsRef.get().apply(refPointer)
+        }
     )
 
 ///////////////////////////////////////////////////////////////////////////
@@ -300,7 +315,7 @@ internal inline fun <reified T> WasmPointer.toArray(
     val ptrSize = memory.sizeofIR(IR.Ptr)
 
     return Array(count) { index ->
-        transform(memory, plus(ptrSize * index))
+        transform(memory, memory.peekPtr(plus(ptrSize * index)))
     }
 }
 
@@ -394,9 +409,7 @@ internal fun WasmPointer.readByteArray(
  * Reads bytes from this pointer until NULL and then convert to string.
  */
 internal fun WasmPointer.toKStringFromUtf8OrNull(memory: WasmMemory = wasm): String? =
-    memory
-        .cstrToJs(this)
-        ?.toString()
+    memory.cstrToJs(this)?.toString()
 
 /**
  * Reads bytes from this pointer until NULL and then convert to string.

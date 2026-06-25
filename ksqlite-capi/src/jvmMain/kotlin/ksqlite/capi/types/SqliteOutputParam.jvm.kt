@@ -105,10 +105,7 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
     private var customSize: Int32OutputParam? = null
 
     override fun create(pointer: MemorySegment): String {
-        val part = customSize?.value
-            ?.let { pointer.asSlice(0, it.toLong()) }
-            ?: pointer.reinterpret(Long.MAX_VALUE)
-
+        val part = customSize?.value?.let { pointer.asSlice(0, it.toLong()) } ?: pointer
         val string = part.toKStringFromUtf8()
 
         if (freeOnRead) {

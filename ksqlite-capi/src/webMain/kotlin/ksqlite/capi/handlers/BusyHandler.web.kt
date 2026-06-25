@@ -1,10 +1,23 @@
 package ksqlite.capi.handlers
 
+import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
 import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmFunctions
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
-import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
+import kotlin.js.JsReference
+import kotlin.js.toJsReference
+
+@JsFun("(jsRef, handler) => (p0, p1) => handler(jsRef, p0, p1)")
+private external fun busyHandler(
+    jsRef: JsReference<BusyHandlerHandler>,
+    handler: (
+        jsRef: JsReference<BusyHandlerHandler>,
+        refPointer: WasmPointer,
+        count: Int
+    ) -> Int
+): JsFunction
 
 /**
  * Handler for [ksqlite.capi.sqlite3_busy_handler].
@@ -16,16 +29,13 @@ internal class BusyHandlerHandler : Handler() {
             FunctionSignature.Pointer,
             FunctionSignature.Int32,
         ),
-        function = this::apply
+        function = busyHandler(toJsReference()) { jsRef, refPointer, count ->
+            jsRef.handle(refPointer) { callback: SqliteBusyHandlerCallback<Any?>, appData ->
+                callback.apply(
+                    appData = appData,
+                    count = count
+                )
+            }
+        }
     )
-
-    private fun apply(
-        refPointer: WasmPointer,
-        count: Int,
-    ): Int = handle(refPointer) { callback: SqliteBusyHandlerCallback<Any?>, appData ->
-        callback.apply(
-            appData = appData,
-            count = count
-        )
-    }
 }

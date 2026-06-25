@@ -2,13 +2,17 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.exports
-import ksqlite.foreign.wasm.FunctionSignature
-import ksqlite.foreign.wasm.WasmFunctions
-import ksqlite.foreign.wasm.WasmPointer
-import ksqlite.foreign.wasm.installFunction
 import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.types.sqlite3_context
 import ksqlite.capi.types.sqlite3_value
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.JsFunction
+import ksqlite.foreign.wasm.WasmFunctions
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.installFunction
+import kotlin.js.JsReference
+import kotlin.js.get
+import kotlin.js.toJsReference
 
 /**
  * Base for function [Handler]s.
@@ -32,20 +36,31 @@ internal abstract class FunctionHandler : Handler() {
 // 1 arg
 ///////////////////////////////////////////////////////////////////////////
 
+@JsFun("(jsRef, handler) => (p0) => handler(jsRef, p0)")
+private external fun function1Arg(
+    jsRef: JsReference<Function1ArgHandler>,
+    handler: (
+        jsRef: JsReference<Function1ArgHandler>,
+        context: WasmPointer
+    ) -> Unit
+): JsFunction
+
 /**
  * Base for 1-arg function [Handler]s.
  */
 internal abstract class Function1ArgHandler : FunctionHandler() {
 
-    final override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
-        signature = FunctionSignature.Void(FunctionSignature.Pointer),
-        function = this::apply
-    )
-
     /**
      * Handles the function call.
      */
     protected abstract fun apply(context: WasmPointer)
+
+    final override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
+        signature = FunctionSignature.Void(FunctionSignature.Pointer),
+        function = function1Arg(toJsReference()) { jsRef, context ->
+            jsRef.get().apply(context)
+        }
+    )
 }
 
 /**
@@ -71,19 +86,21 @@ internal class FunctionValueHandler : Function1ArgHandler() {
 // 3 args
 ///////////////////////////////////////////////////////////////////////////
 
+@JsFun("(jsRef, handler) => (p0, p1, p2) => handler(jsRef, p0, p1, p2)")
+private external fun function3Args(
+    jsRef: JsReference<Function3ArgsHandler>,
+    handler: (
+        jsRef: JsReference<Function3ArgsHandler>,
+        context: WasmPointer,
+        argc: Int,
+        argv: WasmPointer
+    ) -> Unit
+): JsFunction
+
 /**
  * Base for 3-args function [Handler]s.
  */
 internal abstract class Function3ArgsHandler : FunctionHandler() {
-
-    final override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
-        signature = FunctionSignature.Void(
-            FunctionSignature.Pointer,
-            FunctionSignature.Int32,
-            FunctionSignature.Pointer
-        ),
-        function = this::apply
-    )
 
     /**
      * Handler for 3-args function callback.
@@ -104,6 +121,17 @@ internal abstract class Function3ArgsHandler : FunctionHandler() {
         context: WasmPointer,
         argc: Int,
         argv: WasmPointer
+    )
+
+    final override fun install(functions: WasmFunctions): WasmPointer = functions.installFunction(
+        signature = FunctionSignature.Void(
+            FunctionSignature.Pointer,
+            FunctionSignature.Int32,
+            FunctionSignature.Pointer
+        ),
+        function = function3Args(toJsReference()) { jsRef, context, argc, argv ->
+            jsRef.get().apply(context, argc, argv)
+        }
     )
 }
 

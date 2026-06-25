@@ -3,6 +3,8 @@
 package ksqlite.foreign.wasm
 
 import js.array.ReadonlyArray
+import js.numbers.JsInt
+import js.numbers.JsNumbers.toKotlinInt
 import js.typedarrays.Int16Array
 import js.typedarrays.Int32Array
 import js.typedarrays.Int8Array
@@ -736,8 +738,8 @@ public  external interface WasmMemory {
  */
 private fun JsAny.toCString(): CString = unsafeCast<ReadonlyArray<JsAny>>().run {
     CString(
-        pointer = get(0)!!.unsafeCast<WasmPointer>(),
-        byteLength = get(1)!!.unsafeCast<JsBigInt>()
+        pointer = get(0).unsafeCast<WasmPointer>(),
+        byteLength = get(1).unsafeCast<JsInt>().toKotlinInt()
     )
 }
 

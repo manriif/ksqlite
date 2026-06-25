@@ -209,14 +209,18 @@ internal fun Array<String>?.allocateUtf8Array(): MemorySegment {
 }
 
 /**
- * Reads and returns a null terminated String starting from [offset].
+ * Reads and returns a String starting from [offset].
+ * If [MemorySegment.byteSize] is equals to 0 then the string is considered null terminated.
  */
-internal fun MemorySegment.toKStringFromUtf8(offset: Long = 0): String =
-    checkNotNull(getString(offset, Charsets.UTF_8))
+internal fun MemorySegment.toKStringFromUtf8(offset: Long = 0): String {
+    val segment = if (byteSize() != 0L) this else reinterpret(Long.MAX_VALUE)
+    return checkNotNull(segment.getString(offset, Charsets.UTF_8))
+}
 
 /**
  * Reads and returns a null terminated String starting from [offset] or returns `null` if `this`
  * [MemorySegment] is [NullPtr].
+ * If [MemorySegment.byteSize] is equals to 0 then the string is considered null terminated.
  */
 internal fun MemorySegment.toKStringFromUtf8OrNull(offset: Long = 0): String? =
     orNull?.toKStringFromUtf8(offset)

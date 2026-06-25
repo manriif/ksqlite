@@ -80,3 +80,26 @@ internal fun runSqliteConnectionTest(
     assertEquals(SqliteResultCode.OK, openResult)
     block(assertNotNull(outDb.value))
 }
+
+/**
+ * Opens a connection, creates a test table that have a column for each non-null data type, and
+ * passes the connection to [block].
+ */
+internal fun runSqliteConnectionDataTest(
+    block: suspend TestScope.(connection: sqlite3) -> Unit
+) = runSqliteConnectionTest { connection ->
+    val sql = """
+            CREATE table test(
+                integer_t INTEGER, 
+                float_t FLOAT,
+                text_t TEXT,
+                blob_t BLOB,
+                blob2_t BLOB
+            );
+        """.trimIndent()
+
+    val result = sqlite3_exec(connection, sql, null, null, null)
+    assertEquals(SqliteResultCode.OK, result)
+
+    block(connection)
+}

@@ -53,6 +53,7 @@ fun <T> Map<String, T>.sqlitePrefixed(joint: Char = '_'): Map<String, T> {
  */
 val SqliteDefinitions = mapOf(
     "CODEC_TYPE" to "CODEC_TYPE_CHACHA20",
+    "SQLITE_DQS" to "0",
     "SQLITE_ENABLE_FTS5" to "1",
     "SQLITE_ENABLE_COLUMN_METADATA" to "1",
     "SQLITE_ENABLE_MATH_FUNCTIONS" to "1",
@@ -70,7 +71,9 @@ val SqliteDefinitions = mapOf(
     "SQLITE_OMIT_LOAD_EXTENSION" to "1",
     "SQLITE_OMIT_UTF16" to "1",
     "SQLITE_OMIT_SHARED_CACHE" to "1",
+    "SQLITE_MAX_EXPR_DEPTH" to "0",
     "SQLITE_TEMP_STORE" to "2",
+    "SQLITE_STRICT_SUBTYPE" to "1",
     "SQLITE_USE_URI" to "1",
 )
 
@@ -88,13 +91,24 @@ val SqliteUnixLinkerOptions = listOf(
 )
 
 ///////////////////////////////////////////////////////////////////////////
+// Constants
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constants that must be exported.
+ */
+val SqliteConstants = listOf(
+    "SQLITE_TRANSIENT"
+)
+
+///////////////////////////////////////////////////////////////////////////
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
 /**
  * Structs that must be exported.
  */
-val Sqlite3Structs = listOf(
+val SqliteStructs = listOf(
     "index_info",
     "module",
     "vtab",
@@ -106,9 +120,9 @@ val Sqlite3Structs = listOf(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * SQLite 3 functions with their enabled state.
+ * SQLite functions with their enabled state.
  */
-private val Sqlite3Functions = mapOf(
+private val SqliteFunctions = mapOf(
     // Database Connection Functions
     "open" to true,
     "open16" to false,  // Use UTF-8 version instead
@@ -490,7 +504,7 @@ private val Sqlite3Functions = mapOf(
  * are returned.
  */
 fun sqliteFunctions(enabled: Boolean): List<String> {
-    val functions = Sqlite3Functions
+    val functions = SqliteFunctions
         .filter { it.value == enabled }
         .keys
 

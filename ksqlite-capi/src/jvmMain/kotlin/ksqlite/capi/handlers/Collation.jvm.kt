@@ -15,10 +15,9 @@ import java.lang.foreign.ValueLayout
  * Handler for [ksqlite.capi.sqlite3_create_collation] and
  * [ksqlite.capi.sqlite3_create_collation_v2].
  */
-internal class CollationCompareHandler :
+internal class CollationHandler :
     Handler(),
     `sqlite3_create_collation_v2$xCompare`.Function {
-
 
     override fun allocate(arena: Arena): MemorySegment =
         `sqlite3_create_collation_v2$xCompare`.allocate(this, arena)

@@ -13,19 +13,19 @@ import ksqlite.capi.types.sqlite3
 import ksqlite.types.internal.convertTextEncoding
 
 ///////////////////////////////////////////////////////////////////////////
-// Compare
+// Collation
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Static C function for [collationCompareHandler].
+ * Static C function for [collationHandler].
  */
-internal val CollationCompareHandler = staticCFunction(::collationCompareHandler)
+internal val CollationHandler = staticCFunction(::collationHandler)
 
 /**
  * Handler for [ksqlite.capi.sqlite3_create_collation] and
  * [ksqlite.capi.sqlite3_create_collation_v2].
  */
-private fun collationCompareHandler(
+private fun collationHandler(
     refPointer: COpaquePointer?,
     size1: Int,
     text1: COpaquePointer?,

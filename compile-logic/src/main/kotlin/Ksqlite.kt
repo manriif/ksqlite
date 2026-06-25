@@ -32,7 +32,7 @@ fun Iterable<String>.ksqlitePrefixed(joint: Char = '_'): List<String> {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * List of typedefs exposed in ksqlite.h
+ * List of typedefs exposed by `ksqlite.h`.
  */
 val KsqliteTypedefs = listOf(
     "xLog",

@@ -25,7 +25,7 @@ import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
-import ksqlite.capi.handlers.CollationCompareHandler
+import ksqlite.capi.handlers.CollationHandler
 import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
@@ -268,7 +268,7 @@ public actual fun sqlite3_bind_text(
 ): SqliteResultCode = convertResult(memScoped {
     val cText = value.allocateUtf8()
     val nByte = cText.byteSize().toInt()
-    native.sqlite3_bind_text(stmt.pointer, index, cText, nByte, SqliteTransient)
+    native.sqlite3_bind_text(stmt.pointer, index, cText, nByte, native.SQLITE_TRANSIENT())
 })
 
 public actual fun sqlite3_bind_text64(
@@ -549,7 +549,7 @@ public actual fun <AppData> sqlite3_create_collation_v2(
             name.allocateUtf8(),
             encoding.value,
             keyedStableRefPointer(collationKey(name, encoding), callback, appData, destroy),
-            functionPointer(callback, ::CollationCompareHandler),
+            functionPointer(callback, ::CollationHandler),
             stableRefDisposer(callback, destroy)
         )
     }
@@ -1178,7 +1178,7 @@ public actual fun sqlite3_result_text(
 ): Unit = memScoped {
     val cText = value.allocateUtf8()
     val nByte = cText.byteSize().toInt()
-    native.sqlite3_result_text(context.pointer, cText, nByte, SqliteTransient)
+    native.sqlite3_result_text(context.pointer, cText, nByte, native.SQLITE_TRANSIENT())
 }
 
 public actual fun sqlite3_result_text64(

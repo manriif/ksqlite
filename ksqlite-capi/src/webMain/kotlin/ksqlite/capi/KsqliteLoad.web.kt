@@ -10,12 +10,15 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlin.js.JsAny
 import kotlin.js.JsArray
+import kotlin.js.JsBigInt
 import kotlin.js.asJsException
+import kotlin.js.toJsBigInt
 
 /**
  * One single SQLite instance is allowed per application session.
  */
 private var Sqlite3Instance: Sqlite3? = null
+private var SQLITE_TRANSIENT: JsBigInt? = null
 
 /**
  * Returns the [Sqlite3] instance or raise an error if SQLite wasn't initialized.
@@ -25,6 +28,9 @@ internal val sqlite3: Sqlite3
         "SQLite was not initialized, function initializeSqlite() must be called before any other " +
                 "API call"
     }
+
+internal val sqliteTransient: JsBigInt
+    get() = checkNotNull(SQLITE_TRANSIENT)
 
 /**
  * Returns the [Sqlite3Capi] instance.
@@ -101,4 +107,6 @@ public suspend fun sqliteLoad(configure: (SqliteLoaderConfig.() -> Unit)? = null
             onRejected = { continuation.resumeWithException(it.asJsException()); null }
         )
     }
+
+    SQLITE_TRANSIENT = capi.SQLITE_TRANSIENT.toLong().toJsBigInt()
 }

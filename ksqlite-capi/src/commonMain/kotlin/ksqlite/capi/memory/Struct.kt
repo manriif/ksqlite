@@ -17,7 +17,9 @@ public abstract class StructBase internal constructor() {
 }
 
 /**
- * Wrapper around native struct.
+ * Represents a native struct object.
+ *
+ * Two [Struct]s representing the same native object are structurally equals (==).
  */
 public expect open class Struct : StructBase {
 

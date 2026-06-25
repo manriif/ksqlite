@@ -33,7 +33,7 @@ import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
-import ksqlite.capi.handlers.CollationCompareHandler
+import ksqlite.capi.handlers.CollationHandler
 import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
@@ -90,7 +90,7 @@ import ksqlite.capi.types.useParamsMemScoped
 import ksqlite.capi.vtab.createVTabModule
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
-import ksqlite.foreign.SQLITE_TRANSIENT
+import ksqlite.foreign.KSQLITE_TRANSIENT
 import ksqlite.foreign.ksqlite_auto_extension
 import ksqlite.foreign.ksqlite_cancel_auto_extension
 import ksqlite.foreign.ksqlite_prepare_v2
@@ -466,7 +466,7 @@ public actual fun sqlite3_bind_text(
     value: String
 ): SqliteResultCode = convertResult(memScoped {
     val cText = value.cstr
-    native_sqlite3_bind_text(stmt.pointer, index, cText.ptr, cText.size, SQLITE_TRANSIENT)
+    native_sqlite3_bind_text(stmt.pointer, index, cText.ptr, cText.size, KSQLITE_TRANSIENT)
 })
 
 public actual fun sqlite3_bind_text64(
@@ -742,7 +742,7 @@ public actual fun <AppData> sqlite3_create_collation_v2(
         name,
         encoding.value,
         db.memory.keyedStableRefPointer(collationKey(name, encoding), callback, appData, destroy),
-        callbackHandler(callback, CollationCompareHandler),
+        callbackHandler(callback, CollationHandler),
         stableRefDisposer(callback, destroy)
     )
 )
@@ -1337,7 +1337,7 @@ public actual fun sqlite3_result_text(
     value: String
 ): Unit = memScoped {
     val cText = value.cstr
-    native_sqlite3_result_text(context.pointer, cText.ptr, cText.size, SQLITE_TRANSIENT)
+    native_sqlite3_result_text(context.pointer, cText.ptr, cText.size, KSQLITE_TRANSIENT)
 }
 
 public actual fun sqlite3_result_text64(
@@ -1748,7 +1748,13 @@ public actual fun sqlite3_wal_checkpoint_v2(
     outNCkpt: Int32OutputParam?
 ): SqliteResultCode = convertResult(memScoped {
     useParams(outNLog, outNCkpt) { nLogPtr, nCkptPtr ->
-        native_sqlite3_wal_checkpoint_v2(db.pointer, database?.cstr?.ptr, mode.id, nLogPtr, nCkptPtr)
+        native_sqlite3_wal_checkpoint_v2(
+            db.pointer,
+            database?.cstr?.ptr,
+            mode.id,
+            nLogPtr,
+            nCkptPtr
+        )
     }
 })
 

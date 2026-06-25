@@ -14,6 +14,8 @@ import kotlin.js.JsAny
  */
 public external interface Sqlite3Capi : JsAny {
 
+    public val SQLITE_TRANSIENT: Int
+
     /**
      * Returns the constructor to [sqlite3_index_info].
      */

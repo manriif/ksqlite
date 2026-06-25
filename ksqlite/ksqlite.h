@@ -10,6 +10,13 @@ extern "C" {
 #endif
 
 /**
+ * Exposes the SQLITE_TRANSIENT macro as a constant so it can be referenced
+ * from Kotlin/Native when using direct ccall mode.
+ */
+__attribute__((unused))
+extern const sqlite3_destructor_type KSQLITE_TRANSIENT;
+
+/**
  * Callback for SQLITE_CONFIG_LOG, exposed for binding generation.
  */
 __attribute__((unused))

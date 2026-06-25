@@ -15,15 +15,20 @@ kotlin {
 
 fun KotlinNativeTarget.configureNativeTarget() {
     komple.projects.kotlinSqlite.createLibrary(CLibraryType.Static, this) {
-        excludedFunctions = sqliteFunctions(false)
-        noStringConversion = KsqliteNoStringConversions
-
-        // TODO remove this before the library goes stable and this is still an exprimental feature
-        //  or if some problems have been encountered
-        extraOpts("-Xccall-mode", "direct")
-
         generateDefFileTaskProvider.configure {
             dependsOn(komple.tools.sqlite.installTaskProvider)
         }
+
+        excludedFunctions = sqliteFunctions(false)
+        noStringConversion = KsqliteNoStringConversions
+
+        // TODO remove below option before the library goes stable and direct ccall mode is still an
+        //  exprimental feature or if some problems have been encountered
+        //
+        // Faced during development :
+        // - https://youtrack.jetbrains.com/issue/KT-82031
+        //
+        // Above issues aren't a problem, they're easily recoverable
+        extraOpts("-Xccall-mode", "direct")
     }
 }

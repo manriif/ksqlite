@@ -10,7 +10,8 @@ import kotlin.js.JsString
 import kotlin.js.nativeInvoke
 import kotlin.js.toJsString
 
-internal typealias WasmFunction = JsAny
+public typealias WasmFunction = JsAny
+public typealias JsFunction = JsAny
 
 /**
  * A WASM module exposes all exported functions to the user, but they are in "raw" form. That is,
@@ -291,21 +292,12 @@ public value class FunctionSignature(internal val signature: String) {
 }
 
 /**
- * JS invokable function.
- */
-public external interface JsFunction : JsAny {
-
-    @nativeInvoke
-    public operator fun invoke(vararg args: JsAny): JsAny
-}
-
-/**
  * Installs a JS function.
  */
 public fun WasmFunctions.installFunction(
     signature: FunctionSignature,
-    function: Function<*>
+    function: JsFunction
 ): WasmPointer = installFunction(
     funcSignature = signature.signature.toJsString(),
-    function = function as JsFunction
+    function = function
 )
