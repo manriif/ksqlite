@@ -162,14 +162,33 @@ internal fun MemorySegment.toStringArrayOrEmpty(count: Int): Array<String> =
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns a heap [MemorySegment] backed by the on-heap region of memory that holds the given byte
- * array.
+ * Returns a [MemorySegment], allocated in [allocator], containing this [ByteArray]'s bytes and that
+ * can be passed to native.
  */
-internal fun ByteArray.backing(): MemorySegment = MemorySegment.ofArray(this)
+internal fun ByteArray.allocate(
+    allocator: SegmentAllocator,
+    size: Int = this.size
+): MemorySegment = allocator.allocate(size.toLong()).apply {
+    copyFrom(MemorySegment.ofArray(this@allocate))
+}
+
+/**
+ * Returns a [MemorySegment], allocated in [allocator], containing this [ByteArray]'s bytes and that
+ * can be passed to native.
+ */
+context(allocator: SegmentAllocator)
+internal fun ByteArray.allocate(size: Int = this.size): MemorySegment = allocate(allocator, size)
 
 ///////////////////////////////////////////////////////////////////////////
 // Strings
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the size of the null terminated string behind by this [MemorySegment], without the null
+ * character.
+ */
+internal val MemorySegment.contentSize: Int
+    get() = byteSize().toInt() - 1
 
 /**
  * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
@@ -209,18 +228,26 @@ internal fun Array<String>?.allocateUtf8Array(): MemorySegment {
 }
 
 /**
- * Reads and returns a String starting from [offset].
+ * Reads and returns a String.
  * If [MemorySegment.byteSize] is equals to 0 then the string is considered null terminated.
  */
-internal fun MemorySegment.toKStringFromUtf8(offset: Long = 0): String {
-    val segment = if (byteSize() != 0L) this else reinterpret(Long.MAX_VALUE)
-    return checkNotNull(segment.getString(offset, Charsets.UTF_8))
+internal fun MemorySegment.toKStringFromUtf8(): String {
+    return try {
+        if (byteSize() == 0L) {
+            reinterpret(Long.MAX_VALUE)
+                .getString(0, Charsets.UTF_8)
+        } else {
+            toArray(ValueLayout.JAVA_BYTE)
+                .toString(Charsets.UTF_8)
+        }
+    } catch (cause: Throwable) {
+        throw RuntimeException("Failed to read string from native memory", cause)
+    }
 }
 
 /**
- * Reads and returns a null terminated String starting from [offset] or returns `null` if `this`
- * [MemorySegment] is [NullPtr].
+ * Reads and returns a String or returns `null` if `this` [MemorySegment] is [NullPtr].
  * If [MemorySegment.byteSize] is equals to 0 then the string is considered null terminated.
  */
-internal fun MemorySegment.toKStringFromUtf8OrNull(offset: Long = 0): String? =
-    orNull?.toKStringFromUtf8(offset)
+internal fun MemorySegment.toKStringFromUtf8OrNull(): String? =
+    orNull?.toKStringFromUtf8()

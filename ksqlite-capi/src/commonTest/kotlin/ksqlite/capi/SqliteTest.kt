@@ -49,7 +49,7 @@ internal fun runSqliteTest(block: suspend TestScope.(isWeb: Boolean) -> Unit) = 
         block(isWeb)
     } catch (cause: Throwable) {
         if (isWeb) {
-            // Give time to the tester to open devtools and see what happened
+            // Give time for the tester to open devtools and see what happened
             cause.printStackTrace()
             awaitCancellation()
         } else {
@@ -78,7 +78,12 @@ internal fun runSqliteConnectionTest(
     )
 
     assertEquals(SqliteResultCode.OK, openResult)
-    block(assertNotNull(outDb.value))
+
+    val db = assertNotNull(outDb.value)
+    block(db)
+
+    val closeResult = sqlite3_close(db)
+    assertEquals(SqliteResultCode.OK, closeResult)
 }
 
 /**

@@ -44,10 +44,11 @@ import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.NullPtr
+import ksqlite.capi.memory.allocate
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Array
-import ksqlite.capi.memory.backing
 import ksqlite.capi.memory.bufferDisposer
+import ksqlite.capi.memory.contentSize
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.invokeVariadic
@@ -267,8 +268,14 @@ public actual fun sqlite3_bind_text(
     value: String
 ): SqliteResultCode = convertResult(memScoped {
     val cText = value.allocateUtf8()
-    val nByte = cText.byteSize().toInt()
-    native.sqlite3_bind_text(stmt.pointer, index, cText, nByte, native.SQLITE_TRANSIENT())
+
+    native.sqlite3_bind_text(
+        stmt.pointer,
+        index,
+        cText,
+        cText.contentSize,
+        native.SQLITE_TRANSIENT()
+    )
 })
 
 public actual fun sqlite3_bind_text64(
@@ -341,8 +348,9 @@ public actual fun sqlite3_blob_read(
     output: ByteArray,
     size: Int,
     offset: Int
-): SqliteResultCode =
-    convertResult(native.sqlite3_blob_read(blob.pointer, output.backing(), size, offset))
+): SqliteResultCode = convertResult(memScoped {
+    native.sqlite3_blob_read(blob.pointer, output.allocate(size), size, offset)
+})
 
 public actual fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
@@ -354,8 +362,9 @@ public actual fun sqlite3_blob_write(
     input: ByteArray,
     size: Int,
     offset: Int
-): SqliteResultCode =
-    convertResult(native.sqlite3_blob_write(blob.pointer, input.backing(), size, offset))
+): SqliteResultCode = convertResult(memScoped {
+    native.sqlite3_blob_write(blob.pointer, input.allocate(size), size, offset)
+})
 
 public actual fun <AppData> sqlite3_busy_handler(
     db: sqlite3,
@@ -838,7 +847,9 @@ public actual fun sqlite3_key(
     db: sqlite3,
     key: ByteArray,
     nKey: Int,
-): SqliteResultCode = convertResult(native.sqlite3_key(db.pointer, key.backing(), nKey))
+): SqliteResultCode = convertResult(memScoped {
+    native.sqlite3_key(db.pointer, key.allocate(nKey), nKey)
+})
 
 public actual fun sqlite3_key_v2(
     db: sqlite3,
@@ -846,15 +857,14 @@ public actual fun sqlite3_key_v2(
     key: ByteArray,
     nKey: Int,
 ): SqliteResultCode = convertResult(memScoped {
-    native.sqlite3_key_v2(db.pointer, database.allocateUtf8(), key.backing(), nKey)
+    native.sqlite3_key_v2(db.pointer, database.allocateUtf8(), key.allocate(nKey), nKey)
 })
 
 public actual fun sqlite3_keyword_check(
     word: String
 ): Int = memScoped {
     val cWord = word.allocateUtf8()
-    val nByte = cWord.byteSize().toInt()
-    native.sqlite3_keyword_check(cWord, nByte)
+    native.sqlite3_keyword_check(cWord, cWord.contentSize)
 }
 
 public actual fun sqlite3_keyword_count(): Int =
@@ -950,8 +960,10 @@ public actual fun sqlite3_prepare_v2(
     maxBytes: Int,
     outStmt: SqliteStmtOutputParam,
     outOffset: Int32OutputParam?
-): SqliteResultCode = convertResult(useParamsMemScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
-    native.ksqlite_prepare_v2(db.pointer, sql.backing(), maxBytes, stmtPtr, offsetPtr)
+): SqliteResultCode = convertResult(memScoped {
+    useParams(outStmt, outOffset) { stmtPtr, offsetPtr ->
+        native.ksqlite_prepare_v2(db.pointer, sql.allocate(maxBytes), maxBytes, stmtPtr, offsetPtr)
+    }
 })
 
 public actual fun sqlite3_prepare_v2(
@@ -961,8 +973,7 @@ public actual fun sqlite3_prepare_v2(
 ): SqliteResultCode = convertResult(memScoped {
     useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
-        val nByte = cSql.byteSize().toInt()
-        native.sqlite3_prepare_v2(db.pointer, cSql, nByte, stmtPtr, NullPtr)
+        native.sqlite3_prepare_v2(db.pointer, cSql, cSql.contentSize, stmtPtr, NullPtr)
     }
 })
 
@@ -973,9 +984,19 @@ public actual fun sqlite3_prepare_v3(
     flags: SqlitePrepareFlag?,
     outStmt: SqliteStmtOutputParam,
     outOffset: Int32OutputParam?
-): SqliteResultCode = convertResult(useParamsMemScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
-    val prepFlags = flags?.value ?: 0
-    native.ksqlite_prepare_v3(db.pointer, sql.backing(), maxBytes, prepFlags, stmtPtr, offsetPtr)
+): SqliteResultCode = convertResult(memScoped {
+    useParams(outStmt, outOffset) { stmtPtr, offsetPtr ->
+        val prepFlags = flags?.value ?: 0
+
+        native.ksqlite_prepare_v3(
+            db.pointer,
+            sql.allocate(maxBytes),
+            maxBytes,
+            prepFlags,
+            stmtPtr,
+            offsetPtr
+        )
+    }
 })
 
 public actual fun sqlite3_prepare_v3(
@@ -986,9 +1007,8 @@ public actual fun sqlite3_prepare_v3(
 ): SqliteResultCode = convertResult(memScoped {
     useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
-        val nByte = cSql.byteSize().toInt()
         val prepFlags = flags?.value ?: 0
-        native.sqlite3_prepare_v3(db.pointer, cSql, nByte, prepFlags, stmtPtr, NullPtr)
+        native.sqlite3_prepare_v3(db.pointer, cSql, cSql.contentSize, prepFlags, stmtPtr, NullPtr)
     }
 })
 
@@ -1068,7 +1088,9 @@ public actual fun sqlite3_rekey(
     db: sqlite3,
     key: ByteArray,
     nKey: Int,
-): SqliteResultCode = convertResult(native.sqlite3_rekey(db.pointer, key.backing(), nKey))
+): SqliteResultCode = convertResult(memScoped {
+    native.sqlite3_rekey(db.pointer, key.allocate(nKey), nKey)
+})
 
 public actual fun sqlite3_rekey_v2(
     db: sqlite3,
@@ -1076,7 +1098,7 @@ public actual fun sqlite3_rekey_v2(
     key: ByteArray,
     nKey: Int,
 ): SqliteResultCode = convertResult(memScoped {
-    native.sqlite3_rekey_v2(db.pointer, dbName.allocateUtf8(), key.backing(), nKey)
+    native.sqlite3_rekey_v2(db.pointer, dbName.allocateUtf8(), key.allocate(nKey), nKey)
 })
 
 public actual fun sqlite3_release_memory(size: Int): Int =
@@ -1122,8 +1144,7 @@ public actual fun sqlite3_result_error(
     message: String
 ): Unit = memScoped {
     val cMessage = message.allocateUtf8()
-    val nByte = cMessage.byteSize().toInt()
-    native.sqlite3_result_error(context.pointer, cMessage, nByte)
+    native.sqlite3_result_error(context.pointer, cMessage, cMessage.contentSize)
 }
 
 public actual fun sqlite3_result_error_code(
@@ -1177,8 +1198,7 @@ public actual fun sqlite3_result_text(
     value: String
 ): Unit = memScoped {
     val cText = value.allocateUtf8()
-    val nByte = cText.byteSize().toInt()
-    native.sqlite3_result_text(context.pointer, cText, nByte, native.SQLITE_TRANSIENT())
+    native.sqlite3_result_text(context.pointer, cText, cText.contentSize, native.SQLITE_TRANSIENT())
 }
 
 public actual fun sqlite3_result_text64(

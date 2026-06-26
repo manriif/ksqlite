@@ -6,35 +6,30 @@ package ksqlite.types
  *
  * [Fundamental Datatypes](https://sqlite.org/c3ref/c_blob.html)
  */
-public sealed class SqliteDataType(public val code: Int) {
-
-    /**
-     * Any data type different from [NULL].
-     */
-    public sealed class NotNull(code: Int) : SqliteDataType(code)
+public enum class SqliteDataType(public val code: Int) {
 
     /**
      * 64-bit signed integer.
      */
-    public data object INTEGER : NotNull(1)
+    INTEGER(1),
 
     /**
      * 64-bit IEEE floating point number.
      */
-    public data object FLOAT : NotNull(2)
+    FLOAT(2),
 
     /**
      * String.
      */
-    public data object TEXT : NotNull(3)
+    TEXT(3),
 
     /**
      * BLOB.
      */
-    public data object BLOB : NotNull(4)
+    BLOB(4),
 
     /**
      * NULL.
      */
-    public data object NULL : SqliteDataType(5)
+    NULL(5)
 }

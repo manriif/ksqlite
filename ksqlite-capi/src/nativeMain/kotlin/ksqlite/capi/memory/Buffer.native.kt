@@ -5,6 +5,7 @@ package ksqlite.capi.memory
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.UnsafeNumber
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
@@ -15,6 +16,7 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
 import platform.posix.memcpy
 
+@OptIn(UnsafeNumber::class)
 public actual class Buffer internal constructor(
     internal val pointer: CPointer<ByteVar>,
     byteSize: Long
@@ -31,9 +33,9 @@ public actual class Buffer internal constructor(
     ) {
         destination.usePinned { pinned ->
             val _ = memcpy(
-                __dst = pinned.addressOf(destinationOffset),
-                __src = pointer + sourceOffset,
-                __n = size.convert()
+                pinned.addressOf(destinationOffset),
+                pointer + sourceOffset,
+                size.convert()
             )
         }
     }
@@ -46,9 +48,9 @@ public actual class Buffer internal constructor(
     ) {
         source.usePinned { pinned ->
             val _ = memcpy(
-                __dst = pointer + destinationOffset,
-                __src = pinned.addressOf(sourceOffset),
-                __n = size.convert()
+                pointer + destinationOffset,
+                pinned.addressOf(sourceOffset),
+                size.convert()
             )
         }
     }

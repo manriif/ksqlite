@@ -94,7 +94,7 @@ import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.foreign.js.copyTo
 import ksqlite.foreign.wasm.WasmPointer
-import ksqlite.foreign.wasm.size
+import ksqlite.foreign.wasm.contentSize
 import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteCheckpointMode
 import ksqlite.types.SqliteCompleteResult
@@ -269,7 +269,14 @@ public actual fun sqlite3_bind_text(
     value: String
 ): SqliteResultCode = convertResult(heapScoped {
     val cText = value.allocateUtf8()
-    exports.sqlite3_bind_text(stmt.pointer, index, cText.pointer, cText.size, sqliteTransient)
+
+    exports.sqlite3_bind_text(
+        stmt.pointer,
+        index,
+        cText.pointer,
+        cText.contentSize,
+        sqliteTransient
+    )
 })
 
 public actual fun sqlite3_bind_text64(
@@ -877,7 +884,7 @@ public actual fun sqlite3_key_v2(
 
 public actual fun sqlite3_keyword_check(word: String): Int = heapScoped {
     val cWord = word.allocateUtf8()
-    exports.sqlite3_keyword_check(cWord.pointer, cWord.size)
+    exports.sqlite3_keyword_check(cWord.pointer, cWord.contentSize)
 }
 
 public actual fun sqlite3_keyword_count(): Int =
@@ -993,7 +1000,7 @@ public actual fun sqlite3_prepare_v2(
 ): SqliteResultCode = convertResult(heapScoped {
     useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
-        exports.sqlite3_prepare_v2(db.pointer, cSql.pointer, cSql.size, stmtPtr, NullPtr)
+        exports.sqlite3_prepare_v2(db.pointer, cSql.pointer, cSql.contentSize, stmtPtr, NullPtr)
     }
 })
 
@@ -1020,7 +1027,15 @@ public actual fun sqlite3_prepare_v3(
     useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
         val prepFlags = flags?.value ?: 0
-        exports.sqlite3_prepare_v3(db.pointer, cSql.pointer, cSql.size, prepFlags, stmtPtr, NullPtr)
+
+        exports.sqlite3_prepare_v3(
+            db.pointer,
+            cSql.pointer,
+            cSql.contentSize,
+            prepFlags,
+            stmtPtr,
+            NullPtr
+        )
     }
 })
 
@@ -1158,7 +1173,7 @@ public actual fun sqlite3_result_error(
     message: String
 ): Unit = heapScoped {
     val cMessage = message.allocateUtf8()
-    exports.sqlite3_result_error(context.pointer, cMessage.pointer, cMessage.size)
+    exports.sqlite3_result_error(context.pointer, cMessage.pointer, cMessage.contentSize)
 }
 
 public actual fun sqlite3_result_error_code(
@@ -1212,7 +1227,7 @@ public actual fun sqlite3_result_text(
     value: String
 ): Unit = heapScoped {
     val cText = value.allocateUtf8()
-    exports.sqlite3_result_text(context.pointer, cText.pointer, cText.size, sqliteTransient)
+    exports.sqlite3_result_text(context.pointer, cText.pointer, cText.contentSize, sqliteTransient)
 }
 
 public actual fun sqlite3_result_text64(

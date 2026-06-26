@@ -60,7 +60,7 @@ public abstract class OutputParamBase<Value> internal constructor(initialValue: 
 public abstract class PointerOutputParam<Value> : OutputParamBase<Value?>(null) {
 
     final override fun MemoryAllocator.allocate(initialValue: Value?): WasmPointer {
-        check(initialValue == null)
+        ensurePointerInitialValueIsNull(initialValue)
         return allocatePointer()
     }
 

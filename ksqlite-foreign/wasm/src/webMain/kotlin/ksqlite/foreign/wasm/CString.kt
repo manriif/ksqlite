@@ -13,7 +13,7 @@ public data class CString(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the size in bytes .
+ * Returns the size in bytes without the null character.
  */
-public val CString.size: Int
-    inline get() = byteLength
+public val CString.contentSize: Int
+    inline get() = byteLength - 1

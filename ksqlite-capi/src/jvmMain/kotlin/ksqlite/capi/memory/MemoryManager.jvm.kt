@@ -203,9 +203,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         override val appData: ByteArray,
     ) : ArenaDisposable<ByteArray>(id, destructor) {
 
-        val pointer: MemorySegment = arena.allocate(appData.size.toLong()).apply {
-            copyFrom(MemorySegment.ofArray(appData))
-        }
+        val pointer: MemorySegment = appData.allocate(arena)
 
         init {
             registerGlobalDisposable(pointer.address(), this)

@@ -1,7 +1,6 @@
 package ksqlite.capi.types
 
 import ksqlite.capi.memory.NullPtr
-import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
@@ -53,7 +52,7 @@ public abstract class OutputParamBase<Value> internal constructor(initialValue: 
 public abstract class PointerOutputParam<Value> : OutputParamBase<Value?>(null) {
 
     final override fun SegmentAllocator.allocate(initialValue: Value?): MemorySegment {
-        check(initialValue == null)
+        ensurePointerInitialValueIsNull(initialValue)
         return allocate(ValueLayout.ADDRESS)
     }
 
@@ -105,8 +104,11 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
     private var customSize: Int32OutputParam? = null
 
     override fun create(pointer: MemorySegment): String {
-        val part = customSize?.value?.let { pointer.asSlice(0, it.toLong()) } ?: pointer
-        val string = part.toKStringFromUtf8()
+        val resizedPointer = customSize?.value?.toLong()
+            ?.let(pointer::reinterpret)
+            ?: pointer
+
+        val string = resizedPointer.toKStringFromUtf8()
 
         if (freeOnRead) {
             sqlite3_free(pointer)

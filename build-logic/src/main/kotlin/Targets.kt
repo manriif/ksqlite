@@ -68,9 +68,12 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
     }
 
     // FIXME => w: Invalid Source Set Dependency Across Trees
-    //  Well instrumented tests on Android are only required to get the ksqlite-jni lib loaded.
-    //  Until the following moves from a warning to an error, or an acceptable workaround is
-    //  found, we still use it as testing should not be that complicated
+    //
+    //  Well, instrumented tests on Android are only required to get the ksqlite-jni lib being
+    //  loaded. There is no dependencies on an Android specific API, apart from the native log API
+    //  which is itself unnecessary.
+    //  Until the warning upgrades to an error, or an acceptable workaround other than duplicating
+    //  the whole tests is found, we still use it as testing should not be that complicated
     sourceSets.whenObjectAdded {
         if (name == "nonWebTest") {
             androidDeviceTest.get().dependsOn(this)
@@ -83,14 +86,12 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
 /**
  * Adds Android Native targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.androidNativeTargets(): List<KotlinNativeTarget> {
-    return listOf(
-        androidNativeArm32(),
-        androidNativeArm64(),
-        androidNativeX86(),
-        androidNativeX64()
-    )
-}
+fun KotlinMultiplatformExtension.androidNativeTargets(): List<KotlinNativeTarget> = listOf(
+    androidNativeArm32(),
+    androidNativeArm64(),
+    androidNativeX86(),
+    androidNativeX64()
+)
 
 /**
  * Adds Apple targets to `this` [KotlinMultiplatformExtension] and returns them.

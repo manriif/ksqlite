@@ -53,6 +53,7 @@ import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.bufferDisposer
+import ksqlite.capi.memory.contentSize
 import ksqlite.capi.memory.copyBytes
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
@@ -466,7 +467,7 @@ public actual fun sqlite3_bind_text(
     value: String
 ): SqliteResultCode = convertResult(memScoped {
     val cText = value.cstr
-    native_sqlite3_bind_text(stmt.pointer, index, cText.ptr, cText.size, KSQLITE_TRANSIENT)
+    native_sqlite3_bind_text(stmt.pointer, index, cText.ptr, cText.contentSize, KSQLITE_TRANSIENT)
 })
 
 public actual fun sqlite3_bind_text64(
@@ -1027,7 +1028,7 @@ public actual fun sqlite3_key_v2(
 
 public actual fun sqlite3_keyword_check(word: String): Int = memScoped {
     val cWord = word.cstr
-    native_sqlite3_keyword_check(cWord, cWord.size)
+    native_sqlite3_keyword_check(cWord, cWord.contentSize)
 }
 
 public actual fun sqlite3_keyword_count(): Int =
@@ -1130,7 +1131,7 @@ public actual fun sqlite3_prepare_v2(
 ): SqliteResultCode = convertResult(memScoped {
     useParam(outStmt) { stmtPtr ->
         val cSql = sql.cstr
-        native_sqlite3_prepare_v2(db.pointer, cSql.ptr, cSql.size, stmtPtr, null)
+        native_sqlite3_prepare_v2(db.pointer, cSql.ptr, cSql.contentSize, stmtPtr, null)
     }
 })
 
@@ -1155,7 +1156,7 @@ public actual fun sqlite3_prepare_v3(
     useParam(outStmt) { stmtPtr ->
         val csql = sql.cstr
         val prepFlags = flags?.value?.convert() ?: 0u
-        native_sqlite3_prepare_v3(db.pointer, csql.ptr, csql.size, prepFlags, stmtPtr, null)
+        native_sqlite3_prepare_v3(db.pointer, csql.ptr, csql.contentSize, prepFlags, stmtPtr, null)
     }
 })
 
@@ -1286,7 +1287,7 @@ public actual fun sqlite3_result_error(
     message: String
 ): Unit = memScoped {
     val cMessage = message.cstr
-    native_sqlite3_result_error(context.pointer, cMessage.ptr, cMessage.size)
+    native_sqlite3_result_error(context.pointer, cMessage.ptr, cMessage.contentSize)
 }
 
 public actual fun sqlite3_result_error_code(
@@ -1337,7 +1338,7 @@ public actual fun sqlite3_result_text(
     value: String
 ): Unit = memScoped {
     val cText = value.cstr
-    native_sqlite3_result_text(context.pointer, cText.ptr, cText.size, KSQLITE_TRANSIENT)
+    native_sqlite3_result_text(context.pointer, cText.ptr, cText.contentSize, KSQLITE_TRANSIENT)
 }
 
 public actual fun sqlite3_result_text64(

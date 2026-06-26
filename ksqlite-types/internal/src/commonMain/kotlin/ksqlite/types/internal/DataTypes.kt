@@ -3,20 +3,9 @@ package ksqlite.types.internal
 import ksqlite.types.SqliteDataType
 
 /**
- * Returns all [SqliteDataType]s.
- */
-internal fun sqliteDataTypes(): Set<SqliteDataType> = setOf(
-    SqliteDataType.INTEGER,
-    SqliteDataType.FLOAT,
-    SqliteDataType.TEXT,
-    SqliteDataType.BLOB,
-    SqliteDataType.NULL
-)
-
-/**
  * [ksqlite.types.SqliteDataType]s associated by their integer code.
  */
-private val SqliteDataTypeMap = sqliteDataTypes().associateBy(SqliteDataType::code)
+private val SqliteDataTypeMap = SqliteDataType.entries.associateBy(SqliteDataType::code)
 
 /**
  * Converts [type] to [ksqlite.types.SqliteDataType].

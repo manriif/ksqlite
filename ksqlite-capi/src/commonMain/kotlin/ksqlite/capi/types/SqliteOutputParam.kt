@@ -32,7 +32,7 @@ public interface OutputParam<Value> {
  *
  * An [initialValue] can optionally be supplied.
  */
-public expect class Int32OutputParam(initialValue: Int) : OutputParam<Int> {
+public expect class Int32OutputParam(initialValue: Int = 0) : OutputParam<Int> {
     override val value: Int
 }
 
@@ -41,7 +41,7 @@ public expect class Int32OutputParam(initialValue: Int) : OutputParam<Int> {
  *
  * An [initialValue] can optionally be supplied.
  */
-public expect class Int64OutputParam(initialValue: Long) : OutputParam<Long> {
+public expect class Int64OutputParam(initialValue: Long = 0L) : OutputParam<Long> {
     override val value: Long
 }
 
@@ -100,37 +100,17 @@ public expect class SqliteValueOutputParam() : OutputParam<sqlite3_value?> {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Extensions
+// Pointers
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the value as [Boolean] such as:
+ * Throws if [value] is not null.
  *
- * - `false` if value == `0`
- * - `true` if value is positive
- * - throws ISE if value is negative
+ * Allowing reuse of pointer based [OutputParam] would require to initialize a pointer to the value
+ * it is currently holding. There is currently not such use case.
  */
-public val Int32OutputParam.booleanValue: Boolean
-    get() {
-        val intValue = value
-
-        return when {
-            intValue == 0 -> false
-            intValue >= 1 -> true
-            else -> error("Value $intValue cannot be converted to boolean")
-        }
+internal fun ensurePointerInitialValueIsNull(value: Any?) {
+    check(value == null) {
+        "Pointer based OutputParam cannot be reused"
     }
-
-/**
- * Returns the value as [Boolean] such as:
- *
- * - `false` if value == `0`
- * - `true` if value == `1`
- * - throws ISE otherwise
- */
-public val Int32OutputParam.booleanValueStrict: Boolean
-    get() = when (val intValue = value) {
-        0 -> false
-        1 -> true
-        else -> error("Value $intValue cannot be converted to boolean")
-    }
+}

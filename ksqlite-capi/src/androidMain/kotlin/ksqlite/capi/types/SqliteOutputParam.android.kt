@@ -95,6 +95,7 @@ public actual class Utf8OutputParam actual constructor() :
     OutputParamBase<String?, OutputPointer.OfString>(null) {
 
     override fun allocate(initialValue: String?): OutputPointer.OfString {
+        ensurePointerInitialValueIsNull(initialValue)
         return OutputPointer.OfString(initialValue)
     }
 

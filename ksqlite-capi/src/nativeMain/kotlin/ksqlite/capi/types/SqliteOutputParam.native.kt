@@ -60,7 +60,7 @@ public abstract class PointerOutputParam<Value, Var : CPointed> :
     OutputParamBase<Value?, CPointerVar<Var>>(null) {
 
     final override fun NativePlacement.allocate(initialValue: Value?): CPointerVar<Var> {
-        check(initialValue == null)
+        ensurePointerInitialValueIsNull(initialValue)
         return allocPointerTo()
     }
 

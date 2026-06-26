@@ -1,14 +1,17 @@
 package ksqlite.capi
 
+import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
+import ksqlite.capi.types.sqlite3
+import ksqlite.types.SqliteDataType
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteTextEncoding
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
 import kotlin.test.assertTrue
@@ -38,6 +41,21 @@ class StatementTest {
         val columnCount = sqlite3_column_count(stmt)
         assertEquals(5, columnCount)
 
+        val col0DbName = sqlite3_column_database_name(stmt, 0)
+        assertEquals("main", col0DbName)
+
+        val col0DeclType = sqlite3_column_decltype(stmt, 0)
+        assertEquals("INTEGER", col0DeclType)
+
+        val col3Name = sqlite3_column_name(stmt, 3)
+        assertEquals("blob_t", col3Name)
+
+        val col2OriginName = sqlite3_column_origin_name(stmt, 2)
+        assertEquals("text_t", col2OriginName)
+
+        val col4TableName = sqlite3_column_table_name(stmt, 4)
+        assertEquals("test", col4TableName)
+
         val isReadOnly = sqlite3_stmt_readonly(stmt)
         assertEquals(1, isReadOnly)
 
@@ -56,11 +74,11 @@ class StatementTest {
         val resetResult = sqlite3_reset(stmt)
         assertEquals(SqliteResultCode.OK, resetResult)
 
-        val setExplainModeResult2 = sqlite3_stmt_explain(stmt, SqliteExplainMode.EXPLAIN_QUERY_PLAN)
+        val setExplainModeResult2 = sqlite3_stmt_explain(stmt, SqliteExplainMode.EXPLAIN)
         assertEquals(SqliteResultCode.OK, setExplainModeResult2)
 
         val updatedExplainMode = sqlite3_stmt_isexplain(stmt)
-        assertEquals(SqliteExplainMode.EXPLAIN_QUERY_PLAN, updatedExplainMode)
+        assertEquals(SqliteExplainMode.EXPLAIN, updatedExplainMode)
 
         val runCount = sqlite3_stmt_status(stmt, SqliteStatementStatusCounter.RUN, 0)
         assertEquals(1, runCount)
@@ -69,27 +87,43 @@ class StatementTest {
         assertEquals(SqliteResultCode.OK, finalizeResult)
     }
 
-    /*@Test
-    fun prepareBufferWorks() = runSqliteConnectionDataTest { db ->
+    fun prepareBufferTest(
+        prepare: (
+            db: sqlite3,
+            sql: ByteArray,
+            outStmt: SqliteStmtOutputParam,
+            outOffset: Int32OutputParam
+        ) -> SqliteResultCode
+    ) = runSqliteConnectionDataTest { db ->
         val baseSql = "SELECT * FROM test;"
         val doubledSql = baseSql + baseSql
-        val sqlBytes = doubledSql.encodeToByteArray()
-        assertEquals("SELECT * FROM test;SELECT * FROM test;".encodeToByteArray(), sql)
+        assertEquals("SELECT * FROM test;SELECT * FROM test;", doubledSql)
 
+        val sql = doubledSql.encodeToByteArray()
         val outStmt = SqliteStmtOutputParam()
+        val outOffset = Int32OutputParam()
 
-        val prepareResult = sqlite3_prepare_v3(db, sqlBytes, sqlBytes.size, null, outStmt)
+        val prepareResult = prepare(db, sql, outStmt, outOffset)
         assertEquals(SqliteResultCode.OK, prepareResult)
 
         val stmt = assertNotNull(outStmt.value)
 
-        val stmtDb = assertNotNull(sqlite3_db_handle(stmt))
-        assertNotSame(db, stmtDb)
-        assertEquals(db, stmtDb)
+        val expectedOffset = sql.size / 2
+        assertEquals(expectedOffset, outOffset.value)
 
         val finalizeResult = sqlite3_finalize(stmt)
         assertEquals(SqliteResultCode.OK, finalizeResult)
-    }*/
+    }
+
+    @Test
+    fun prepareBufferV3Works() = prepareBufferTest { db, sql, outStmt, outOffset ->
+        sqlite3_prepare_v3(db, sql, sql.size, null, outStmt, outOffset)
+    }
+
+    @Test
+    fun prepareBufferV2Works() = prepareBufferTest { db, sql, outStmt, outOffset ->
+        sqlite3_prepare_v2(db, sql, sql.size, outStmt, outOffset)
+    }
 
     @Test
     fun bindingWorks() = runSqliteConnectionDataTest { db ->
@@ -208,7 +242,64 @@ class StatementTest {
     }
 
     @Test
-    fun columnWorks() = runSqliteConnectionDataTest { db ->
+    fun steppingWorks() = runSqliteConnectionDataTest { db ->
+        val insertSql = """
+            INSERT INTO test VALUES 
+                (18, 36.85, 'Pêche', x'051B', zeroblob(6)), 
+                (623, NULL, NULL, NULL, NULL); 
+        """.trimIndent()
 
+        val insertResult = sqlite3_exec(db, insertSql, null, null, null)
+        assertEquals(SqliteResultCode.OK, insertResult)
+
+        val selectSql = "SELECT * FROM test;"
+        val outStmt = SqliteStmtOutputParam()
+
+        val prepareResult = sqlite3_prepare_v2(db, selectSql, outStmt)
+        assertEquals(SqliteResultCode.OK, prepareResult)
+
+        val stmt = assertNotNull(outStmt.value)
+
+        val step1Result = sqlite3_step(stmt)
+        assertEquals(SqliteResultCode.ROW, step1Result)
+
+        val col0Type = sqlite3_column_type(stmt, 0)
+        assertEquals(SqliteDataType.INTEGER, col0Type)
+
+        val col0Value = sqlite3_column_int(stmt, 0)
+        assertEquals(18, col0Value)
+
+        val col1Value = sqlite3_column_double(stmt, 1)
+        assertEquals(36.85, col1Value)
+
+        val col2Value = sqlite3_column_text(stmt, 2)
+        assertEquals("Pêche", col2Value)
+
+        val col3Value = sqlite3_column_blob(stmt, 3)
+        val col3ValueExpected = byteArrayOf(5, 27)
+        assertContentEquals(col3ValueExpected, col3Value)
+
+        val col4Value = sqlite3_column_blob(stmt, 4)
+        val col4ExpectedValue = byteArrayOf(0, 0, 0, 0, 0, 0)
+        assertContentEquals(col4ExpectedValue, col4Value)
+
+        val step2Result = sqlite3_step(stmt)
+        assertEquals(SqliteResultCode.ROW, step2Result)
+
+        val col0Value64 = sqlite3_column_int64(stmt, 0)
+        assertEquals(623L, col0Value64)
+
+        val col1Type = sqlite3_column_type(stmt, 1)
+        assertEquals(SqliteDataType.NULL, col1Type)
+
+        // Value API is tested somewhere else
+        val value = sqlite3_column_value(stmt, 0)
+        assertNotNull(value)
+
+        val step3Result = sqlite3_step(stmt)
+        assertEquals(SqliteResultCode.DONE, step3Result)
+
+        val finalizeResult = sqlite3_finalize(stmt)
+        assertEquals(SqliteResultCode.OK, finalizeResult)
     }
 }
