@@ -2,7 +2,7 @@
 
 package ksqlite.kapi.config
 
-import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.buffer.OpaqueBuffer
 
 /**
  * Exposes SQLite configuration API.
@@ -46,21 +46,9 @@ public interface ConfigurationScope : AnyTimeConfiguration {
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
     public fun setPageCacheConfig(
-        pMem: Buffer?,
+        pMem: OpaqueBuffer?,
         sz: Int,
         n: Int
-    )
-
-    /**
-     * Specifies a static memory buffer that SQLite will use for all of its dynamic memory
-     * allocation needs beyond those provided for by [setPageCacheConfig].
-     *
-     * @throws ksqlite.kapi.SQLiteException if setting the option fails.
-     */
-    public fun setHeapConfig(
-        pMem: Buffer?,
-        nBytes: Int,
-        min: Int
     )
 
     /**
@@ -131,13 +119,6 @@ public interface ConfigurationScope : AnyTimeConfiguration {
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
     public fun setSmallMallocEnabled(enabled: Boolean)
-
-    /**
-     * Sets the new value of the sorter-reference size threshold.
-     *
-     * @throws ksqlite.kapi.SQLiteException if setting the option fails.
-     */
-    public fun setSorterReferenceSizeThreshold(nByte: Int)
 
     /**
      * Sets the default maximum size for an in-memory database created using `sqlite3_deserialize()`.

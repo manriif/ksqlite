@@ -1,4 +1,5 @@
 @file:Suppress("ClassName")
+@file:OptIn(ExperimentalAtomicApi::class)
 
 package ksqlite.capi.memory
 
@@ -9,15 +10,18 @@ import kotlinx.cinterop.UnsafeNumber
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
+import kotlinx.cinterop.free
 import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.plus
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
 import platform.posix.memcpy
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @OptIn(UnsafeNumber::class)
-public actual class Buffer internal constructor(
+public actual class Buffer private constructor(
     internal val pointer: CPointer<ByteVar>,
     byteSize: Long
 ) : BufferBase(byteSize) {
@@ -57,14 +61,46 @@ public actual class Buffer internal constructor(
 
     internal actual companion object {
 
-        private val OneByte = nativeHeap.alloc(0.toByte())
-        actual val Empty = Buffer(OneByte.ptr, 0)
+        private val ZeroByte = nativeHeap.alloc(0.toByte())
+        actual val Empty = Buffer(ZeroByte.ptr, 0)
 
         /**
          * Returns a [Buffer] from [pointer] or `null` if [pointer] is `null`.
          */
-        fun from(pointer: COpaquePointer?, size: Long): Buffer? = pointer?.let {
-            Buffer(pointer.reinterpret(), size)
+        fun from(pointer: COpaquePointer?, size: Long): Buffer? =
+            pointer?.let { Buffer(pointer.reinterpret(), size) }
+    }
+}
+
+public actual class OpaqueBuffer private constructor(
+    internal val pointer: CPointer<ByteVar>,
+    public actual val byteSize: Long
+) : AutoCloseable {
+
+    private val freed = AtomicBoolean(false)
+
+    public actual override fun close() {
+        if (freed.compareAndSet(expectedValue = false, newValue = true)) {
+            nativeHeap.free(pointer)
+        }
+    }
+
+    public actual companion object {
+
+        public actual fun allocate(size: Long): OpaqueBuffer? {
+            val pointer: CPointer<ByteVar>
+
+            try {
+                pointer = nativeHeap
+                    .alloc(size, 1)
+                    .reinterpret<ByteVar>()
+                    .ptr
+            } catch (cause: Throwable) {
+                cause.printStackTrace()
+                return null
+            }
+
+            return OpaqueBuffer(pointer, size)
         }
     }
 }

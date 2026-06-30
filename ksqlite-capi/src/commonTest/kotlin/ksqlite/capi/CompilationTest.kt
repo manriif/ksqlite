@@ -27,6 +27,9 @@ class CompilationTest {
 
     @Test
     fun compiledWithExpectedOptions() = runSqliteTest {
+        val threadSafe = sqlite3_threadsafe()
+        assertEquals(1, threadSafe)
+
         val options = sqliteCompileOptions()
 
         assertContains(options, "DQS=0")

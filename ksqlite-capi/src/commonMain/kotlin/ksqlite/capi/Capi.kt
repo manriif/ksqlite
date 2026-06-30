@@ -29,6 +29,7 @@ import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteFileControlOpcode
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSerializeResult
 import ksqlite.capi.types.SqliteSnapshotOutputParam
@@ -56,7 +57,6 @@ import ksqlite.types.SqliteDbReadonlyResult
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
-import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
@@ -1080,8 +1080,6 @@ public expect fun sqlite3_extended_result_codes(
  *  Invoke the xFileControl method on a particular database.
  *
  * [sqlite3_file_control()](https://sqlite.org/c3ref/file_control.html)
- *
- * TODO app data
  */
 public expect fun sqlite3_file_control(
     db: sqlite3,

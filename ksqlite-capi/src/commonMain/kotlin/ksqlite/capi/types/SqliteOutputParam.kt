@@ -99,6 +99,13 @@ public expect class SqliteValueOutputParam() : OutputParam<sqlite3_value?> {
     override val value: sqlite3_value?
 }
 
+/**
+ * Wrapper around [sqlite3_vfs] intended to be passed as parameter and written by SQLite.
+ */
+public expect class SqliteVfsOutputParam() : OutputParam<sqlite3_vfs?> {
+    override val value: sqlite3_vfs?
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Pointers
 ///////////////////////////////////////////////////////////////////////////

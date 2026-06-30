@@ -24,6 +24,7 @@ internal inline fun <Result> invokeVariadic(
     val arguments = Array(values.size) { index ->
         when (val value = values[index]) {
             null -> NullPtr
+            is OfUInt -> value.value.toInt()
             !is OfString -> value.value
             else -> manager().keyedStringPointer(value.key, value.value)
         }

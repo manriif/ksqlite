@@ -2,7 +2,7 @@
 
 package ksqlite.capi.types
 
-import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.OpaqueBuffer
 
 /**
  * These constants are the available integer configuration options that can be passed as the second
@@ -67,7 +67,7 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
      * "sz" and 40 to 100 for "cnt".
      */
     public class LOOKASIDE(
-        internal val buf: Buffer?,
+        internal val buf: OpaqueBuffer?,
         internal val sz: Int,
         internal val cnt: Int
     ) : SqliteDbConfigOption(1001)

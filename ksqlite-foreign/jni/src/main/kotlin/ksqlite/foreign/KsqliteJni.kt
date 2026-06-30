@@ -39,6 +39,16 @@ public fun ksqliteLoadLibrary() {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Allocates [size] bytes and returns a pointer to the allocated memory.
+ */
+public external fun nativeBufferAllocate(size: Long): Long
+
+/**
+ * Frees memory previously obtained using [nativeBufferAllocate].
+ */
+public external fun nativeBufferFree(pointer: Long)
+
+/**
  * Reads bytes into [destination].
  */
 public external fun nativeBufferRead(

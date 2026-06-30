@@ -45,7 +45,9 @@ public class Buffer internal constructor(buffer: CapiBuffer) :
      * Ensures that the buffer is not referenced by SQLite.
      */
     private fun ensureNotReferenced() {
-        check(refCount.load() == 0) { "The buffer is currently in use by SQLite" }
+        if (refCount.load() != 0) {
+            throw BufferInUseException("The buffer is currently in use by SQLite")
+        }
     }
 
     /**

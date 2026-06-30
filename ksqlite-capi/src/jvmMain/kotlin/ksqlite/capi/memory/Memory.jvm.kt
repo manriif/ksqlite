@@ -135,7 +135,7 @@ internal inline fun <reified T> MemorySegment.toArrayOrEmpty(
  * Reads and returns an array of [count] String.
  */
 internal fun MemorySegment.toNullableStringArray(count: Int): Array<String?> =
-    toArray(count) { it.toKStringFromUtf8OrNull() }
+    toArray(count, MemorySegment::toKStringFromUtf8OrNull)
 
 /**
  * Reads and returns an array of [count] String.
@@ -148,7 +148,7 @@ internal fun MemorySegment.toNullableStringArrayOrEmpty(count: Int): Array<Strin
  * Reads and returns an array of [count] String.
  */
 internal fun MemorySegment.toStringArray(count: Int): Array<String> =
-    this.toArray(count) { it.toKStringFromUtf8() }
+    this.toArray(count, MemorySegment::toKStringFromUtf8)
 
 /**
  * Reads and returns an array of [count] String.
@@ -229,16 +229,16 @@ internal fun Array<String>?.allocateUtf8Array(): MemorySegment {
 
 /**
  * Reads and returns a String.
- * If [MemorySegment.byteSize] is equals to 0 then the string is considered null terminated.
+ *
+ * If [isNullTerminated] is `false` then the string is considered non-null terminated and
+ * [MemorySegment.byteSize] is used as the string length.
  */
-internal fun MemorySegment.toKStringFromUtf8(): String {
+internal fun MemorySegment.toKStringFromUtf8(isNullTerminated: Boolean = true): String {
     return try {
-        if (byteSize() == 0L) {
-            reinterpret(Long.MAX_VALUE)
-                .getString(0, Charsets.UTF_8)
-        } else {
-            toArray(ValueLayout.JAVA_BYTE)
-                .toString(Charsets.UTF_8)
+        when {
+            !isNullTerminated -> toArray(ValueLayout.JAVA_BYTE).toString(Charsets.UTF_8)
+            byteSize() == 0L -> reinterpret(Long.MAX_VALUE).getString(0, Charsets.UTF_8)
+            else -> getString(0, Charsets.UTF_8)
         }
     } catch (cause: Throwable) {
         throw RuntimeException("Failed to read string from native memory", cause)
@@ -249,5 +249,5 @@ internal fun MemorySegment.toKStringFromUtf8(): String {
  * Reads and returns a String or returns `null` if `this` [MemorySegment] is [NullPtr].
  * If [MemorySegment.byteSize] is equals to 0 then the string is considered null terminated.
  */
-internal fun MemorySegment.toKStringFromUtf8OrNull(): String? =
-    orNull?.toKStringFromUtf8()
+internal fun MemorySegment.toKStringFromUtf8OrNull(isNullTerminated: Boolean = true): String? =
+    orNull?.toKStringFromUtf8(isNullTerminated)

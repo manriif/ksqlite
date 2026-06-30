@@ -1,7 +1,7 @@
 package ksqlite.kapi.config
 
 import ksqlite.capi.types.SqliteConfigOption
-import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.buffer.OpaqueBuffer
 import ksqlite.kapi.helpers.usingBooleanParam
 
 internal class ConfigurationScopeImpl :
@@ -23,11 +23,8 @@ internal class ConfigurationScopeImpl :
     override fun setSerialized() =
         applyOption(SqliteConfigOption.SERIALIZED)
 
-    override fun setPageCacheConfig(pMem: Buffer?, sz: Int, n: Int) =
+    override fun setPageCacheConfig(pMem: OpaqueBuffer?, sz: Int, n: Int) =
         applyOption(SqliteConfigOption.PAGECACHE(pMem?.buffer, sz, n))
-
-    override fun setHeapConfig(pMem: Buffer?, nBytes: Int, min: Int) =
-        applyOption(SqliteConfigOption.HEAP(pMem?.buffer, nBytes, min))
 
     override fun setMemStatusEnabled(enabled: Boolean) =
         applyOption(SqliteConfigOption.MEMSTATUS(if (enabled) 1 else 0))
@@ -56,9 +53,6 @@ internal class ConfigurationScopeImpl :
 
     override fun setSmallMallocEnabled(enabled: Boolean) =
         applyOption(SqliteConfigOption.SMALL_MALLOC(if (enabled) 1 else 0))
-
-    override fun setSorterReferenceSizeThreshold(nByte: Int) =
-        applyOption(SqliteConfigOption.SORTERREF_SIZE(nByte))
 
     override fun setInMemoryDatabaseMaxSize(maxSize: Long) =
         applyOption(SqliteConfigOption.MEMDB_MAXSIZE(maxSize))

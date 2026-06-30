@@ -4,7 +4,7 @@ package ksqlite.capi.types
 
 import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
-import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.OpaqueBuffer
 
 /**
  * These constants are the available integer configuration options that can be passed as the first
@@ -20,7 +20,7 @@ public sealed class SqliteConfigOption(public val id: Int) {
     public sealed class IntOutput(
         id: Int,
         internal val state: Int32OutputParam
-    ): SqliteConfigOption(id)
+    ) : SqliteConfigOption(id)
 
     /**
      * This option sets the threading mode to Single-thread. In other words, it disables all
@@ -77,31 +77,10 @@ public sealed class SqliteConfigOption(public val id: Int) {
      * then SQLite goes to sqlite3_malloc() separately for each additional cache line.
      */
     public class PAGECACHE(
-        internal val pMem: Buffer?,
+        internal val pMem: OpaqueBuffer?,
         internal val sz: Int,
         internal val n: Int
     ) : SqliteConfigOption(7)
-
-    /**
-     * The SQLITE_CONFIG_HEAP option specifies a static memory buffer that SQLite will use for all
-     * of its dynamic memory allocation needs beyond those provided for by SQLITE_CONFIG_PAGECACHE.
-     * The SQLITE_CONFIG_HEAP option is only available if SQLite is compiled with either
-     * SQLITE_ENABLE_MEMSYS3 or SQLITE_ENABLE_MEMSYS5 and returns SQLITE_ERROR if invoked otherwise.
-     * There are three arguments to SQLITE_CONFIG_HEAP: An 8-byte aligned pointer to the memory,
-     * the number of bytes in the memory buffer, and the minimum allocation size. If the first
-     * pointer (the memory pointer) is NULL, then SQLite reverts to using its default memory
-     * allocator (the system malloc() implementation), undoing any prior invocation of
-     * SQLITE_CONFIG_MALLOC. If the memory pointer is not NULL then the alternative memory allocator
-     * is engaged to handle all of SQLites memory allocation needs. The first pointer (the memory
-     * pointer) must be aligned to an 8-byte boundary or subsequent behavior of SQLite will be
-     * undefined. The minimum allocation size is capped at 2**12. Reasonable values for the minimum
-     * allocation size are 2**5 through 2**8.
-     */
-    public class HEAP(
-        internal val pMem: Buffer?,
-        internal val nBytes: Int,
-        internal val min: Int
-    ) : SqliteConfigOption(8)
 
     /**
      * Enables or disables the collection of memory allocation statistics. When memory allocation
@@ -247,20 +226,6 @@ public sealed class SqliteConfigOption(public val id: Int) {
      * d. This hint is normally off.
      */
     public class SMALL_MALLOC(internal val enabled: Int) : SqliteConfigOption(27)
-
-    /**
-     * The SQLITE_CONFIG_SORTERREF_SIZE option accepts a single parameter of type (int) - the new
-     * value of the sorter-reference size threshold. Usually, when SQLite uses an external sort to
-     * order records according to an ORDER BY clause, all fields required by the caller are present
-     * in the sorted records. However, if SQLite determines based on the declared type of a table
-     * column that its values are likely to be very large - larger than the configured
-     * sorter-reference size threshold - then a reference is stored in each sorted record and the
-     * required column values loaded from the database as records are returned in sorted order.
-     * The default value for this option is to never use this optimization. Specifying a negative
-     * value for this option restores the default behavior. This option is only available if SQLite
-     * is compiled with the SQLITE_ENABLE_SORTER_REFERENCES compile-time option.
-     */
-    public class SORTERREF_SIZE(internal val nByte: Int) : SqliteConfigOption(28)
 
     /**
      * The SQLITE_CONFIG_MEMDB_MAXSIZE option accepts a single parameter sqlite3_int64 parameter

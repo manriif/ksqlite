@@ -8,7 +8,7 @@ import ksqlite.foreign.wasm.WasmMemory
 import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toLong
 
-public actual open class Buffer internal constructor(
+public actual open class Buffer private constructor(
     internal val memory: WasmMemory,
     internal val pointer: WasmPointer,
     byteSize: Long
@@ -56,8 +56,42 @@ public actual open class Buffer internal constructor(
             pointer: WasmPointer,
             size: Long,
             memory: WasmMemory = wasm
-        ): Buffer? = pointer.orNull?.let {
-            Buffer(memory, pointer, size)
+        ): Buffer? = pointer.orNull?.let { Buffer(memory, pointer, size) }
+    }
+}
+
+public actual class OpaqueBuffer private constructor(
+    internal val memory: WasmMemory,
+    internal val pointer: WasmPointer,
+    public actual val byteSize: Long
+): AutoCloseable {
+
+    actual override fun close() {
+        try {
+            memory.dealloc(pointer)
+        } catch (cause: Throwable) {
+            cause.printStackTrace()
+        }
+    }
+
+    public actual companion object {
+
+        public actual fun allocate(size: Long): OpaqueBuffer? {
+            if (size > Int.MAX_VALUE) {
+                return null
+            }
+
+            val memory = wasm
+            val pointer: WasmPointer
+
+            try {
+                pointer = memory.alloc(size.toInt())
+            } catch (cause: Throwable) {
+                cause.printStackTrace()
+                return null
+            }
+
+            return OpaqueBuffer(memory, pointer, size)
         }
     }
 }

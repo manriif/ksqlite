@@ -23,11 +23,9 @@ private val Initialized = AtomicBoolean(false)
 internal expect suspend fun loadSqliteForTest(): Boolean
 
 /**
- * Initializes SQLite and returns whether it has been initialized on web.
+ * Initializes already loaded SQLite.
  */
-internal suspend fun loadAndInitializeSqliteForTest(): Boolean {
-    val isWeb = loadSqliteForTest()
-
+internal fun initializeSqliteForTest() {
     if (Initialized.compareAndSet(expectedValue = false, newValue = true)) {
         assertEquals(
             expected = SqliteResultCode.OK,
@@ -35,15 +33,13 @@ internal suspend fun loadAndInitializeSqliteForTest(): Boolean {
             message = "Failed to initialize SQLite"
         )
     }
-
-    return isWeb
 }
 
 /**
- * Initializes SQLite inside a [runTest] scope and invokes [block].
+ * Loads SQLite and runs [block] without initializing SQLite.
  */
-internal fun runSqliteTest(block: suspend TestScope.(isWeb: Boolean) -> Unit) = runTest {
-    val isWeb = loadAndInitializeSqliteForTest()
+internal fun runTestNoInit(block: suspend TestScope.(isWeb: Boolean) -> Unit) = runTest {
+    val isWeb = loadSqliteForTest()
 
     try {
         block(isWeb)
@@ -56,6 +52,16 @@ internal fun runSqliteTest(block: suspend TestScope.(isWeb: Boolean) -> Unit) = 
             throw cause
         }
     }
+}
+
+/**
+ * Initializes SQLite inside a [runTest] scope and invokes [block].
+ */
+internal fun runSqliteTest(
+    block: suspend TestScope.(isWeb: Boolean) -> Unit
+) = runTestNoInit { isWeb ->
+    initializeSqliteForTest()
+    block(isWeb)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -94,7 +100,7 @@ internal fun runSqliteConnectionDataTest(
     block: suspend TestScope.(connection: sqlite3) -> Unit
 ) = runSqliteConnectionTest { connection ->
     val sql = """
-            CREATE table test(
+            CREATE TABLE test(
                 integer_t INTEGER, 
                 float_t FLOAT,
                 text_t TEXT,

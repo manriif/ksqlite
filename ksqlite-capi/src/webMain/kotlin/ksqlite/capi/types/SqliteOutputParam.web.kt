@@ -205,6 +205,14 @@ public actual class SqliteValueOutputParam actual constructor() :
     }
 }
 
+public actual class SqliteVfsOutputParam actual constructor() :
+    PointerOutputParam<sqlite3_vfs>() {
+
+    override fun WasmMemory.create(pointer: WasmPointer): sqlite3_vfs {
+        return sqlite3_vfs(pointer)
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Extensions
 ///////////////////////////////////////////////////////////////////////////

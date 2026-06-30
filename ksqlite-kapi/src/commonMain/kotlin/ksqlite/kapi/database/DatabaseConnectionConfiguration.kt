@@ -2,7 +2,7 @@
 
 package ksqlite.kapi.database
 
-import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.buffer.OpaqueBuffer
 
 /**
  * Exposes the database connection configuration API.
@@ -181,7 +181,7 @@ public interface DatabaseConnectionConfiguration {
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
     public fun setLookasideConfig(
-        buf: Buffer?,
+        buf: OpaqueBuffer?,
         sz: Int,
         cnt: Int
     )

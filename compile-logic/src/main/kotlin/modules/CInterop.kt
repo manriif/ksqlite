@@ -15,6 +15,7 @@ val KsqliteNoStringConversions = listOf(
     "bind_text64",
     "blob_open",
     "exec",
+    "file_control",
     "keyword_check",
     "open",
     "open_v2",

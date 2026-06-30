@@ -202,6 +202,14 @@ public actual class SqliteValueOutputParam actual constructor() :
     }
 }
 
+public actual class SqliteVfsOutputParam actual constructor() :
+    PointerOutputParam<sqlite3_vfs, s3_vfs>() {
+
+    override fun create(pointer: CPointer<s3_vfs>): sqlite3_vfs {
+        return sqlite3_vfs(pointer)
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Extensions
 ///////////////////////////////////////////////////////////////////////////

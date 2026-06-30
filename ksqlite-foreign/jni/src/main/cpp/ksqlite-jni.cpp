@@ -1625,6 +1625,26 @@ static inline DestructorFunction freeableDestroyerPush(
 ///////////////////////////////////////////////////////////////////////////
 
 extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_foreign_KsqliteJni_nativeBufferAllocate(
+    JNIEnv* env,
+    jclass clazz,
+    jlong size
+) {
+    return PtrToLong(malloc(size));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_foreign_KsqliteJni_nativeBufferFree(
+    JNIEnv* env,
+    jclass clazz,
+    jlong pointer
+) {
+    free(LongToPtr(pointer));
+}
+
+extern "C"
 JNIEXPORT void JNICALL
 Java_ksqlite_foreign_KsqliteJni_nativeBufferRead(
     JNIEnv* env,
@@ -3491,7 +3511,6 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
             // [Int]
         case SQLITE_CONFIG_MEMSTATUS:
         case SQLITE_CONFIG_URI:
-        case SQLITE_CONFIG_PCACHE_HDRSZ:
         case SQLITE_CONFIG_COVERING_INDEX_SCAN:
         case SQLITE_CONFIG_STMTJRNL_SPILL:
         case SQLITE_CONFIG_SMALL_MALLOC:
@@ -3507,6 +3526,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
         }
 
             // [OutputPointer.OfInt32]
+        case SQLITE_CONFIG_PCACHE_HDRSZ:
         case SQLITE_CONFIG_ROWID_IN_VIEW: {
             ArrayLengthEnsure(args, 1);
             const auto jPointer = ArrayObjectGet(args, 0, KKOP.ofInt32.klass);
@@ -3517,7 +3537,6 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
         }
 
             // [UInt]
-        case SQLITE_CONFIG_WIN32_HEAPSIZE:
         case SQLITE_CONFIG_PMASZ: {
             ArrayLengthEnsure(args, 1);
             return sqlite3_config(id, static_cast<uint>(ArrayIntGet(args, 0)));
@@ -3535,9 +3554,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
             return sqlite3_config(id, ArrayIntGet(args, 0), ArrayIntGet(args, 1));
         }
 
-            // [ConfigLogCallback]
+            // [ConfigLogCallback, null:ignored]
         case SQLITE_CONFIG_LOG: {
-            ArrayLengthEnsure(args, 1);
+            ArrayLengthEnsure(args, 2);
             const auto callback = ArrayObjectGet(args, 0, KK.configLogCallback);
             GlobalHookReplaceRC(
                 log,
@@ -3547,9 +3566,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
             );
         }
 
-            // [ConfigSqlLogCallback]
+            // [ConfigSqlLogCallback, null:ignored]
         case SQLITE_CONFIG_SQLLOG: {
-            ArrayLengthEnsure(args, 1);
+            ArrayLengthEnsure(args, 2);
             const auto callback = ArrayObjectGet(args, 0, KK.configSqlLogCallback);
             GlobalHookReplaceRC(
                 sqlLog,
@@ -3967,7 +3986,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1db_1config(
         }
 
             // [Long, Int, Int]
-        case SQLITE_CONFIG_LOOKASIDE: {
+        case SQLITE_DBCONFIG_LOOKASIDE: {
             ArrayLengthEnsure(args, 3);
             return sqlite3_db_config(
                 pDb,
@@ -3999,7 +4018,8 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1db_1config(
         case SQLITE_DBCONFIG_REVERSE_SCANORDER:
         case SQLITE_DBCONFIG_ENABLE_ATTACH_CREATE:
         case SQLITE_DBCONFIG_ENABLE_ATTACH_WRITE:
-        case SQLITE_DBCONFIG_ENABLE_COMMENTS: {
+        case SQLITE_DBCONFIG_ENABLE_COMMENTS:
+        case SQLITE_DBCONFIG_FP_DIGITS: {
             ArrayLengthEnsure(args, 2);
             const auto value = ArrayIntGet(args, 0);
             const auto jPointer = ArrayObjectGet(args, 1, KKOP.ofInt32.klass);

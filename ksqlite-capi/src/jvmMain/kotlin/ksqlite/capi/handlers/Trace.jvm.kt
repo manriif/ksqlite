@@ -34,7 +34,7 @@ internal class TraceHandler :
             xPointer = xPointer,
             toDb = ::sqlite3,
             toStatement = ::sqlite3_stmt,
-            toString = { it.toKStringFromUtf8() },
+            toString = MemorySegment::toKStringFromUtf8,
             toLong = { it.get(ValueLayout.JAVA_LONG, 0) }
         )
     }

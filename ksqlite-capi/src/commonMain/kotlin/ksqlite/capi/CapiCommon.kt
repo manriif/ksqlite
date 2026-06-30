@@ -3,12 +3,22 @@ package ksqlite.capi
 import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.VariadicValue
+import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteFileControlOpcode
 import ksqlite.capi.types.SqliteVTabConfigOption
+import ksqlite.capi.types.SqliteVfsOutputParam
+import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.internal.convertResult
+
+///////////////////////////////////////////////////////////////////////////
+// Config
+///////////////////////////////////////////////////////////////////////////
 
 /**
  * Handles the [ksqlite.capi.sqlite3_config].
@@ -17,7 +27,7 @@ import ksqlite.types.internal.convertResult
 @Suppress("UNCHECKED_CAST")
 internal fun <Pointer : Any> commonConfig(
     option: SqliteConfigOption,
-    bufferPointer: (Buffer) -> Pointer?,
+    bufferPointer: (OpaqueBuffer) -> Pointer?,
     logFunctionPointer: (callback: SqliteConfigLogCallback<Any?>?, appData: Any?) -> Pointer?,
     sqllogFunctionPointer: (callback: SqliteConfigSqlLogCallback<Any?>?, appData: Any?) -> Pointer?,
     keyedStableRefPointer: ((String, Any?, Any?) -> Pointer?)?,
@@ -29,12 +39,6 @@ internal fun <Pointer : Any> commonConfig(
             is IntOutput -> return convertResult(outputParamConfig())
             SERIALIZED, MULTITHREAD, SINGLETHREAD -> emptyArray<VariadicValue<Pointer>>()
             is COVERING_INDEX_SCAN -> arrayOf(VariadicValue.OfInt(enabled))
-
-            is HEAP -> arrayOf(
-                pMem?.let(bufferPointer)?.let(VariadicValue<Pointer>::OfPointer),
-                VariadicValue.OfInt(nBytes),
-                VariadicValue.OfInt(min)
-            )
 
             is LOG<*> -> arrayOf(
                 logFunctionPointer(callback as SqliteConfigLogCallback<Any?>?, appData)
@@ -65,7 +69,6 @@ internal fun <Pointer : Any> commonConfig(
 
             is PMASZ -> arrayOf(VariadicValue.OfUInt(szPma))
             is SMALL_MALLOC -> arrayOf(VariadicValue.OfInt(enabled))
-            is SORTERREF_SIZE -> arrayOf(VariadicValue.OfInt(nByte))
 
             is SQLLOG<*> -> arrayOf(
                 sqllogFunctionPointer(callback as SqliteConfigSqlLogCallback<Any?>?, appData)
@@ -89,7 +92,7 @@ internal fun <Pointer : Any> commonConfig(
  */
 internal fun <Pointer : Any> commonDbConfig(
     option: SqliteDbConfigOption,
-    bufferPointer: (Buffer) -> Pointer?,
+    bufferPointer: (OpaqueBuffer) -> Pointer?,
     outParamConfig: SqliteDbConfigOption.IntOutput.() -> Int,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
 ): SqliteResultCode {
@@ -138,3 +141,29 @@ internal fun <Pointer : Any> commonVtabConfig(
 
     return convertResult(nativeConfig(option.id, args))
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Control
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Handles the [ksqlite.capi.sqlite3_file_control].
+ */
+internal fun commonFileControl(
+    opcode: SqliteFileControlOpcode,
+    control: () -> Int,
+    controlBuffer: (Buffer?) -> Int,
+    controlVfs: (SqliteVfsOutputParam) -> Int,
+    controlInt32: (Int32OutputParam) -> Int,
+    controlInt64: (Int64OutputParam) -> Int,
+    controlString: (param: Utf8OutputParam, freeOnRead: Boolean) -> Int
+): SqliteResultCode = convertResult(
+    when (opcode) {
+        is IntParam -> controlInt32(opcode.param)
+        is LongParam -> controlInt64(opcode.param)
+        is Custom -> controlBuffer(opcode.buffer)
+        is RESET_CACHE -> control()
+        is TEMPFILENAME, is VFSNAME -> controlString(opcode.param, true)
+        is VFS_POINTER -> controlVfs(opcode.param)
+    }
+)

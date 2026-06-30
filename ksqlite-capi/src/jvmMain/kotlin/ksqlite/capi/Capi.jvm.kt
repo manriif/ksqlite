@@ -44,6 +44,7 @@ import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.NullPtr
+import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.allocate
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.allocateUtf8Array
@@ -63,9 +64,11 @@ import ksqlite.capi.memory.useMemoryManager
 import ksqlite.capi.memory.withMemoryManager
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
+import ksqlite.capi.types.OutputParamBase
 import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteFileControlOpcode
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
@@ -99,7 +102,6 @@ import ksqlite.types.SqliteDbReadonlyResult
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
-import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
@@ -523,7 +525,7 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     option = option,
     logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
-    bufferPointer = Buffer::pointer,
+    bufferPointer = OpaqueBuffer::pointer,
     keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     outputParamConfig = {
         useParamMemScoped(state) { statePtr ->
@@ -663,7 +665,7 @@ public actual fun sqlite3_db_config(
     option: SqliteDbConfigOption,
 ): SqliteResultCode = commonDbConfig(
     option = option,
-    bufferPointer = Buffer::pointer,
+    bufferPointer = OpaqueBuffer::pointer,
     outParamConfig = {
         useParamMemScoped(state) { statePtr ->
             native.sqlite3_db_config
@@ -813,14 +815,33 @@ public actual fun sqlite3_file_control(
     db: sqlite3,
     database: String?,
     opcode: SqliteFileControlOpcode
-): SqliteResultCode = convertResult(memScoped {
-    native.sqlite3_file_control(
-        db.pointer,
-        database.allocateUtf8(),
-        opcode.code,
-        NullPtr
+): SqliteResultCode = memScoped {
+    val name = database.allocateUtf8()
+
+    fun controlParam(param: OutputParamBase<*>) = useParam(param) { paramPtr ->
+        native.sqlite3_file_control(db.pointer, name, opcode.code, paramPtr)
+    }
+
+    commonFileControl(
+        opcode = opcode,
+        control = {
+            native.sqlite3_file_control(db.pointer, name, opcode.code, NullPtr)
+        },
+        controlBuffer = { buffer ->
+            native.sqlite3_file_control(db.pointer, name, opcode.code, buffer?.pointer.notNull)
+        },
+        controlVfs = ::controlParam,
+        controlInt32 = ::controlParam,
+        controlInt64 = ::controlParam,
+        controlString = { param, freeOnRead ->
+            param.overriding(freeOnRead = freeOnRead) {
+                useParam(param) { paramPtr ->
+                    native.sqlite3_file_control(db.pointer, name, opcode.code, paramPtr)
+                }
+            }
+        }
     )
-})
+}
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): SqliteResultCode =
     stmt.deallocate { native.sqlite3_finalize(stmt.pointer) }

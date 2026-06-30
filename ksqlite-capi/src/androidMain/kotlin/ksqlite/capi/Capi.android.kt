@@ -45,6 +45,7 @@ import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.toJniJavaObjectArray
@@ -54,6 +55,7 @@ import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteFileControlOpcode
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
@@ -87,12 +89,11 @@ import ksqlite.types.SqliteDbReadonlyResult
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
-import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
-import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
+import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
@@ -275,8 +276,8 @@ import ksqlite.foreign.sqlite3_strlike as jni_sqlite3_strlike
 import ksqlite.foreign.sqlite3_strnicmp as jni_sqlite3_strnicmp
 import ksqlite.foreign.sqlite3_system_errno as jni_sqlite3_system_errno
 import ksqlite.foreign.sqlite3_table_column_metadata as jni_sqlite3_table_column_metadata
-import ksqlite.foreign.sqlite3_total_changes as jni_sqlite3_total_changes
 import ksqlite.foreign.sqlite3_threadsafe as jni_sqlite3_threadsafe
+import ksqlite.foreign.sqlite3_total_changes as jni_sqlite3_total_changes
 import ksqlite.foreign.sqlite3_total_changes64 as jni_sqlite3_total_changes64
 import ksqlite.foreign.sqlite3_trace_v2 as jni_sqlite3_trace_v2
 import ksqlite.foreign.sqlite3_txn_state as jni_sqlite3_txn_state
@@ -661,7 +662,7 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     option = option,
     logFunctionPointer = { cb, appData -> callbackHandler(cb, appData, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, appData -> callbackHandler(cb, appData, ::ConfigSqlLogHandler) },
-    bufferPointer = Buffer::pointer,
+    bufferPointer = OpaqueBuffer::pointer,
     keyedStableRefPointer = null,
     outputParamConfig = {
         useParam(state) { statePtr ->
@@ -776,7 +777,7 @@ public actual fun sqlite3_db_config(
     option: SqliteDbConfigOption,
 ): SqliteResultCode = commonDbConfig(
     option = option,
-    bufferPointer = Buffer::pointer,
+    bufferPointer = OpaqueBuffer::pointer,
     outParamConfig = {
         useParam(state) { statePtr ->
             jni_sqlite3_db_config(db.pointer, id, arrayOf(value, statePtr))
@@ -895,6 +896,7 @@ public actual fun sqlite3_extended_result_codes(
     enabled: Int
 ): SqliteResultCode = convertResult(jni_sqlite3_extended_result_codes(db.pointer, enabled))
 
+// TODO
 public actual fun sqlite3_file_control(
     db: sqlite3,
     database: String?,

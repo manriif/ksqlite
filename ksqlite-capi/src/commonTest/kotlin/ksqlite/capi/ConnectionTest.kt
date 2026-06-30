@@ -1,6 +1,8 @@
 package ksqlite.capi
 
+import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSerializeResult
 import ksqlite.capi.types.Utf8OutputParam
@@ -9,7 +11,6 @@ import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteRuntimeLimit
 import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteTransactionState
-import kotlin.collections.plusAssign
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -69,14 +70,15 @@ class ConnectionTest {
     @Test
     fun dataWorks() = runSqliteConnectionTest { db ->
         val sql = """
-            CREATE table fruits(id INTEGER, name TEXT);
+            CREATE TABLE fruits(id INTEGER, name TEXT);
             INSERT INTO fruits VALUES (1, 'Pomme'), (2, 'Banane');
             SELECT id, name FROM fruits ORDER BY id;
         """.trimIndent()
 
         val actualFruits = mutableMapOf<Int, String>()
 
-        val result = sqlite3_exec(db, sql, null, null) { _, count, values, names ->
+        val result = sqlite3_exec(db, sql, null, 56) { appData, count, values, names ->
+            assertEquals(56, appData)
             assertEquals(2, count)
             assertEquals("id", names[0])
             assertEquals("name", names[1])
@@ -118,7 +120,7 @@ class ConnectionTest {
 
     @Test
     fun columnMetadataWorks() = runSqliteConnectionTest { db ->
-        val sql = "CREATE table test(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);"
+        val sql = "CREATE TABLE test(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT);"
         val result = sqlite3_exec(db, sql, null, null, null)
         assertEquals(SqliteResultCode.OK, result)
 
@@ -159,7 +161,7 @@ class ConnectionTest {
         val serializeDb = assertNotNull(outSerializeDb.value)
 
         val insertSql = """
-            CREATE table fruits(id INTEGER, name TEXT);
+            CREATE TABLE fruits(id INTEGER, name TEXT);
             INSERT INTO fruits VALUES (56, 'Framboise');
         """.trimIndent()
 
@@ -195,22 +197,23 @@ class ConnectionTest {
 
         assertEquals(SqliteResultCode.OK, deserializeResult)
 
-        val readSql = "SELECT * from fruits;"
+        val readSql = "SELECT * FROM fruits;"
         var callbackCalled = false
 
-        val readResult = sqlite3_exec(deserializeDb, readSql, null, null) { _, count, values, names ->
-            assertEquals(2, count)
-            assertEquals("id", names[0])
-            assertEquals("name", names[1])
+        val readResult =
+            sqlite3_exec(deserializeDb, readSql, null, null) { _, count, values, names ->
+                assertEquals(2, count)
+                assertEquals("id", names[0])
+                assertEquals("name", names[1])
 
-            val id = assertNotNull(values[0]).toInt()
-            val name = assertNotNull(values[1])
+                val id = assertNotNull(values[0]).toInt()
+                val name = assertNotNull(values[1])
 
-            assertEquals(56, id)
-            assertEquals("Framboise", name)
-            callbackCalled = true
-            0
-        }
+                assertEquals(56, id)
+                assertEquals("Framboise", name)
+                callbackCalled = true
+                0
+            }
 
         assertEquals(SqliteResultCode.OK, readResult)
         assertTrue(callbackCalled)
@@ -222,5 +225,158 @@ class ConnectionTest {
 
         val closeDeserializeResult = sqlite3_close_v2(deserializeDb)
         assertEquals(SqliteResultCode.OK, closeDeserializeResult)
+    }
+
+    @Test
+    fun configWorks() = runSqliteConnectionTest { db ->
+        val actualName = sqlite3_db_name(db, 0)
+        assertEquals("main", actualName)
+
+        val newName = "theMainDatabase"
+        val mainDbName = SqliteDbConfigOption.MAINDBNAME(newName)
+        val mainDbNameResult = sqlite3_db_config(db, mainDbName)
+        assertEquals(SqliteResultCode.OK, mainDbNameResult)
+
+        val updatedName = sqlite3_db_name(db, 0)
+        assertEquals(newName, updatedName)
+
+        val outEnableFkey = Int32OutputParam(-1)
+        val enableFkey = SqliteDbConfigOption.ENABLE_FKEY(1, outEnableFkey)
+        val enableFkeyResult = sqlite3_db_config(db, enableFkey)
+        assertEquals(SqliteResultCode.OK, enableFkeyResult)
+        assertEquals(1, outEnableFkey.value)
+
+        val outEnableTrigger = Int32OutputParam(-1)
+        val enableTrigger = SqliteDbConfigOption.ENABLE_TRIGGER(0, outEnableTrigger)
+        val enableTriggerResult = sqlite3_db_config(db, enableTrigger)
+        assertEquals(SqliteResultCode.OK, enableTriggerResult)
+        assertEquals(0, outEnableTrigger.value)
+
+        val outEnableFts3Tokenizer = Int32OutputParam(-1)
+        
+        val enableFts3Tokenizer =
+            SqliteDbConfigOption.ENABLE_FTS3_TOKENIZER(1, outEnableFts3Tokenizer)
+        
+        val enableFts3TokenizerResult = sqlite3_db_config(db, enableFts3Tokenizer)
+        assertEquals(SqliteResultCode.OK, enableFts3TokenizerResult)
+        assertEquals(1, outEnableFts3Tokenizer.value)
+
+        val outEnableLoadExtension = Int32OutputParam(-1)
+        val enableLoadExtension = SqliteDbConfigOption.ENABLE_LOAD_EXTENSION(0, outEnableLoadExtension)
+        val enableLoadExtensionResult = sqlite3_db_config(db, enableLoadExtension)
+        assertEquals(SqliteResultCode.OK, enableLoadExtensionResult)
+        assertEquals(0, outEnableLoadExtension.value)
+        
+        val outNoCkptOnClose = Int32OutputParam(-1)
+        val noCkptOnClose = SqliteDbConfigOption.NO_CKPT_ON_CLOSE(1, outNoCkptOnClose)
+        val noCkptOnCloseResult = sqlite3_db_config(db, noCkptOnClose)
+        assertEquals(SqliteResultCode.OK, noCkptOnCloseResult)
+        assertEquals(1, outNoCkptOnClose.value)
+
+        val outEnableQpsg = Int32OutputParam(-1)
+        val enableQpsg = SqliteDbConfigOption.ENABLE_QPSG(0, outEnableQpsg)
+        val enableQpsgResult = sqlite3_db_config(db, enableQpsg)
+        assertEquals(SqliteResultCode.OK, enableQpsgResult)
+        assertEquals(0, outEnableQpsg.value)
+        
+        val outTriggerEqp = Int32OutputParam(-1)
+        val triggerEqp = SqliteDbConfigOption.TRIGGER_EQP(1, outTriggerEqp)
+        val triggerEqpResult = sqlite3_db_config(db, triggerEqp)
+        assertEquals(SqliteResultCode.OK, triggerEqpResult)
+        assertEquals(1, outTriggerEqp.value)
+
+        val resetDatabase = SqliteDbConfigOption.RESET_DATABASE(1)
+        val resetDatabaseResult = sqlite3_db_config(db, resetDatabase)
+        assertEquals(SqliteResultCode.OK, resetDatabaseResult)
+
+        val outDefensive = Int32OutputParam(-1)
+        val defensive = SqliteDbConfigOption.DEFENSIVE(0, outDefensive)
+        val defensiveResult = sqlite3_db_config(db, defensive)
+        assertEquals(SqliteResultCode.OK, defensiveResult)
+        assertEquals(0, outDefensive.value)
+
+        val outWritableSchema = Int32OutputParam(-1)
+        val writableSchema = SqliteDbConfigOption.WRITABLE_SCHEMA(1, outWritableSchema)
+        val writableSchemaResult = sqlite3_db_config(db, writableSchema)
+        assertEquals(SqliteResultCode.OK, writableSchemaResult)
+        assertEquals(1, outWritableSchema.value)
+
+        val outLegacyAlterTable = Int32OutputParam(-1)
+        val legacyAlterTable = SqliteDbConfigOption.LEGACY_ALTER_TABLE(1, outLegacyAlterTable)
+        val legacyAlterTableResult = sqlite3_db_config(db, legacyAlterTable)
+        assertEquals(SqliteResultCode.OK, legacyAlterTableResult)
+        assertEquals(1, outLegacyAlterTable.value)
+
+        val outDqsDml = Int32OutputParam(-1)
+        val dqsDml = SqliteDbConfigOption.DQS_DML(0, outDqsDml)
+        val dqsDmlResult = sqlite3_db_config(db, dqsDml)
+        assertEquals(SqliteResultCode.OK, dqsDmlResult)
+        assertEquals(0, outDqsDml.value)
+
+        val outDqsDdl = Int32OutputParam(-1)
+        val dqsDdl = SqliteDbConfigOption.DQS_DDL(1, outDqsDdl)
+        val dqsDdlResult = sqlite3_db_config(db, dqsDdl)
+        assertEquals(SqliteResultCode.OK, dqsDdlResult)
+        assertEquals(1, outDqsDdl.value)
+
+        val outEnableView = Int32OutputParam(-1)
+        val enableView = SqliteDbConfigOption.ENABLE_VIEW(0, outEnableView)
+        val enableViewResult = sqlite3_db_config(db, enableView)
+        assertEquals(SqliteResultCode.OK, enableViewResult)
+        assertEquals(0, outEnableView.value)
+
+        val outLegacyFileFormat = Int32OutputParam(-1)
+        val legacyFileFormat = SqliteDbConfigOption.LEGACY_FILE_FORMAT(1, outLegacyFileFormat)
+        val legacyFileFormatResult = sqlite3_db_config(db, legacyFileFormat)
+        assertEquals(SqliteResultCode.OK, legacyFileFormatResult)
+        assertEquals(1, outLegacyFileFormat.value)
+
+        val outTrustedSchema = Int32OutputParam(-1)
+        val trustedSchema = SqliteDbConfigOption.TRUSTED_SCHEMA(0, outTrustedSchema)
+        val trustedSchemaResult = sqlite3_db_config(db, trustedSchema)
+        assertEquals(SqliteResultCode.OK, trustedSchemaResult)
+        assertEquals(0, outTrustedSchema.value)
+
+        val outStmtScanStatus = Int32OutputParam(-1)
+        val stmtScanStatus = SqliteDbConfigOption.STMT_SCANSTATUS(1, outStmtScanStatus)
+        val stmtScanStatusResult = sqlite3_db_config(db, stmtScanStatus)
+        assertEquals(SqliteResultCode.OK, stmtScanStatusResult)
+        assertEquals(1, outStmtScanStatus.value)
+
+        val outReverseScanOrder = Int32OutputParam(-1)
+        val reverseScanOrder = SqliteDbConfigOption.REVERSE_SCANORDER(0, outReverseScanOrder)
+        val reverseScanOrderResult = sqlite3_db_config(db, reverseScanOrder)
+        assertEquals(SqliteResultCode.OK, reverseScanOrderResult)
+        assertEquals(0, outReverseScanOrder.value)
+
+        val outEnableAttachCreate = Int32OutputParam(-1)
+        val enableAttachCreate = SqliteDbConfigOption.ENABLE_ATTACH_CREATE(1, outEnableAttachCreate)
+        val enableAttachCreateResult = sqlite3_db_config(db, enableAttachCreate)
+        assertEquals(SqliteResultCode.OK, enableAttachCreateResult)
+        assertEquals(1, outEnableAttachCreate.value)
+
+        val outEnableAttachWrite = Int32OutputParam(-1)
+        val enableAttachWrite = SqliteDbConfigOption.ENABLE_ATTACH_WRITE(0, outEnableAttachWrite)
+        val enableAttachWriteResult = sqlite3_db_config(db, enableAttachWrite)
+        assertEquals(SqliteResultCode.OK, enableAttachWriteResult)
+        assertEquals(0, outEnableAttachWrite.value)
+
+        val outEnableComments = Int32OutputParam(-1)
+        val enableComments = SqliteDbConfigOption.ENABLE_COMMENTS(1, outEnableComments)
+        val enableCommentsResult = sqlite3_db_config(db, enableComments)
+        assertEquals(SqliteResultCode.OK, enableCommentsResult)
+        assertEquals(1, outEnableComments.value)
+
+        val outFpDigits = Int32OutputParam(-1)
+        val fpDigits = SqliteDbConfigOption.FP_DIGITS(23, outFpDigits)
+        val fpDigitsResult = sqlite3_db_config(db, fpDigits)
+        assertEquals(SqliteResultCode.OK, fpDigitsResult)
+        assertEquals(23, outFpDigits.value)
+
+        val lookasideBuffer = assertNotNull(OpaqueBuffer.allocate(128))
+        val lookaside = SqliteDbConfigOption.LOOKASIDE(lookasideBuffer, 128, 2)
+        val lookasideResult = sqlite3_db_config(db, lookaside)
+        assertEquals(SqliteResultCode.OK, lookasideResult)
+        lookasideBuffer.close()
     }
 }

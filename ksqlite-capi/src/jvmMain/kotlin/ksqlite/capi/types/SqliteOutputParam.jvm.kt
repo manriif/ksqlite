@@ -104,11 +104,10 @@ public actual class Utf8OutputParam actual constructor() : PointerOutputParam<St
     private var customSize: Int32OutputParam? = null
 
     override fun create(pointer: MemorySegment): String {
-        val resizedPointer = customSize?.value?.toLong()
+        val string = customSize?.value?.toLong()
             ?.let(pointer::reinterpret)
-            ?: pointer
-
-        val string = resizedPointer.toKStringFromUtf8()
+            ?.toKStringFromUtf8(isNullTerminated = false)
+            ?: pointer.toKStringFromUtf8()
 
         if (freeOnRead) {
             sqlite3_free(pointer)
@@ -192,6 +191,14 @@ public actual class SqliteValueOutputParam actual constructor() :
 
     override fun create(pointer: MemorySegment): sqlite3_value {
         return sqlite3_value(pointer)
+    }
+}
+
+public actual class SqliteVfsOutputParam actual constructor() :
+    PointerOutputParam<sqlite3_vfs>() {
+
+    override fun create(pointer: MemorySegment): sqlite3_vfs {
+        return sqlite3_vfs(pointer)
     }
 }
 

@@ -2,7 +2,10 @@
 
 package ksqlite.capi
 
+import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
+import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.IntVar
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
@@ -52,6 +55,7 @@ import ksqlite.capi.handlers.UpdateHookHandler
 import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.contentSize
 import ksqlite.capi.memory.copyBytes
@@ -62,12 +66,12 @@ import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toVariadicArguments
 import ksqlite.capi.memory.useMemoryManager
-import ksqlite.capi.memory.variadicArgumentsError
 import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteBlobOutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteFileControlOpcode
 import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSnapshotOutputParam
 import ksqlite.capi.types.SqliteStmtOutputParam
@@ -105,7 +109,6 @@ import ksqlite.types.SqliteDbReadonlyResult
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteExplainMode
-import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
@@ -707,7 +710,7 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     option = option,
     logFunctionPointer = { cb, _ -> callbackHandler(cb, ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> callbackHandler(cb, ConfigSqlLogHandler) },
-    bufferPointer = Buffer::pointer,
+    bufferPointer = OpaqueBuffer::pointer,
     keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     outputParamConfig = {
         useParamMemScoped(state) { statePtr ->
@@ -717,12 +720,27 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     nativeConfig = { id, values ->
         val args = values.toVariadicArguments(::globalMemory)
 
-        when (args.size) {
-            0 -> native_sqlite3_config(id)
-            1 -> native_sqlite3_config(id, args[0])
-            2 -> native_sqlite3_config(id, args[0], args[1])
-            3 -> native_sqlite3_config(id, args[0], args[1], args[2])
-            else -> variadicArgumentsError()
+        when (option) {
+            SINGLETHREAD, MULTITHREAD, SERIALIZED -> native_sqlite3_config(id)
+            is LOOKASIDE -> native_sqlite3_config(id, args[0] as Int, args[1] as Int)
+            is MMAP_SIZE -> native_sqlite3_config(id, args[0] as Long, args[1] as Long)
+            is MEMDB_MAXSIZE -> native_sqlite3_config(id, args[0] as Long)
+            is PMASZ -> native_sqlite3_config(id, args[0] as UInt)
+
+            is COVERING_INDEX_SCAN, is URI, is MEMSTATUS, is SMALL_MALLOC, is STMTJRNL_SPILL ->
+                native_sqlite3_config(id, args[0] as Int)
+
+            is LOG<*>, is SQLLOG<*> ->
+                native_sqlite3_config(id, args[0] as COpaquePointer?, args[1] as COpaquePointer?)
+
+            is PAGECACHE -> native_sqlite3_config(
+                id,
+                args[0] as COpaquePointer?,
+                args[1] as Int,
+                args[2] as Int
+            )
+
+            is IntOutput -> error("Unexpected configuration option : $option")
         }
     }
 )
@@ -839,7 +857,7 @@ public actual fun sqlite3_db_config(
     option: SqliteDbConfigOption,
 ): SqliteResultCode = commonDbConfig(
     option = option,
-    bufferPointer = Buffer::pointer,
+    bufferPointer = OpaqueBuffer::pointer,
     outParamConfig = {
         useParamMemScoped(state) { statePtr ->
             native_sqlite3_db_config(db.pointer, id, value, statePtr)
@@ -848,12 +866,35 @@ public actual fun sqlite3_db_config(
     nativeConfig = { id, values ->
         val args = values.toVariadicArguments(db::memory)
 
-        when (args.size) {
-            0 -> native_sqlite3_db_config(db.pointer, id)
-            1 -> native_sqlite3_db_config(db.pointer, id, args[0])
-            2 -> native_sqlite3_db_config(db.pointer, id, args[0], args[1])
-            3 -> native_sqlite3_db_config(db.pointer, id, args[0], args[1], args[2])
-            else -> variadicArgumentsError()
+        @Suppress("UNCHECKED_CAST")
+        when (option) {
+            is IntOutput -> native_sqlite3_db_config(
+                db.pointer,
+                id,
+                args[0] as Int,
+                args[1] as CPointer<IntVar>?
+            )
+
+            is LOOKASIDE -> native_sqlite3_db_config(
+                db.pointer,
+                id,
+                args[0] as CPointer<ByteVar>?,
+                args[1] as Int,
+                args[2] as Int
+            )
+
+            is MAINDBNAME -> native_sqlite3_db_config(
+                db.pointer,
+                id,
+                args[0] as CPointer<ByteVar>?
+            )
+
+            is RESET_DATABASE -> native_sqlite3_db_config(
+                db.pointer,
+                id,
+                args[0] as Int,
+                args[1] as CPointer<IntVar>?
+            )
         }
     }
 )
@@ -987,9 +1028,41 @@ public actual fun sqlite3_file_control(
     db: sqlite3,
     database: String?,
     opcode: SqliteFileControlOpcode
-): SqliteResultCode = convertResult(
-    native_sqlite3_file_control(db.pointer, database, opcode.code, null)
-)
+): SqliteResultCode = memScoped {
+    val namePtr = database?.cstr?.ptr
+
+    commonFileControl(
+        opcode = opcode,
+        control = {
+            native_sqlite3_file_control(db.pointer, namePtr, opcode.code, null)
+        },
+        controlBuffer = { buffer ->
+            native_sqlite3_file_control(db.pointer, namePtr, opcode.code, buffer?.pointer)
+        },
+        controlVfs = { param ->
+            useParam(param) { paramPtr ->
+                native_sqlite3_file_control(db.pointer, namePtr, opcode.code, paramPtr)
+            }
+        },
+        controlInt32 = { param ->
+            useParam(param) { paramPtr ->
+                native_sqlite3_file_control(db.pointer, namePtr, opcode.code, paramPtr)
+            }
+        },
+        controlInt64 = { param ->
+            useParam(param) { paramPtr ->
+                native_sqlite3_file_control(db.pointer, namePtr, opcode.code, paramPtr)
+            }
+        },
+        controlString = { param, freeOnRead ->
+            param.overriding(freeOnRead = freeOnRead) {
+                useParam(param) { paramPtr ->
+                    native_sqlite3_file_control(db.pointer, namePtr, opcode.code, paramPtr)
+                }
+            }
+        }
+    )
+}
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): SqliteResultCode =
     stmt.deallocate { native_sqlite3_finalize(stmt.pointer) }
@@ -1028,7 +1101,7 @@ public actual fun sqlite3_key_v2(
 
 public actual fun sqlite3_keyword_check(word: String): Int = memScoped {
     val cWord = word.cstr
-    native_sqlite3_keyword_check(cWord, cWord.contentSize)
+    native_sqlite3_keyword_check(cWord.ptr, cWord.contentSize)
 }
 
 public actual fun sqlite3_keyword_count(): Int =
@@ -1686,10 +1759,9 @@ public actual fun sqlite3_vtab_config(
 ): SqliteResultCode = commonVtabConfig(option) { id, values ->
     val args = values.toVariadicArguments(db::memory)
 
-    when (args.size) {
-        0 -> native_sqlite3_vtab_config(db.pointer, id)
-        1 -> native_sqlite3_vtab_config(db.pointer, id, args[0])
-        else -> variadicArgumentsError()
+    when (option) {
+        DIRECTONLY, INNOCUOUS, USES_ALL_SCHEMAS -> native_sqlite3_vtab_config(db.pointer, id)
+        is CONSTRAINT_SUPPORT -> native_sqlite3_vtab_config(db.pointer, id, args[0] as Int)
     }
 }
 
