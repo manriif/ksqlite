@@ -2,7 +2,6 @@ package ksqlite.capi
 
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.setPointerValue
-import ksqlite.capi.types.sqlite3
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmPointer

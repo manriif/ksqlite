@@ -5,18 +5,18 @@ package ksqlite.capi.vtab
 import ksqlite.capi.memory.Struct
 
 public actual class sqlite3_module<AppData> private constructor(
-    internal val callbacks: VTabModuleCallbacks<AppData, *, *>,
+    internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
     module: s3_module
 ) : Struct(module),
     AutoCloseable {
 
     internal actual constructor(
         version: Int,
-        callbacks: VTabModuleCallbacks<AppData, *, *>
+        callbacks: VtabModuleCallbacks<AppData, *, *>
     ) : this(
         callbacks,
         s3_module(
-            callbacks = VTabModuleHandler,
+            callbacks = VtabModuleHandler,
             callbackMask = callbacks.computeCallbackMask(),
             eponymous = callbacks.moduleKind == SqliteModuleKind.Eponymous
         ).apply {
@@ -30,7 +30,7 @@ public actual class sqlite3_module<AppData> private constructor(
 /**
  * Computes and returns a mask of optional callbacks that are enabled.
  */
-private fun VTabModuleCallbacks<*, *, *>.computeCallbackMask(): Int {
+private fun VtabModuleCallbacks<*, *, *>.computeCallbackMask(): Int {
     var mask = 0
 
     create?.let { mask = 1.shl(s3_module.STRUCT_MEMBER_INDEX_XCREATE) }

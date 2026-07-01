@@ -15,7 +15,7 @@ import ksqlite.capi.sqlite3_column_text
 import ksqlite.capi.sqlite3_column_type
 import ksqlite.capi.sqlite3_column_value
 import ksqlite.capi.sqlite3_data_count
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.buffer.ReadableBuffer
 import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.value.UnprotectedValue

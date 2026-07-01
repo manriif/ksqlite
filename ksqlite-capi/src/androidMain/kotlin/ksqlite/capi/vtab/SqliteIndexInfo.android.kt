@@ -6,10 +6,10 @@ import ksqlite.capi.memory.JniPointer
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
-import ksqlite.types.internal.convertVTabConstraintOperatorCode
+import ksqlite.types.internal.convertVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteIndexInfo
-import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
-import ksqlite.types.vtab.SqliteVTabScanFlag
+import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
+import ksqlite.types.vtab.SqliteVtabScanFlag
 
 public actual class sqlite3_index_info private constructor(private val info: s3_index_info) :
     Struct(info.pointer, null /* memory is owned by SQLite */),
@@ -33,8 +33,8 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
     public actual override fun getConstraintColumn(index: Int): Int =
         constraints[index].iColumn
 
-    public actual override fun getConstraintOp(index: Int): SqliteVTabConstraintOperatorCode =
-        convertVTabConstraintOperatorCode(constraints[index].op.toInt())
+    public actual override fun getConstraintOp(index: Int): SqliteVtabConstraintOperatorCode =
+        convertVtabConstraintOperatorCode(constraints[index].op.toInt())
 
     public actual override fun getConstraintUsable(index: Int): Int =
         constraints[index].usable.toInt()
@@ -79,8 +79,8 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
             info.estimatedRows = value
         }
 
-    public actual override var idxFlags: SqliteVTabScanFlag
-        get() = SqliteVTabScanFlag.from(info.idxFlags)
+    public actual override var idxFlags: SqliteVtabScanFlag
+        get() = SqliteVtabScanFlag.from(info.idxFlags)
         set(value) {
             info.idxFlags = value.value
         }

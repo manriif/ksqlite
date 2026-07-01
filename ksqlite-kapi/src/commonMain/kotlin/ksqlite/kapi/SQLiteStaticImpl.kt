@@ -13,7 +13,7 @@ import ksqlite.capi.sqlite3_stricmp
 import ksqlite.capi.sqlite3_strlike
 import ksqlite.capi.sqlite3_threadsafe
 import ksqlite.capi.sqliteCompileOptions
-import ksqlite.capi.types.Utf8OutputParam
+import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.kapi.helpers.BoundedCaseIndependentComparator
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.sqliteResultThrow

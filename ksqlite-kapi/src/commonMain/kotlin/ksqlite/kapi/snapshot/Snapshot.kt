@@ -1,6 +1,6 @@
 package ksqlite.kapi.snapshot
 
-import ksqlite.capi.types.sqlite3_snapshot
+import ksqlite.capi.sqlite3_snapshot
 import ksqlite.kapi.helpers.ClosableScope
 
 public abstract class Snapshot internal constructor() : Comparable<Snapshot>, AutoCloseable {

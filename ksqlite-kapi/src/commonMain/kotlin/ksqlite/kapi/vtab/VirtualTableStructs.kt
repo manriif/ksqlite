@@ -1,7 +1,7 @@
 package ksqlite.kapi.vtab
 
 import ksqlite.types.SqliteResultCode
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.capi.vtab.sqlite3_vtab
 import ksqlite.capi.vtab.sqlite3_vtab_cursor
 import ksqlite.kapi.SQLiteException
@@ -10,7 +10,7 @@ import ksqlite.kapi.helpers.runCatchingSQLiteException
 /**
  * Implementation of [sqlite3_vtab].
  */
-internal class VTab(
+internal class Vtab(
     internal val table: VirtualTable,
     internal val db: sqlite3
 ) : sqlite3_vtab() {
@@ -47,9 +47,9 @@ internal class VTab(
 /**
  * Implementation of [sqlite3_vtab_cursor].
  */
-internal class VTabCursor(
+internal class VtabCursor(
     internal val cursor: VirtualTableCursor,
-    internal val vTab: VTab,
+    internal val vTab: Vtab,
 ) : sqlite3_vtab_cursor() {
 
     /**

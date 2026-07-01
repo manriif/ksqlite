@@ -15,7 +15,7 @@ import kotlin.js.toJsReference
 private external fun exec(
     jsRef: JsReference<ExecHandler>,
     handler: (
-		jsRef: JsReference<ExecHandler>,
+        jsRef: JsReference<ExecHandler>,
         refPointer: WasmPointer,
         columnCount: Int,
         values: WasmPointer,

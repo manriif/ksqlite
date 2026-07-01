@@ -2,15 +2,13 @@
 
 package ksqlite.capi
 
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.callbacks.SqliteFunctionFinalCallback
 import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
 import ksqlite.capi.callbacks.SqliteFunctionInverseCallback
 import ksqlite.capi.callbacks.SqliteFunctionStepCallback
 import ksqlite.capi.callbacks.SqliteFunctionValueCallback
-import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.ConcurrentMap
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_value
 
 /**
  * Manages an application defined function from [sqlite3_create_function] and

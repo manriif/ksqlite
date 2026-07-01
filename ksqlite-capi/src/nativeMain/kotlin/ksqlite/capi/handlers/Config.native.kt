@@ -5,11 +5,11 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.capi.dispatchSqlLogEvent
 import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
+import ksqlite.capi.dispatchSqlLogEvent
+import ksqlite.capi.sqlite3
 import ksqlite.capi.types.s3
-import ksqlite.capi.types.sqlite3
 
 ///////////////////////////////////////////////////////////////////////////
 // Log

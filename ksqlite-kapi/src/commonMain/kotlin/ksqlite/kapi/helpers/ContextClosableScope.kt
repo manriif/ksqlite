@@ -1,6 +1,6 @@
 package ksqlite.kapi.helpers
 
-import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.sqlite3_context
 
 /**
  * Closable scope owning a [context].

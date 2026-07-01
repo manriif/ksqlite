@@ -2,10 +2,10 @@
 
 package ksqlite.capi.memory
 
-import ksqlite.foreign.Sqlite3Wasm
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.handlers.Handler
 import ksqlite.capi.wasm
+import ksqlite.foreign.Sqlite3Wasm
 import ksqlite.foreign.js.asInt8Array
 import ksqlite.foreign.wasm.IR
 import ksqlite.foreign.wasm.WasmPointer

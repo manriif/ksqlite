@@ -2,7 +2,7 @@
 
 package ksqlite.foreign.structs
 
-import ksqlite.foreign.callbacks.VTabModuleCallbacks
+import ksqlite.foreign.callbacks.VtabModuleCallbacks
 import ksqlite.foreign.moduleDeinit
 import ksqlite.foreign.moduleInit
 import ksqlite.foreign.structLayout
@@ -12,7 +12,7 @@ import ksqlite.foreign.structLayout
  * writing the struct.
  */
 public class sqlite3_module(
-    callbacks: VTabModuleCallbacks,
+    callbacks: VtabModuleCallbacks,
     callbackMask: Int,
     eponymous: Boolean
 ) : JniStruct(layout, StructType.Module) {

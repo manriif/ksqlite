@@ -4,22 +4,22 @@ import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.sqlite3_result_text
 import ksqlite.types.SqliteResultCode
-import ksqlite.capi.vtab.callbacks.SqliteVTabBestIndexCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabCloseCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabColumnCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabCreateOrConnectCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabDestroyOrDisconnectCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabEofCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabFilterCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabFindFunctionCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabIntegrityCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabNestedTransactionCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabNextCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabOpenCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabRenameCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabRowidCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabTransactionCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabUpdateCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabBestIndexCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabCloseCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabColumnCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabCreateOrConnectCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabDestroyOrDisconnectCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabEofCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabFilterCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabFindFunctionCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabIntegrityCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabNestedTransactionCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabNextCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabOpenCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabRenameCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabRowidCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabTransactionCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabUpdateCallback
 import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.function.ScalarFunctionFuncCallback
 import ksqlite.kapi.helpers.AutoCloser
@@ -41,7 +41,7 @@ internal val VirtualTableModuleDestructor = SqliteDestroyCallback { module: Virt
 }
 
 /**
- * Common logic for [VTabCreateCallback] and [VTabConnectCallback].
+ * Common logic for [VtabCreateCallback] and [VtabConnectCallback].
  */
 private inline fun <Module : VirtualTableModule> createOrConnect(
     crossinline block: Module.(
@@ -49,7 +49,7 @@ private inline fun <Module : VirtualTableModule> createOrConnect(
         connection: DatabaseConnection,
         arguments: Array<String>
     ) -> VirtualTable
-) = SqliteVTabCreateOrConnectCallback<Module, VTab> { db, module, arguments ->
+) = SqliteVtabCreateOrConnectCallback<Module, Vtab> { db, module, arguments ->
     module.runCatchingSQLiteException({ failure(it.message) }) {
         val connection = sqliteRequireConnection(db)
 
@@ -57,7 +57,7 @@ private inline fun <Module : VirtualTableModule> createOrConnect(
             block(module, scope, connection, arguments)
         }
 
-        val vTab = VTab(table, db)
+        val vTab = Vtab(table, db)
         table.parent = vTab
 
         success(vTab)
@@ -67,7 +67,7 @@ private inline fun <Module : VirtualTableModule> createOrConnect(
 /**
  * Invokes [VirtualTableModule.Regular.create]
  */
-internal val VTabCreateCallback =
+internal val VtabCreateCallback =
     createOrConnect<VirtualTableModule.Regular> { scope, connection, arguments ->
         scope.create(connection, arguments)
     }
@@ -75,7 +75,7 @@ internal val VTabCreateCallback =
 /**
  * Invokes [VirtualTableModule.connect]
  */
-internal val VTabConnectCallback =
+internal val VtabConnectCallback =
     createOrConnect<VirtualTableModule> { scope, connection, arguments ->
         scope.connect(connection, arguments)
     }
@@ -83,17 +83,17 @@ internal val VTabConnectCallback =
 /**
  * Invokes [VirtualTable.bestIndex].
  */
-internal val VTabBestIndexCallback = SqliteVTabBestIndexCallback { vTab: VTab, info ->
+internal val VtabBestIndexCallback = SqliteVtabBestIndexCallback { vTab: Vtab, info ->
     vTab.catching {
         VirtualTableBestIndexScopeImpl(info).use { it.bestIndex(info) }
     }
 }
 
 /**
- * Common logic for [VTabCloseCallback] and [VTabDisconnectCallback].
+ * Common logic for [VtabCloseCallback] and [VtabDisconnectCallback].
  */
 private inline fun disconnectOrDestroy(crossinline block: VirtualTable.() -> Unit) =
-    SqliteVTabDestroyOrDisconnectCallback { vTab: VTab ->
+    SqliteVtabDestroyOrDisconnectCallback { vTab: Vtab ->
         try {
             vTab.catching(block)
         } finally {
@@ -104,20 +104,20 @@ private inline fun disconnectOrDestroy(crossinline block: VirtualTable.() -> Uni
 /**
  * Invokes [VirtualTable.disconnect].
  */
-internal val VTabDisconnectCallback = disconnectOrDestroy(VirtualTable::disconnect)
+internal val VtabDisconnectCallback = disconnectOrDestroy(VirtualTable::disconnect)
 
 /**
  * Invokes [VirtualTable.destroy].
  */
-internal val VTabDestroyCallback = disconnectOrDestroy(VirtualTable::destroy)
+internal val VtabDestroyCallback = disconnectOrDestroy(VirtualTable::destroy)
 
 /**
  * Invokes [VirtualTable.open].
  */
-internal val VTabOpenCallback = SqliteVTabOpenCallback { vTab: VTab ->
+internal val VtabOpenCallback = SqliteVtabOpenCallback { vTab: Vtab ->
     vTab.catching(::failure) {
         val cursor = open()
-        val vTabCursor = VTabCursor(cursor, vTab)
+        val vTabCursor = VtabCursor(cursor, vTab)
         success(vTabCursor)
     }
 }
@@ -125,7 +125,7 @@ internal val VTabOpenCallback = SqliteVTabOpenCallback { vTab: VTab ->
 /**
  * Invokes [VirtualTableCursor.close].
  */
-internal val VTabCloseCallback = SqliteVTabCloseCallback { cursor: VTabCursor ->
+internal val VtabCloseCallback = SqliteVtabCloseCallback { cursor: VtabCursor ->
     try {
         cursor.catching(VirtualTableCursor::close)
     } finally {
@@ -136,15 +136,15 @@ internal val VTabCloseCallback = SqliteVTabCloseCallback { cursor: VTabCursor ->
 /**
  * Invokes [VirtualTableCursor.eof].
  */
-internal val VTabEofCallback = SqliteVTabEofCallback { cursor: VTabCursor ->
+internal val VtabEofCallback = SqliteVtabEofCallback { cursor: VtabCursor ->
     cursor.catching({ -1 }) { if (eof()) 1 else 0 }
 }
 
 /**
  * Invokes [VirtualTableCursor.filter].
  */
-internal val VTabFilterCallback =
-    SqliteVTabFilterCallback { cursor: VTabCursor, idxNum, idxStr, arguments ->
+internal val VtabFilterCallback =
+    SqliteVtabFilterCallback { cursor: VtabCursor, idxNum, idxStr, arguments ->
         cursor.catching {
             VirtualTableFilterScopeImpl().use { scope ->
                 scope.filter(idxNum, idxStr, arguments.toProtectedValues(scope))
@@ -155,14 +155,14 @@ internal val VTabFilterCallback =
 /**
  * Invokes [VirtualTableCursor.next].
  */
-internal val VTabNextCallback = SqliteVTabNextCallback { cursor: VTabCursor ->
+internal val VtabNextCallback = SqliteVtabNextCallback { cursor: VtabCursor ->
     cursor.catching(VirtualTableCursor::next)
 }
 
 /**
  * Invokes [VirtualTableCursor.column].
  */
-internal val VTabColumnCallback = SqliteVTabColumnCallback { cursor: VTabCursor, context, index ->
+internal val VtabColumnCallback = SqliteVtabColumnCallback { cursor: VtabCursor, context, index ->
     cursor.cursor.runCatchingSQLiteException({ error ->
         // sqlite3_result_text() must be used here to set the error message according to SQLite
         sqlite3_result_text(context, error.message)
@@ -179,14 +179,14 @@ internal val VTabColumnCallback = SqliteVTabColumnCallback { cursor: VTabCursor,
 /**
  * Invokes [VirtualTableCursor.rowid].
  */
-internal val VTabRowidCallback = SqliteVTabRowidCallback { cursor: VTabCursor ->
+internal val VtabRowidCallback = SqliteVtabRowidCallback { cursor: VtabCursor ->
     cursor.catching(::failure) { success(rowid()) }
 }
 
 /**
  * Invokes [VirtualTable.update].
  */
-internal val VTabUpdateCallback = SqliteVTabUpdateCallback { vTab: VTab, arguments ->
+internal val VtabUpdateCallback = SqliteVtabUpdateCallback { vTab: Vtab, arguments ->
     vTab.catching(::failure) {
         VirtualTableUpdateScopeImpl(vTab.db).use { scope ->
             success(scope.update(arguments.toProtectedValues(scope)))
@@ -197,7 +197,7 @@ internal val VTabUpdateCallback = SqliteVTabUpdateCallback { vTab: VTab, argumen
 /**
  * Invokes [VirtualTable.findFunction].
  */
-internal val VTabFindFunctionCallback = SqliteVTabFindFunctionCallback { vTab: VTab, argc, name ->
+internal val VtabFindFunctionCallback = SqliteVtabFindFunctionCallback { vTab: Vtab, argc, name ->
     vTab.catching({ doNotOverload() }) {
         VirtualTableFindFunctionScopeImpl().use { scope ->
             scope.findFunction(name, argc)?.let { function ->
@@ -215,69 +215,69 @@ internal val VTabFindFunctionCallback = SqliteVTabFindFunctionCallback { vTab: V
 }
 
 /**
- * Common logic for [VTabBeginCallback], [VTabSyncCallback], [VTabCommitCallback] and
- * [VTabRollbackCallback].
+ * Common logic for [VtabBeginCallback], [VtabSyncCallback], [VtabCommitCallback] and
+ * [VtabRollbackCallback].
  */
 private inline fun transaction(crossinline block: VirtualTable.() -> Unit) =
-    SqliteVTabTransactionCallback { vTab: VTab ->
+    SqliteVtabTransactionCallback { vTab: Vtab ->
         vTab.catching(block)
     }
 
 /**
  * Invokes [VirtualTable.begin].
  */
-internal val VTabBeginCallback = transaction(VirtualTable::begin)
+internal val VtabBeginCallback = transaction(VirtualTable::begin)
 
 /**
  * Invokes [VirtualTable.sync].
  */
-internal val VTabSyncCallback = transaction(VirtualTable::sync)
+internal val VtabSyncCallback = transaction(VirtualTable::sync)
 
 /**
  * Invokes [VirtualTable.commit].
  */
-internal val VTabCommitCallback = transaction(VirtualTable::commit)
+internal val VtabCommitCallback = transaction(VirtualTable::commit)
 
 /**
  * Invokes [VirtualTable.rollback].
  */
-internal val VTabRollbackCallback = transaction(VirtualTable::rollback)
+internal val VtabRollbackCallback = transaction(VirtualTable::rollback)
 
 /**
  * Invokes [VirtualTable.rename].
  */
-internal val VTabRenameCallback = SqliteVTabRenameCallback { vTab: VTab, newName ->
+internal val VtabRenameCallback = SqliteVtabRenameCallback { vTab: Vtab, newName ->
     vTab.catching { rename(newName) }
 }
 
 /**
- * Common logic for [VTabSavepointCallback], [VTabReleaseCallback] and [VTabRollbackToCallback].
+ * Common logic for [VtabSavepointCallback], [VtabReleaseCallback] and [VtabRollbackToCallback].
  */
 private inline fun nestedTransaction(crossinline block: VirtualTable.(Int) -> Unit) =
-    SqliteVTabNestedTransactionCallback { vTab: VTab, id ->
+    SqliteVtabNestedTransactionCallback { vTab: Vtab, id ->
         vTab.catching { block(id) }
     }
 
 /**
  * Invokes [VirtualTable.savepoint].
  */
-internal val VTabSavepointCallback = nestedTransaction(VirtualTable::savepoint)
+internal val VtabSavepointCallback = nestedTransaction(VirtualTable::savepoint)
 
 /**
  * Invokes [VirtualTable.release].
  */
-internal val VTabReleaseCallback = nestedTransaction(VirtualTable::release)
+internal val VtabReleaseCallback = nestedTransaction(VirtualTable::release)
 
 /**
  * Invokes [VirtualTable.rollbackTo].
  */
-internal val VTabRollbackToCallback = nestedTransaction(VirtualTable::rollbackTo)
+internal val VtabRollbackToCallback = nestedTransaction(VirtualTable::rollbackTo)
 
 /**
  * Invokes [VirtualTable.integrity].
  */
-internal val VTabIntegrityCallback =
-    SqliteVTabIntegrityCallback { vTab: VTab, schema, tableName, flags ->
+internal val VtabIntegrityCallback =
+    SqliteVtabIntegrityCallback { vTab: Vtab, schema, tableName, flags ->
         vTab.table.runCatchingSQLiteException({ error ->
             failure(error.message, error.result)
         }) {

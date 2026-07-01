@@ -16,7 +16,7 @@ import ksqlite.capi.sqlite3_bind_value
 import ksqlite.capi.sqlite3_bind_zeroblob
 import ksqlite.capi.sqlite3_bind_zeroblob64
 import ksqlite.capi.sqlite3_clear_bindings
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.autoCloser

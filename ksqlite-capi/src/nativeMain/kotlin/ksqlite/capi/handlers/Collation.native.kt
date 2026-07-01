@@ -8,8 +8,8 @@ import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
+import ksqlite.capi.sqlite3
 import ksqlite.capi.types.s3
-import ksqlite.capi.types.sqlite3
 import ksqlite.types.internal.convertTextEncoding
 
 ///////////////////////////////////////////////////////////////////////////

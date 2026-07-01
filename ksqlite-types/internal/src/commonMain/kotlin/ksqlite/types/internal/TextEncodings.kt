@@ -25,7 +25,7 @@ internal val SqliteTextEncodings: Set<SqliteTextEncoding> = sqliteTextEncodings(
  */
 public inline fun <reified E : SqliteTextEncoding> convertTextEncoding(encoding: Int): E {
     val value = SqliteTextEncodings.firstOrNull { (encoding and it.value) == it.value }
-    checkNotNull(value) { "Unknown sqlite3 text encoding $encoding" }
+    checkNotNull(value) { "Unknown SQLite text encoding $encoding" }
     check(value is E) { "Unexpected encoding type $value" }
     return value
 }

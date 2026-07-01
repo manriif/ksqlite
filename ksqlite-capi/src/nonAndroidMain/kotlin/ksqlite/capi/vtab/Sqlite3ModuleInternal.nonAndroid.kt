@@ -7,17 +7,17 @@ import ksqlite.capi.memory.destroyMemory
 /**
  * Cleanups the [vTab], releasing overloaded functions if any.
  */
-internal inline fun cleanupVTab(vTab: sqlite3_vtab) {
+internal inline fun cleanupVtab(vTab: sqlite3_vtab) {
     vTab.destroyMemory()
     vTab.free()
 }
 
 /**
- * Invokes the [VTabModuleCallbacks.disconnect] and destroys all the associated resources.
+ * Invokes the [VtabModuleCallbacks.disconnect] and destroys all the associated resources.
  */
-internal inline fun vTabDisconnect(vTab: Long) = vTabDisconnect(vTab, ::cleanupVTab)
+internal inline fun vTabDisconnect(vTab: Long) = vTabDisconnect(vTab, ::cleanupVtab)
 
 /**
- * Invokes the [VTabModuleCallbacks.destroy] and destroys all the associated resources.
+ * Invokes the [VtabModuleCallbacks.destroy] and destroys all the associated resources.
  */
-internal inline fun vTabDestroy(vTab: Long) = vTabDestroy(vTab, ::cleanupVTab)
+internal inline fun vTabDestroy(vTab: Long) = vTabDestroy(vTab, ::cleanupVtab)

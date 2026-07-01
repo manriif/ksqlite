@@ -2,7 +2,7 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmFunctions
@@ -15,7 +15,7 @@ import kotlin.js.toJsReference
 private external fun walHook(
     jsRef: JsReference<WalHookHandler>,
     handler: (
-		jsRef: JsReference<WalHookHandler>,
+        jsRef: JsReference<WalHookHandler>,
         refPointer: WasmPointer,
         db: WasmPointer,
         dbName: WasmPointer,

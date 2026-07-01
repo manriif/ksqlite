@@ -13,10 +13,10 @@ import ksqlite.foreign.structs.nthConstraint
 import ksqlite.foreign.structs.nthConstraintUsage
 import ksqlite.foreign.structs.nthOrderBy
 import ksqlite.foreign.wasm.WasmPointer
-import ksqlite.types.internal.convertVTabConstraintOperatorCode
+import ksqlite.types.internal.convertVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteIndexInfo
-import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
-import ksqlite.types.vtab.SqliteVTabScanFlag
+import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
+import ksqlite.types.vtab.SqliteVtabScanFlag
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 
@@ -43,8 +43,8 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
     public actual override fun getConstraintColumn(index: Int): Int =
         constraints[index].iColumn
 
-    public actual override fun getConstraintOp(index: Int): SqliteVTabConstraintOperatorCode =
-        convertVTabConstraintOperatorCode(constraints[index].op)
+    public actual override fun getConstraintOp(index: Int): SqliteVtabConstraintOperatorCode =
+        convertVtabConstraintOperatorCode(constraints[index].op)
 
     public actual override fun getConstraintUsable(index: Int): Int =
         constraints[index].usable
@@ -92,8 +92,8 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
             info.estimatedRows = value.toJsBigInt()
         }
 
-    public actual override var idxFlags: SqliteVTabScanFlag
-        get() = SqliteVTabScanFlag.from(info.idxFlags)
+    public actual override var idxFlags: SqliteVtabScanFlag
+        get() = SqliteVtabScanFlag.from(info.idxFlags)
         set(value) {
             info.idxFlags = value.value
         }

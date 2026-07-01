@@ -6,7 +6,7 @@ import ksqlite.capi.sqlite3_result_error_code
 import ksqlite.capi.sqlite3_result_error_nomem
 import ksqlite.capi.sqlite3_result_error_toobig
 import ksqlite.types.SqliteResultCode
-import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.sqlite3_context
 import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.helpers.ContextClosableScope

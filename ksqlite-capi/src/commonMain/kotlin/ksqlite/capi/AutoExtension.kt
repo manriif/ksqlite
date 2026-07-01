@@ -4,9 +4,8 @@ import ksqlite.capi.callbacks.AutoExtensionCallbackScope
 import ksqlite.capi.callbacks.AutoExtensionFailureResult
 import ksqlite.capi.callbacks.AutoExtensionSuccessResult
 import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
-import ksqlite.capi.types.sqlite3
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.internal.convertResult
+import ksqlite.types.internal.convertResultCode
 
 /**
  * All registered [SqliteAutoExtensionCallback].
@@ -24,7 +23,7 @@ internal fun autoExtensionRegister(
     var result: SqliteResultCode = SqliteResultCode.OK
 
     if (AutoExtensions.isEmpty()) {
-        result = convertResult(invoke())
+        result = convertResultCode(invoke())
     }
 
     if (result == SqliteResultCode.OK) {

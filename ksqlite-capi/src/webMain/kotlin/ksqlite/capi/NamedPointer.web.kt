@@ -1,11 +1,11 @@
 package ksqlite.capi
 
 import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.capi.memory.notNull
+import ksqlite.capi.memory.orNull
 import ksqlite.foreign.wasm.WasmMemory
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.allocCString
-import ksqlite.capi.memory.notNull
-import ksqlite.capi.memory.orNull
 
 /**
  * Wrapper for [sqlite3_bind_pointer] and [sqlite3_result_pointer] userData.

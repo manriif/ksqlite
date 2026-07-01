@@ -3,6 +3,10 @@
 package ksqlite.capi.types
 
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
+import ksqlite.capi.memory.Utf8OutputParam
+import ksqlite.capi.vfs.sqlite3_vfs
 
 /**
  * These integer constants are opcodes for the xFileControl method of the sqlite3_io_methods object
@@ -18,7 +22,7 @@ public sealed class SqliteFileControlOpcode(public open val code: Int) {
     public sealed class IntParam(
         code: Int,
         internal val param: Int32OutputParam
-    ): SqliteFileControlOpcode(code)
+    ) : SqliteFileControlOpcode(code)
 
     /**
      * [SqliteFileControlOpcode] where the fourth argument is a pointer to a 64-bits integer.
@@ -26,7 +30,7 @@ public sealed class SqliteFileControlOpcode(public open val code: Int) {
     public sealed class LongParam(
         code: Int,
         internal val param: Int64OutputParam
-    ): SqliteFileControlOpcode(code)
+    ) : SqliteFileControlOpcode(code)
 
     /**
      * [SqliteFileControlOpcode] where the fourth argument is a pointer to a string.
@@ -34,7 +38,7 @@ public sealed class SqliteFileControlOpcode(public open val code: Int) {
     public sealed class StringParam(
         code: Int,
         internal val param: Utf8OutputParam
-    ): SqliteFileControlOpcode(code)
+    ) : SqliteFileControlOpcode(code)
 
     /**
      * Writes the platform specific error code into [param].
@@ -124,7 +128,7 @@ public sealed class SqliteFileControlOpcode(public open val code: Int) {
      * and it writes a boolean into that integer depending on whether or not the file has been
      * renamed, moved, or deleted since it was first opened.
      */
-    public class HAS_MOVED(param: Int32OutputParam): IntParam(20, param)
+    public class HAS_MOVED(param: Int32OutputParam) : IntParam(20, param)
 
     /**
      * The SQLITE_FCNTL_VFS_POINTER opcode finds a pointer to the top-level VFSes currently in use.
@@ -132,7 +136,8 @@ public sealed class SqliteFileControlOpcode(public open val code: Int) {
      * "sqlite3_vfs **". This opcode will set *X to a pointer to the top-level VFS. When there are
      * multiple VFS shims in the stack, this opcode finds the upper-most shim only.
      */
-    public class VFS_POINTER(internal val param: SqliteVfsOutputParam) : SqliteFileControlOpcode(27)
+    public class VFS_POINTER(internal val param: sqlite3_vfs.OutputParam) :
+        SqliteFileControlOpcode(27)
 
     /**
      * The SQLITE_FCNTL_LOCK_TIMEOUT opcode is used to configure a VFS to block for up to M

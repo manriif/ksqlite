@@ -2,6 +2,7 @@
 
 package ksqlite.capi.types
 
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.OpaqueBuffer
 
 /**

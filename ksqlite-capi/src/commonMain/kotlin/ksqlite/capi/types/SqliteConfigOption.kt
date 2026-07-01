@@ -4,6 +4,7 @@ package ksqlite.capi.types
 
 import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.OpaqueBuffer
 
 /**

@@ -3,7 +3,7 @@ package ksqlite.capi.handlers
 import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.foreign.`sqlite3_preupdate_hook$xPreUpdate`
 import ksqlite.foreign.`sqlite3_update_hook$x0`
 import ksqlite.types.internal.convertActionCode

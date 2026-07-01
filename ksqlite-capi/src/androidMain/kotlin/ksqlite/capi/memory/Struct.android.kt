@@ -7,7 +7,7 @@ public actual open class Struct internal constructor(
     protected open val jniStruct: JniStruct? = null
 ) : StructBase() {
 
-    internal constructor(jniStruct: JniStruct): this(jniStruct.pointer, jniStruct)
+    internal constructor(jniStruct: JniStruct) : this(jniStruct.pointer, jniStruct)
 
     actual override val address: Long
         get() = pointer

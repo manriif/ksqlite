@@ -4,7 +4,7 @@ import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.function.ScalarFunction
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.types.vtab.SqliteIndexInfo
-import ksqlite.types.vtab.SqliteVTab
+import ksqlite.types.vtab.SqliteVtab
 
 /**
  * Represents a [Virtual Table](https://sqlite.org/vtab.html).
@@ -26,25 +26,25 @@ import ksqlite.types.vtab.SqliteVTab
  * [VirtualTable]. So it is illegal to access these fields in one of [VirtualTableModule] methods as
  * an example.
  */
-public abstract class VirtualTable : SqliteVTab {
+public abstract class VirtualTable : SqliteVtab {
 
     /**
      * This field is only available between [VirtualTableModule.connect] /
      * [VirtualTableModule.Regular.create] (excluded) and [disconnect] / [destroy] (included).
      */
-    internal var parent: SqliteVTab? = null
+    internal var parent: SqliteVtab? = null
 
     final override val nRef: Int
-        get() = parent(SqliteVTab::nRef)
+        get() = parent(SqliteVtab::nRef)
 
     final override var errMsg: String?
-        get() = parent(SqliteVTab::errMsg)
+        get() = parent(SqliteVtab::errMsg)
         set(value) = parent { errMsg = value }
 
     /**
-     * Invokes [block] with the attached [VTab] or throws if [VTab] is detached.
+     * Invokes [block] with the attached [Vtab] or throws if [Vtab] is detached.
      */
-    private inline fun <R> parent(block: SqliteVTab.() -> R): R =
+    private inline fun <R> parent(block: SqliteVtab.() -> R): R =
         checkNotNull(parent) { "Virtual table is not attached" }.block()
 
     ///////////////////////////////////////////////////////////////////////////

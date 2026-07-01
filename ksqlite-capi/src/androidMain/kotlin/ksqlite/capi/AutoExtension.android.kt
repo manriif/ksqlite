@@ -2,7 +2,6 @@ package ksqlite.capi
 
 import ksqlite.foreign.OutputPointer
 import ksqlite.foreign.callbacks.AutoExtensionCallback
-import ksqlite.capi.types.sqlite3
 
 /**
  * Singleton handler for auto extensions.

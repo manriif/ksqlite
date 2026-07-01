@@ -1,5 +1,8 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.memory.OpaqueBuffer.Companion.allocate
+
+
 /**
  * Region of native memory that can be read.
  */

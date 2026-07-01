@@ -121,8 +121,5 @@ private val SqliteResultCodeMap = sqliteResultCodes().associateBy(SqliteResultCo
 /**
  * Converts [code] to [SqliteResultCode].
  */
-public fun convertResult(code: Int): SqliteResultCode {
-    return checkNotNull(SqliteResultCodeMap[code]) {
-        "Unknown sqlite3 result code $code"
-    }
-}
+public fun convertResultCode(code: Int): SqliteResultCode =
+    checkNotNull(SqliteResultCodeMap[code]) { "Unknown SQLite result code $code" }

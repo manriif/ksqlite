@@ -6,10 +6,10 @@ import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
 import ksqlite.foreign.sqlite3
-import ksqlite.types.internal.convertVTabConstraintOperatorCode
+import ksqlite.types.internal.convertVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteIndexInfo
-import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
-import ksqlite.types.vtab.SqliteVTabScanFlag
+import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
+import ksqlite.types.vtab.SqliteVtabScanFlag
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import ksqlite.foreign.sqlite3_index_info.sqlite3_index_constraint as s3_index_constraint
@@ -47,8 +47,8 @@ public actual class sqlite3_index_info internal constructor(pointer: MemorySegme
     public actual override fun getConstraintColumn(index: Int): Int =
         s3_index_constraint.iColumn(constraints[index])
 
-    public actual override fun getConstraintOp(index: Int): SqliteVTabConstraintOperatorCode =
-        convertVTabConstraintOperatorCode(s3_index_constraint.op(constraints[index]).toInt())
+    public actual override fun getConstraintOp(index: Int): SqliteVtabConstraintOperatorCode =
+        convertVtabConstraintOperatorCode(s3_index_constraint.op(constraints[index]).toInt())
 
     public actual override fun getConstraintUsable(index: Int): Int =
         s3_index_constraint.usable(constraints[index]).toInt()
@@ -86,8 +86,8 @@ public actual class sqlite3_index_info internal constructor(pointer: MemorySegme
         get() = s3_index_info.estimatedRows(pointer)
         set(value) = s3_index_info.estimatedRows(pointer, value)
 
-    public actual override var idxFlags: SqliteVTabScanFlag
-        get() = SqliteVTabScanFlag.from(s3_index_info.idxFlags(pointer))
+    public actual override var idxFlags: SqliteVtabScanFlag
+        get() = SqliteVtabScanFlag.from(s3_index_info.idxFlags(pointer))
         set(value) = s3_index_info.idxFlags(pointer, value.value)
 
     public actual override fun setConstraintUsageArgvIndex(index: Int, argvIndex: Int) {

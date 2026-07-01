@@ -2,11 +2,7 @@ package ksqlite.capi
 
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.types.Int64OutputParam
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.types.SqliteSerializeFlag
 
 ///////////////////////////////////////////////////////////////////////////

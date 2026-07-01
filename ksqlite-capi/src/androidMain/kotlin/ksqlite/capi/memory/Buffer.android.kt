@@ -62,7 +62,7 @@ public actual class Buffer private constructor(
 public actual class OpaqueBuffer(
     internal val pointer: JniPointer,
     public actual val byteSize: Long
-)  : AutoCloseable {
+) : AutoCloseable {
 
     private val freed = AtomicBoolean(false)
 

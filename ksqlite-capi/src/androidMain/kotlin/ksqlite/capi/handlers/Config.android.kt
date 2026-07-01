@@ -1,11 +1,11 @@
 package ksqlite.capi.handlers
 
-import ksqlite.foreign.callbacks.ConfigLogCallback
-import ksqlite.foreign.callbacks.ConfigSqlLogCallback
 import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.dispatchSqlLogEvent
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
+import ksqlite.foreign.callbacks.ConfigLogCallback
+import ksqlite.foreign.callbacks.ConfigSqlLogCallback
 
 /**
  * Handler for the LOG option of [ksqlite.capi.sqlite3_config].

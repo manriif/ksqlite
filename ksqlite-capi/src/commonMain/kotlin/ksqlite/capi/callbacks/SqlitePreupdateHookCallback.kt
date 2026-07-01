@@ -1,6 +1,6 @@
 package ksqlite.capi.callbacks
 
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.types.SqliteActionCode
 
 /**

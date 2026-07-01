@@ -3,8 +3,8 @@ package ksqlite.capi.handlers
 import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.exports
 import ksqlite.capi.memory.toArrayOrEmpty
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.sqlite3_context
+import ksqlite.capi.sqlite3_value
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmFunctions

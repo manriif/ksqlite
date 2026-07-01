@@ -3,7 +3,6 @@ package ksqlite.capi
 import ksqlite.capi.memory.StaticMemoryAllocator
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.setPointerValue
-import ksqlite.capi.types.sqlite3
 import ksqlite.foreign.ksqlite_xEntryPoint
 import java.lang.foreign.MemorySegment
 

@@ -1,10 +1,7 @@
 package ksqlite.capi
 
-import ksqlite.capi.sqlite3_open_v2
+import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.types.SqliteFileControlOpcode
-import ksqlite.capi.types.SqliteOutputParam
-import ksqlite.capi.types.Utf8OutputParam
-import ksqlite.capi.types.sqlite3
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
 import kotlin.test.Test
@@ -44,7 +41,7 @@ class ConnectionCallbackTest {
 
         assertEquals(SqliteResultCode.OK, autoExtension3Result)
 
-        val outDb = SqliteOutputParam()
+        val outDb = sqlite3.OutputParam()
         val openResult = sqlite3_open(":memory:", outDb)
         assertEquals(SqliteResultCode.CANTOPEN, openResult)
 
@@ -65,7 +62,7 @@ class ConnectionCallbackTest {
 
     @Test
     fun autovacuumPagesWorks() = runSqliteTest {
-        val outDb = SqliteOutputParam()
+        val outDb = sqlite3.OutputParam()
         val openResult = sqlite3_open("", outDb)
         assertEquals(SqliteResultCode.OK, openResult)
 
@@ -145,11 +142,12 @@ class ConnectionCallbackTest {
     fun busyHandlerWorks() = runSqliteTest {
         // Real file system is required here, but we do not want to expect/actual temporary file
         // creation, so we let sqlite create a db file, request a temp file and delete the db file
-        val outDb = SqliteOutputParam()
+        val outDb = sqlite3.OutputParam()
         val openResult = sqlite3_open_v2(
             "temp.db",
             outDb,
-            SqliteOpenFlag.READONLY or SqliteOpenFlag.DELETEONCLOSE, null)
+            SqliteOpenFlag.READONLY or SqliteOpenFlag.DELETEONCLOSE, null
+        )
         assertEquals(SqliteResultCode.OK, openResult)
 
         val db = assertNotNull(outDb.value)
@@ -161,12 +159,12 @@ class ConnectionCallbackTest {
         val tempFile = assertNotNull(outTempFile.value)
 
         println(tempFile)
-        val outDb1 = SqliteOutputParam()
+        val outDb1 = sqlite3.OutputParam()
         val openDb1Result = sqlite3_open(tempFile, outDb1)
         assertEquals(SqliteResultCode.OK, openDb1Result)
         val db1 = assertNotNull(outDb1.value)
 
-        val outDb2 = SqliteOutputParam()
+        val outDb2 = sqlite3.OutputParam()
         val openDb2Result = sqlite3_open(tempFile, outDb2)
         assertEquals(SqliteResultCode.OK, openDb2Result)
         val db2 = assertNotNull(outDb2.value)

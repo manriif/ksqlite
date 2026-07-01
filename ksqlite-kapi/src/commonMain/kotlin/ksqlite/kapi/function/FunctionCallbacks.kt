@@ -5,7 +5,7 @@ import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
 import ksqlite.capi.callbacks.SqliteFunctionInverseCallback
 import ksqlite.capi.callbacks.SqliteFunctionStepCallback
 import ksqlite.capi.callbacks.SqliteFunctionValueCallback
-import ksqlite.capi.types.sqlite3_context
+import ksqlite.capi.sqlite3_context
 import ksqlite.kapi.helpers.runCatchingSQLiteException
 import ksqlite.kapi.value.toProtectedValues
 

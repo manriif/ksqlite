@@ -23,7 +23,7 @@ private var SQLITE_TRANSIENT: JsBigInt? = null
 /**
  * Returns the [Sqlite3] instance or raise an error if SQLite wasn't initialized.
  */
-internal val sqlite3: Sqlite3
+private val s3: Sqlite3
     get() = checkNotNull(Sqlite3Instance) {
         "SQLite was not initialized, function initializeSqlite() must be called before any other " +
                 "API call"
@@ -36,13 +36,13 @@ internal val sqliteTransient: JsBigInt
  * Returns the [Sqlite3Capi] instance.
  */
 internal inline val capi: Sqlite3Capi
-    get() = sqlite3.capi
+    get() = s3.capi
 
 /**
  * Returns the [Sqlite3Wasm] instance.
  */
 internal inline val wasm: Sqlite3Wasm
-    get() = sqlite3.wasm
+    get() = s3.wasm
 
 /**
  * Returns the [Sqlite3WasmExports] instance.

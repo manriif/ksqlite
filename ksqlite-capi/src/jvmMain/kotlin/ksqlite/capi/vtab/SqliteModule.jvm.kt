@@ -8,8 +8,8 @@ import ksqlite.capi.memory.notNull
 
 public actual class sqlite3_module<AppData> internal actual constructor(
     version: Int,
-    internal val callbacks: VTabModuleCallbacks<AppData, *, *>
-) : Struct(allocate = { s3_module.allocate(this) }),
+    internal val callbacks: VtabModuleCallbacks<AppData, *, *>
+) : Struct(allocate = s3_module::allocate),
     AutoCloseable {
 
     init {
@@ -19,38 +19,38 @@ public actual class sqlite3_module<AppData> internal actual constructor(
             pointer,
             when (callbacks.moduleKind) {
                 EponymousOnly -> NullPtr
-                Eponymous -> VTabConnectHandler
-                Ordinal -> VTabCreateHandler
+                Eponymous -> VtabConnectHandler
+                Ordinal -> VtabCreateHandler
             }
         )
 
-        s3_module.xConnect(pointer, VTabConnectHandler)
-        s3_module.xBestIndex(pointer, VTabBestIndexHandler)
-        s3_module.xDisconnect(pointer, VTabDisconnectHandler)
-        s3_module.xDestroy(pointer, VTabDestroyHandler)
-        s3_module.xOpen(pointer, VTabOpenHandler)
-        s3_module.xClose(pointer, VTabCloseHandler)
-        s3_module.xFilter(pointer, VTabFilterHandler)
-        s3_module.xNext(pointer, VTabNextHandler)
-        s3_module.xEof(pointer, VTabEofHandler)
-        s3_module.xColumn(pointer, VTabColumnHandler)
-        s3_module.xRowid(pointer, VTabRowidHandler)
-        s3_module.xUpdate(pointer, callbacks.update?.let { VTabUpdateHandler }.notNull)
-        s3_module.xBegin(pointer, callbacks.begin?.let { VTabBeginHandler }.notNull)
-        s3_module.xSync(pointer, callbacks.sync?.let { VTabSyncHandler }.notNull)
-        s3_module.xCommit(pointer, callbacks.commit?.let { VTabCommitHandler }.notNull)
-        s3_module.xRollback(pointer, callbacks.rollback?.let { VTabRollbackHandler }.notNull)
+        s3_module.xConnect(pointer, VtabConnectHandler)
+        s3_module.xBestIndex(pointer, VtabBestIndexHandler)
+        s3_module.xDisconnect(pointer, VtabDisconnectHandler)
+        s3_module.xDestroy(pointer, VtabDestroyHandler)
+        s3_module.xOpen(pointer, VtabOpenHandler)
+        s3_module.xClose(pointer, VtabCloseHandler)
+        s3_module.xFilter(pointer, VtabFilterHandler)
+        s3_module.xNext(pointer, VtabNextHandler)
+        s3_module.xEof(pointer, VtabEofHandler)
+        s3_module.xColumn(pointer, VtabColumnHandler)
+        s3_module.xRowid(pointer, VtabRowidHandler)
+        s3_module.xUpdate(pointer, callbacks.update?.let { VtabUpdateHandler }.notNull)
+        s3_module.xBegin(pointer, callbacks.begin?.let { VtabBeginHandler }.notNull)
+        s3_module.xSync(pointer, callbacks.sync?.let { VtabSyncHandler }.notNull)
+        s3_module.xCommit(pointer, callbacks.commit?.let { VtabCommitHandler }.notNull)
+        s3_module.xRollback(pointer, callbacks.rollback?.let { VtabRollbackHandler }.notNull)
 
         s3_module.xFindFunction(
             pointer,
-            callbacks.findFunction?.let { VTabFindFunctionHandler }.notNull
+            callbacks.findFunction?.let { VtabFindFunctionHandler }.notNull
         )
 
-        s3_module.xRename(pointer, callbacks.rename?.let { VTabRenameHandler }.notNull)
-        s3_module.xSavepoint(pointer, callbacks.savepoint?.let { VTabSavepointHandler }.notNull)
-        s3_module.xRelease(pointer, callbacks.release?.let { VTabReleaseHandler }.notNull)
-        s3_module.xRollbackTo(pointer, callbacks.rollbackTo?.let { VTabRollbackToHandler }.notNull)
-        s3_module.xIntegrity(pointer, callbacks.integrity?.let { VTabIntegrityHandler }.notNull)
+        s3_module.xRename(pointer, callbacks.rename?.let { VtabRenameHandler }.notNull)
+        s3_module.xSavepoint(pointer, callbacks.savepoint?.let { VtabSavepointHandler }.notNull)
+        s3_module.xRelease(pointer, callbacks.release?.let { VtabReleaseHandler }.notNull)
+        s3_module.xRollbackTo(pointer, callbacks.rollbackTo?.let { VtabRollbackToHandler }.notNull)
+        s3_module.xIntegrity(pointer, callbacks.integrity?.let { VtabIntegrityHandler }.notNull)
     }
 
     @Suppress("ACTUAL_IGNORABILITY_NOT_MATCH_EXPECT")

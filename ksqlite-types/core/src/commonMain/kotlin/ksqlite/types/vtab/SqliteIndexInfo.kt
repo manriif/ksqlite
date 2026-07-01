@@ -33,7 +33,7 @@ public interface SqliteIndexInfo {
     /**
      * Returns the operator for the constraint at [index].
      */
-    public fun getConstraintOp(index: Int): SqliteVTabConstraintOperatorCode
+    public fun getConstraintOp(index: Int): SqliteVtabConstraintOperatorCode
 
     /**
      * Returns `True` if the constraint at [index] is usable.
@@ -87,9 +87,9 @@ public interface SqliteIndexInfo {
     public var estimatedRows: Long
 
     /**
-     * Mask of [ksqlite.types.vtab.SqliteVTabScanFlag] flags.
+     * Mask of [ksqlite.types.vtab.SqliteVtabScanFlag] flags.
      */
-    public var idxFlags: SqliteVTabScanFlag
+    public var idxFlags: SqliteVtabScanFlag
 
     /**
      * if [argvIndex] > 0, then the constraint at [index] is part of argv to xFilter.

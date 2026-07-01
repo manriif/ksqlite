@@ -5,6 +5,7 @@ package ksqlite.capi
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.HeapAllocatorScope
+import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.globalMemory
@@ -14,13 +15,8 @@ import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.stableRefAppData
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
+import ksqlite.capi.memory.useParam
 import ksqlite.capi.memory.withMemoryManager
-import ksqlite.capi.types.Int64OutputParam
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.types.useParam
 import ksqlite.foreign.Sqlite3WasmExports
 import ksqlite.foreign.wasm.IR
 import ksqlite.foreign.wasm.WasmPointer

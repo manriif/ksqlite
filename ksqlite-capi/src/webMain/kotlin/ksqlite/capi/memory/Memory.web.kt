@@ -3,7 +3,6 @@
 package ksqlite.capi.memory
 
 import js.typedarrays.Int8Array
-import ksqlite.capi.sqlite3
 import ksqlite.capi.wasm
 import ksqlite.foreign.js.arrayForEachIndexed
 import ksqlite.foreign.js.arraySize
@@ -40,7 +39,7 @@ import kotlin.js.toLong
  * Wasm null pointer.
  */
 public val NullPtr: WasmPointer
-    get() = sqlite3.wasm.ptr.`null`
+    get() = wasm.ptr.`null`
 
 /**
  * Whether `this` [WasmPointer] points to a null pointer.

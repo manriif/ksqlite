@@ -2,8 +2,8 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.memory.toArrayOrEmpty
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.sqlite3_context
+import ksqlite.capi.sqlite3_value
 import ksqlite.foreign.sqlite3.sqlite3_user_data
 import ksqlite.foreign.`sqlite3_create_function_v2$xFinal`
 import ksqlite.foreign.`sqlite3_create_function_v2$xFunc`

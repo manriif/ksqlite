@@ -1,8 +1,6 @@
 package ksqlite.capi
 
-import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.SqliteStmtOutputParam
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.types.SqliteDataType
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqlitePrepareFlag
@@ -24,7 +22,7 @@ class StatementTest {
     @Test
     fun prepareWorks() = runSqliteConnectionDataTest { db ->
         val sql = "SELECT * FROM test;"
-        val outStmt = SqliteStmtOutputParam()
+        val outStmt = sqlite3_stmt.OutputParam()
 
         val prepareResult = sqlite3_prepare_v3(db, sql, SqlitePrepareFlag.DONT_LOG, outStmt)
         assertEquals(SqliteResultCode.OK, prepareResult)
@@ -91,7 +89,7 @@ class StatementTest {
         prepare: (
             db: sqlite3,
             sql: ByteArray,
-            outStmt: SqliteStmtOutputParam,
+            outStmt: sqlite3_stmt.OutputParam,
             outOffset: Int32OutputParam
         ) -> SqliteResultCode
     ) = runSqliteConnectionDataTest { db ->
@@ -100,7 +98,7 @@ class StatementTest {
         assertEquals("SELECT * FROM test;SELECT * FROM test;", doubledSql)
 
         val sql = doubledSql.encodeToByteArray()
-        val outStmt = SqliteStmtOutputParam()
+        val outStmt = sqlite3_stmt.OutputParam()
         val outOffset = Int32OutputParam()
 
         val prepareResult = prepare(db, sql, outStmt, outOffset)
@@ -128,7 +126,7 @@ class StatementTest {
     @Test
     fun bindingWorks() = runSqliteConnectionDataTest { db ->
         val sql = "INSERT INTO test VALUES (:theInt, ?, ?, ?, @zeroBlob);"
-        val outStmt = SqliteStmtOutputParam()
+        val outStmt = sqlite3_stmt.OutputParam()
 
         val prepareResult = sqlite3_prepare_v2(db, sql, outStmt)
         assertEquals(SqliteResultCode.OK, prepareResult)
@@ -253,7 +251,7 @@ class StatementTest {
         assertEquals(SqliteResultCode.OK, insertResult)
 
         val selectSql = "SELECT * FROM test;"
-        val outStmt = SqliteStmtOutputParam()
+        val outStmt = sqlite3_stmt.OutputParam()
 
         val prepareResult = sqlite3_prepare_v2(db, selectSql, outStmt)
         assertEquals(SqliteResultCode.OK, prepareResult)

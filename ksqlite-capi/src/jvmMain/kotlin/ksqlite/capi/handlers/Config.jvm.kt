@@ -4,7 +4,7 @@ import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.dispatchSqlLogEvent
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.foreign.ksqlite_xLog
 import ksqlite.foreign.ksqlite_xSqllog
 import java.lang.foreign.Arena

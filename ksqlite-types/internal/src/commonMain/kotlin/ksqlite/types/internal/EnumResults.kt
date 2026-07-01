@@ -11,7 +11,7 @@ public fun convertCompleteResult(value: Int): SqliteCompleteResult = when (value
     0 -> Incomplete
     1 -> Complete
     else -> SqliteCompleteResult
-        .Failure(checkNotNull(convertResult(value) as? SqliteResultCode.Failure))
+        .Failure(checkNotNull(convertResultCode(value) as? SqliteResultCode.Failure))
 }
 
 /**

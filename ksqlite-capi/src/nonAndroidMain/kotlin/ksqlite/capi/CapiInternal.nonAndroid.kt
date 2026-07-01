@@ -5,7 +5,7 @@ import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.destroyMemory
 import ksqlite.capi.memory.memory
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.internal.convertResult
+import ksqlite.types.internal.convertResultCode
 
 ///////////////////////////////////////////////////////////////////////////
 // Helpers
@@ -21,7 +21,7 @@ import ksqlite.types.internal.convertResult
  */
 internal inline fun <S> S.deallocate(block: (S) -> Int): SqliteResultCode
         where S : Struct, S : MemoryScope {
-    val result = convertResult(block(this))
+    val result = convertResultCode(block(this))
 
     if (result == SqliteResultCode.OK) {
         destroyMemory()

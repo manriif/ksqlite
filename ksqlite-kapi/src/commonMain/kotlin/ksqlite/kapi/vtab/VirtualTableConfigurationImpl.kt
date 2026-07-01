@@ -1,8 +1,8 @@
 package ksqlite.kapi.vtab
 
 import ksqlite.capi.sqlite3_vtab_config
-import ksqlite.capi.types.SqliteVTabConfigOption
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.vtab.SqliteVtabConfigOption
+import ksqlite.capi.sqlite3
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 
@@ -14,7 +14,7 @@ internal class VirtualTableConfigurationImpl(
     /**
      * Applies the given configuration [option].
      */
-    private fun applyOption(option: SqliteVTabConfigOption) =
+    private fun applyOption(option: SqliteVtabConfigOption) =
         scope.notClosed { sqliteResultCheck(sqlite3_vtab_config(db, option)) }
 
     /**
@@ -23,24 +23,24 @@ internal class VirtualTableConfigurationImpl(
      * structures have been made.
      */
     override fun setConstraintSupportEnabled(enabled: Boolean) =
-        applyOption(SqliteVTabConfigOption.CONSTRAINT_SUPPORT(if (enabled) 1 else 0))
+        applyOption(SqliteVtabConfigOption.CONSTRAINT_SUPPORT(if (enabled) 1 else 0))
 
     /**
      * Marks the virtual table as being safe to use from within triggers and views.
      */
     override fun setInnocuous() =
-        applyOption(SqliteVTabConfigOption.INNOCUOUS)
+        applyOption(SqliteVtabConfigOption.INNOCUOUS)
 
     /**
      * Prohibits the use of the virtual table from within triggers and views.
      */
     override fun setDirectonly() =
-        applyOption(SqliteVTabConfigOption.DIRECTONLY)
+        applyOption(SqliteVtabConfigOption.DIRECTONLY)
 
     /**
      * Instructs the query planner to begin at least a read transaction on all schemas ("main",
      * "temp", and any ATTACH-ed databases) whenever the virtual table is used.
      */
     override fun setUsesAllSchemas() =
-        applyOption(SqliteVTabConfigOption.USES_ALL_SCHEMAS)
+        applyOption(SqliteVtabConfigOption.USES_ALL_SCHEMAS)
 }

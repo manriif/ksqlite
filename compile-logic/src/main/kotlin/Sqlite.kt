@@ -109,8 +109,11 @@ val SqliteConstants = listOf(
  * Structs that must be exported.
  */
 val SqliteStructs = listOf(
+    "file",
     "index_info",
+    "io_methods",
     "module",
+    "vfs",
     "vtab",
     "vtab_cursor"
 ).sqlitePrefixed()

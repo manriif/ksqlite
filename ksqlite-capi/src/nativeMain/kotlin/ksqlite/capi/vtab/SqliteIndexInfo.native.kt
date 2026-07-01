@@ -10,10 +10,10 @@ import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.memory.Struct
 import ksqlite.foreign.sqlite3_free
 import ksqlite.foreign.sqlite3_mprintf
-import ksqlite.types.internal.convertVTabConstraintOperatorCode
+import ksqlite.types.internal.convertVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteIndexInfo
-import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
-import ksqlite.types.vtab.SqliteVTabScanFlag
+import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
+import ksqlite.types.vtab.SqliteVtabScanFlag
 
 public actual class sqlite3_index_info
 internal constructor(override val pointer: CPointer<s3_index_info>) :
@@ -35,8 +35,8 @@ internal constructor(override val pointer: CPointer<s3_index_info>) :
     public actual override fun getConstraintColumn(index: Int): Int =
         info.aConstraint!![index].iColumn
 
-    public actual override fun getConstraintOp(index: Int): SqliteVTabConstraintOperatorCode =
-        convertVTabConstraintOperatorCode(info.aConstraint!![index].op.toInt())
+    public actual override fun getConstraintOp(index: Int): SqliteVtabConstraintOperatorCode =
+        convertVtabConstraintOperatorCode(info.aConstraint!![index].op.toInt())
 
     public actual override fun getConstraintUsable(index: Int): Int =
         info.aConstraint!![index].usable.toInt()
@@ -84,8 +84,8 @@ internal constructor(override val pointer: CPointer<s3_index_info>) :
             info.estimatedRows = value
         }
 
-    public actual override var idxFlags: SqliteVTabScanFlag
-        get() = SqliteVTabScanFlag.from(info.idxFlags)
+    public actual override var idxFlags: SqliteVtabScanFlag
+        get() = SqliteVtabScanFlag.from(info.idxFlags)
         set(value) {
             info.idxFlags = value.value
         }

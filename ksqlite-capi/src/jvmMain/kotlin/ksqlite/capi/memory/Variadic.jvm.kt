@@ -1,5 +1,6 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.memory.VariadicValue.OfPointer
 import java.lang.foreign.MemoryLayout
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout

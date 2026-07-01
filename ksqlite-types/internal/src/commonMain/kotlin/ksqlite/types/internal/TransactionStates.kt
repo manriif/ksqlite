@@ -17,6 +17,6 @@ public fun convertTransactionState(state: Int): SqliteTransactionState? {
     }
 
     return checkNotNull(SqliteTransactionStateMap[state]) {
-        "Unknown sqlite transaction state $state"
+        "Unknown SQLite transaction state $state"
     }
 }

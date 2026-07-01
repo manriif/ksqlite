@@ -11,7 +11,7 @@ class CompilationTest {
 
     @Test
     fun versionIsCorrect() = runSqliteTest {
-        val version =  sqlite3_libversion()
+        val version = sqlite3_libversion()
         assertEquals("3.53.2", version)
 
         val versionNumber = sqlite3_libversion_number()

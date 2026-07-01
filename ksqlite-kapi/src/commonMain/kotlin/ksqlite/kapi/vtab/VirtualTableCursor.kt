@@ -2,7 +2,7 @@ package ksqlite.kapi.vtab
 
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.value.ProtectedValue
-import ksqlite.types.vtab.SqliteVTabCursor
+import ksqlite.types.vtab.SqliteVtabCursor
 
 /**
  * Represents a [VirtualTable] cursor used to read and/or write the virtual table.
@@ -10,7 +10,7 @@ import ksqlite.types.vtab.SqliteVTabCursor
  * If an error is detected in a function exposed by this interface, and if error raising is allowed
  * by SQLite, it is allowed to raise an [SQLiteException] that is then reported to SQLite.
  */
-public abstract class VirtualTableCursor : SqliteVTabCursor {
+public abstract class VirtualTableCursor : SqliteVtabCursor {
 
     /**
      * Returns `false` if `this` cursor currently points to a valid row of data, of `true`

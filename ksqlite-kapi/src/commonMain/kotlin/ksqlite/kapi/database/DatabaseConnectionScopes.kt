@@ -5,8 +5,7 @@ import ksqlite.capi.sqlite3_preupdate_count
 import ksqlite.capi.sqlite3_preupdate_depth
 import ksqlite.capi.sqlite3_preupdate_new
 import ksqlite.capi.sqlite3_preupdate_old
-import ksqlite.capi.types.SqliteValueOutputParam
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
@@ -27,13 +26,13 @@ internal class PreupdateHookScopeImpl(private val db: sqlite3) :
         get() = notClosed { sqlite3_preupdate_blobwrite(db) }
 
     override fun oldValue(index: Int): ProtectedValue = notClosed {
-        usingParam(SqliteValueOutputParam()) { outValue ->
+        usingParam(sqlite3_value.Out()) { outValue ->
             sqliteResultCheck(sqlite3_preupdate_old(db, index, outValue))
         }.toProtectedValue(this)
     }
 
     override fun newValue(index: Int): ProtectedValue = notClosed {
-        usingParam(SqliteValueOutputParam()) { outValue ->
+        usingParam(sqlite3_value.Out()) { outValue ->
             sqliteResultCheck(sqlite3_preupdate_new(db, index, outValue))
         }.toProtectedValue(this)
     }

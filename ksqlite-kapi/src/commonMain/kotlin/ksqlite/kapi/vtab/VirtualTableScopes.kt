@@ -11,8 +11,7 @@ import ksqlite.capi.sqlite3_vtab_in_next
 import ksqlite.capi.sqlite3_vtab_nochange
 import ksqlite.capi.sqlite3_vtab_on_conflict
 import ksqlite.capi.sqlite3_vtab_rhs_value
-import ksqlite.capi.types.SqliteValueOutputParam
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.ContextClosableScope
@@ -23,7 +22,7 @@ import ksqlite.kapi.value.ValueReturnScopeImpl
 import ksqlite.kapi.value.toProtectedValue
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
+import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
 import kotlin.concurrent.Volatile
 
 internal class VirtualTableCreateOrConnectScopeImpl(private val db: sqlite3) :
@@ -54,7 +53,7 @@ internal class VirtualTableBestIndexScopeImpl(
         notClosed { sqlite3_vtab_in(info, index, handle) != 0 }
 
     override fun rhsValue(index: Int): ProtectedValue? = notClosed {
-        val outValue = SqliteValueOutputParam()
+        val outValue = sqlite3_value.Out()
         val result = sqlite3_vtab_rhs_value(info, index, outValue)
 
         if (result != SqliteResultCode.NOTFOUND) {
@@ -87,11 +86,11 @@ internal class VirtualTableFilterScopeImpl :
      * the [VirtualTableCursor.filter] returns.
      */
     private inline fun createValue(
-        block: (SqliteValueOutputParam) -> SqliteResultCode
+        block: (sqlite3_value.Out) -> SqliteResultCode
     ): ProtectedValue? = notClosed {
         lastValue?.scope?.close()
 
-        val outValue = SqliteValueOutputParam()
+        val outValue = sqlite3_value.Out()
         val result = block(outValue)
 
         if (result is SqliteResultCode.DONE) {
@@ -122,10 +121,10 @@ internal class VirtualTableFindFunctionScopeImpl :
     VirtualTableFindFunctionScope,
     UnsafeClosableScope() {
 
-    var customCode: SqliteVTabConstraintOperatorCode.Custom? = null
+    var customCode: SqliteVtabConstraintOperatorCode.Custom? = null
         private set
 
-    override fun customConstraintOperator(code: SqliteVTabConstraintOperatorCode.Custom) {
+    override fun customConstraintOperator(code: SqliteVtabConstraintOperatorCode.Custom) {
         customCode = code
     }
 }

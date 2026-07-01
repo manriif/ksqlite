@@ -1,9 +1,9 @@
 package ksqlite.capi.handlers
 
-import ksqlite.foreign.callbacks.CommitHookCallback
-import ksqlite.foreign.callbacks.RollbackHookCallback
 import ksqlite.capi.callbacks.SqliteCommitHookCallback
 import ksqlite.capi.callbacks.SqliteRollbackHookCallback
+import ksqlite.foreign.callbacks.CommitHookCallback
+import ksqlite.foreign.callbacks.RollbackHookCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_commit_hook].

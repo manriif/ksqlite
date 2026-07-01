@@ -1,6 +1,6 @@
 package ksqlite.kapi.vtab
 
-import ksqlite.types.vtab.SqliteVTabConstraintOperatorCode
+import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
 
 /**
  * Scope to use with [VirtualTable.findFunction].
@@ -19,5 +19,5 @@ public interface VirtualTableFindFunctionScope {
      *
      * Note that this replaces any [code] from a previous call to [customConstraintOperator].
      */
-    public fun customConstraintOperator(code: SqliteVTabConstraintOperatorCode.Custom)
+    public fun customConstraintOperator(code: SqliteVtabConstraintOperatorCode.Custom)
 }

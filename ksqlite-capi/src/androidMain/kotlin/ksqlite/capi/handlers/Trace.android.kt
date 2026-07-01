@@ -1,10 +1,10 @@
 package ksqlite.capi.handlers
 
-import ksqlite.foreign.callbacks.TraceCallback
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.dispatchTraceEvent
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
+import ksqlite.foreign.callbacks.TraceCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_trace_v2].

@@ -1,9 +1,9 @@
 package ksqlite.kapi.database
 
 import ksqlite.capi.sqlite3_db_config
-import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.types.SqliteDbConfigOption
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.kapi.buffer.OpaqueBuffer
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck

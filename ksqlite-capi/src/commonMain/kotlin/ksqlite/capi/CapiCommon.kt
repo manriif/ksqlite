@@ -3,18 +3,18 @@ package ksqlite.capi
 import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.OpaqueBuffer
+import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.VariadicValue
-import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.Int64OutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteFileControlOpcode
-import ksqlite.capi.types.SqliteVTabConfigOption
-import ksqlite.capi.types.SqliteVfsOutputParam
-import ksqlite.capi.types.Utf8OutputParam
+import ksqlite.capi.vfs.sqlite3_vfs
+import ksqlite.capi.vtab.SqliteVtabConfigOption
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.internal.convertResult
+import ksqlite.types.internal.convertResultCode
 
 ///////////////////////////////////////////////////////////////////////////
 // Config
@@ -36,7 +36,7 @@ internal fun <Pointer : Any> commonConfig(
 ): SqliteResultCode {
     val args = with(option) {
         when (this) {
-            is IntOutput -> return convertResult(outputParamConfig())
+            is IntOutput -> return convertResultCode(outputParamConfig())
             SERIALIZED, MULTITHREAD, SINGLETHREAD -> emptyArray<VariadicValue<Pointer>>()
             is COVERING_INDEX_SCAN -> arrayOf(VariadicValue.OfInt(enabled))
 
@@ -83,7 +83,7 @@ internal fun <Pointer : Any> commonConfig(
         }
     }
 
-    return convertResult(nativeConfig(option.id, args))
+    return convertResultCode(nativeConfig(option.id, args))
 }
 
 /**
@@ -100,7 +100,7 @@ internal fun <Pointer : Any> commonDbConfig(
         when (this) {
             is IntOutput -> {
                 if (state != null) {
-                    return convertResult(outParamConfig())
+                    return convertResultCode(outParamConfig())
                 }
 
                 arrayOf(VariadicValue.OfInt(value), null)
@@ -121,7 +121,7 @@ internal fun <Pointer : Any> commonDbConfig(
         }
     }
 
-    return convertResult(nativeConfig(option.id, args))
+    return convertResultCode(nativeConfig(option.id, args))
 }
 
 /**
@@ -129,7 +129,7 @@ internal fun <Pointer : Any> commonDbConfig(
  * The array passed to [nativeConfig] contains at most 1 value.
  */
 internal fun <Pointer : Any> commonVtabConfig(
-    option: SqliteVTabConfigOption,
+    option: SqliteVtabConfigOption,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
 ): SqliteResultCode {
     val args = with(option) {
@@ -139,7 +139,7 @@ internal fun <Pointer : Any> commonVtabConfig(
         }
     }
 
-    return convertResult(nativeConfig(option.id, args))
+    return convertResultCode(nativeConfig(option.id, args))
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -153,11 +153,11 @@ internal fun commonFileControl(
     opcode: SqliteFileControlOpcode,
     control: () -> Int,
     controlBuffer: (Buffer?) -> Int,
-    controlVfs: (SqliteVfsOutputParam) -> Int,
+    controlVfs: (sqlite3_vfs.OutputParam) -> Int,
     controlInt32: (Int32OutputParam) -> Int,
     controlInt64: (Int64OutputParam) -> Int,
     controlString: (param: Utf8OutputParam, freeOnRead: Boolean) -> Int
-): SqliteResultCode = convertResult(
+): SqliteResultCode = convertResultCode(
     when (opcode) {
         is IntParam -> controlInt32(opcode.param)
         is LongParam -> controlInt64(opcode.param)

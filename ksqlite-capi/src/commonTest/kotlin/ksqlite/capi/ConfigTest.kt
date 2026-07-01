@@ -1,9 +1,8 @@
 package ksqlite.capi
 
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.OpaqueBuffer
-import ksqlite.capi.types.Int32OutputParam
 import ksqlite.capi.types.SqliteConfigOption
-import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteSqlLogEvent
@@ -137,7 +136,7 @@ class ConfigTest {
         val initResult = sqlite3_initialize()
         assertEquals(SqliteResultCode.OK, initResult)
 
-        val outDb = SqliteOutputParam()
+        val outDb = sqlite3.OutputParam()
 
         val openResult = sqlite3_open_v2(
             fileName = fileName,

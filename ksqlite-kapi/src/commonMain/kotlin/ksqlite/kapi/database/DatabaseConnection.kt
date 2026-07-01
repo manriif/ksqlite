@@ -1,6 +1,6 @@
 package ksqlite.kapi.database
 
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.kapi.MAIN_DB_NAME
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.buffer.Buffer

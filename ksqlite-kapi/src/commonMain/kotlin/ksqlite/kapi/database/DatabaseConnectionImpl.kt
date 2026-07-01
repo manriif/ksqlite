@@ -47,16 +47,13 @@ import ksqlite.capi.sqlite3_total_changes64
 import ksqlite.capi.sqlite3_trace_v2
 import ksqlite.capi.sqlite3_txn_state
 import ksqlite.capi.sqlite3_update_hook
-import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.Int64OutputParam
-import ksqlite.capi.types.SqliteBlobOutputParam
-import ksqlite.capi.types.SqliteSnapshotOutputParam
-import ksqlite.capi.types.SqliteStmtOutputParam
-import ksqlite.capi.types.Utf8OutputParam
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabCreateCallback
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
+import ksqlite.capi.memory.Utf8OutputParam
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
+import ksqlite.capi.vtab.callbacks.SqliteVtabConnectCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabCreateCallback
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.blob.BlobImpl
@@ -82,30 +79,31 @@ import ksqlite.kapi.statement.PreparedStatement
 import ksqlite.kapi.statement.PreparedStatementImpl
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.kapi.value.StatusValue
-import ksqlite.kapi.vtab.VTab
-import ksqlite.kapi.vtab.VTabBeginCallback
-import ksqlite.kapi.vtab.VTabBestIndexCallback
-import ksqlite.kapi.vtab.VTabCloseCallback
-import ksqlite.kapi.vtab.VTabColumnCallback
-import ksqlite.kapi.vtab.VTabCommitCallback
-import ksqlite.kapi.vtab.VTabConnectCallback
-import ksqlite.kapi.vtab.VTabCreateCallback
-import ksqlite.kapi.vtab.VTabDestroyCallback
-import ksqlite.kapi.vtab.VTabDisconnectCallback
-import ksqlite.kapi.vtab.VTabEofCallback
-import ksqlite.kapi.vtab.VTabFilterCallback
-import ksqlite.kapi.vtab.VTabFindFunctionCallback
-import ksqlite.kapi.vtab.VTabIntegrityCallback
-import ksqlite.kapi.vtab.VTabNextCallback
-import ksqlite.kapi.vtab.VTabOpenCallback
-import ksqlite.kapi.vtab.VTabReleaseCallback
-import ksqlite.kapi.vtab.VTabRenameCallback
-import ksqlite.kapi.vtab.VTabRollbackCallback
-import ksqlite.kapi.vtab.VTabRollbackToCallback
-import ksqlite.kapi.vtab.VTabRowidCallback
-import ksqlite.kapi.vtab.VTabSavepointCallback
-import ksqlite.kapi.vtab.VTabSyncCallback
-import ksqlite.kapi.vtab.VTabUpdateCallback
+import ksqlite.kapi.value.StatusValueImpl
+import ksqlite.kapi.vtab.Vtab
+import ksqlite.kapi.vtab.VtabBeginCallback
+import ksqlite.kapi.vtab.VtabBestIndexCallback
+import ksqlite.kapi.vtab.VtabCloseCallback
+import ksqlite.kapi.vtab.VtabColumnCallback
+import ksqlite.kapi.vtab.VtabCommitCallback
+import ksqlite.kapi.vtab.VtabConnectCallback
+import ksqlite.kapi.vtab.VtabCreateCallback
+import ksqlite.kapi.vtab.VtabDestroyCallback
+import ksqlite.kapi.vtab.VtabDisconnectCallback
+import ksqlite.kapi.vtab.VtabEofCallback
+import ksqlite.kapi.vtab.VtabFilterCallback
+import ksqlite.kapi.vtab.VtabFindFunctionCallback
+import ksqlite.kapi.vtab.VtabIntegrityCallback
+import ksqlite.kapi.vtab.VtabNextCallback
+import ksqlite.kapi.vtab.VtabOpenCallback
+import ksqlite.kapi.vtab.VtabReleaseCallback
+import ksqlite.kapi.vtab.VtabRenameCallback
+import ksqlite.kapi.vtab.VtabRollbackCallback
+import ksqlite.kapi.vtab.VtabRollbackToCallback
+import ksqlite.kapi.vtab.VtabRowidCallback
+import ksqlite.kapi.vtab.VtabSavepointCallback
+import ksqlite.kapi.vtab.VtabSyncCallback
+import ksqlite.kapi.vtab.VtabUpdateCallback
 import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.kapi.vtab.VirtualTableModuleDestructor
 import ksqlite.kapi.vtab.VirtualTableOptionalFunction
@@ -199,7 +197,7 @@ internal class DatabaseConnectionImpl(
         database: String,
         flags: SqliteBlobOpenFlag
     ): Blob = scope.notClosed {
-        BlobImpl(db, usingParam(SqliteBlobOutputParam()) { outBlob ->
+        BlobImpl(db, usingParam(sqlite3_blob.Out()) { outBlob ->
             sqliteResultCheck(
                 sqlite3_blob_open(
                     db = db,
@@ -375,8 +373,8 @@ internal class DatabaseConnectionImpl(
     private fun <Module : VirtualTableModule> Module.install(
         name: String,
         version: SqliteModuleVersion,
-        create: SqliteVTabCreateCallback<in Module, VTab>?,
-        connect: SqliteVTabConnectCallback<in Module, VTab>,
+        create: SqliteVtabCreateCallback<in Module, Vtab>?,
+        connect: SqliteVtabConnectCallback<in Module, Vtab>,
     ): Unit = scope.notClosed {
         val optionalFunctions = optionalFunctions()
 
@@ -384,37 +382,37 @@ internal class DatabaseConnectionImpl(
             version = version,
             create = create,
             connect = connect,
-            bestIndex = VTabBestIndexCallback,
-            disconnect = VTabDisconnectCallback,
-            destroy = VTabDestroyCallback,
-            open = VTabOpenCallback,
-            close = VTabCloseCallback,
-            filter = VTabFilterCallback,
-            next = VTabNextCallback,
-            eof = VTabEofCallback,
-            column = VTabColumnCallback,
-            rowid = VTabRowidCallback,
-            update = VTabUpdateCallback
+            bestIndex = VtabBestIndexCallback,
+            disconnect = VtabDisconnectCallback,
+            destroy = VtabDestroyCallback,
+            open = VtabOpenCallback,
+            close = VtabCloseCallback,
+            filter = VtabFilterCallback,
+            next = VtabNextCallback,
+            eof = VtabEofCallback,
+            column = VtabColumnCallback,
+            rowid = VtabRowidCallback,
+            update = VtabUpdateCallback
                 .takeIf { VirtualTableOptionalFunction.Update in optionalFunctions },
-            findFunction = VTabFindFunctionCallback
+            findFunction = VtabFindFunctionCallback
                 .takeIf { VirtualTableOptionalFunction.FindFunction in optionalFunctions },
-            begin = VTabBeginCallback
+            begin = VtabBeginCallback
                 .takeIf { VirtualTableOptionalFunction.Begin in optionalFunctions },
-            sync = VTabSyncCallback
+            sync = VtabSyncCallback
                 .takeIf { VirtualTableOptionalFunction.Sync in optionalFunctions },
-            commit = VTabCommitCallback
+            commit = VtabCommitCallback
                 .takeIf { VirtualTableOptionalFunction.Commit in optionalFunctions },
-            rollback = VTabRollbackCallback
+            rollback = VtabRollbackCallback
                 .takeIf { VirtualTableOptionalFunction.Rollback in optionalFunctions },
-            rename = VTabRenameCallback
+            rename = VtabRenameCallback
                 .takeIf { VirtualTableOptionalFunction.Rename in optionalFunctions },
-            savepoint = VTabSavepointCallback
+            savepoint = VtabSavepointCallback
                 .takeIf { VirtualTableOptionalFunction.Savepoint in optionalFunctions },
-            release = VTabReleaseCallback
+            release = VtabReleaseCallback
                 .takeIf { VirtualTableOptionalFunction.Release in optionalFunctions },
-            rollbackTo = VTabRollbackToCallback
+            rollbackTo = VtabRollbackToCallback
                 .takeIf { VirtualTableOptionalFunction.RollbackTo in optionalFunctions },
-            integrity = VTabIntegrityCallback
+            integrity = VtabIntegrityCallback
                 .takeIf { VirtualTableOptionalFunction.Integrity in optionalFunctions },
         )
 
@@ -448,8 +446,8 @@ internal class DatabaseConnectionImpl(
     ) = module.install(
         name = name,
         version = version,
-        create = VTabCreateCallback,
-        connect = VTabConnectCallback
+        create = VtabCreateCallback,
+        connect = VtabConnectCallback
     )
 
     override fun createModule(
@@ -459,8 +457,8 @@ internal class DatabaseConnectionImpl(
     ) = module.install(
         name = name,
         version = version,
-        create = VTabConnectCallback,
-        connect = VTabConnectCallback
+        create = VtabConnectCallback,
+        connect = VtabConnectCallback
     )
 
     override fun createModule(
@@ -471,7 +469,7 @@ internal class DatabaseConnectionImpl(
         name = name,
         version = version,
         create = null,
-        connect = VTabConnectCallback
+        connect = VtabConnectCallback
     )
 
     override fun deleteModule(name: String) = scope.notClosed {
@@ -517,7 +515,7 @@ internal class DatabaseConnectionImpl(
         usingParams(
             param1 = Int64OutputParam(-1),
             param2 = Int64OutputParam(-1),
-            transform = ::StatusValue
+            transform = ::StatusValueImpl
         ) { outCur, outHighwater ->
             sqliteResultCheck(
                 sqlite3_db_status64(
@@ -637,7 +635,7 @@ internal class DatabaseConnectionImpl(
         sql: String,
         flags: SqlitePrepareFlag?
     ): PreparedStatement = scope.notClosed {
-        val stmt = usingParam(SqliteStmtOutputParam()) { outStmt ->
+        val stmt = usingParam(sqlite3_stmt.OutputParam()) { outStmt ->
             sqliteResultCheck(sqlite3_prepare_v3(db, sql, flags, outStmt))
         }
 
@@ -701,7 +699,7 @@ internal class DatabaseConnectionImpl(
     )
 
     override fun createSnapshot(database: String?): Snapshot = scope.notClosed {
-        SnapshotImpl(usingParam(SqliteSnapshotOutputParam()) { outSnapshot ->
+        SnapshotImpl(usingParam(sqlite3_snapshot.Out()) { outSnapshot ->
             sqliteResultCheck(sqlite3_snapshot_get(db, database, outSnapshot))
         })
     }

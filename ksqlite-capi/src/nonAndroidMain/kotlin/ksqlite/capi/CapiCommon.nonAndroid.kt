@@ -2,13 +2,9 @@ package ksqlite.capi
 
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.memoryOrNull
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
 import ksqlite.types.SqliteDataType
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.internal.convertResult
+import ksqlite.types.internal.convertResultCode
 
 /**
  * Returns the [sqlite3] associated with `this` [sqlite3_context].
@@ -30,7 +26,7 @@ internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): SqliteResultC
         }
     }
 
-    return convertResult(result)
+    return convertResultCode(result)
 }
 
 ///////////////////////////////////////////////////////////////////////////

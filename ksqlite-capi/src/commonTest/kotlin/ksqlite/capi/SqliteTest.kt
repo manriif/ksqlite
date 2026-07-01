@@ -5,8 +5,6 @@ package ksqlite.capi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import ksqlite.capi.types.SqliteOutputParam
-import ksqlite.capi.types.sqlite3
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
 import kotlin.concurrent.atomics.AtomicBoolean
@@ -74,7 +72,7 @@ internal fun runSqliteTest(
 internal fun runSqliteConnectionTest(
     block: suspend TestScope.(connection: sqlite3) -> Unit
 ) = runSqliteTest {
-    val outDb = SqliteOutputParam()
+    val outDb = sqlite3.OutputParam()
 
     val openResult = sqlite3_open_v2(
         fileName = "test_connection",

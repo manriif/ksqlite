@@ -54,7 +54,7 @@ internal val SqliteActionCodeMap: Map<Int, SqliteActionCode> =
  */
 public inline fun <reified A : SqliteActionCode> convertActionCode(code: Int): A {
     val actionCode = checkNotNull(SqliteActionCodeMap[code]) {
-        "Unknown sqlite3 action code $code"
+        "Unknown SQLite action code $code"
     }
 
     check(actionCode is A) { "Unexpected action type $actionCode" }

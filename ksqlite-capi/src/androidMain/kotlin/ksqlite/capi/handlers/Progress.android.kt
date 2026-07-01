@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.foreign.callbacks.ProgressHandlerCallback
 import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
+import ksqlite.foreign.callbacks.ProgressHandlerCallback
 
 /**
  * Handler for [ksqlite.capi.sqlite3_progress_handler].

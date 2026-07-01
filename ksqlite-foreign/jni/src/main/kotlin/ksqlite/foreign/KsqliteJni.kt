@@ -18,7 +18,7 @@ import ksqlite.foreign.callbacks.ProgressHandlerCallback
 import ksqlite.foreign.callbacks.RollbackHookCallback
 import ksqlite.foreign.callbacks.TraceCallback
 import ksqlite.foreign.callbacks.UpdateHookCallback
-import ksqlite.foreign.callbacks.VTabModuleCallbacks
+import ksqlite.foreign.callbacks.VtabModuleCallbacks
 import ksqlite.foreign.callbacks.WalHookCallback
 import ksqlite.foreign.structs.StructType
 import java.nio.ByteBuffer
@@ -582,6 +582,7 @@ public external fun sqlite3_file_control(
     db: Long,
     name: String?,
     opcode: Int,
+    param: Any?
 ): Int
 
 public external fun sqlite3_finalize(stmt: Long): Int
@@ -1142,14 +1143,14 @@ private external fun nativeModuleInit(
     module: Long,
     callbackMask: Int,
     eponymous: Boolean,
-    callbacks: VTabModuleCallbacks
+    callbacks: VtabModuleCallbacks
 )
 
 internal fun moduleInit(
     module: Long,
     callbackMask: Int,
     eponymous: Boolean,
-    callbacks: VTabModuleCallbacks
+    callbacks: VtabModuleCallbacks
 ) = nativeModuleInit(module, callbackMask, eponymous, callbacks)
 
 /**
@@ -1163,14 +1164,14 @@ internal fun moduleDeinit(module: Long) = nativeModuleDeinit(module)
 /**
  * Initializes a virtual table.
  */
-private external fun nativeVTabInit(vTab: Long)
+private external fun nativeVtabInit(vTab: Long)
 
-internal fun vTabInit(vTab: Long) = nativeVTabInit(vTab)
+internal fun vTabInit(vTab: Long) = nativeVtabInit(vTab)
 
 /**
  * Deinitiliazes a virtual table.
  * This does not deallocates it, only clears associated resources.
  */
-private external fun nativeVTabDeinit(vTab: Long)
+private external fun nativeVtabDeinit(vTab: Long)
 
-internal fun vTabDeinit(vTab: Long) = nativeVTabDeinit(vTab)
+internal fun vTabDeinit(vTab: Long) = nativeVtabDeinit(vTab)

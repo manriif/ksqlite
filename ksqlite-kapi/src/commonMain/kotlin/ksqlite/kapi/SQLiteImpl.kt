@@ -10,10 +10,9 @@ import ksqlite.capi.sqlite3_randomness
 import ksqlite.capi.sqlite3_release_memory
 import ksqlite.capi.sqlite3_soft_heap_limit64
 import ksqlite.capi.sqlite3_status64
-import ksqlite.capi.types.Int64OutputParam
-import ksqlite.capi.types.SqliteOutputParam
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.memory.Int64OutputParam
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.config.AnyTimeConfigurationImpl
 import ksqlite.kapi.database.AutoExtension
@@ -102,7 +101,7 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     ): DatabaseConnection = notClosed {
         val extensions = autoExtensions.block { it.toSet() }
 
-        val db = usingParam(SqliteOutputParam()) { outDb ->
+        val db = usingParam(sqlite3.OutputParam()) { outDb ->
             sqliteResultCheck(sqlite3_open_v2(fileName, outDb, flags, vfs))
         }
 

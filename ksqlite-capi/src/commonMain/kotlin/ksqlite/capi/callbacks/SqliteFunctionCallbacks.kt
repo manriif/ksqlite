@@ -2,8 +2,8 @@
 
 package ksqlite.capi.callbacks
 
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.sqlite3_context
+import ksqlite.capi.sqlite3_value
 
 /**
  * Callback with one parameter to use with [ksqlite.capi.sqlite3_create_function],

@@ -3,8 +3,8 @@ package ksqlite.capi.handlers
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.dispatchTraceEvent
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.foreign.`sqlite3_trace_v2$xCallback`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment

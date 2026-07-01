@@ -6,9 +6,6 @@ import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.value
-import ksqlite.capi.types.s3
-import ksqlite.capi.types.s3_api
-import ksqlite.capi.types.sqlite3
 import ksqlite.foreign.sqlite3_mprintf
 
 /**

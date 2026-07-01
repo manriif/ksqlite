@@ -3,7 +3,7 @@ package ksqlite.capi.handlers
 import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmFunctions

@@ -3,8 +3,8 @@ package ksqlite.capi.handlers
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.dispatchTraceEvent
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmFunctions
@@ -18,7 +18,7 @@ import kotlin.js.toLong
 private external fun trace(
     jsRef: JsReference<TraceHandler>,
     handler: (
-		jsRef: JsReference<TraceHandler>,
+        jsRef: JsReference<TraceHandler>,
         code: Int,
         refPointer: WasmPointer,
         pPointer: WasmPointer,

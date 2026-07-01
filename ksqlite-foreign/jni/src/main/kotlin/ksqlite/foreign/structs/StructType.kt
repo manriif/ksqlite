@@ -10,5 +10,8 @@ internal enum class StructType(val type: Int) {
     IndexOrderby(3),
     Module(4),
     Vtab(5),
-    VtabCursor(6)
+    VtabCursor(6),
+    File(7),
+    IoMethods(8),
+    Vfs(9)
 }

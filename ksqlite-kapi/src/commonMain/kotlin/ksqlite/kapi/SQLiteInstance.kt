@@ -4,8 +4,8 @@ import co.touchlab.stately.concurrency.Lock
 import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.sqlite3_initialize
 import ksqlite.capi.sqlite3_shutdown
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.config.ConfigurationScopeImpl
 import ksqlite.kapi.database.DatabaseConnection

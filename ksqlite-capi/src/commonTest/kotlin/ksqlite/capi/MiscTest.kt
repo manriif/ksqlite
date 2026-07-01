@@ -1,6 +1,6 @@
 package ksqlite.capi
 
-import ksqlite.capi.types.Utf8OutputParam
+import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.types.SqliteCompleteResult
 import ksqlite.types.SqliteResultCode
 import kotlin.test.Test

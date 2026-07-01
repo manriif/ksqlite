@@ -1,6 +1,6 @@
 package ksqlite.kapi.helpers
 
-import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.types.OutputParam
 import kotlin.jvm.JvmName
 

@@ -2,7 +2,7 @@ package ksqlite.kapi.helpers
 
 import ksqlite.capi.sqlite3_errmsg
 import ksqlite.capi.sqlite3_errstr
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.SqliteResultCode

@@ -64,7 +64,7 @@ public actual class OpaqueBuffer private constructor(
     internal val memory: WasmMemory,
     internal val pointer: WasmPointer,
     public actual val byteSize: Long
-): AutoCloseable {
+) : AutoCloseable {
 
     actual override fun close() {
         try {

@@ -4,7 +4,7 @@ import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.memory.readByteArray
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmFunctions
@@ -22,7 +22,7 @@ import kotlin.js.toJsReference
 private external fun collation(
     jsRef: JsReference<CollationHandler>,
     handler: (
-		jsRef: JsReference<CollationHandler>,
+        jsRef: JsReference<CollationHandler>,
         refPointer: WasmPointer,
         size1: Int,
         text1: WasmPointer,
@@ -65,7 +65,7 @@ internal class CollationHandler : Handler() {
 private external fun collationNeeded(
     jsRef: JsReference<CollationNeededHandler>,
     handler: (
-		jsRef: JsReference<CollationNeededHandler>,
+        jsRef: JsReference<CollationNeededHandler>,
         refPointer: WasmPointer,
         db: WasmPointer,
         eTextRep: Int,

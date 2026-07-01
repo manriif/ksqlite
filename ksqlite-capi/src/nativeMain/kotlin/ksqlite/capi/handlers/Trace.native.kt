@@ -10,8 +10,8 @@ import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.value
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.dispatchTraceEvent
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
 
 /**
  * Static C function for [traceHandler].

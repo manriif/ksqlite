@@ -1,5 +1,6 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.memory.VariadicValue.OfPointer
 import ksqlite.foreign.js.arrayForEachIndexed
 import ksqlite.foreign.js.arraySize
 import ksqlite.foreign.js.plus

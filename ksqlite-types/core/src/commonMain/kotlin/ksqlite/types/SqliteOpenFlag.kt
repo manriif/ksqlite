@@ -205,6 +205,14 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
          */
         public open operator fun contains(flag: Optional): Boolean =
             flag == this || flag.value == value
+
+        public companion object {
+
+            /**
+             * Returns a [Vfs] from [value].
+             */
+            public fun from(value: Int): Vfs = Mask(value)
+        }
     }
 
     /**

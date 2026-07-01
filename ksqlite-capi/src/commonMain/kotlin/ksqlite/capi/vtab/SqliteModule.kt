@@ -3,30 +3,30 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.Struct
+import ksqlite.capi.vtab.callbacks.SqliteVtabBeginCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabBestIndexCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabCloseCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabColumnCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabCommitCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabConnectCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabCreateCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabDestroyCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabDisconnectCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabEofCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabFilterCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabFindFunctionCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabIntegrityCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabNextCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabOpenCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabReleaseCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabRenameCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabRollbackCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabRollbackToCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabRowidCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabSavepointCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabSyncCallback
+import ksqlite.capi.vtab.callbacks.SqliteVtabUpdateCallback
 import ksqlite.types.vtab.SqliteModuleVersion
-import ksqlite.capi.vtab.callbacks.SqliteVTabBeginCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabBestIndexCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabCloseCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabColumnCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabCommitCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabConnectCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabCreateCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabDestroyCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabDisconnectCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabEofCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabFilterCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabFindFunctionCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabIntegrityCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabNextCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabOpenCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabReleaseCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabRenameCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabRollbackCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabRollbackToCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabRowidCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabSavepointCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabSyncCallback
-import ksqlite.capi.vtab.callbacks.SqliteVTabUpdateCallback
 
 /**
  * This structure, sometimes called a "virtual table module", defines the implementation of a
@@ -44,7 +44,7 @@ import ksqlite.capi.vtab.callbacks.SqliteVTabUpdateCallback
 public expect class sqlite3_module<AppData>
 internal constructor(
     version: Int,
-    callbacks: VTabModuleCallbacks<AppData, *, *>
+    callbacks: VtabModuleCallbacks<AppData, *, *>
 ) : Struct,
     AutoCloseable {
 
@@ -68,34 +68,34 @@ internal constructor(
  * The caller take the ownership of the returned [sqlite3_module] and is responsible to release it
  * by invoking [sqlite3_module.close].
  */
-public fun <AppData, VTab : sqlite3_vtab, VTabCursor : sqlite3_vtab_cursor> sqlite3_module(
+public fun <AppData, Vtab : sqlite3_vtab, VtabCursor : sqlite3_vtab_cursor> sqlite3_module(
     version: SqliteModuleVersion,
-    create: SqliteVTabCreateCallback<in AppData, VTab>?,
-    connect: SqliteVTabConnectCallback<in AppData, VTab>,
-    bestIndex: SqliteVTabBestIndexCallback<VTab>,
-    disconnect: SqliteVTabDisconnectCallback<VTab>,
-    destroy: SqliteVTabDestroyCallback<VTab>,
-    open: SqliteVTabOpenCallback<VTab, VTabCursor>,
-    close: SqliteVTabCloseCallback<VTabCursor>,
-    filter: SqliteVTabFilterCallback<VTabCursor>,
-    next: SqliteVTabNextCallback<VTabCursor>,
-    eof: SqliteVTabEofCallback<VTabCursor>,
-    column: SqliteVTabColumnCallback<VTabCursor>,
-    rowid: SqliteVTabRowidCallback<VTabCursor>,
-    update: SqliteVTabUpdateCallback<VTab>?,
-    findFunction: SqliteVTabFindFunctionCallback<VTab>?,
-    begin: SqliteVTabBeginCallback<VTab>?,
-    sync: SqliteVTabSyncCallback<VTab>?,
-    commit: SqliteVTabCommitCallback<VTab>?,
-    rollback: SqliteVTabRollbackCallback<VTab>?,
-    rename: SqliteVTabRenameCallback<VTab>?,
-    savepoint: SqliteVTabSavepointCallback<VTab>?,
-    release: SqliteVTabReleaseCallback<VTab>?,
-    rollbackTo: SqliteVTabRollbackToCallback<VTab>?,
-    integrity: SqliteVTabIntegrityCallback<VTab>?
+    create: SqliteVtabCreateCallback<in AppData, Vtab>?,
+    connect: SqliteVtabConnectCallback<in AppData, Vtab>,
+    bestIndex: SqliteVtabBestIndexCallback<Vtab>,
+    disconnect: SqliteVtabDisconnectCallback<Vtab>,
+    destroy: SqliteVtabDestroyCallback<Vtab>,
+    open: SqliteVtabOpenCallback<Vtab, VtabCursor>,
+    close: SqliteVtabCloseCallback<VtabCursor>,
+    filter: SqliteVtabFilterCallback<VtabCursor>,
+    next: SqliteVtabNextCallback<VtabCursor>,
+    eof: SqliteVtabEofCallback<VtabCursor>,
+    column: SqliteVtabColumnCallback<VtabCursor>,
+    rowid: SqliteVtabRowidCallback<VtabCursor>,
+    update: SqliteVtabUpdateCallback<Vtab>?,
+    findFunction: SqliteVtabFindFunctionCallback<Vtab>?,
+    begin: SqliteVtabBeginCallback<Vtab>?,
+    sync: SqliteVtabSyncCallback<Vtab>?,
+    commit: SqliteVtabCommitCallback<Vtab>?,
+    rollback: SqliteVtabRollbackCallback<Vtab>?,
+    rename: SqliteVtabRenameCallback<Vtab>?,
+    savepoint: SqliteVtabSavepointCallback<Vtab>?,
+    release: SqliteVtabReleaseCallback<Vtab>?,
+    rollbackTo: SqliteVtabRollbackToCallback<Vtab>?,
+    integrity: SqliteVtabIntegrityCallback<Vtab>?
 ): sqlite3_module<AppData> = sqlite3_module(
     version = version.iVersion,
-    callbacks = VTabModuleCallbacks(
+    callbacks = VtabModuleCallbacks(
         create = create,
         connect = connect,
         bestIndex = bestIndex,

@@ -3,7 +3,7 @@ package ksqlite.capi.handlers
 import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
 import ksqlite.foreign.`sqlite3_collation_needed$x0`
 import ksqlite.foreign.`sqlite3_create_collation_v2$xCompare`
 import ksqlite.types.internal.convertTextEncoding

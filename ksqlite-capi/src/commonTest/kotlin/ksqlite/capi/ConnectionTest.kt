@@ -1,11 +1,10 @@
 package ksqlite.capi
 
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.OpaqueBuffer
-import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.types.SqliteDbConfigOption
-import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSerializeResult
-import ksqlite.capi.types.Utf8OutputParam
 import ksqlite.types.SqliteDeserializeFlag
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteRuntimeLimit
@@ -24,7 +23,7 @@ class ConnectionTest {
 
     @Test
     fun connectionOpens() = runSqliteTest {
-        val outDb = SqliteOutputParam()
+        val outDb = sqlite3.OutputParam()
 
         val openResult = sqlite3_open(":memory:", outDb)
         assertEquals(SqliteResultCode.OK, openResult)
@@ -153,7 +152,7 @@ class ConnectionTest {
     @Test
     fun serializationWorks() = runSqliteTest {
         // Serialize
-        val outSerializeDb = SqliteOutputParam()
+        val outSerializeDb = sqlite3.OutputParam()
 
         val serializeOpenResult = sqlite3_open(":memory:", outSerializeDb)
         assertEquals(SqliteResultCode.OK, serializeOpenResult)
@@ -178,7 +177,7 @@ class ConnectionTest {
         assertEquals(SqliteResultCode.OK, closeSerializeResult)
 
         // Deserialize
-        val outDeserializeDb = SqliteOutputParam()
+        val outDeserializeDb = sqlite3.OutputParam()
 
         val deserializeOpenResult = sqlite3_open(":memory:", outDeserializeDb)
         assertEquals(SqliteResultCode.OK, deserializeOpenResult)
@@ -253,20 +252,21 @@ class ConnectionTest {
         assertEquals(0, outEnableTrigger.value)
 
         val outEnableFts3Tokenizer = Int32OutputParam(-1)
-        
+
         val enableFts3Tokenizer =
             SqliteDbConfigOption.ENABLE_FTS3_TOKENIZER(1, outEnableFts3Tokenizer)
-        
+
         val enableFts3TokenizerResult = sqlite3_db_config(db, enableFts3Tokenizer)
         assertEquals(SqliteResultCode.OK, enableFts3TokenizerResult)
         assertEquals(1, outEnableFts3Tokenizer.value)
 
         val outEnableLoadExtension = Int32OutputParam(-1)
-        val enableLoadExtension = SqliteDbConfigOption.ENABLE_LOAD_EXTENSION(0, outEnableLoadExtension)
+        val enableLoadExtension =
+            SqliteDbConfigOption.ENABLE_LOAD_EXTENSION(0, outEnableLoadExtension)
         val enableLoadExtensionResult = sqlite3_db_config(db, enableLoadExtension)
         assertEquals(SqliteResultCode.OK, enableLoadExtensionResult)
         assertEquals(0, outEnableLoadExtension.value)
-        
+
         val outNoCkptOnClose = Int32OutputParam(-1)
         val noCkptOnClose = SqliteDbConfigOption.NO_CKPT_ON_CLOSE(1, outNoCkptOnClose)
         val noCkptOnCloseResult = sqlite3_db_config(db, noCkptOnClose)
@@ -278,7 +278,7 @@ class ConnectionTest {
         val enableQpsgResult = sqlite3_db_config(db, enableQpsg)
         assertEquals(SqliteResultCode.OK, enableQpsgResult)
         assertEquals(0, outEnableQpsg.value)
-        
+
         val outTriggerEqp = Int32OutputParam(-1)
         val triggerEqp = SqliteDbConfigOption.TRIGGER_EQP(1, outTriggerEqp)
         val triggerEqpResult = sqlite3_db_config(db, triggerEqp)

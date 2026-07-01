@@ -23,29 +23,16 @@ import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.ReadableBuffer
-import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.Int64OutputParam
-import ksqlite.capi.types.SqliteBlobOutputParam
+import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteFileControlOpcode
-import ksqlite.capi.types.SqliteOutputParam
 import ksqlite.capi.types.SqliteSerializeResult
-import ksqlite.capi.types.SqliteSnapshotOutputParam
-import ksqlite.capi.types.SqliteStmtOutputParam
-import ksqlite.capi.types.SqliteVTabConfigOption
-import ksqlite.capi.types.SqliteValueOutputParam
-import ksqlite.capi.types.Utf8OutputParam
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_backup
-import ksqlite.capi.types.sqlite3_blob
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.types.sqlite3_snapshot
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.types.sqlite3_vfs
+import ksqlite.capi.vfs.sqlite3_vfs
+import ksqlite.capi.vtab.SqliteVtabConfigOption
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.types.SqliteBlobOpenFlag
@@ -369,7 +356,7 @@ public expect fun sqlite3_blob_open(
     columnName: String,
     rowid: Long,
     flags: SqliteBlobOpenFlag,
-    outBlob: SqliteBlobOutputParam
+    outBlob: sqlite3_blob.OutputParam
 ): SqliteResultCode
 
 /**
@@ -1361,7 +1348,7 @@ public expect fun sqlite3_next_stmt(
  */
 public expect fun sqlite3_open(
     fileName: String,
-    outDb: SqliteOutputParam
+    outDb: sqlite3.OutputParam
 ): SqliteResultCode
 
 /**
@@ -1371,7 +1358,7 @@ public expect fun sqlite3_open(
  */
 public expect fun sqlite3_open_v2(
     fileName: String,
-    outDb: SqliteOutputParam,
+    outDb: sqlite3.OutputParam,
     flags: SqliteOpenFlag.Db,
     vfs: String?
 ): SqliteResultCode
@@ -1405,7 +1392,7 @@ public expect fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: ByteArray,
     maxBytes: Int,
-    outStmt: SqliteStmtOutputParam,
+    outStmt: sqlite3_stmt.OutputParam,
     outOffset: Int32OutputParam?
 ): SqliteResultCode
 
@@ -1419,7 +1406,7 @@ public expect fun sqlite3_prepare_v2(
 public expect fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
-    outStmt: SqliteStmtOutputParam
+    outStmt: sqlite3_stmt.OutputParam
 ): SqliteResultCode
 
 /**
@@ -1434,7 +1421,7 @@ public expect fun sqlite3_prepare_v3(
     sql: ByteArray,
     maxBytes: Int,
     flags: SqlitePrepareFlag?,
-    outStmt: SqliteStmtOutputParam,
+    outStmt: sqlite3_stmt.OutputParam,
     outOffset: Int32OutputParam?
 ): SqliteResultCode
 
@@ -1449,7 +1436,7 @@ public expect fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: String,
     flags: SqlitePrepareFlag?,
-    outStmt: SqliteStmtOutputParam
+    outStmt: sqlite3_stmt.OutputParam
 ): SqliteResultCode
 
 /**
@@ -1507,7 +1494,7 @@ public expect fun <AppData> sqlite3_preupdate_hook(
 public expect fun sqlite3_preupdate_new(
     db: sqlite3,
     index: Int,
-    outValue: SqliteValueOutputParam
+    outValue: sqlite3_value.OutputParam
 ): SqliteResultCode
 
 /**
@@ -1519,7 +1506,7 @@ public expect fun sqlite3_preupdate_new(
 public expect fun sqlite3_preupdate_old(
     db: sqlite3,
     index: Int,
-    outValue: SqliteValueOutputParam
+    outValue: sqlite3_value.OutputParam
 ): SqliteResultCode
 
 /**
@@ -1928,7 +1915,7 @@ public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot)
 public expect fun sqlite3_snapshot_get(
     db: sqlite3,
     name: String?,
-    outSnapshot: SqliteSnapshotOutputParam
+    outSnapshot: sqlite3_snapshot.OutputParam
 ): SqliteResultCode
 
 /**
@@ -2404,7 +2391,7 @@ public expect fun sqlite3_vtab_collation(
  */
 public expect fun sqlite3_vtab_config(
     db: sqlite3,
-    option: SqliteVTabConfigOption
+    option: SqliteVtabConfigOption
 ): SqliteResultCode
 
 /**
@@ -2435,7 +2422,7 @@ public expect fun sqlite3_vtab_in(
  */
 public expect fun sqlite3_vtab_in_first(
     value: sqlite3_value,
-    outValue: SqliteValueOutputParam?
+    outValue: sqlite3_value.OutputParam?
 ): SqliteResultCode
 
 /**
@@ -2446,7 +2433,7 @@ public expect fun sqlite3_vtab_in_first(
  */
 public expect fun sqlite3_vtab_in_next(
     value: sqlite3_value,
-    outValue: SqliteValueOutputParam?
+    outValue: sqlite3_value.OutputParam?
 ): SqliteResultCode
 
 /**
@@ -2486,7 +2473,7 @@ public expect fun sqlite3_vtab_on_conflict(db: sqlite3): SqliteConflictResolutio
 public expect fun sqlite3_vtab_rhs_value(
     info: sqlite3_index_info,
     index: Int,
-    outValue: SqliteValueOutputParam?
+    outValue: sqlite3_value.OutputParam?
 ): SqliteResultCode
 
 /**

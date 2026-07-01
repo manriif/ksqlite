@@ -1,7 +1,7 @@
 package ksqlite.kapi.config
 
 import ksqlite.capi.sqlite3_config
-import ksqlite.capi.types.Int32OutputParam
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck

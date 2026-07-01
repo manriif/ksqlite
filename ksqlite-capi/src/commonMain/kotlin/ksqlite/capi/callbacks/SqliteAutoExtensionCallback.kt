@@ -1,7 +1,7 @@
 package ksqlite.capi.callbacks
 
+import ksqlite.capi.sqlite3
 import ksqlite.types.SqliteResultCode
-import ksqlite.capi.types.sqlite3
 
 /**
  * Callback to use with [ksqlite.capi.sqlite3_auto_extension].
