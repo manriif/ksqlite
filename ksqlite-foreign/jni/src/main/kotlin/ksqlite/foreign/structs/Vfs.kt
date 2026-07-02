@@ -8,7 +8,7 @@ import ksqlite.foreign.structLayout
  * Wraps an instance of `sqlite3_vfs` at address [pointer] and supplies getters and setters
  * for reading and writing the struct.
  */
-public class sqlite3_vfs(pointer: Long) : JniStruct(layout, StructType.Vfs, pointer) {
+public class sqlite3_vfs(pointer: Long) : JniStruct(layout, pointer) {
 
     public var iVersion: Int
         get() = readInt(STRUCT_MEMBER_INDEX_IVERSION)

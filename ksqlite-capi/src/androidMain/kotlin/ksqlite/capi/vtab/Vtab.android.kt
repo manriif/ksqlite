@@ -4,7 +4,6 @@ import ksqlite.capi.createFunction
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.handlers.destructorHandler
-import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toArray
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_context
@@ -70,12 +69,12 @@ internal object VtabModuleHandler : JniVtabModuleCallbacks {
 
     override fun disconnect(vTab: Long): Int = vTabDisconnect(
         vTab = vTab,
-        cleanup = sqlite3_vtab::free
+        cleanup = {}
     )
 
     override fun destroy(vTab: Long): Int = vTabDestroy(
         vTab = vTab,
-        cleanup = sqlite3_vtab::free
+        cleanup = {}
     )
 
     override fun open(
@@ -91,8 +90,7 @@ internal object VtabModuleHandler : JniVtabModuleCallbacks {
         cursor: Long
     ): Int = vTabClose(
         vTab = vTab,
-        cursor = cursor,
-        cleanup = Struct::free
+        cursor = cursor
     )
 
     override fun filter(

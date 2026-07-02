@@ -8,7 +8,7 @@ import ksqlite.foreign.structLayout
  * Wraps an instance of `sqlite3_index_info` at address [pointer] and supplies getters and setters
  * for reading and writing the struct.
  */
-public class sqlite3_index_info(pointer: Long) : JniStruct(layout, StructType.IndexInfo, pointer) {
+public class sqlite3_index_info(pointer: Long) : JniStruct(layout, pointer) {
 
     public var nConstraint: Int
         get() = readInt(STRUCT_MEMBER_INDEX_NCONSTRAINT)
@@ -87,8 +87,7 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(layout, StructType.In
      * Wraps an instance of `sqlite3_index_constraint` at address [pointer] and supplies getters and
      * setters for reading and writing the struct.
      */
-    public class sqlite3_index_constraint(pointer: Long) :
-        JniStruct(layout, StructType.IndexConstraint, pointer) {
+    public class sqlite3_index_constraint(pointer: Long) : JniStruct(layout, pointer) {
 
         public var iColumn: Int
             get() = readInt(STRUCT_MEMBER_INDEX_ICOLUMN)
@@ -121,8 +120,7 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(layout, StructType.In
      * Wraps an instance of `sqlite3_index_constraint_usage` at address [pointer] and supplies
      * getters and setters for reading and writing the struct.
      */
-    public class sqlite3_index_constraint_usage(pointer: Long) :
-        JniStruct(layout, StructType.IndexConstraintUsage, pointer) {
+    public class sqlite3_index_constraint_usage(pointer: Long) : JniStruct(layout, pointer) {
 
         public var argvIndex: Int
             get() = readInt(STRUCT_MEMBER_INDEX_ARGVINDEX)
@@ -145,8 +143,7 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(layout, StructType.In
      * Wraps an instance of `sqlite3_index_orderby` at address [pointer] and supplies getters and 
      * setters for reading and writing the struct.
      */
-    public class sqlite3_index_orderby(pointer: Long) :
-        JniStruct(layout, StructType.IndexOrderby, pointer) {
+    public class sqlite3_index_orderby(pointer: Long) : JniStruct(layout, pointer) {
 
         public var iColumn: Int
             get() = readInt(STRUCT_MEMBER_INDEX_ICOLUMN)

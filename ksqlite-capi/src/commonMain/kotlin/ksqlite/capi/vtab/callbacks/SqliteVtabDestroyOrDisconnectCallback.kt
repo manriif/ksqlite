@@ -11,6 +11,8 @@ public fun interface SqliteVtabDestroyOrDisconnectCallback<Vtab : sqlite3_vtab> 
     /**
      * Details on parameters and result can be found [here](https://sqlite.org/vtab.html#the_xdestroy_method)
      * and/or [here](https://sqlite.org/vtab.html#the_xdisconnect_method).
+     *
+     * Note that it is the responsibility of the [vTab] allocator to deallocate it.
      */
     public fun apply(vTab: Vtab): SqliteResultCode.OkOrFailure
 }

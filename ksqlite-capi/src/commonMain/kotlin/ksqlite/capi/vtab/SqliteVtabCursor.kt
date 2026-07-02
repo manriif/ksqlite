@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.Struct
+import ksqlite.capi.memory.AllocatableStruct
 import ksqlite.types.vtab.SqliteVtabCursor
 
 /**
@@ -23,4 +23,4 @@ import ksqlite.types.vtab.SqliteVtabCursor
  *
  * Subclasser may pass the typed [sqlite3_vtab] as a constructor parameter if necessary.
  */
-public expect open class sqlite3_vtab_cursor() : Struct, SqliteVtabCursor
+public expect open class sqlite3_vtab_cursor() : AllocatableStruct, SqliteVtabCursor

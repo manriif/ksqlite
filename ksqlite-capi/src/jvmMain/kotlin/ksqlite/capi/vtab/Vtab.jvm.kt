@@ -4,7 +4,6 @@ import ksqlite.capi.createFunction
 import ksqlite.capi.functionKey
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.memory.StaticMemoryAllocator
-import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.setPointerValue
 import ksqlite.capi.memory.setValue
@@ -103,8 +102,7 @@ internal val VtabOpenHandler = xOpen.allocate({ vTab, outCursor ->
 internal val VtabCloseHandler = xClose.allocate({ cursor ->
     vTabClose(
         vTab = s3_vtab_cursor.pVtab(cursor).address(),
-        cursor = cursor.address(),
-        cleanup = Struct::free
+        cursor = cursor.address()
     )
 }, StaticMemoryAllocator)
 

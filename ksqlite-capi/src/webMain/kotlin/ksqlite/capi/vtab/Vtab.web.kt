@@ -4,7 +4,6 @@ import ksqlite.capi.capi
 import ksqlite.capi.createFunction
 import ksqlite.capi.functionKey
 import ksqlite.capi.handlers.FunctionFuncHandler
-import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.setPointerValue
 import ksqlite.capi.memory.setValue
@@ -177,8 +176,7 @@ internal val VtabOpenHandler = vTabHandler2 { vTab, outCursor ->
 internal val VtabCloseHandler = vTabHandler1 { cursor: WasmPointer ->
     vTabClose(
         vTab = vTabPointerAddressFromCursor(cursor),
-        cursor = cursor.toLong(),
-        cleanup = Struct::free
+        cursor = cursor.toLong()
     )
 }
 

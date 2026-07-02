@@ -15,7 +15,6 @@ import ksqlite.capi.createFunction
 import ksqlite.capi.functionKey
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.handlers.callbackHandler
-import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.toArrayOrEmpty
@@ -99,8 +98,7 @@ internal val VtabOpenHandler = staticCFunction { vTab: CPointer<s3_vtab>?,
 internal val VtabCloseHandler = staticCFunction { cursor: CPointer<s3_vtab_cursor>? ->
     vTabClose(
         vTab = cursor!!.pointed.pVtab!!.toLong(),
-        cursor = cursor.toLong(),
-        cleanup = Struct::free
+        cursor = cursor.toLong()
     )
 }
 

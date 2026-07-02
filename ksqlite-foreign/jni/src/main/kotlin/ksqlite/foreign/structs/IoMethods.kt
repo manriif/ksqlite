@@ -8,7 +8,7 @@ import ksqlite.foreign.structLayout
  * Wraps an instance of `sqlite3_io_methods` at address [pointer] and supplies getters and setters
  * for reading and writing the struct.
  */
-public class sqlite3_io_methods(pointer: Long) : JniStruct(layout, StructType.IoMethods, pointer) {
+public class sqlite3_io_methods(pointer: Long) : JniStruct(layout, pointer) {
 
     public var iVersion: Int
         get() = readInt(STRUCT_MEMBER_INDEX_IVERSION)

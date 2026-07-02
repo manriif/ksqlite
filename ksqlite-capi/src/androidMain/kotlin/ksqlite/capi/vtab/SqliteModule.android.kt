@@ -2,12 +2,12 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.Struct
+import ksqlite.capi.memory.AllocatableStruct
 
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
     module: s3_module
-) : Struct(module),
+) : AllocatableStruct(module),
     AutoCloseable {
 
     internal actual constructor(
@@ -23,8 +23,6 @@ public actual class sqlite3_module<AppData> private constructor(
             iVersion = version
         }
     )
-
-    actual override fun close(): Unit = free()
 }
 
 /**

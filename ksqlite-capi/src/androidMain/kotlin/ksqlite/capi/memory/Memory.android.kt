@@ -62,6 +62,11 @@ internal inline fun <reified T> LongArray.toArray(transform: (Long) -> T): Array
 
 /**
  * Reads bytes until null termination marker is found and returns the bytes read as [String].
+ */
+internal fun JniPointer.toKStringFromUtf8(): String = nativeReadString(this)
+
+/**
+ * Reads bytes until null termination marker is found and returns the bytes read as [String].
  * If `this` pointer points to `null` then `null` is returned.
  */
-internal fun JniPointer.toKStringFromUtf8OrNull(): String? = nativeReadString(orNull ?: return null)
+internal fun JniPointer.toKStringFromUtf8OrNull(): String? = orNull?.toKStringFromUtf8()

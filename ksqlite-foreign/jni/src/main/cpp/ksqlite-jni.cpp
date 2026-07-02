@@ -1184,7 +1184,9 @@ JNI_OnUnload(
 #define LongTo_s3_backup(L) LongCast(sqlite3_backup, (L))
 #define LongTo_s3_blob(L) LongCast(sqlite3_blob, (L))
 #define LongTo_s3_context(L) LongCast(sqlite3_context, (L))
+#define LongTo_s3_file(L) LongCast(sqlite3_file, (L))
 #define LongTo_s3_index_info(L) LongCast(sqlite3_index_info, (L))
+//#define LongTo_s3_io_methods(L) LongCast(sqlite3_io_methods, (L))
 #define LongTo_s3_module(L) LongCast(Module, (L))
 #define LongTo_s3_snapshot(L) LongCast(sqlite3_snapshot, (L))
 #define LongTo_s3_stmt(L) LongCast(sqlite3_stmt, (L))
@@ -2272,7 +2274,10 @@ enum StructType : u_char {
     Sqlite3IndexOrderby = 3,
     Sqlite3Module = 4,
     Sqlite3Vtab = 5,
-    Sqlite3VtabCursor = 6
+    Sqlite3VtabCursor = 6,
+    Sqlite3File = 7,
+    Sqlite3IoMethods = 8,
+    Sqlite3Vfs = 9
 };
 
 #define StructLayoutBegin(memberCount) \
@@ -2398,33 +2403,69 @@ static jintArray structLayoutSqlite3VtabCursor(JNIEnv* env) {
 }
 
 /**
- * Returns the size of the struct identified by `type`.
+ * Returns the layout for `sqlite3_file`.
  */
-static inline int structSize(
-    JNIEnv* env,
-    jint type
-) {
-    switch (type) {
-        case Sqlite3IndexInfo:
-            return sizeof(sqlite3_index_info);
-        case Sqlite3IndexConstraint:
-            return sizeof(sqlite3_index_info::sqlite3_index_constraint);
-        case Sqlite3IndexConstraintUsage:
-            return sizeof(sqlite3_index_info::sqlite3_index_constraint_usage);
-        case Sqlite3IndexOrderby:
-            return sizeof(sqlite3_index_info::sqlite3_index_orderby);
-        case Sqlite3Module:
-            // Use the Module subclass instead of `sqlite3_module` to store additional member(s)
-            return sizeof(Module);
-        case Sqlite3Vtab:
-            // Use the Vtab subclass instead of `sqlite3_vtab` to store additional member(s)
-            return sizeof(Vtab);
-        case Sqlite3VtabCursor:
-            return sizeof(sqlite3_vtab_cursor);
-        default:
-            FatalError(sqlite3_mprintf("Unknown struct type %d", type));
-            return 0;
-    }
+static jintArray structLayoutSqlite3File(JNIEnv* env) {
+    StructLayoutBegin(1);
+    StructLayoutAppend(sqlite3_file, pMethods);
+    StructLayoutEnd(sqlite3_file);
+}
+
+/**
+ * Returns the layout for `sqlite3_io_methods`.
+ */
+static jintArray structLayoutSqlite3IoMethods(JNIEnv* env) {
+    StructLayoutBegin(19);
+    StructLayoutAppend(sqlite3_io_methods, iVersion);
+    StructLayoutAppend(sqlite3_io_methods, xClose);
+    StructLayoutAppend(sqlite3_io_methods, xRead);
+    StructLayoutAppend(sqlite3_io_methods, xWrite);
+    StructLayoutAppend(sqlite3_io_methods, xTruncate);
+    StructLayoutAppend(sqlite3_io_methods, xSync);
+    StructLayoutAppend(sqlite3_io_methods, xFileSize);
+    StructLayoutAppend(sqlite3_io_methods, xLock);
+    StructLayoutAppend(sqlite3_io_methods, xUnlock);
+    StructLayoutAppend(sqlite3_io_methods, xCheckReservedLock);
+    StructLayoutAppend(sqlite3_io_methods, xFileControl);
+    StructLayoutAppend(sqlite3_io_methods, xSectorSize);
+    StructLayoutAppend(sqlite3_io_methods, xDeviceCharacteristics);
+    StructLayoutAppend(sqlite3_io_methods, xShmMap);
+    StructLayoutAppend(sqlite3_io_methods, xShmLock);
+    StructLayoutAppend(sqlite3_io_methods, xShmBarrier);
+    StructLayoutAppend(sqlite3_io_methods, xShmUnmap);
+    StructLayoutAppend(sqlite3_io_methods, xFetch);
+    StructLayoutAppend(sqlite3_io_methods, xUnfetch);
+    StructLayoutEnd(sqlite3_io_methods);
+}
+
+/**
+ * Returns the layout for `sqlite3_vfs`.
+ */
+static jintArray structLayoutSqlite3Vfs(JNIEnv* env) {
+    StructLayoutBegin(22);
+    StructLayoutAppend(sqlite3_vfs, iVersion);
+    StructLayoutAppend(sqlite3_vfs, szOsFile);
+    StructLayoutAppend(sqlite3_vfs, mxPathname);
+    StructLayoutAppend(sqlite3_vfs, pNext);
+    StructLayoutAppend(sqlite3_vfs, zName);
+    StructLayoutAppend(sqlite3_vfs, pAppData);
+    StructLayoutAppend(sqlite3_vfs, xOpen);
+    StructLayoutAppend(sqlite3_vfs, xDelete);
+    StructLayoutAppend(sqlite3_vfs, xAccess);
+    StructLayoutAppend(sqlite3_vfs, xFullPathname);
+    StructLayoutAppend(sqlite3_vfs, xDlOpen);
+    StructLayoutAppend(sqlite3_vfs, xDlError);
+    StructLayoutAppend(sqlite3_vfs, xDlSym);
+    StructLayoutAppend(sqlite3_vfs, xDlClose);
+    StructLayoutAppend(sqlite3_vfs, xRandomness);
+    StructLayoutAppend(sqlite3_vfs, xSleep);
+    StructLayoutAppend(sqlite3_vfs, xCurrentTime);
+    StructLayoutAppend(sqlite3_vfs, xGetLastError);
+    StructLayoutAppend(sqlite3_vfs, xCurrentTimeInt64);
+    StructLayoutAppend(sqlite3_vfs, xSetSystemCall);
+    StructLayoutAppend(sqlite3_vfs, xGetSystemCall);
+    StructLayoutAppend(sqlite3_vfs, xNextSystemCall);
+    StructLayoutEnd(sqlite3_vfs);
 }
 
 extern "C"
@@ -2449,6 +2490,12 @@ Java_ksqlite_foreign_KsqliteJni_nativeStructLayout(
             return structLayoutSqlite3Vtab(env);
         case Sqlite3VtabCursor:
             return structLayoutSqlite3VtabCursor(env);
+        case Sqlite3File:
+            return structLayoutSqlite3File(env);
+        case Sqlite3IoMethods:
+            return structLayoutSqlite3IoMethods(env);
+        case Sqlite3Vfs:
+            return structLayoutSqlite3Vfs(env);
         default:
             FatalError(sqlite3_mprintf("Unknown struct type %d", type));
             return nullptr;
@@ -2460,10 +2507,10 @@ JNIEXPORT jobject JNICALL
 Java_ksqlite_foreign_KsqliteJni_nativeStructReinterpret(
     JNIEnv* env,
     jclass clazz,
-    jint type,
+    jint size,
     jlong pointer
 ) {
-    return env->NewDirectByteBuffer(LongToPtr(pointer), structSize(env, type));
+    return env->NewDirectByteBuffer(LongToPtr(pointer), size);
 }
 
 extern "C"
@@ -2471,10 +2518,9 @@ JNIEXPORT jobject JNICALL
 Java_ksqlite_foreign_KsqliteJni_nativeStructMalloc(
     JNIEnv* env,
     jclass clazz,
-    jint type,
+    jint size,
     jobject pointer
 ) {
-    const auto size = structSize(env, type);
     const auto address = sqlite3_malloc(size);
     OutOfMemoryCheck(address != nullptr);
 
@@ -6936,4 +6982,47 @@ Java_ksqlite_foreign_KsqliteJni_nativeVtabDeinit(
 
     sqlite3_mutex_leave(pMutex);
     sqlite3_mutex_free(pMutex);
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Virtual File System
+///////////////////////////////////////////////////////////////////////////
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_vfsOpen(
+    JNIEnv* env,
+    jclass clazz,
+    jlong xOpen,
+    jlong vfs,
+    jstring fileName,
+    jlong file,
+    jint flags,
+    jobject outFlags
+) {
+    const auto pFunc = reinterpret_cast<decltype(sqlite3_vfs::xOpen)>(LongToPtr(xOpen));
+    const auto zFileName = JstringToUtf8(fileName);
+    const auto pVfs = LongTo_s3_vfs(vfs);
+    const auto pFile = LongTo_s3_file(file);
+
+    OutputPointerEnterInt32(outFlags);
+    const auto rc = pFunc(pVfs, zFileName, pFile, flags, outFlags_);
+    OutputPointerLeaveInt32(outFlags);
+
+    sqlite3_free(zFileName);
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_ioMethodsClose(
+    JNIEnv* env,
+    jclass clazz,
+    jlong xClose,
+    jlong file
+) {
+    const auto pFunc = reinterpret_cast<decltype(sqlite3_io_methods::xClose)>(LongToPtr(xClose));
+    const auto pFile = LongTo_s3_file(file);
+
+    return pFunc(pFile);
 }

@@ -10,7 +10,7 @@ import ksqlite.foreign.vTabInit
  * Allocates an instance of `sqlite3_vtab` and supplies getters and setters for reading and writing
  * the struct.
  */
-public class sqlite3_vtab : JniStruct(layout, StructType.Vtab) {
+public class sqlite3_vtab : JniStruct(layout) {
 
     init {
         vTabInit(pointer)

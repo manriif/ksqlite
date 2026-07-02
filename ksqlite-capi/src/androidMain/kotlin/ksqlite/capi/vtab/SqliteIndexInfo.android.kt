@@ -12,7 +12,7 @@ import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteVtabScanFlag
 
 public actual class sqlite3_index_info private constructor(private val info: s3_index_info) :
-    Struct(info.pointer, null /* memory is owned by SQLite */),
+    Struct(info.pointer),
     SqliteIndexInfo {
 
     internal constructor(pointer: JniPointer) : this(s3_index_info(pointer))

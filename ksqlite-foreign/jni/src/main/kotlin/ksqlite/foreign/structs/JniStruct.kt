@@ -13,32 +13,33 @@ import java.nio.ByteBuffer
 public abstract class JniStruct private constructor(
     private val layout: IntArray,
     private val buffer: ByteBuffer,
-    public val pointer: Long
+    public val pointer: Long,
+    size: Int,
 ) {
+
+    init {
+        require(size >= layout.last()) {
+            "Allocation size must not be less than the struct layout size"
+        }
+    }
 
     /**
      * Wraps an existing instance.
      */
     internal constructor(
         layout: IntArray,
-        type: StructType,
-        pointer: Long
-    ) : this(layout, structReinterpret(type, pointer), pointer)
-
-    @Suppress("unused")
-    private constructor(
-        layout: IntArray,
-        type: StructType,
-        outputPointer: OutputPointer.OfPointer
-    ) : this(layout, structMalloc(type, outputPointer), outputPointer.value)
+        pointer: Long,
+        size: Int = layout.last()
+    ) : this(layout, structReinterpret(size, pointer), pointer, size)
 
     /**
      * Allocates a new instance.
      */
     internal constructor(
         layout: IntArray,
-        type: StructType
-    ) : this(layout, type, OutputPointer.OfPointer(0L))
+        size: Int = layout.last(),
+        outputPointer: OutputPointer.OfPointer = OutputPointer.OfPointer(0L)
+    ) : this(layout, structMalloc(size, outputPointer), outputPointer.value, size)
 
     /**
      * Invokes [block] passing it the offset of the field at [index].

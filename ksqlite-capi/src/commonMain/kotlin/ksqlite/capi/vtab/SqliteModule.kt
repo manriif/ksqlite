@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.Struct
+import ksqlite.capi.memory.AllocatableStruct
 import ksqlite.capi.vtab.callbacks.SqliteVtabBeginCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabBestIndexCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabCloseCallback
@@ -41,18 +41,10 @@ import ksqlite.types.vtab.SqliteModuleVersion
  * The module must be [close]d by the owner when no longer required to release the associated
  * resource(s).
  */
-public expect class sqlite3_module<AppData>
-internal constructor(
+public expect class sqlite3_module<AppData> internal constructor(
     version: Int,
     callbacks: VtabModuleCallbacks<AppData, *, *>
-) : Struct,
-    AutoCloseable {
-
-    /**
-     * Releases associated resource(s) and frees native memory.
-     */
-    override fun close()
-}
+) : AllocatableStruct
 
 ///////////////////////////////////////////////////////////////////////////
 // Factory

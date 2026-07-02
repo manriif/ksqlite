@@ -40,6 +40,7 @@ public fun ksqliteLoadLibrary() {
 
 /**
  * Allocates [size] bytes and returns a pointer to the allocated memory.
+ * The default allocator is used to obtains memory.
  */
 public external fun nativeBufferAllocate(size: Long): Long
 
@@ -111,30 +112,30 @@ internal fun structLayout(type: StructType): IntArray = nativeStructLayout(type.
  * Returns a writable view of the struct as a [ByteBuffer] pointing to [pointer].
  */
 private external fun nativeStructReinterpret(
-    type: Int,
+    size: Int,
     pointer: Long
 ): ByteBuffer
 
 internal fun structReinterpret(
-    type: StructType,
+    size: Int,
     pointer: Long
-): ByteBuffer = nativeStructReinterpret(type.type, pointer)
+): ByteBuffer = nativeStructReinterpret(size, pointer)
 
 /**
- * Allocates a new struct depending on [type] and returns a writable view of the struct as a
+ * Allocates a new struct with given [size] and returns a writable view of the struct as a
  * [ByteBuffer] pointing to the address of the struct.
  *
  * The allocated struct address is written into [pointer].
  */
 private external fun nativeStructMalloc(
-    type: Int,
+    size: Int,
     pointer: OutputPointer.OfPointer
 ): ByteBuffer
 
 internal fun structMalloc(
-    type: StructType,
+    size: Int,
     pointer: OutputPointer.OfPointer
-): ByteBuffer = nativeStructMalloc(type.type, pointer)
+): ByteBuffer = nativeStructMalloc(size, pointer)
 
 /**
  * Frees a struct at the address of [buffer].
@@ -1175,3 +1176,27 @@ internal fun vTabInit(vTab: Long) = nativeVtabInit(vTab)
 private external fun nativeVtabDeinit(vTab: Long)
 
 internal fun vTabDeinit(vTab: Long) = nativeVtabDeinit(vTab)
+
+///////////////////////////////////////////////////////////////////////////
+// Virtual File System
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Invokes `sqlite3_vfs::[xOpen]`.
+ */
+public external fun vfsOpen(
+    xOpen: Long,
+    vfs: Long,
+    fileName: String,
+    file: Long,
+    flags: Int,
+    outFlags: OutputPointer.OfInt32?
+): Int
+
+/**
+ * Invokes `sqlite3io_methods::[xClose]`.
+ */
+public external fun ioMethodsClose(
+    xClose: Long,
+    file: Long
+): Int

@@ -15,7 +15,7 @@ public class sqlite3_module(
     callbacks: VtabModuleCallbacks,
     callbackMask: Int,
     eponymous: Boolean
-) : JniStruct(layout, StructType.Module) {
+) : JniStruct(layout) {
 
     init {
         moduleInit(pointer, callbackMask, eponymous, callbacks)

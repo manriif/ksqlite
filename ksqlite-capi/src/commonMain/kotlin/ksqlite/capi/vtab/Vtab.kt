@@ -173,16 +173,11 @@ internal class VtabState<Vtab : sqlite3_vtab, VtabCursor : sqlite3_vtab_cursor>(
         }.code
     }
 
-    inline fun closeCursor(
-        cursorAddress: Long,
-        cleanup: (sqlite3_vtab_cursor) -> Unit,
-    ) = cursorAddress.cursor.let { cursor ->
+    inline fun closeCursor(cursorAddress: Long) = cursorAddress.cursor.let { cursor ->
         callbacks.close.apply(cursor).code.also {
             check(cursors.remove(cursor.address) === cursor) {
                 "Virtual table cursor at address ${vTab.address} is not present or has changed"
             }
-
-            cleanup(cursor)
         }
     }
 
@@ -400,9 +395,8 @@ internal inline fun vTabOpen(
  */
 internal inline fun vTabClose(
     vTab: Long,
-    cursor: Long,
-    cleanup: (sqlite3_vtab_cursor) -> Unit
-): Int = vTab.vTabState.closeCursor(cursor, cleanup)
+    cursor: Long
+): Int = vTab.vTabState.closeCursor(cursor)
 
 /**
  * Invokes the [VtabModuleCallbacks.filter].

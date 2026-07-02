@@ -3,13 +3,9 @@
 package ksqlite.capi.vtab
 
 import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.NativeFreeablePlacement
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.nativeHeap
 import kotlinx.cinterop.pointed
-import kotlinx.cinterop.ptr
+import ksqlite.capi.memory.AllocatableStruct
 import ksqlite.capi.memory.MemoryScope
-import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.foreign.sqlite3_free
 import ksqlite.foreign.sqlite3_mprintf
@@ -17,12 +13,12 @@ import ksqlite.types.vtab.SqliteVtab
 
 public actual open class sqlite3_vtab private constructor(
     override val pointer: CPointer<s3_vtab>,
-    placement: NativeFreeablePlacement? = null
-) : Struct(pointer, placement),
+    owned: Boolean,
+) : AllocatableStruct(pointer, owned),
     MemoryScope,
     SqliteVtab {
 
-    public actual constructor() : this(nativeHeap.alloc<s3_vtab>().ptr, nativeHeap)
+    public actual constructor() : this(allocate(), true)
 
     public actual override val nRef: Int
         get() = pointer.pointed.nRef

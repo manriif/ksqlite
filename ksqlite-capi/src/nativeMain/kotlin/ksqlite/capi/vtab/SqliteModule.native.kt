@@ -3,11 +3,7 @@
 package ksqlite.capi.vtab
 
 import kotlinx.cinterop.CPointer
-import kotlinx.cinterop.NativeFreeablePlacement
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.nativeHeap
-import kotlinx.cinterop.ptr
-import ksqlite.capi.memory.Struct
+import ksqlite.capi.memory.AllocatableStruct
 import ksqlite.capi.vtab.SqliteModuleKind.Eponymous
 import ksqlite.capi.vtab.SqliteModuleKind.EponymousOnly
 import ksqlite.capi.vtab.SqliteModuleKind.Ordinal
@@ -15,14 +11,14 @@ import ksqlite.capi.vtab.SqliteModuleKind.Ordinal
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
     override val pointer: CPointer<s3_module>,
-    placement: NativeFreeablePlacement? = null
-) : Struct(pointer, placement),
+    owned: Boolean
+) : AllocatableStruct(pointer, owned),
     AutoCloseable {
 
     internal actual constructor(
         version: Int,
         callbacks: VtabModuleCallbacks<AppData, *, *>
-    ) : this(callbacks, nativeHeap.alloc<s3_module>().apply {
+    ) : this(callbacks, allocate<s3_module> {
         iVersion = version
 
         xCreate = when (callbacks.moduleKind) {
@@ -53,7 +49,5 @@ public actual class sqlite3_module<AppData> private constructor(
         xRelease = callbacks.release?.let { VtabReleaseHandler }
         xRollbackTo = callbacks.rollbackTo?.let { VtabRollbackToHandler }
         xIntegrity = callbacks.integrity?.let { VtabIntegrityHandler }
-    }.ptr, nativeHeap)
-
-    actual override fun close(): Unit = free()
+    }, true)
 }
