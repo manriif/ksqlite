@@ -3,15 +3,15 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.capi
+import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.memory.NullPtr
-import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
 import ksqlite.foreign.structs.invoke
 
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
     module: s3_module
-) : Struct(module),
+) : AllocatedStruct(module),
     AutoCloseable {
 
     internal actual constructor(
@@ -49,6 +49,4 @@ public actual class sqlite3_module<AppData> private constructor(
         xRollbackTo = callbacks.rollbackTo?.let { VtabRollbackToHandler }.notNull
         xIntegrity = callbacks.integrity?.let { VtabIntegrityHandler }.notNull
     })
-
-    actual override fun close(): Unit = free()
 }

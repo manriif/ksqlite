@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.Struct
+import ksqlite.capi.memory.ReinterpretedStruct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
 import ksqlite.foreign.sqlite3
@@ -10,14 +10,13 @@ import ksqlite.types.internal.convertVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteIndexInfo
 import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteVtabScanFlag
-import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import ksqlite.foreign.sqlite3_index_info.sqlite3_index_constraint as s3_index_constraint
 import ksqlite.foreign.sqlite3_index_info.sqlite3_index_constraint_usage as s3_index_constraint_usage
 import ksqlite.foreign.sqlite3_index_info.sqlite3_index_orderby as s3_index_orderby
 
 public actual class sqlite3_index_info internal constructor(pointer: MemorySegment) :
-    Struct(Arena.ofConfined(), { s3_index_info.reinterpret(pointer, this, null) }),
+    ReinterpretedStruct(pointer, s3_index_info.layout()),
     SqliteIndexInfo {
 
     private val constraints by lazy {

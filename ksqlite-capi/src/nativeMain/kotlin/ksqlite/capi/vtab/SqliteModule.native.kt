@@ -3,16 +3,15 @@
 package ksqlite.capi.vtab
 
 import kotlinx.cinterop.CPointer
-import ksqlite.capi.memory.AllocatableStruct
+import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.vtab.SqliteModuleKind.Eponymous
 import ksqlite.capi.vtab.SqliteModuleKind.EponymousOnly
 import ksqlite.capi.vtab.SqliteModuleKind.Ordinal
 
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
-    override val pointer: CPointer<s3_module>,
-    owned: Boolean
-) : AllocatableStruct(pointer, owned),
+    override val pointer: CPointer<s3_module>
+) : AllocatedStruct(pointer),
     AutoCloseable {
 
     internal actual constructor(
@@ -49,5 +48,5 @@ public actual class sqlite3_module<AppData> private constructor(
         xRelease = callbacks.release?.let { VtabReleaseHandler }
         xRollbackTo = callbacks.rollbackTo?.let { VtabRollbackToHandler }
         xIntegrity = callbacks.integrity?.let { VtabIntegrityHandler }
-    }, true)
+    })
 }

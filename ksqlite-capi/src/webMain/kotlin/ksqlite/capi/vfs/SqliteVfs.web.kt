@@ -16,7 +16,7 @@ import ksqlite.types.vfs.SqliteVfs
 import ksqlite.types.vfs.SqliteVfsVersion
 import ksqlite.foreign.structs.sqlite3_vfs as s3_vfs
 
-public actual class sqlite3_vfs private constructor(private val vfs: s3_vfs) :
+public actual class sqlite3_vfs private constructor(internal val vfs: s3_vfs) :
     Struct(vfs.pointer),
     SqliteVfs {
 

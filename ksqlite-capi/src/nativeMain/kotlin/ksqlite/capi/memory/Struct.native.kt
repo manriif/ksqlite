@@ -29,16 +29,12 @@ public actual open class Struct internal constructor(internal open val pointer: 
     }
 }
 
-public actual open class AllocatableStruct internal constructor(
-    pointer: COpaquePointer,
-    private val owned: Boolean = false
-) : Struct(pointer),
+public actual open class AllocatedStruct internal constructor(pointer: COpaquePointer) :
+    Struct(pointer),
     AutoCloseable {
 
     public actual override fun close() {
-        if (owned) {
-            sqlite3_free(pointer)
-        }
+        sqlite3_free(pointer)
     }
 
     internal companion object {
@@ -46,18 +42,10 @@ public actual open class AllocatableStruct internal constructor(
         /**
          * Allocates [S] using SQLite's allocator.
          */
-        protected inline fun <reified S : CVariable> allocate(size: Long? = null): CPointer<S> {
-            val defaultSize = sizeOf<S>()
-            val retainedSize = size ?: defaultSize
-
-            check(retainedSize >= defaultSize) {
-                "Allocation size must be greater than or equals to the struct size"
-            }
-
-            return checkNotNull(sqlite3_malloc64(retainedSize.convert())) {
+        protected inline fun <reified S : CVariable> allocate(size: Long? = null): CPointer<S> =
+            checkNotNull(sqlite3_malloc64(checkStructSize(sizeOf<S>(), size).convert())) {
                 "Failed to allocate an instance of ${S::class}"
             }.reinterpret()
-        }
 
         /**
          * Allocates [S] using SQLite's allocator and invokes [configure] with the allocated [S]

@@ -9,7 +9,7 @@ import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.dispatchSqlLogEvent
 import ksqlite.capi.sqlite3
-import ksqlite.capi.types.s3
+import ksqlite.capi.s3
 
 ///////////////////////////////////////////////////////////////////////////
 // Log

@@ -2,14 +2,14 @@
 
 package ksqlite.capi.vtab
 
+import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.memory.NullPtr
-import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
 
 public actual class sqlite3_module<AppData> internal actual constructor(
     version: Int,
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>
-) : Struct(allocate = s3_module::allocate),
+) : AllocatedStruct(s3_module.layout()),
     AutoCloseable {
 
     init {
@@ -52,7 +52,4 @@ public actual class sqlite3_module<AppData> internal actual constructor(
         s3_module.xRollbackTo(pointer, callbacks.rollbackTo?.let { VtabRollbackToHandler }.notNull)
         s3_module.xIntegrity(pointer, callbacks.integrity?.let { VtabIntegrityHandler }.notNull)
     }
-
-    @Suppress("ACTUAL_IGNORABILITY_NOT_MATCH_EXPECT")
-    actual override fun close(): Unit = free()
 }

@@ -2,9 +2,8 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.AllocatableStruct
+import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.memory.MemoryScope
-import ksqlite.capi.memory.Struct
 import ksqlite.types.vtab.SqliteVtab
 
 /**
@@ -15,7 +14,7 @@ import ksqlite.types.vtab.SqliteVtab
  *
  * [sqlite3_vtab](https://sqlite.org/c3ref/vtab.html)
  */
-public expect open class sqlite3_vtab() : AllocatableStruct, MemoryScope, SqliteVtab {
+public expect open class sqlite3_vtab() : AllocatedStruct, MemoryScope, SqliteVtab {
     override val nRef: Int
     override var errMsg: String?
 }

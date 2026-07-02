@@ -4,15 +4,15 @@ package ksqlite.capi.vtab
 
 import ksqlite.capi.capi
 import ksqlite.capi.exports
+import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.memory.MemoryScope
-import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
 import ksqlite.foreign.structs.invoke
 import ksqlite.types.vtab.SqliteVtab
 
 public actual open class sqlite3_vtab private constructor(private val vTab: s3_vtab) :
-    Struct(vTab),
+    AllocatedStruct(vTab),
     MemoryScope,
     SqliteVtab {
 

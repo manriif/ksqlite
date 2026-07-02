@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vfs
 
-import ksqlite.capi.memory.AllocatableStruct
+import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.types.vfs.SqliteFile
 
 /**
@@ -13,7 +13,7 @@ import ksqlite.types.vfs.SqliteFile
  *
  * [sqlite3_file](https://sqlite.org/c3ref/file.html)
  */
-public expect class sqlite3_file(vfs: sqlite3_vfs) : AllocatableStruct, SqliteFile {
+public expect class sqlite3_file(vfs: sqlite3_vfs) : AllocatedStruct, SqliteFile {
 
     public val pMethods: sqlite3_io_methods?
 }

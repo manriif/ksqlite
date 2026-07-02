@@ -7,7 +7,7 @@ import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.sqlite3
-import ksqlite.capi.types.s3
+import ksqlite.capi.s3
 
 /**
  * Static C function for [walHookHandler].

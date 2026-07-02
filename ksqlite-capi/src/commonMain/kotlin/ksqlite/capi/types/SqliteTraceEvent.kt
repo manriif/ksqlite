@@ -3,6 +3,8 @@
 package ksqlite.capi.types
 
 import ksqlite.capi.callbacks.SqliteTraceCallback
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.types.SqliteTraceEventCode
 
 /**

@@ -5,6 +5,7 @@ import ksqlite.foreign.structFree
 import ksqlite.foreign.structMalloc
 import ksqlite.foreign.structReinterpret
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 /**
  * Wrapper around a direct [ByteBuffer] pointing to a C-struct.
@@ -12,7 +13,7 @@ import java.nio.ByteBuffer
  */
 public abstract class JniStruct private constructor(
     private val layout: IntArray,
-    private val buffer: ByteBuffer,
+    buffer: ByteBuffer,
     public val pointer: Long,
     size: Int,
 ) {
@@ -22,6 +23,8 @@ public abstract class JniStruct private constructor(
             "Allocation size must not be less than the struct layout size"
         }
     }
+
+    private val buffer = buffer.order(ByteOrder.nativeOrder())
 
     /**
      * Wraps an existing instance.

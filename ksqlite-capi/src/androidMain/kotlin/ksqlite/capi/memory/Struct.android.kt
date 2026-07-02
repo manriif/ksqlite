@@ -20,7 +20,7 @@ public actual open class Struct internal constructor(internal val pointer: JniPo
     }
 }
 
-public actual open class AllocatableStruct internal constructor(
+public actual open class AllocatedStruct internal constructor(
     pointer: JniPointer,
     private val jniStruct: JniStruct?
 ) : Struct(pointer),

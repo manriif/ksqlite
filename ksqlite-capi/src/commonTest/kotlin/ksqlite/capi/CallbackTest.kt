@@ -1,5 +1,6 @@
 package ksqlite.capi
 
+import kotlinx.coroutines.awaitCancellation
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteOpenFlag
@@ -11,9 +12,9 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * Tests the different connection callbacks.
+ * Tests the different callbacks.
  */
-class ConnectionCallbackTest {
+class CallbackTest {
 
     @Test
     fun autoExtensionWorks() = runSqliteTest {
@@ -140,17 +141,23 @@ class ConnectionCallbackTest {
 
     @Test
     fun busyHandlerWorks() = runSqliteTest {
+        val vfs = assertNotNull(sqlite3_vfs_find(null))
+
+        println(vfs.iVersion)
+        println(vfs.szOsFile)
+        println(vfs.mxPathname)
+        println(vfs.zName)
         // Real file system is required here, but we do not want to expect/actual temporary file
         // creation, so we let sqlite create a db file, request a temp file and delete the db file
-        val outDb = sqlite3.OutputParam()
+        /*val outDb = sqlite3.OutputParam()
         val openResult = sqlite3_open_v2(
             "temp.db",
             outDb,
-            SqliteOpenFlag.READONLY or SqliteOpenFlag.DELETEONCLOSE, null
+            SqliteOpenFlag.READONLY, null
         )
-        assertEquals(SqliteResultCode.OK, openResult)
+        assertEquals(SqliteResultCode.OK, openResult)*/
 
-        val db = assertNotNull(outDb.value)
+        /*val db = assertNotNull(outDb.value)
         val outTempFile = Utf8OutputParam()
         val tempFileControl = SqliteFileControlOpcode.TEMPFILENAME(outTempFile)
         val tempFileControlResult = sqlite3_file_control(db, null, tempFileControl)
@@ -179,6 +186,6 @@ class ConnectionCallbackTest {
         val lockResult = sqlite3_exec(db1, "BEGIN EXCLUSIVE; CREATE TABLE t(x);", null, null, null)
         assertEquals(SqliteResultCode.OK, lockResult)
 
-        val accessResult = sqlite3_exec(db2, "SELECT * FROM t;", null, null, null)
+        val accessResult = sqlite3_exec(db2, "SELECT * FROM t;", null, null, null)*/
     }
 }

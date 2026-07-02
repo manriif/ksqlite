@@ -1,15 +1,12 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.wasm
 import ksqlite.foreign.structs.StructType
 import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toLong
 
-public actual open class Struct internal constructor(
-    internal val pointer: WasmPointer,
-    private val struct: StructType? = null,
-) : StructBase() {
-
-    internal constructor(struct: StructType) : this(struct.pointer, struct)
+public actual open class Struct internal constructor(internal val pointer: WasmPointer) :
+    StructBase() {
 
     actual override val address: Long
         get() = pointer.toLong()
@@ -24,8 +21,24 @@ public actual open class Struct internal constructor(
     override fun hashCode(): Int {
         return pointer.hashCode()
     }
+}
 
-    actual override fun free() {
-        struct?.dispose()
+public actual open class AllocatedStruct(private val struct: StructType) :
+    Struct(struct.pointer),
+    AutoCloseable {
+
+    public actual override fun close() {
+        struct.dispose()
+    }
+}
+
+/**
+ * For [struct] that do not own its pointer and thus is not responsible for freeing it.
+ */
+public open class DeallocStruct(struct: StructType) : AllocatedStruct(struct) {
+
+    public override fun close() {
+        super.close()
+        wasm.dealloc(pointer)
     }
 }

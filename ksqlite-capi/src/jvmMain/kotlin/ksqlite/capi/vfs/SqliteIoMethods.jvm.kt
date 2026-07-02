@@ -2,18 +2,17 @@
 
 package ksqlite.capi.vfs
 
-import ksqlite.capi.memory.Struct
+import ksqlite.capi.memory.ReinterpretedStruct
 import ksqlite.capi.vfs.callbacks.SqliteIoMethodsCloseCallback
 import ksqlite.types.internal.convertIoMethodsVersion
 import ksqlite.types.internal.convertResultCode
 import ksqlite.types.vfs.SqliteIoMethods
 import ksqlite.types.vfs.SqliteIoMethodsVersion
-import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import ksqlite.foreign.sqlite3_io_methods as s3_io_methods
 
 public actual class sqlite3_io_methods internal constructor(pointer: MemorySegment) :
-    Struct(Arena.ofConfined(), { s3_io_methods.reinterpret(pointer, this, null) }),
+    ReinterpretedStruct(pointer, s3_io_methods.layout()),
     SqliteIoMethods {
 
     public actual override val iVersion: SqliteIoMethodsVersion

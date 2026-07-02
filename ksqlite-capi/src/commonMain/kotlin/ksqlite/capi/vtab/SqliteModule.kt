@@ -2,7 +2,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.AllocatableStruct
+import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.vtab.callbacks.SqliteVtabBeginCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabBestIndexCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabCloseCallback
@@ -44,7 +44,7 @@ import ksqlite.types.vtab.SqliteModuleVersion
 public expect class sqlite3_module<AppData> internal constructor(
     version: Int,
     callbacks: VtabModuleCallbacks<AppData, *, *>
-) : AllocatableStruct
+) : AllocatedStruct
 
 ///////////////////////////////////////////////////////////////////////////
 // Factory

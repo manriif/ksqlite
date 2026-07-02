@@ -7,8 +7,8 @@ import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.memory.toArrayOrEmpty
 import ksqlite.capi.sqlite3_context
 import ksqlite.capi.sqlite3_value
-import ksqlite.capi.types.s3_context
-import ksqlite.capi.types.s3_value
+import ksqlite.capi.s3_context
+import ksqlite.capi.s3_value
 import ksqlite.foreign.sqlite3_user_data
 
 /**

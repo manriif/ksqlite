@@ -24,37 +24,37 @@ public actual open class Struct internal constructor(internal val pointer: Memor
     }
 }
 
-public actual open class AllocatableStruct internal constructor(
+public open class ReinterpretedStruct internal constructor(
+    protected val arena: Arena,
     pointer: MemorySegment,
-    private val arena: Arena?,
-    protected val struct: MemorySegment // reinterpreted
 ) : Struct(pointer),
     AutoCloseable {
 
-    private constructor(
+    internal constructor(
+        pointer: MemorySegment,
         layout: GroupLayout,
-        arena: Arena,
-        pointer: MemorySegment
-    ) : this(pointer, arena, pointer.reinterpret(layout.byteSize(), arena, null))
+        arena: Arena = Arena.ofConfined()
+    ) : this(arena, pointer.reinterpret(layout.byteSize(), arena, null))
+
+    public override fun close() {
+        arena.close()
+    }
+}
+
+public actual open class AllocatedStruct internal constructor(
+    private val allocatedPointer: MemorySegment,
+    layout: GroupLayout,
+    arena: Arena
+) : ReinterpretedStruct(allocatedPointer, layout, arena) {
 
     internal constructor(
         layout: GroupLayout,
         size: Long? = null,
         arena: Arena = Arena.ofShared()
-    ) : this(layout, arena, run {
-        val defaultSize = layout.byteSize()
-        val retainedSize = size ?: defaultSize
-
-        check(retainedSize >= defaultSize) {
-            "Allocation size must be greater than or equals to the struct size"
-        }
-
-        sqlite3_malloc64(retainedSize)
-    })
+    ) : this(sqlite3_malloc64(checkStructSize(layout.byteSize(), size)), layout, arena)
 
     public actual override fun close() {
-        arena?.close()?.also {
-            sqlite3_free(pointer)
-        }
+        super.close()
+        sqlite3_free(allocatedPointer)
     }
 }

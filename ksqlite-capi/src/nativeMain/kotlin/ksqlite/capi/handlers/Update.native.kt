@@ -10,7 +10,7 @@ import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.sqlite3
-import ksqlite.capi.types.s3
+import ksqlite.capi.s3
 import ksqlite.foreign.sqlite3_int64
 import ksqlite.types.internal.convertActionCode
 

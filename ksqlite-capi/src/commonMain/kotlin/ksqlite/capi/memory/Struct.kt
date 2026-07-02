@@ -13,7 +13,7 @@ public abstract class StructBase internal constructor() {
 
 /**
  * Represents a native struct object.
- * Direct instance of [Struct] cannot be allocated and only holds opaque pointer.
+ * Direct inheritor of [Struct] cannot be allocated and only holds an opaque pointer.
  *
  * Two [Struct]s representing the same native object are structurally equals (==).
  */
@@ -23,14 +23,14 @@ public expect open class Struct : StructBase {
 }
 
 /**
- * [Struct] that can be allocated and freed.
+ * [Struct] that has been allocated by the application.
  *
- * If the [AllocatableStruct] was obtained by invoking one of its constructor or factory function,
+ * If the [AllocatedStruct] was obtained by invoking one of its constructor or factory function,
  * then it is owned by the application. Otherwise, the struct is owned by SQLite.
  *
- * Instantiator, which is the owner of the [AllocatableStruct], is responsible for closing it.
+ * The instantiator, which is the owner of the [AllocatedStruct], is responsible for closing it.
  */
-public expect open class AllocatableStruct :
+public expect open class AllocatedStruct :
     Struct,
     AutoCloseable {
 
