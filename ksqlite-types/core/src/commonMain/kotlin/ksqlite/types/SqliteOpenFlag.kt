@@ -27,6 +27,9 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
         @ConsistentCopyVisibility
         public data class Mask internal constructor(override val value: Int) : Db(value) {
 
+            override fun contains(flag: Required): Boolean =
+                (value and flag.value) == flag.value
+
             override fun contains(flag: OptionalDb): Boolean =
                 (value and flag.value) == flag.value
         }
@@ -178,6 +181,9 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
         @ConsistentCopyVisibility
         public data class Mask internal constructor(override val value: Int) : Vfs(value) {
 
+            override fun contains(flag: Required): Boolean =
+                (value and flag.value) == flag.value
+
             override fun contains(flag: Optional): Boolean =
                 (value and flag.value) == flag.value
         }
@@ -253,4 +259,11 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
     public data object SUPER_JOURNAL : OptionalVfs(0x00004000)
 
     public data object WAL : OptionalVfs(0x00080000)
+
+    /**
+     * Returns `true` if [flag] is equals to `this`.
+     * It this is a mask, returns `true` if it contains [flag].
+     */
+    public open operator fun contains(flag: Required): Boolean =
+        flag == this || flag.value == value
 }

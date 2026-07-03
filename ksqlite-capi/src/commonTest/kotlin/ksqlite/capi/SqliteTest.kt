@@ -5,19 +5,21 @@ package ksqlite.capi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import ksqlite.capi.vfs.sqlite3_vfs
+import ksqlite.capi.vfs.xDelete
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.time.Duration
+import kotlin.test.assertTrue
 
 private val Initialized = AtomicBoolean(false)
 
 /**
  * Loads the SQLite library for synchronous testing, without initializing it.
- * Returns `true` if the platform is web, `false` otherwise.
+ * Returns `true` if the platform uses SQLite WASM, `false` otherwise.
  */
 internal expect suspend fun loadSqliteForTest(): Boolean
 
@@ -37,13 +39,13 @@ internal fun initializeSqliteForTest() {
 /**
  * Loads SQLite and runs [block] without initializing SQLite.
  */
-internal fun runTestNoInit(block: suspend TestScope.(isWeb: Boolean) -> Unit) = runTest(timeout = Duration.INFINITE) {
-    val isWeb = loadSqliteForTest()
+internal fun runTestNoInit(block: suspend TestScope.(isWasm: Boolean) -> Unit) = runTest {
+    val isWasm = loadSqliteForTest()
 
     try {
-        block(isWeb)
+        block(isWasm)
     } catch (cause: Throwable) {
-        if (isWeb) {
+        if (isWasm) {
             // Give time for the tester to open devtools and see what happened
             cause.printStackTrace()
             awaitCancellation()
@@ -57,10 +59,10 @@ internal fun runTestNoInit(block: suspend TestScope.(isWeb: Boolean) -> Unit) = 
  * Initializes SQLite inside a [runTest] scope and invokes [block].
  */
 internal fun runSqliteTest(
-    block: suspend TestScope.(isWeb: Boolean) -> Unit
-) = runTestNoInit { isWeb ->
+    block: suspend TestScope.(isWasm: Boolean) -> Unit
+) = runTestNoInit { isWasm ->
     initializeSqliteForTest()
-    block(isWeb)
+    block(isWasm)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -112,4 +114,56 @@ internal fun runSqliteConnectionDataTest(
     assertEquals(SqliteResultCode.OK, result)
 
     block(connection)
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Files
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the path to [subdirectory] against the OS temporary directory.
+ * The returned directory is created if it does not exist and must be writable.
+ */
+internal expect fun temporaryTestDirectory(subdirectory: String): String
+
+/**
+ * Returns the path to the temporary test directory.
+ */
+internal fun ksqliteTemporaryTestDirectory(): String = temporaryTestDirectory("ksqlite-test")
+
+/**
+ * Returns the path to the temporary test file named after [fileName].
+ */
+internal fun ksqliteTemporaryTestFile(fileName: String): String =
+    "${ksqliteTemporaryTestDirectory()}/$fileName"
+
+/**
+ * Invokes [block] passing it the path to a temporary file, named after [fileName], which isn't
+ * created.
+ * The file whose path is passed to [block] must be managed by this [sqlite3_vfs].
+ * This [sqlite3_vfs] is used to delete the file, before and after [block] invocation.
+ */
+internal fun <R> sqlite3_vfs.usingRealTempFile(
+    fileName: String,
+    block: (path: String) -> R
+): R {
+    val path = ksqliteTemporaryTestFile(fileName)
+
+    fun deleteFile() {
+        val deleteResult = xDelete(fileName, 0)
+
+        assertTrue(
+            deleteResult == SqliteResultCode.OK
+                    || deleteResult == SqliteResultCode.IOERR.DELETE_NOENT
+                    || deleteResult == SqliteResultCode.IOERR.DELETE // Android JNI, why ?
+        )
+    }
+
+    deleteFile()
+
+    return try {
+        block(path)
+    } finally {
+        deleteFile()
+    }
 }

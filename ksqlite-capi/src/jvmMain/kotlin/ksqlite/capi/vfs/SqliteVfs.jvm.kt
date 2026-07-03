@@ -8,6 +8,8 @@ import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.memScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.useParam
+import ksqlite.capi.vfs.callbacks.SqliteVfsAccessCallback
+import ksqlite.capi.vfs.callbacks.SqliteVfsDeleteCallback
 import ksqlite.capi.vfs.callbacks.SqliteVfsOpenCallback
 import ksqlite.types.internal.convertResultCode
 import ksqlite.types.internal.convertVfsVersion
@@ -33,14 +35,43 @@ public actual class sqlite3_vfs internal constructor(pointer: MemorySegment) :
         get() = s3_vfs.zName(pointer).toKStringFromUtf8()
 
     public actual val xOpen: SqliteVfsOpenCallback by lazy {
-        SqliteVfsOpenCallback { vfs, fileName, file, flags, outFlags ->
+        SqliteVfsOpenCallback { vfs, name, file, flags, outFlags ->
             convertResultCode(memScoped {
                 useParam(outFlags?.base) { flagsPtr ->
                     s3_vfs.xOpen.invoke(
                         s3_vfs.xOpen(pointer),
                         vfs.pointer,
-                        fileName.allocateUtf8(),
+                        name.allocateUtf8(),
                         file.pointer,
+                        flags.value,
+                        flagsPtr
+                    )
+                }
+            })
+        }
+    }
+
+    public actual val xDelete: SqliteVfsDeleteCallback by lazy {
+        SqliteVfsDeleteCallback { vfs, name, syncDir ->
+            convertResultCode(memScoped {
+                s3_vfs.xDelete.invoke(
+                    s3_vfs.xDelete(pointer),
+                    vfs.pointer,
+                    name.allocateUtf8(),
+                    syncDir
+                )
+            })
+        }
+    }
+
+    public actual val xAccess: SqliteVfsAccessCallback by lazy {
+        SqliteVfsAccessCallback { vfs, name, flags, outFlags ->
+            convertResultCode(memScoped {
+                useParam(outFlags?.base) { flagsPtr ->
+                    s3_vfs.xAccess.invoke(
+                        s3_vfs.xAccess(pointer),
+                        vfs.pointer,
+                        name.allocateUtf8(),
                         flags.value,
                         flagsPtr
                     )

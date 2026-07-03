@@ -10,6 +10,8 @@ import ksqlite.capi.memory.heapScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.useParam
 import ksqlite.capi.memory.usingJsFunction
+import ksqlite.capi.vfs.callbacks.SqliteVfsAccessCallback
+import ksqlite.capi.vfs.callbacks.SqliteVfsDeleteCallback
 import ksqlite.capi.vfs.callbacks.SqliteVfsOpenCallback
 import ksqlite.foreign.structs.invoke
 import ksqlite.foreign.wasm.JsFunction
@@ -41,14 +43,47 @@ public actual class sqlite3_vfs private constructor(private val vfs: s3_vfs) :
 
     public actual val xOpen: SqliteVfsOpenCallback by lazy {
         vfs.xOpen.usingJsFunction { function ->
-            SqliteVfsOpenCallback { vfsIn, fileName, file, flags, outFlags ->
+            SqliteVfsOpenCallback { pVfs, name, file, flags, outFlags ->
                 convertResultCode(heapScoped {
                     useParam(outFlags?.base) { flagsPtr ->
                         xOpen(
                             function,
-                            vfsIn.pointer,
-                            fileName.allocateUtf8Pointer(),
+                            pVfs.pointer,
+                            name.allocateUtf8Pointer(),
                             file.pointer,
+                            flags.value,
+                            flagsPtr
+                        )
+                    }
+                })
+            }
+        }
+    }
+
+    public actual val xDelete: SqliteVfsDeleteCallback by lazy {
+        vfs.xDelete.usingJsFunction { function ->
+            SqliteVfsDeleteCallback { pVfs, name, syncDir ->
+                convertResultCode(heapScoped {
+                    xDelete(
+                        function,
+                        pVfs.pointer,
+                        name.allocateUtf8Pointer(),
+                        syncDir
+                    )
+                })
+            }
+        }
+    }
+
+    public actual val xAccess: SqliteVfsAccessCallback by lazy {
+        vfs.xAccess.usingJsFunction { function ->
+            SqliteVfsAccessCallback { pVfs, name, flags, outFlags ->
+                convertResultCode(heapScoped {
+                    useParam(outFlags?.base) { flagsPtr ->
+                        xAccess(
+                            function,
+                            pVfs.pointer,
+                            name.allocateUtf8Pointer(),
                             flags.value,
                             flagsPtr
                         )
@@ -74,6 +109,23 @@ private external fun xOpen(
     p0: WasmPointer,
     p1: WasmPointer,
     p2: WasmPointer,
+    p3: Int,
+    p4: WasmPointer
+): Int
+
+@JsFun("(fn, p0, p1, p2) => fn(p0, p1, p2)")
+private external fun xDelete(
+    fn: JsFunction,
+    p0: WasmPointer,
+    p1: WasmPointer,
+    p3: Int,
+): Int
+
+@JsFun("(fn, p0, p1, p2, p3) => fn(p0, p1, p2, p3)")
+private external fun xAccess(
+    fn: JsFunction,
+    p0: WasmPointer,
+    p1: WasmPointer,
     p3: Int,
     p4: WasmPointer
 ): Int

@@ -63,6 +63,6 @@ public sealed class SqliteVtabScanFlag(public open val value: Int) {
         /**
          * Returns a [SqliteVtabScanFlag] from [value].
          */
-        public fun from(value: Int): Mask = Mask(value)
+        public fun from(value: Int): SqliteVtabScanFlag = Mask(value)
     }
 }

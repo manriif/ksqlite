@@ -6990,31 +6990,6 @@ Java_ksqlite_foreign_KsqliteJni_nativeVtabDeinit(
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_ksqlite_foreign_KsqliteJni_vfsOpen(
-    JNIEnv* env,
-    jclass clazz,
-    jlong xOpen,
-    jlong vfs,
-    jstring fileName,
-    jlong file,
-    jint flags,
-    jobject outFlags
-) {
-    const auto pFunc = reinterpret_cast<decltype(sqlite3_vfs::xOpen)>(LongToPtr(xOpen));
-    const auto zFileName = JstringToUtf8(fileName);
-    const auto pVfs = LongTo_s3_vfs(vfs);
-    const auto pFile = LongTo_s3_file(file);
-
-    OutputPointerEnterInt32(outFlags);
-    const auto rc = pFunc(pVfs, zFileName, pFile, flags, outFlags_);
-    OutputPointerLeaveInt32(outFlags);
-
-    sqlite3_free(zFileName);
-    return rc;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
 Java_ksqlite_foreign_KsqliteJni_ioMethodsClose(
     JNIEnv* env,
     jclass clazz,
@@ -7025,4 +7000,71 @@ Java_ksqlite_foreign_KsqliteJni_ioMethodsClose(
     const auto pFile = LongTo_s3_file(file);
 
     return pFunc(pFile);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_vfsOpen(
+    JNIEnv* env,
+    jclass clazz,
+    jlong xOpen,
+    jlong vfs,
+    jstring name,
+    jlong file,
+    jint flags,
+    jobject outFlags
+) {
+    const auto pFunc = reinterpret_cast<decltype(sqlite3_vfs::xOpen)>(LongToPtr(xOpen));
+    const auto zName = JstringToUtf8(name);
+    const auto pVfs = LongTo_s3_vfs(vfs);
+    const auto pFile = LongTo_s3_file(file);
+
+    OutputPointerEnterInt32(outFlags);
+    const auto rc = pFunc(pVfs, zName, pFile, flags, outFlags_);
+    OutputPointerLeaveInt32(outFlags);
+
+    sqlite3_free(zName);
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_vfsDelete(
+    JNIEnv* env,
+    jclass clazz,
+    jlong xDelete,
+    jlong vfs,
+    jstring name,
+    jint syncDir
+) {
+    const auto pFunc = reinterpret_cast<decltype(sqlite3_vfs::xDelete)>(LongToPtr(xDelete));
+    const auto zName = JstringToUtf8(name);
+    const auto pVfs = LongTo_s3_vfs(vfs);
+    const auto rc = pFunc(pVfs, zName, syncDir);
+
+    sqlite3_free(zName);
+    return rc;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_vfsAccess(
+    JNIEnv* env,
+    jclass clazz,
+    jlong xAccess,
+    jlong vfs,
+    jstring name,
+    jint flags,
+    jobject outFlags
+) {
+    const auto pFunc = reinterpret_cast<decltype(sqlite3_vfs::xAccess)>(LongToPtr(xAccess));
+    const auto zName = JstringToUtf8(name);
+    const auto pVfs = LongTo_s3_vfs(vfs);
+
+    OutputPointerEnterInt32(outFlags);
+    const auto rc = pFunc(pVfs, zName, flags, outFlags_);
+    OutputPointerLeaveInt32(outFlags);
+
+    sqlite3_free(zName);
+    return rc;
 }

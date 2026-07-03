@@ -6,7 +6,11 @@ import ksqlite.capi.memory.PointerOutputParam
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.useParam
+import ksqlite.capi.vfs.callbacks.SqliteVfsAccessCallback
+import ksqlite.capi.vfs.callbacks.SqliteVfsDeleteCallback
 import ksqlite.capi.vfs.callbacks.SqliteVfsOpenCallback
+import ksqlite.foreign.vfsAccess
+import ksqlite.foreign.vfsDelete
 import ksqlite.foreign.vfsOpen
 import ksqlite.types.internal.convertResultCode
 import ksqlite.types.internal.convertVfsVersion
@@ -33,9 +37,23 @@ public actual class sqlite3_vfs private constructor(private val vfs: s3_vfs) :
         get() = vfs.zName.toKStringFromUtf8()
 
     public actual val xOpen: SqliteVfsOpenCallback by lazy {
-        SqliteVfsOpenCallback { vfsIn, fileName, file, flags, outFlags ->
+        SqliteVfsOpenCallback { pVfs, fileName, file, flags, outFlags ->
             convertResultCode(useParam(outFlags?.base) { flagsPtr ->
-                vfsOpen(vfs.xOpen, vfsIn.pointer, fileName, file.pointer, flags.value, flagsPtr)
+                vfsOpen(vfs.xOpen, pVfs.pointer, fileName, file.pointer, flags.value, flagsPtr)
+            })
+        }
+    }
+
+    public actual val xDelete: SqliteVfsDeleteCallback by lazy {
+        SqliteVfsDeleteCallback { pVfs, name, syncDir ->
+            convertResultCode(vfsDelete(vfs.xDelete, pVfs.pointer, name, syncDir))
+        }
+    }
+
+    public actual val xAccess: SqliteVfsAccessCallback by lazy {
+        SqliteVfsAccessCallback { pVfs, name, flags, outFlags ->
+            convertResultCode(useParam(outFlags?.base) { flagsPtr ->
+                vfsAccess(vfs.xAccess, pVfs.pointer, name, flags.value, flagsPtr)
             })
         }
     }

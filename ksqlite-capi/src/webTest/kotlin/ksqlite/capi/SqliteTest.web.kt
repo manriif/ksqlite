@@ -22,3 +22,8 @@ internal actual suspend fun loadSqliteForTest(): Boolean {
 
     return true
 }
+
+/**
+ * FIXME: For now, `/tmp` seems to exist in the default 'unix' VFS so stick with it for testing
+ */
+internal actual fun temporaryTestDirectory(subdirectory: String): String = "/tmp"

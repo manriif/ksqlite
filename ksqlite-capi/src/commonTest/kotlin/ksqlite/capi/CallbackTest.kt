@@ -1,11 +1,11 @@
 package ksqlite.capi
 
+import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.types.SqliteFileControlOpcode
-import ksqlite.capi.vfs.sqlite3_file
-import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -139,27 +139,55 @@ class CallbackTest {
     }
 
     @Test
-    fun busyHandlerWorks() = runSqliteTest {
-        /*val outDb1 = sqlite3.OutputParam()
-        val openDb1Result = sqlite3_open(tempFile, outDb1)
-        assertEquals(SqliteResultCode.OK, openDb1Result)
-        val db1 = assertNotNull(outDb1.value)
+    fun busyHandlerWorks() = runSqliteTest { isWasm ->
+        // TODO use OPFS VFS on WASM as default VFS may not support locking.
+        val vfsName: String? = if (isWasm) return@runSqliteTest else null
+        val vfs = assertNotNull(sqlite3_vfs_find(vfsName))
 
-        val outDb2 = sqlite3.OutputParam()
-        val openDb2Result = sqlite3_open(tempFile, outDb2)
-        assertEquals(SqliteResultCode.OK, openDb2Result)
-        val db2 = assertNotNull(outDb2.value)
+        vfs.usingRealTempFile("busy.db") { path ->
+            val outDb1 = sqlite3.OutputParam()
+            val openDb1Result = sqlite3_open(path, outDb1)
+            assertEquals(SqliteResultCode.OK, openDb1Result)
+            val db1 = assertNotNull(outDb1.value)
 
-        val busyHandlerResult = sqlite3_busy_handler(db2, 453) { appData, _ ->
-            assertEquals(453, appData)
-            0
+            val outDb2 = sqlite3.OutputParam()
+            val openDb2Result = sqlite3_open(path, outDb2)
+            assertEquals(SqliteResultCode.OK, openDb2Result)
+            val db2 = assertNotNull(outDb2.value)
+
+            var busyCalled = false
+
+            val busyHandlerResult = sqlite3_busy_handler(db2, 453) { appData, _ ->
+                assertEquals(453, appData)
+                busyCalled = true
+                0
+            }
+
+            val outName = Utf8OutputParam()
+            println(sqlite3_file_control(db1, "main", SqliteFileControlOpcode.VFSNAME(outName)))
+            println(outName.value)
+
+            assertEquals(SqliteResultCode.OK, busyHandlerResult)
+
+            val lockSql = "BEGIN EXCLUSIVE; CREATE TABLE test(text TEXT);"
+            val lockResult = sqlite3_exec(db1, lockSql, null, null, null)
+            assertEquals(SqliteResultCode.OK, lockResult)
+
+            assertFalse(busyCalled)
+
+            val accessSql = "SELECT * FROM test;"
+            val accessResult = sqlite3_exec(db2, accessSql, null, null, null)
+            println(sqlite3_errmsg(db2))
+            println(sqlite3_extended_errcode(db2))
+            assertEquals(SqliteResultCode.BUSY, accessResult)
+
+            assertTrue(busyCalled)
+
+            val closeDb1Result = sqlite3_close(db1)
+            assertEquals(SqliteResultCode.OK, closeDb1Result)
+
+            val closeDb2Result = sqlite3_close(db2)
+            assertEquals(SqliteResultCode.OK, closeDb2Result)
         }
-
-        assertEquals(SqliteResultCode.OK, busyHandlerResult)
-
-        val lockResult = sqlite3_exec(db1, "BEGIN EXCLUSIVE; CREATE TABLE t(x);", null, null, null)
-        assertEquals(SqliteResultCode.OK, lockResult)
-
-        val accessResult = sqlite3_exec(db2, "SELECT * FROM t;", null, null, null)*/
     }
 }

@@ -1182,21 +1182,42 @@ internal fun vTabDeinit(vTab: Long) = nativeVtabDeinit(vTab)
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Invokes `sqlite3io_methods::[xClose]`.
+ */
+public external fun ioMethodsClose(
+    xClose: Long,
+    file: Long
+): Int
+
+/**
  * Invokes `sqlite3_vfs::[xOpen]`.
  */
 public external fun vfsOpen(
     xOpen: Long,
     vfs: Long,
-    fileName: String?,
+    name: String?,
     file: Long,
     flags: Int,
     outFlags: OutputPointer.OfInt32?
 ): Int
 
 /**
- * Invokes `sqlite3io_methods::[xClose]`.
+ * Invokes `sqlite3_vfs::[xDelete]`.
  */
-public external fun ioMethodsClose(
-    xClose: Long,
-    file: Long
+public external fun vfsDelete(
+    xDelete: Long,
+    vfs: Long,
+    name: String,
+    syncDir: Int,
+): Int
+
+/**
+ * Invokes `sqlite3_vfs::[xAccess]`.
+ */
+public external fun vfsAccess(
+    xAccess: Long,
+    vfs: Long,
+    name: String,
+    flags: Int,
+    outFlags: OutputPointer.OfInt32?
 ): Int

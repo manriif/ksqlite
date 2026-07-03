@@ -12,11 +12,11 @@ import ksqlite.types.SqliteResultCode
 public fun interface SqliteVfsOpenCallback {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/io_methods.html).
+     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/vfs.html).
      */
     public fun apply(
         vfs: sqlite3_vfs,
-        fileName: String?,
+        name: String?,
         file: sqlite3_file,
         flags: SqliteOpenFlag.Vfs,
         outFlags: SqliteVfsOpenFlagsOutputParam?

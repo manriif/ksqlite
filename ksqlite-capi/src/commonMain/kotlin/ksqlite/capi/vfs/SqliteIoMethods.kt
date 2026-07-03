@@ -4,6 +4,7 @@ package ksqlite.capi.vfs
 
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.vfs.callbacks.SqliteIoMethodsCloseCallback
+import ksqlite.types.SqliteResultCode
 import ksqlite.types.vfs.SqliteIoMethods
 import ksqlite.types.vfs.SqliteIoMethodsVersion
 
@@ -18,5 +19,15 @@ import ksqlite.types.vfs.SqliteIoMethodsVersion
 public expect class sqlite3_io_methods : Struct, SqliteIoMethods {
 
     override val iVersion: SqliteIoMethodsVersion
+
     public val xClose: SqliteIoMethodsCloseCallback
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Applies [xClose] with supplied arguments.
+ */
+public fun sqlite3_io_methods.xClose(file: sqlite3_file): SqliteResultCode = xClose.apply(file)
