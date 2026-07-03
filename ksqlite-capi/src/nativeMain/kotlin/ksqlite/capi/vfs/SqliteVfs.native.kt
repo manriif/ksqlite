@@ -40,7 +40,7 @@ public actual class sqlite3_vfs internal constructor(override val pointer: CPoin
                 useParam(outFlags?.base) { flagsPtr ->
                     pointer.pointed.xOpen!!.invoke(
                         vfs.pointer,
-                        fileName.cstr.ptr,
+                        fileName?.cstr?.ptr,
                         file.pointer,
                         flags.value,
                         flagsPtr

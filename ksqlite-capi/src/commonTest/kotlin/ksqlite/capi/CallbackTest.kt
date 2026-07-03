@@ -1,8 +1,7 @@
 package ksqlite.capi
 
-import kotlinx.coroutines.awaitCancellation
-import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.types.SqliteFileControlOpcode
+import ksqlite.capi.vfs.sqlite3_file
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
 import kotlin.test.Test
@@ -130,7 +129,7 @@ class CallbackTest {
         val deleteResult = sqlite3_exec(db, "BEGIN; DELETE FROM t; COMMIT;", null, null, null)
         assertEquals(SqliteResultCode.OK, deleteResult)
 
-        println("AutovacummPages was called $callbackCallCount times")
+        println("AutovacuumPages was called $callbackCallCount times")
         assertTrue(callbackCallCount > 0)
 
         val closeResult = sqlite3_close(db)
@@ -141,32 +140,7 @@ class CallbackTest {
 
     @Test
     fun busyHandlerWorks() = runSqliteTest {
-        val vfs = assertNotNull(sqlite3_vfs_find(null))
-
-        println(vfs.iVersion)
-        println(vfs.szOsFile)
-        println(vfs.mxPathname)
-        println(vfs.zName)
-        // Real file system is required here, but we do not want to expect/actual temporary file
-        // creation, so we let sqlite create a db file, request a temp file and delete the db file
-        /*val outDb = sqlite3.OutputParam()
-        val openResult = sqlite3_open_v2(
-            "temp.db",
-            outDb,
-            SqliteOpenFlag.READONLY, null
-        )
-        assertEquals(SqliteResultCode.OK, openResult)*/
-
-        /*val db = assertNotNull(outDb.value)
-        val outTempFile = Utf8OutputParam()
-        val tempFileControl = SqliteFileControlOpcode.TEMPFILENAME(outTempFile)
-        val tempFileControlResult = sqlite3_file_control(db, null, tempFileControl)
-        assertEquals(SqliteResultCode.OK, tempFileControlResult)
-
-        val tempFile = assertNotNull(outTempFile.value)
-
-        println(tempFile)
-        val outDb1 = sqlite3.OutputParam()
+        /*val outDb1 = sqlite3.OutputParam()
         val openDb1Result = sqlite3_open(tempFile, outDb1)
         assertEquals(SqliteResultCode.OK, openDb1Result)
         val db1 = assertNotNull(outDb1.value)

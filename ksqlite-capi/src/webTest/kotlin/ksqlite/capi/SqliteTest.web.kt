@@ -7,7 +7,7 @@ import kotlin.js.JsAny
 import kotlin.js.toJsString
 
 @JsFun("""(args) => console.log(...args)""")
-private external fun log(vararg args: JsAny)
+private external fun log(vararg args: JsAny?)
 
 internal actual suspend fun loadSqliteForTest(): Boolean {
     if (!isSqliteLoaded) {

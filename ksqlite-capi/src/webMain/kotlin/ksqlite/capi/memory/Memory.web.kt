@@ -295,6 +295,25 @@ internal fun WasmFunctions.installReferenceFunction(function: ReferenceFunction)
         }
     )
 
+/**
+ * Runs and returns [block]'s result, passing it the [JsFunction] associated with this
+ * [WasmPointer].
+ */
+internal fun <R> WasmPointer.usingJsFunction(
+    functions: WasmFunctions = wasm,
+    block: (function: JsFunction) -> R
+): R {
+    check(!isNull) {
+        "Can't obtain a JsFunction from a null pointer"
+    }
+
+    val function = checkNotNull(functions.functionEntry(this)) {
+        "Failed to obtain a JsFunction from address $this"
+    }
+
+    return block(function)
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Arrays
 ///////////////////////////////////////////////////////////////////////////

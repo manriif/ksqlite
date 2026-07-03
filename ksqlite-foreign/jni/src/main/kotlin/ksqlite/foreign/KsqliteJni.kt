@@ -1187,7 +1187,7 @@ internal fun vTabDeinit(vTab: Long) = nativeVtabDeinit(vTab)
 public external fun vfsOpen(
     xOpen: Long,
     vfs: Long,
-    fileName: String,
+    fileName: String?,
     file: Long,
     flags: Int,
     outFlags: OutputPointer.OfInt32?

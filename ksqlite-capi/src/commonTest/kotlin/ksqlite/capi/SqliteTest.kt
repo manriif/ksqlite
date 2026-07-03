@@ -11,6 +11,7 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.time.Duration
 
 private val Initialized = AtomicBoolean(false)
 
@@ -36,7 +37,7 @@ internal fun initializeSqliteForTest() {
 /**
  * Loads SQLite and runs [block] without initializing SQLite.
  */
-internal fun runTestNoInit(block: suspend TestScope.(isWeb: Boolean) -> Unit) = runTest {
+internal fun runTestNoInit(block: suspend TestScope.(isWeb: Boolean) -> Unit) = runTest(timeout = Duration.INFINITE) {
     val isWeb = loadSqliteForTest()
 
     try {

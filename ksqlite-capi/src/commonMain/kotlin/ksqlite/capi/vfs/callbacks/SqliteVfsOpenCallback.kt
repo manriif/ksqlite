@@ -16,7 +16,7 @@ public fun interface SqliteVfsOpenCallback {
      */
     public fun apply(
         vfs: sqlite3_vfs,
-        fileName: String,
+        fileName: String?,
         file: sqlite3_file,
         flags: SqliteOpenFlag.Vfs,
         outFlags: SqliteVfsOpenFlagsOutputParam?

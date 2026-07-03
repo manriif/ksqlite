@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package ksqlite.foreign.wasm
 
 import js.array.ReadonlyArray
@@ -7,7 +5,6 @@ import ksqlite.foreign.js.arrayJoinToString
 import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.JsString
-import kotlin.js.nativeInvoke
 import kotlin.js.toJsString
 
 public typealias WasmFunction = JsAny
@@ -40,7 +37,7 @@ public external interface WasmFunctions {
      * Given a function pointer, returns the WASM function table entry if found, else returns a
      * falsy value.
      */
-    public fun functionEntry(ptr: WasmPointer): JsAny?
+    public fun functionEntry(ptr: WasmPointer): JsFunction?
 
     /**
      * Returns the WASM module's indirect function table.

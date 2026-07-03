@@ -23,7 +23,7 @@ private var SQLITE_TRANSIENT: JsBigInt? = null
 /**
  * Returns the [Sqlite3] instance or raise an error if SQLite wasn't initialized.
  */
-private val s3: Sqlite3
+internal val s3: Sqlite3
     get() = checkNotNull(Sqlite3Instance) {
         "SQLite was not initialized, function initializeSqlite() must be called before any other " +
                 "API call"
@@ -64,7 +64,7 @@ public interface SqliteLoaderConfig {
     /**
      * Handler for initialization outputs.
      */
-    public var debugModule: ((args: JsArray<out JsAny>) -> Unit)?
+    public var debugModule: ((args: JsArray<out JsAny?>) -> Unit)?
 
     /**
      * Handler for file location.
@@ -76,7 +76,7 @@ public interface SqliteLoaderConfig {
 }
 
 private class SqliteLoaderConfigImpl(
-    override var debugModule: ((args: JsArray<out JsAny>) -> Unit)? = null,
+    override var debugModule: ((args: JsArray<out JsAny?>) -> Unit)? = null,
     override var fileLocator: ((path: String, prefix: String) -> JsAny?)? = null
 ) : SqliteLoaderConfig
 

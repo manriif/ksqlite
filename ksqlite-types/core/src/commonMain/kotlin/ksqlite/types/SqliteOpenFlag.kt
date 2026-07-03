@@ -101,7 +101,7 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
      * The database is opened for reading and writing, and is created if it does not already exist.
      * This is the behavior that is always used for sqlite3_open() and sqlite3_open16().
      */
-    public data object CREATE : SqliteOpenFlag(0x00000004) {
+    public data object CREATE : OptionalVfs(0x00000004) {
 
         /**
          * Returns a [Db] which is ORed with [flag].
