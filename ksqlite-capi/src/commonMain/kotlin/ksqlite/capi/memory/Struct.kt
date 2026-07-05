@@ -8,7 +8,7 @@ public abstract class StructBase internal constructor() {
     internal abstract val address: Long
 
     override fun toString(): String =
-        "${this::class.simpleName}(address=0x${address.toHexString()})"
+        "${this::class.simpleName}(address=0x${address.toHexString(NativeAddressHexFormat)})"
 }
 
 /**

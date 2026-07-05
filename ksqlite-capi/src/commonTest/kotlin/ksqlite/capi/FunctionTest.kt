@@ -13,13 +13,6 @@ import kotlin.test.assertTrue
  */
 class FunctionTest {
 
-    /**
-     * Tests the sqlite3_value API.
-     */
-    fun valueTest(value: sqlite3_value) {
-
-    }
-
     @Test
     fun scalarFunctionWorks() = runSqliteConnectionTest { db ->
         var destructorCalled  = false
@@ -41,10 +34,6 @@ class FunctionTest {
             func = { appData, context, values ->
                 assertEquals(50000, appData)
                 assertEquals(1, values.size)
-
-                // TODO move
-                val contextDb = sqlite3_context_db_handle(context)
-                assertEquals(db, contextDb)
 
                 val value = values[0]
                 val number = sqlite3_value_double(value)
@@ -125,4 +114,13 @@ class FunctionTest {
         assertTrue(callbackCalled)
         assertEquals(16.0, assertNotNull(result), .0)
     }*/
+
+    @Test
+    fun relatedApisWorks() = runSqliteConnectionTest {
+
+        // TODO move
+        //val contextDb = sqlite3_context_db_handle(context)
+        //assertEquals(db, contextDb)
+
+    }
 }

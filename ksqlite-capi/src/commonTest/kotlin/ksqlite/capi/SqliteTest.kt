@@ -147,13 +147,13 @@ internal fun ksqliteTemporaryTestFile(fileName: String): String =
  * This [sqlite3_vfs] is used to delete the file and associated wal files, before and after
  * [block] invocation.
  */
-internal fun <R> sqlite3_vfs.usingRealTempFile(
+internal inline fun <R> sqlite3_vfs.usingRealTempFile(
     fileName: String,
     block: (path: String) -> R
 ): R {
     val path = ksqliteTemporaryTestFile(fileName)
 
-    fun deleteFile(message: String) {
+    val deleteFile = { message: String ->
         val deleteResult = xDelete(path, 0)
         assertTrue(deleteResult == OK || deleteResult == DELETE_NOENT)
 
@@ -169,5 +169,43 @@ internal fun <R> sqlite3_vfs.usingRealTempFile(
         block(path)
     } finally {
         deleteFile("Failed to delete file $path")
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// VFS
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns a VFS suitable for WAL related tests.
+ */
+internal fun findWalVfs(isWasm: Boolean): sqlite3_vfs? {
+    // TODO use a VFS that supports WAL on WASM
+    val vfsName: String? = if (isWasm) return null else null
+    val vfs = assertNotNull(sqlite3_vfs_find(vfsName))
+    return vfs
+}
+
+/**
+ * Initializes SQLite inside a [runTest] scope and invokes [block].
+ * The test is only executed if a VFS that 'supports' WAL mode is found.
+ */
+internal fun runSqliteWalTest(
+    block: suspend TestScope.(vfs: sqlite3_vfs) -> Unit
+) = runSqliteTest { isWasm ->
+    block(findWalVfs(isWasm) ?: return@runSqliteTest)
+}
+
+/**
+ * Initializes SQLite inside a [runTest] scope and invokes [block].
+ * The test is only executed if a VFS that 'supports' WAL mode is found.
+ * The path to [fileName] is passed to [block].
+ */
+internal fun runSqliteWalFileTest(
+    fileName: String,
+    block: suspend TestScope.(path: String) -> Unit
+) = runSqliteWalTest { vfs ->
+    vfs.usingRealTempFile(fileName) { path ->
+        block(path)
     }
 }

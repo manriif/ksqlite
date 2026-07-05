@@ -139,7 +139,7 @@ public abstract class BufferBase internal constructor(byteSize: Long) : Writable
     internal abstract val address: Long
 
     override fun toString(): String =
-        "Buffer(address=0x${address.toHexString()}, size=$byteSize)"
+        "Buffer(address=0x${address.toHexString(NativeAddressHexFormat)}, size=$byteSize)"
 
     /**
      * Returns a readonly view of this [Buffer].

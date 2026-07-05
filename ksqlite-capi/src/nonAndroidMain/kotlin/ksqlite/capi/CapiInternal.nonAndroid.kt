@@ -7,10 +7,6 @@ import ksqlite.capi.memory.memory
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.internal.convertResultCode
 
-///////////////////////////////////////////////////////////////////////////
-// Helpers
-///////////////////////////////////////////////////////////////////////////
-
 /**
  * Invokes [block] which is expected to be the SQLite function that will deallocate [S] and
  * returns [block]'s result.

@@ -208,6 +208,8 @@ private inline fun <AppData, R> appFunction(
 /**
  * Invokes [block] with a [ApplicationDefinedFunction] for aggregate and scalar functions and a
  * destructor to use in place of application [destroy].
+ *
+ * TODO: throws if callback misuse ?
  */
 internal inline fun <AppData, R> createFunction(
     appData: AppData,
@@ -216,25 +218,33 @@ internal inline fun <AppData, R> createFunction(
     final: SqliteFunctionFinalCallback<in AppData>?,
     destroy: SqliteDestroyCallback<in AppData>?,
     block: (
-        fn: ApplicationDefinedFunction<Any?>,
-        funDestroy: SqliteDestroyCallback<Any?>
+        fn: ApplicationDefinedFunction<Any?>?,
+        funDestroy: SqliteDestroyCallback<Any?>?
     ) -> R
-): R = appFunction(
-    function = ApplicationDefinedFunction(
-        appData = appData,
-        destroy = destroy,
-        func = func,
-        step = step,
-        final = final,
-        value = null,
-        inverse = null
-    ),
-    block = block
-)
+): R {
+    if (func == null && step == null && final == null && destroy == null) {
+        return block(null, null)
+    }
+
+    return appFunction(
+        function = ApplicationDefinedFunction(
+            appData = appData,
+            destroy = destroy,
+            func = func,
+            step = step,
+            final = final,
+            value = null,
+            inverse = null
+        ),
+        block = block
+    )
+}
 
 /**
  * Returns a [ApplicationDefinedFunction] for window function and a destructor to use in place of
  * application [destroy].
+ *
+ * TODO: throws if callback misuse ?
  */
 internal inline fun <AppData, R> createWindowFunction(
     appData: AppData,
@@ -244,18 +254,24 @@ internal inline fun <AppData, R> createWindowFunction(
     inverse: SqliteFunctionInverseCallback<in AppData>?,
     destroy: SqliteDestroyCallback<in AppData>?,
     block: (
-        fn: ApplicationDefinedFunction<Any?>,
-        fnDestroy: SqliteDestroyCallback<Any?>
+        fn: ApplicationDefinedFunction<Any?>?,
+        fnDestroy: SqliteDestroyCallback<Any?>?
     ) -> R
-): R = appFunction(
-    function = ApplicationDefinedFunction(
-        appData = appData,
-        destroy = destroy,
-        func = null,
-        step = step,
-        final = final,
-        value = value,
-        inverse = inverse
-    ),
-    block = block
-)
+): R {
+    if (step == null && final == null && value == null && inverse == null && destroy == null) {
+        return block(null, null)
+    }
+
+    return appFunction(
+        function = ApplicationDefinedFunction(
+            appData = appData,
+            destroy = destroy,
+            func = null,
+            step = step,
+            final = final,
+            value = value,
+            inverse = inverse
+        ),
+        block = block
+    )
+}

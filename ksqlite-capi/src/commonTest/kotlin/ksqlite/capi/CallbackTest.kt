@@ -187,11 +187,7 @@ class CallbackTest {
         val closeResult = sqlite3_close(db)
         assertEquals(OK, closeResult)
 
-        // TODO use OPFS VFS on WASM as default VFS may not support locking.
-        val vfsName: String? = if (isWasm) return@runSqliteTest else null
-        val vfs = assertNotNull(sqlite3_vfs_find(vfsName))
-
-        vfs.usingRealTempFile("busy.db") { path ->
+        findWalVfs(isWasm)?.usingRealTempFile("busy.db") { path ->
             val outDb1 = sqlite3.OutputParam()
             val openDb1Result = sqlite3_open(path, outDb1)
             assertEquals(OK, openDb1Result)
@@ -549,73 +545,67 @@ class CallbackTest {
     }
 
     @Test
-    fun walHookWorks() = runSqliteTest { isWasm ->
-        // TODO use a VFS that supports WAL on WASM
-        val vfsName: String? = if (isWasm) return@runSqliteTest else null
-        val vfs = assertNotNull(sqlite3_vfs_find(vfsName))
+    fun walHookWorks() = runSqliteWalFileTest("wal.db") { path ->
+        val outDb = sqlite3.OutputParam()
+        val openResult = sqlite3_open(path, outDb)
+        assertEquals(OK, openResult)
 
-        vfs.usingRealTempFile("wal.db") { path ->
-            val outDb = sqlite3.OutputParam()
-            val openResult = sqlite3_open(path, outDb)
-            assertEquals(OK, openResult)
+        val db = assertNotNull(outDb.value)
+        val walPragma = "PRAGMA journal_mode=WAL;"
+        val walPragmaResult = sqlite3_exec(db, walPragma, null, null, null)
+        assertEquals(OK, walPragmaResult)
 
-            val db = assertNotNull(outDb.value)
-            val walPragma = "PRAGMA journal_mode=WAL;"
-            val walPragmaResult = sqlite3_exec(db, walPragma, null, null, null)
-            assertEquals(OK, walPragmaResult)
+        var callbackCallCount = 0
 
-            var callbackCallCount = 0
+        sqlite3_wal_hook(db, 1789) { appData, idb, databaseName, pageCount ->
+            assertEquals(1789, appData)
+            assertEquals(db, idb)
+            assertEquals("main", databaseName)
+            assertTrue(pageCount >= 0)
+            callbackCallCount++
+            OK
+        }
 
-            sqlite3_wal_hook(db, 1789) { appData, idb, databaseName, pageCount ->
-                assertEquals(1789, appData)
-                assertEquals(db, idb)
-                assertEquals("main", databaseName)
-                assertTrue(pageCount >= 0)
-                callbackCallCount++
-                OK
-            }
-
-            val sql = """
+        val sql = """
                 CREATE TABLE test(x INTEGER NOT NULL);
                 BEGIN;
                 INSERT INTO test VALUES (1);
                 COMMIT;
             """.trimIndent()
 
-            val execResult = sqlite3_exec(db, sql, null, null, null)
-            assertEquals(OK, execResult)
-            assertTrue(callbackCallCount > 0)
+        val execResult = sqlite3_exec(db, sql, null, null, null)
+        assertEquals(OK, execResult)
+        assertTrue(callbackCallCount > 0)
 
-            val sql2 = """
-                BEGIN;
-                INSERT INTO test VALUES (2);
-                INSERT INTO test VALUES (3);
-                INSERT INTO test VALUES (4);
-                COMMIT;
-            """.trimIndent()
+        val sql2 = """
+            BEGIN;
+            INSERT INTO test VALUES (2);
+            INSERT INTO test VALUES (3);
+            INSERT INTO test VALUES (4);
+            COMMIT;
+        """.trimIndent()
 
-            val beforeExec2CallbackCallCount = callbackCallCount
-            val exec2Result = sqlite3_exec(db, sql2, null, null, null)
-            assertEquals(OK, exec2Result)
+        val beforeExec2CallbackCallCount = callbackCallCount
+        val exec2Result = sqlite3_exec(db, sql2, null, null, null)
+        assertEquals(OK, exec2Result)
 
-            val outNLog = Int32OutputParam(-1)
-            val outNCkpt = Int32OutputParam(-1)
-            val checkpointV2Result = sqlite3_wal_checkpoint_v2(db, null, PASSIVE, outNLog, outNCkpt)
-            assertEquals(OK, checkpointV2Result)
-            assertTrue(callbackCallCount > beforeExec2CallbackCallCount)
-            assertTrue(outNLog.value >= 0)
-            assertTrue(outNCkpt.value >= 0)
+        val outNLog = Int32OutputParam(-1)
+        val outNCkpt = Int32OutputParam(-1)
+        val checkpointV2Result = sqlite3_wal_checkpoint_v2(db, null, PASSIVE, outNLog, outNCkpt)
+        assertEquals(OK, checkpointV2Result)
+        assertTrue(callbackCallCount > beforeExec2CallbackCallCount)
+        assertTrue(outNLog.value >= 0)
+        assertTrue(outNCkpt.value >= 0)
 
-            val afterExec2CallbackCallCount = callbackCallCount
-            val autoCheckpointResult = sqlite3_wal_autocheckpoint(db, 1000)
-            assertEquals(OK, autoCheckpointResult)
+        val afterExec2CallbackCallCount = callbackCallCount
+        val autoCheckpointResult = sqlite3_wal_autocheckpoint(db, 1000)
+        assertEquals(OK, autoCheckpointResult)
 
-            val checkpointResult = sqlite3_wal_checkpoint(db, null)
-            assertEquals(OK, checkpointResult)
-            assertEquals(afterExec2CallbackCallCount, callbackCallCount)
+        val checkpointResult = sqlite3_wal_checkpoint(db, null)
+        assertEquals(OK, checkpointResult)
+        assertEquals(afterExec2CallbackCallCount, callbackCallCount)
 
-            val closeResult = sqlite3_close(db)
-            assertEquals(OK, closeResult)
-        }
+        val closeResult = sqlite3_close(db)
+        assertEquals(OK, closeResult)
     }
 }
