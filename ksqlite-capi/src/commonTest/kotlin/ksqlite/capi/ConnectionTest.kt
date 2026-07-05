@@ -38,11 +38,42 @@ class ConnectionTest {
         val fileName = sqlite3_db_filename(db, "main")
         assertEquals("", fileName)
 
+        val autocommitMode = sqlite3_get_autocommit(db)
+        assertEquals(1, autocommitMode)
+
         val defaultLengthLimit = sqlite3_limit(db, LENGTH, 100_000)
         assertEquals(1_000_000_000, defaultLengthLimit)
 
         val newLengthLimit = sqlite3_limit(db, LENGTH, -1)
         assertEquals(100_000, newLengthLimit)
+
+        val outCurrent32 = Int32OutputParam(-1)
+        val outHighwater32 = Int32OutputParam(-1)
+        val schemaUsedResult = sqlite3_db_status(db, SCHEMA_USED, outCurrent32, outHighwater32, 1)
+        assertEquals(OK, schemaUsedResult)
+        assertEquals(0, outCurrent32.value)
+        assertEquals(0, outHighwater32.value)
+
+        val outCurrent64 = Int64OutputParam(-1)
+        val outHighwater64 = Int64OutputParam(-1)
+        val stmtUsedResult = sqlite3_db_status64(db, STMT_USED, outCurrent64, outHighwater64, 1)
+        assertEquals(OK, stmtUsedResult)
+        assertEquals(0, outCurrent64.value)
+        assertEquals(0, outHighwater64.value)
+
+        val cacheFlushResult = sqlite3_db_cacheflush(db)
+        assertEquals(OK, cacheFlushResult)
+
+        val readOnly = sqlite3_db_readonly(db, "main")
+        assertEquals(READWRITE, readOnly)
+
+        val releaseMemoryResult = sqlite3_db_release_memory(db)
+        assertEquals(OK, releaseMemoryResult)
+
+        val isInterrupted = sqlite3_is_interrupted(db)
+        assertEquals(0, isInterrupted)
+
+        sqlite3_interrupt(db)
 
         val closeResult = sqlite3_close_v2(db)
         assertEquals(OK, closeResult)
@@ -50,9 +81,11 @@ class ConnectionTest {
 
     @Test
     fun errorApisWorks() = runSqliteConnectionTest { db ->
+        val extendedResultCodesResult = sqlite3_extended_result_codes(db, 1)
+        assertEquals(OK, extendedResultCodesResult)
+
         val outError = Utf8OutputParam()
         val result = sqlite3_exec(db, "CREATE table fail;", outError, null, null)
-
         assertEquals(ERROR, result)
 
         val expectedErrorMessage = """near ";": syntax error"""
@@ -66,6 +99,22 @@ class ConnectionTest {
 
         val errorCode = sqlite3_errcode(db)
         assertEquals(ERROR, errorCode)
+
+        val extendedErrorCode = sqlite3_extended_errcode(db)
+        assertEquals(ERROR, extendedErrorCode)
+
+        val testMessage = "test error message"
+        val setErrorMessageResult = sqlite3_set_errmsg(db, NOTFOUND, testMessage)
+        assertEquals(OK, setErrorMessageResult)
+
+        val errorMessage2 = sqlite3_errmsg(db)
+        assertEquals(testMessage, errorMessage2)
+
+        val errorCode2 = sqlite3_errcode(db)
+        assertEquals(NOTFOUND, errorCode2)
+
+        val systemErrNo = sqlite3_system_errno(db)
+        assertEquals(0, systemErrNo)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package ksqlite.capi
 
 import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.readBytesOrThrow
 import ksqlite.types.SqliteResultCode
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -75,6 +76,9 @@ class StatementTest {
 
         val runCount = sqlite3_stmt_status(stmt, RUN, 0)
         assertEquals(1, runCount)
+
+        val nextStmt = sqlite3_next_stmt(db, null)
+        assertEquals(nextStmt, stmt)
 
         val finalizeResult = sqlite3_finalize(stmt)
         assertEquals(OK, finalizeResult)
@@ -255,6 +259,9 @@ class StatementTest {
         val step1Result = sqlite3_step(stmt)
         assertEquals(ROW, step1Result)
 
+        val dataCount = sqlite3_data_count(stmt)
+        assertEquals(5, dataCount)
+
         val col0Type = sqlite3_column_type(stmt, 0)
         assertEquals(INTEGER, col0Type)
 
@@ -271,9 +278,13 @@ class StatementTest {
         val col3ValueExpected = byteArrayOf(5, 27)
         assertContentEquals(col3ValueExpected, col3Value)
 
-        val col4Value = sqlite3_column_blob(stmt, 4)
-        val col4ExpectedValue = byteArrayOf(0, 0, 0, 0, 0, 0)
-        assertContentEquals(col4ExpectedValue, col4Value)
+        val col4Size = sqlite3_column_bytes(stmt, 4)
+        assertEquals(6, col4Size)
+
+        val col4Buffer = assertNotNull(sqlite3_column_buffer(stmt, 4))
+        val col4Value = col4Buffer.readBytesOrThrow()
+        val col4ValueExpected = byteArrayOf(0, 0, 0, 0, 0, 0)
+        assertContentEquals(col4ValueExpected, col4Value)
 
         val step2Result = sqlite3_step(stmt)
         assertEquals(ROW, step2Result)

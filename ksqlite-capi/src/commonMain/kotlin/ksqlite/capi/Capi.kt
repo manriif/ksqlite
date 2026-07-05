@@ -1359,7 +1359,7 @@ public expect fun sqlite3_msize(buffer: Buffer): ULong
  */
 public expect fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt
+    stmt: sqlite3_stmt?
 ): sqlite3_stmt?
 
 /**

@@ -1,7 +1,10 @@
 package ksqlite.capi
 
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.types.SqliteCompleteResult
+import ksqlite.types.SqliteResultCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -14,7 +17,7 @@ import kotlin.test.assertTrue
 class MiscTest {
 
     @Test
-    fun keywordApisWorks() = runTestNoInit {
+    fun keywordWorks() = runTestNoInit {
         val keywordCount = sqlite3_keyword_count()
         assertTrue(keywordCount > 0)
 
@@ -56,5 +59,43 @@ class MiscTest {
         val sql2 = "CREATE TABLE test1; CREATE TABLE test2;"
         val completeResult2 = sqlite3_complete(sql2)
         assertIs<SqliteCompleteResult.Complete>(completeResult2)
+
+        val okResultCodeErrStr = sqlite3_errstr(SqliteResultCode.OK)
+        assertEquals("not an error", okResultCodeErrStr)
+    }
+
+    @Test
+    fun memoryWorks() = runSqliteTest {
+        val hardHeapLimit = sqlite3_hard_heap_limit64(-1)
+        assertEquals(0, hardHeapLimit)
+
+        val softHeapLimit = sqlite3_soft_heap_limit64(-1)
+        assertEquals(0, softHeapLimit)
+
+        val memoryUsed = sqlite3_memory_used()
+        assertTrue(memoryUsed > 0)
+
+        val memoryHighwater = sqlite3_memory_highwater(0)
+        assertTrue(memoryHighwater >= memoryUsed)
+
+        val releaseMemory = sqlite3_release_memory(0)
+        assertEquals(0, releaseMemory)
+    }
+
+    @Test
+    fun statusWorks() = runSqliteTest {
+        val outCurrent32 = Int32OutputParam(-1)
+        val outHighwater32 = Int32OutputParam(-1)
+        val schemaUsedResult = sqlite3_status(MEMORY_USED, outCurrent32, outHighwater32, 0)
+        assertEquals(OK, schemaUsedResult)
+        assertTrue(outCurrent32.value >= 0)
+        assertTrue(outHighwater32.value >= outCurrent32.value)
+
+        val outCurrent64 = Int64OutputParam(-1)
+        val outHighwater64 = Int64OutputParam(-1)
+        val stmtUsedResult = sqlite3_status64(MALLOC_SIZE, outCurrent64, outHighwater64, 0)
+        assertEquals(OK, stmtUsedResult)
+        assertEquals(0, outCurrent64.value)
+        assertTrue(outHighwater64.value >= outCurrent64.value)
     }
 }

@@ -1145,8 +1145,8 @@ public actual fun sqlite3_msize(buffer: Buffer): ULong =
 
 public actual fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt
-): sqlite3_stmt? = native_sqlite3_next_stmt(db.pointer, stmt.pointer)
+    stmt: sqlite3_stmt?
+): sqlite3_stmt? = native_sqlite3_next_stmt(db.pointer, stmt?.pointer)
     ?.let(::sqlite3_stmt)
 
 public actual fun sqlite3_open(

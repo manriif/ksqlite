@@ -18,8 +18,8 @@ public fun convertCompleteResult(value: Int): SqliteCompleteResult = when (value
  * Converts [value] to [SqliteDbReadonlyResult].
  */
 public fun convertDbReadonlyResult(value: Int): SqliteDbReadonlyResult = when (value) {
-    0 -> ReadWrite
-    1 -> ReadOnly
-    -1 -> UnknownDatabase
+    0 -> READWRITE
+    1 -> READONLY
+    -1 -> UNKNOWN_DATABASE
     else -> error("Unexpected result from sqlite3_db_readonly(): $value")
 }

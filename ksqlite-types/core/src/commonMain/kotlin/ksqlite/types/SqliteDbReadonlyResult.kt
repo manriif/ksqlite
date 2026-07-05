@@ -10,15 +10,15 @@ public enum class SqliteDbReadonlyResult {
     /**
      * The database is in read/write mode.
      */
-    ReadWrite,
+    READWRITE,
 
     /**
      * The database is readonly.
      */
-    ReadOnly,
+    READONLY,
 
     /**
      * The database is not part of the connection.
      */
-    UnknownDatabase
+    UNKNOWN_DATABASE
 }

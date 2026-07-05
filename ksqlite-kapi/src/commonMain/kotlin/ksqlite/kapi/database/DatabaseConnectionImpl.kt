@@ -498,9 +498,9 @@ internal class DatabaseConnectionImpl(
 
     override fun isReadOnly(database: String): Boolean = scope.notClosed {
         when (sqlite3_db_readonly(db, database)) {
-            ReadWrite -> false
-            ReadOnly -> true
-            UnknownDatabase ->
+            READWRITE -> false
+            READONLY -> true
+            UNKNOWN_DATABASE ->
                 throwSQLiteException("No database named $database on this database connection")
         }
     }
