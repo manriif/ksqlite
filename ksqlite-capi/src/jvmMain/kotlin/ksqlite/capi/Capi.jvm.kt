@@ -62,6 +62,7 @@ import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.overriding
+import ksqlite.capi.memory.reading
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
@@ -339,7 +340,9 @@ public actual fun sqlite3_blob_read(
     size: Int,
     offset: Int
 ): SqliteResultCode = convertResultCode(memScoped {
-    native.sqlite3_blob_read(blob.pointer, output.allocate(size), size, offset)
+    output.reading { outPtr ->
+        native.sqlite3_blob_read(blob.pointer, outPtr, size, offset)
+    }
 })
 
 public actual fun sqlite3_blob_reopen(

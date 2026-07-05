@@ -268,9 +268,9 @@ class CallbackTest {
         assertEquals(OK, collationNeededResult)
 
         val sql = """
-            CREATE TABLE fruit(name TEXT NOT NULL COLLATE $collationName);
-            INSERT INTO fruit VALUES ('Ananas'), ('Datte'), ('Fraise'), ('Citron'), ('Banane');
-            SELECT * from fruit ORDER BY name DESC;
+            CREATE TABLE fruits(name TEXT NOT NULL COLLATE $collationName);
+            INSERT INTO fruits VALUES ('Ananas'), ('Datte'), ('Fraise'), ('Citron'), ('Banane');
+            SELECT * from fruits ORDER BY name DESC;
         """.trimIndent()
 
         val actualValues = mutableListOf<String>()
@@ -319,8 +319,8 @@ class CallbackTest {
     @Test
     fun preupdateHookWorks() = runSqliteConnectionTest { db ->
         val insertSql = """
-            CREATE TABLE fruit(name TEXT NOT NULL);
-            INSERT INTO fruit VALUES ('Ananas');
+            CREATE TABLE fruits(name TEXT NOT NULL);
+            INSERT INTO fruits VALUES ('Ananas');
         """.trimIndent()
 
         val insertResult = sqlite3_exec(db, insertSql, null, null, null)
@@ -333,7 +333,7 @@ class CallbackTest {
             assertEquals(db, idb)
             assertEquals(UPDATE, dml)
             assertEquals("main", dbName)
-            assertEquals("fruit", tableName)
+            assertEquals("fruits", tableName)
             assertEquals(1, oldRowid)
             assertEquals(1, newRowid)
 
@@ -365,7 +365,7 @@ class CallbackTest {
             callbackCalled = true
         }
 
-        val updateSql = "UPDATE fruit SET name = 'Framboise' WHERE name = 'Ananas';"
+        val updateSql = "UPDATE fruits SET name = 'Framboise' WHERE name = 'Ananas';"
         val updateResult = sqlite3_exec(db, updateSql, null, null, null)
         assertEquals(OK, updateResult)
         assertTrue(callbackCalled)
@@ -432,8 +432,8 @@ class CallbackTest {
         assertEquals(OK, setAuthorizerResult)
 
         val insertSql = """
-            CREATE TABLE fruit(name TEXT NOT NULL);
-            INSERT INTO fruit VALUES ('Kiwi');
+            CREATE TABLE fruits(name TEXT NOT NULL);
+            INSERT INTO fruits VALUES ('Kiwi');
         """.trimIndent()
 
         val insertResult = sqlite3_exec(db, insertSql, null, null, null)
@@ -443,9 +443,9 @@ class CallbackTest {
 
         val createTriggerSql = """
             CREATE TRIGGER select_fruits
-            AFTER INSERT ON fruit
+            AFTER INSERT ON fruits
             BEGIN
-                SELECT * FROM fruit;
+                SELECT * FROM fruits;
             END;
         """.trimIndent()
 
@@ -468,14 +468,14 @@ class CallbackTest {
         val db = assertNotNull(outDb.value)
 
         val insertSql = """
-            CREATE TABLE fruit(name TEXT NOT NULL);
-            INSERT INTO fruit VALUES ('Kiwi');
+            CREATE TABLE fruits(name TEXT NOT NULL);
+            INSERT INTO fruits VALUES ('Kiwi');
         """.trimIndent()
 
         val insertResult = sqlite3_exec(db, insertSql, null, null, null)
         assertEquals(OK, insertResult)
 
-        val selectSql = "SELECT * FROM fruit;"
+        val selectSql = "SELECT * FROM fruits;"
         val traceFlags = SqliteTraceEventCode.STMT or PROFILE or ROW or CLOSE
         var stmtCalled = false
         var profileCalled = false
@@ -523,8 +523,8 @@ class CallbackTest {
     @Test
     fun updateHookWorks() = runSqliteConnectionTest { db ->
         val insertSql = """
-            CREATE TABLE fruit(name TEXT NOT NULL);
-            INSERT INTO fruit VALUES ('Ananas');
+            CREATE TABLE fruits(name TEXT NOT NULL);
+            INSERT INTO fruits VALUES ('Ananas');
         """.trimIndent()
 
         val insertResult = sqlite3_exec(db, insertSql, null, null, null)
@@ -542,7 +542,7 @@ class CallbackTest {
             callbackCalled = true
         }
 
-        val updateSql = "UPDATE fruit SET name = 'Framboise' WHERE name = 'Ananas';"
+        val updateSql = "UPDATE fruits SET name = 'Framboise' WHERE name = 'Ananas';"
         val updateResult = sqlite3_exec(db, updateSql, null, null, null)
         assertEquals(OK, updateResult)
         assertTrue(callbackCalled)

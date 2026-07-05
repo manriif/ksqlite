@@ -153,7 +153,7 @@ internal fun <R> sqlite3_vfs.usingRealTempFile(
 ): R {
     val path = ksqliteTemporaryTestFile(fileName)
 
-    fun deleteFiles(message: String) {
+    fun deleteFile(message: String) {
         val deleteResult = xDelete(path, 0)
         assertTrue(deleteResult == OK || deleteResult == DELETE_NOENT)
 
@@ -163,11 +163,11 @@ internal fun <R> sqlite3_vfs.usingRealTempFile(
         assertEquals(0, outAccessFlags.value, message)
     }
 
-    deleteFiles("File $path already exists and deletion failed")
+    deleteFile("File $path already exists and deletion failed")
 
     return try {
         block(path)
     } finally {
-        deleteFiles("Failed to delete file $path")
+        deleteFile("Failed to delete file $path")
     }
 }

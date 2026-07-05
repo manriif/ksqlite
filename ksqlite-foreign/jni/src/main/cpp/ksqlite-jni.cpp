@@ -84,10 +84,10 @@ static inline void exceptionClearAndAbort(
 /**
  * Raises a fatal error if expression E is false (due to a lack of memory).
  *
- * TODO do not throw, all out of memory checks must be handled correctly to align with other
- *  platform's behaviour.
+ * FIXME: while this has been used during early development to focus on essentials, all out of memory
+ *  checks must be handled correctly on call site to align with other platform's behaviour.
  */
-#define OutOfMemoryCheck(E) if (!(E)) FatalError("KSQLite JNI is out of memory.")
+#define OutOfMemoryCheck(P) if (P == nullptr) FatalError("KSQLite JNI is out of memory.")
 
 ///////////////////////////////////////////////////////////////////////////
 // JNI reference management helpers
@@ -102,7 +102,7 @@ static jobject newGlobalReference(
     }
 
     const auto ref = env->NewGlobalRef(object);
-    OutOfMemoryCheck(ref != nullptr);
+    OutOfMemoryCheck(ref);
     return ref;
 }
 
@@ -115,7 +115,7 @@ static jobject newLocalReference(
     }
 
     const auto ref = env->NewLocalRef(object);
-    OutOfMemoryCheck(ref != nullptr);
+    OutOfMemoryCheck(ref);
     return ref;
 }
 
@@ -875,7 +875,7 @@ static JNIEnv* retrieveJniEnv() {
  */
 static void initializeJavaJniCache(JNIEnv* env) {
     const auto byteArray = env->NewByteArray(0);
-    OutOfMemoryCheck(byteArray != nullptr);
+    OutOfMemoryCheck(byteArray);
     KJV.emptyByteArray = reinterpret_cast<jbyteArray>(GlobalRefCreate(byteArray));
 
     // Classes only
@@ -939,7 +939,7 @@ static void deinitializeJavaJniCache(JNIEnv* env) {
  */
 static void initializeKsqliteJniCache(JNIEnv* env) {
     KK.emptyBufferPointer = sqlite3_malloc(sizeof(void*));
-    OutOfMemoryCheck(KK.emptyBufferPointer != nullptr);
+    OutOfMemoryCheck(KK.emptyBufferPointer);
 
     // Classes only
     KK.configLogCallback = RequireKsqliteClassCallback("ConfigLogCallback");
@@ -1731,7 +1731,7 @@ static jbyteArray bufferToByteArray(
     }
 
     jbyteArray byteArray = env->NewByteArray(length);
-    OutOfMemoryCheck(byteArray != nullptr);
+    OutOfMemoryCheck(byteArray);
     env->SetByteArrayRegion(byteArray, 0, length, static_cast<const jbyte*>(buffer));
 
     return byteArray;
@@ -1751,7 +1751,7 @@ static jbyte* byteArrayToBuffer(
     }
 
     const auto buffer = static_cast<jbyte*>(sqlite3_malloc(length));
-    OutOfMemoryCheck(buffer != nullptr);
+    OutOfMemoryCheck(buffer);
     env->GetByteArrayRegion(byteArray, 0, length, buffer);
 
     return buffer;
@@ -1811,7 +1811,7 @@ static char* jstringToUtf8(
     }
 
     const auto utf8 = static_cast<char*>(sqlite3_malloc(utf8Length + 1));
-    OutOfMemoryCheck(utf8 != nullptr);
+    OutOfMemoryCheck(utf8);
 
     utf16_to_utf8(
         reinterpret_cast<const char16_t*>(chars),
@@ -1855,7 +1855,7 @@ static jstring utf8ToJstring(
 
     if (utf16Length <= 0) {
         const auto string = env->NewString(nullptr, 0);
-        OutOfMemoryCheck(string != nullptr);
+        OutOfMemoryCheck(string);
         return string;
     }
 
@@ -1874,7 +1874,7 @@ static jstring utf8ToJstring(
     );
 
     jstring string = env->NewString(utf16, utf16Length);
-    OutOfMemoryCheck(string != nullptr);
+    OutOfMemoryCheck(string);
     sqlite3_free(utf16);
 
     return string;
@@ -2058,7 +2058,7 @@ static inline jlong* longArrayFill(
     jlongArray* outLongArray
 ) {
     const auto longArray = env->NewLongArray(argc);
-    OutOfMemoryCheck(longArray != nullptr);
+    OutOfMemoryCheck(longArray);
 
     constexpr auto maxStackArgs = 32;
     jlong stackBuffer[maxStackArgs];
@@ -2068,7 +2068,7 @@ static inline jlong* longArrayFill(
         buffer = new jlong[argc];
     }
 
-    OutOfMemoryCheck(buffer != nullptr);
+    OutOfMemoryCheck(buffer);
 
     for (int i = 0; i < argc; ++i) {
         buffer[i] = reinterpret_cast<jlong>(argv[i]);
@@ -2105,7 +2105,7 @@ static jobject outputPointerNew(
     jmethodID constructor
 ) {
     const auto instance = env->NewObject(klass, constructor);
-    OutOfMemoryCheck(instance != nullptr);
+    OutOfMemoryCheck(instance);
     return instance;
 }
 
@@ -2284,7 +2284,7 @@ enum StructType : u_char {
 #define StructLayoutBegin(memberCount) \
     constexpr auto arraySize = memberCount * 2 + 1; \
     const auto layout = env->NewIntArray(arraySize); \
-    OutOfMemoryCheck(layout != nullptr);\
+    OutOfMemoryCheck(layout);\
     jint buffer[arraySize]; \
     auto position = 0
 
@@ -2523,10 +2523,10 @@ Java_ksqlite_foreign_KsqliteJni_nativeStructMalloc(
     jobject pointer
 ) {
     const auto address = sqlite3_malloc(size);
-    OutOfMemoryCheck(address != nullptr);
+    OutOfMemoryCheck(address);
 
     const auto buffer = env->NewDirectByteBuffer(address, size);
-    OutOfMemoryCheck(buffer != nullptr);
+    OutOfMemoryCheck(buffer);
 
     OutputPointerSetInt64Value(pointer, PtrToLong(address));
     return buffer;
@@ -3086,7 +3086,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1blob_1read(
 ) {
     const auto pBlob = LongTo_s3_blob(blob);
     const auto elements = env->GetByteArrayElements(buffer, nullptr);
-    OutOfMemoryCheck(elements != nullptr);
+    OutOfMemoryCheck(elements);
 
     const auto rc = sqlite3_blob_read(pBlob, elements, size, offset);
 
@@ -4341,8 +4341,8 @@ static int execCaller(
     const auto values = env->NewObjectArray(argc, KJV.string, nullptr);
     const auto names = env->NewObjectArray(argc, KJV.string, nullptr);
 
-    OutOfMemoryCheck(values != nullptr);
-    OutOfMemoryCheck(names != nullptr);
+    OutOfMemoryCheck(values);
+    OutOfMemoryCheck(names);
 
     for (int i = 0; i < argc; ++i) {
         jstring string = nullptr;

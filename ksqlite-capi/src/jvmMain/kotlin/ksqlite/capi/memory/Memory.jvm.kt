@@ -162,22 +162,58 @@ internal fun MemorySegment.toStringArrayOrEmpty(count: Int): Array<String> =
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns a [MemorySegment], allocated in [allocator], containing this [ByteArray]'s bytes and that
- * can be passed to native.
+ * Returns a [MemorySegment], allocated using [allocator], containing the first [size] bytes of this
+ * [ByteArray]. The returned [MemorySegment] can be passed to native.
  */
 internal fun ByteArray.allocate(
     allocator: SegmentAllocator,
     size: Int = this.size
-): MemorySegment = allocator.allocate(size.toLong()).apply {
-    copyFrom(MemorySegment.ofArray(this@allocate))
+): MemorySegment {
+    val maxSize = size.toLong()
+    val destination = allocator.allocate(maxSize)
+    val source = MemorySegment.ofArray(this)
+
+    MemorySegment.copy(source, 0, destination, 0, maxSize)
+    return destination
 }
 
 /**
- * Returns a [MemorySegment], allocated in [allocator], containing this [ByteArray]'s bytes and that
- * can be passed to native.
+ * Returns a [MemorySegment], allocated using [allocator], containing the first [size] bytes of this
+ * [ByteArray]. The returned [MemorySegment] can be passed to native.
  */
 context(allocator: SegmentAllocator)
 internal fun ByteArray.allocate(size: Int = this.size): MemorySegment = allocate(allocator, size)
+
+/**
+ * Allocates a [MemorySegment], using [allocator], with a capacity of [size] bytes then invokes
+ * [block] with that [MemorySegment]. The bytes of the allocated [MemorySegment] are written to this
+ * [ByteArray] after [block] returns.
+ */
+internal inline fun <R> ByteArray.reading(
+    allocator: SegmentAllocator,
+    size: Int = this.size,
+    block: (MemorySegment) -> R
+): R {
+    val pointer = allocator.allocate(size.toLong())
+    val result = block(pointer)
+
+    MemorySegment
+        .ofArray(this)
+        .copyFrom(pointer)
+
+    return result
+}
+
+/**
+ * Allocates a [MemorySegment], using [allocator], with a capacity of [size] bytes then invokes
+ * [block] with that [MemorySegment]. The bytes of the allocated [MemorySegment] are written to this
+ * [ByteArray] after [block] returns.
+ */
+context(allocator: SegmentAllocator)
+internal inline fun <R> ByteArray.reading(
+    size: Int = this.size,
+    block: (MemorySegment) -> R
+): R = reading(allocator, size, block)
 
 ///////////////////////////////////////////////////////////////////////////
 // Strings

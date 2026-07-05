@@ -2514,8 +2514,8 @@ public expect fun sqlite3_wal_autocheckpoint(
 ): SqliteResultCode
 
 /**
- * Checkpoint database [database]. If [database] is NULL, or if the buffer [database] points to contains a
- * zero-length string, all attached databases are checkpointed.
+ * Checkpoint database [database]. If [database] is NULL, or if the buffer [database] points to
+ * contains a zero-length string, all attached databases are checkpointed.
  *
  * [sqlite3_wal_checkpoint()](https://sqlite.org/c3ref/wal_checkpoint.html)
  */
@@ -2525,8 +2525,8 @@ public expect fun sqlite3_wal_checkpoint(
 ): SqliteResultCode
 
 /**
- * Checkpoint database [database]. If [database] is NULL, or if the buffer [database] points to contains a
- * zero-length string, all attached databases are checkpointed.
+ * Checkpoint database [database]. If [database] is NULL, or if the buffer [database] points to
+ * contains a zero-length string, all attached databases are checkpointed.
  *
  * [sqlite3_wal_checkpoint_v2()](https://sqlite.org/c3ref/wal_checkpoint_v2.html)
  */
