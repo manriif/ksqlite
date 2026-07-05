@@ -79,7 +79,7 @@ public actual class sqlite3_vfs private constructor(private val vfs: s3_vfs) :
         vfs.xAccess.usingJsFunction { function ->
             SqliteVfsAccessCallback { pVfs, name, flags, outFlags ->
                 convertResultCode(heapScoped {
-                    useParam(outFlags?.base) { flagsPtr ->
+                    useParam(outFlags) { flagsPtr ->
                         xAccess(
                             function,
                             pVfs.pointer,

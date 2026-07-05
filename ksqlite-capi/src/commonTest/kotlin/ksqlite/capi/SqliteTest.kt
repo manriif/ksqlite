@@ -5,10 +5,12 @@ package ksqlite.capi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.vfs.sqlite3_vfs
+import ksqlite.capi.vfs.xAccess
 import ksqlite.capi.vfs.xDelete
 import ksqlite.types.SqliteOpenFlag
-import ksqlite.types.SqliteResultCode
+import ksqlite.types.SqliteResultCode.IOERR.DELETE_NOENT
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.test.assertEquals
@@ -29,7 +31,7 @@ internal expect suspend fun loadSqliteForTest(): Boolean
 internal fun initializeSqliteForTest() {
     if (Initialized.compareAndSet(expectedValue = false, newValue = true)) {
         assertEquals(
-            expected = SqliteResultCode.OK,
+            expected = OK,
             actual = sqlite3_initialize(),
             message = "Failed to initialize SQLite"
         )
@@ -84,13 +86,13 @@ internal fun runSqliteConnectionTest(
         vfs = null
     )
 
-    assertEquals(SqliteResultCode.OK, openResult)
+    assertEquals(OK, openResult)
 
     val db = assertNotNull(outDb.value)
     block(db)
 
     val closeResult = sqlite3_close(db)
-    assertEquals(SqliteResultCode.OK, closeResult)
+    assertEquals(OK, closeResult)
 }
 
 /**
@@ -111,7 +113,7 @@ internal fun runSqliteConnectionDataTest(
         """.trimIndent()
 
     val result = sqlite3_exec(connection, sql, null, null, null)
-    assertEquals(SqliteResultCode.OK, result)
+    assertEquals(OK, result)
 
     block(connection)
 }
@@ -141,7 +143,9 @@ internal fun ksqliteTemporaryTestFile(fileName: String): String =
  * Invokes [block] passing it the path to a temporary file, named after [fileName], which isn't
  * created.
  * The file whose path is passed to [block] must be managed by this [sqlite3_vfs].
- * This [sqlite3_vfs] is used to delete the file, before and after [block] invocation.
+ *
+ * This [sqlite3_vfs] is used to delete the file and associated wal files, before and after
+ * [block] invocation.
  */
 internal fun <R> sqlite3_vfs.usingRealTempFile(
     fileName: String,
@@ -149,21 +153,21 @@ internal fun <R> sqlite3_vfs.usingRealTempFile(
 ): R {
     val path = ksqliteTemporaryTestFile(fileName)
 
-    fun deleteFile() {
-        val deleteResult = xDelete(fileName, 0)
+    fun deleteFiles(message: String) {
+        val deleteResult = xDelete(path, 0)
+        assertTrue(deleteResult == OK || deleteResult == DELETE_NOENT)
 
-        assertTrue(
-            deleteResult == SqliteResultCode.OK
-                    || deleteResult == SqliteResultCode.IOERR.DELETE_NOENT
-                    || deleteResult == SqliteResultCode.IOERR.DELETE // Android JNI, why ?
-        )
+        val outAccessFlags = Int32OutputParam(-1)
+        val accessResult = xAccess(path, EXISTS, outAccessFlags)
+        assertEquals(OK, accessResult)
+        assertEquals(0, outAccessFlags.value, message)
     }
 
-    deleteFile()
+    deleteFiles("File $path already exists and deletion failed")
 
     return try {
         block(path)
     } finally {
-        deleteFile()
+        deleteFiles("Failed to delete file $path")
     }
 }

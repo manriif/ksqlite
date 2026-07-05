@@ -14,7 +14,6 @@ import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
-import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteRuntimeLimit

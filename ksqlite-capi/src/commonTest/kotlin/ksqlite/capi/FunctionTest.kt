@@ -37,11 +37,11 @@ class FunctionTest {
             },
         )
 
-        assertEquals(SqliteResultCode.OK, createResult)
+        assertEquals(OK, createResult)
 
         val failSql = "SELECT pow2(2, 18);"
         val failResult = sqlite3_exec(db, failSql, null, null, null)
-        assertEquals(SqliteResultCode.ERROR, failResult)
+        assertEquals(ERROR, failResult)
 
         val sql = "SELECT pow2(4);"
         var result: Double? = null

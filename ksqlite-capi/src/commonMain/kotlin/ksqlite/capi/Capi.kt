@@ -55,6 +55,7 @@ import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.SqliteTransactionState
+import kotlin.time.Duration
 
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
@@ -420,6 +421,26 @@ public expect fun sqlite3_busy_timeout(
     db: sqlite3,
     millis: Int
 ): SqliteResultCode
+
+/**
+ * This routine installs a default busy handler that waits for the specified number of milliseconds
+ * before returning 0.
+ *
+ * [sqlite3_busy_timeout()](https://sqlite.org/c3ref/busy_timeout.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * The [timeout] is coerced to at most [Int.MAX_VALUE].
+ */
+public fun sqlite3_busy_timeout(
+    db: sqlite3,
+    timeout: Duration
+): SqliteResultCode = sqlite3_busy_timeout(
+    db = db,
+    millis = timeout.inWholeMilliseconds.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+)
 
 /**
  * Cancel a prior call to sqlite3_auto_extension.

@@ -1,12 +1,7 @@
 package ksqlite.capi
 
 import ksqlite.capi.memory.Int32OutputParam
-import ksqlite.types.SqliteDataType
-import ksqlite.types.SqliteExplainMode
-import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
-import ksqlite.types.SqliteStatementStatusCounter
-import ksqlite.types.SqliteTextEncoding
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -24,8 +19,8 @@ class StatementTest {
         val sql = "SELECT * FROM test;"
         val outStmt = sqlite3_stmt.OutputParam()
 
-        val prepareResult = sqlite3_prepare_v3(db, sql, SqlitePrepareFlag.DONT_LOG, outStmt)
-        assertEquals(SqliteResultCode.OK, prepareResult)
+        val prepareResult = sqlite3_prepare_v3(db, sql, DONT_LOG, outStmt)
+        assertEquals(OK, prepareResult)
 
         val stmt = assertNotNull(outStmt.value)
 
@@ -58,31 +53,31 @@ class StatementTest {
         assertEquals(1, isReadOnly)
 
         val stepResult = sqlite3_step(stmt)
-        assertEquals(SqliteResultCode.DONE, stepResult)
+        assertEquals(DONE, stepResult)
 
         val isBusy = sqlite3_stmt_busy(stmt)
         assertEquals(0, isBusy)
 
         val initExplainMode = sqlite3_stmt_isexplain(stmt)
-        assertEquals(SqliteExplainMode.NORMAL, initExplainMode)
+        assertEquals(NORMAL, initExplainMode)
 
-        val setExplainModeResult = sqlite3_stmt_explain(stmt, SqliteExplainMode.EXPLAIN_QUERY_PLAN)
-        assertEquals(SqliteResultCode.BUSY, setExplainModeResult)
+        val setExplainModeResult = sqlite3_stmt_explain(stmt, EXPLAIN_QUERY_PLAN)
+        assertEquals(BUSY, setExplainModeResult)
 
         val resetResult = sqlite3_reset(stmt)
-        assertEquals(SqliteResultCode.OK, resetResult)
+        assertEquals(OK, resetResult)
 
-        val setExplainModeResult2 = sqlite3_stmt_explain(stmt, SqliteExplainMode.EXPLAIN)
-        assertEquals(SqliteResultCode.OK, setExplainModeResult2)
+        val setExplainModeResult2 = sqlite3_stmt_explain(stmt, EXPLAIN)
+        assertEquals(OK, setExplainModeResult2)
 
         val updatedExplainMode = sqlite3_stmt_isexplain(stmt)
-        assertEquals(SqliteExplainMode.EXPLAIN, updatedExplainMode)
+        assertEquals(EXPLAIN, updatedExplainMode)
 
-        val runCount = sqlite3_stmt_status(stmt, SqliteStatementStatusCounter.RUN, 0)
+        val runCount = sqlite3_stmt_status(stmt, RUN, 0)
         assertEquals(1, runCount)
 
         val finalizeResult = sqlite3_finalize(stmt)
-        assertEquals(SqliteResultCode.OK, finalizeResult)
+        assertEquals(OK, finalizeResult)
     }
 
     fun prepareBufferTest(
@@ -102,7 +97,7 @@ class StatementTest {
         val outOffset = Int32OutputParam()
 
         val prepareResult = prepare(db, sql, outStmt, outOffset)
-        assertEquals(SqliteResultCode.OK, prepareResult)
+        assertEquals(OK, prepareResult)
 
         val stmt = assertNotNull(outStmt.value)
 
@@ -110,7 +105,7 @@ class StatementTest {
         assertEquals(expectedOffset, outOffset.value)
 
         val finalizeResult = sqlite3_finalize(stmt)
-        assertEquals(SqliteResultCode.OK, finalizeResult)
+        assertEquals(OK, finalizeResult)
     }
 
     @Test
@@ -129,7 +124,7 @@ class StatementTest {
         val outStmt = sqlite3_stmt.OutputParam()
 
         val prepareResult = sqlite3_prepare_v2(db, sql, outStmt)
-        assertEquals(SqliteResultCode.OK, prepareResult)
+        assertEquals(OK, prepareResult)
 
         val stmt = assertNotNull(outStmt.value)
 
@@ -149,13 +144,13 @@ class StatementTest {
         )
 
         val bindIntResult = sqlite3_bind_int(stmt, 1, 2)
-        assertEquals(SqliteResultCode.OK, bindIntResult)
+        assertEquals(OK, bindIntResult)
 
         val bindDoubleResult = sqlite3_bind_double(stmt, 2, 5.01)
-        assertEquals(SqliteResultCode.OK, bindDoubleResult)
+        assertEquals(OK, bindDoubleResult)
 
         val bindTextResult = sqlite3_bind_text(stmt, 3, "Kiwi")
-        assertEquals(SqliteResultCode.OK, bindTextResult)
+        assertEquals(OK, bindTextResult)
 
         val blob = ByteArray(2) { it.toByte() }
         var blobDestructorCalled = false
@@ -164,10 +159,10 @@ class StatementTest {
             blobDestructorCalled = true
         }
 
-        assertEquals(SqliteResultCode.OK, bindBlobResult)
+        assertEquals(OK, bindBlobResult)
 
         val bindZeroBlobResult = sqlite3_bind_zeroblob(stmt, 5, 3)
-        assertEquals(SqliteResultCode.OK, bindZeroBlobResult)
+        assertEquals(OK, bindZeroBlobResult)
 
         val boundExpandedSql = sqlite3_expanded_sql(stmt)
         assertEquals(
@@ -176,7 +171,7 @@ class StatementTest {
         )
 
         val bindNullResult = sqlite3_bind_null(stmt, 5)
-        assertEquals(SqliteResultCode.OK, bindNullResult)
+        assertEquals(OK, bindNullResult)
 
         val nullExpandedSql = sqlite3_expanded_sql(stmt)
         assertEquals(
@@ -185,7 +180,7 @@ class StatementTest {
         )
 
         val clearResult = sqlite3_clear_bindings(stmt)
-        assertEquals(SqliteResultCode.OK, clearResult)
+        assertEquals(OK, clearResult)
         assertTrue(blobDestructorCalled)
 
         val clearedExpandedSql = sqlite3_expanded_sql(stmt)
@@ -195,7 +190,7 @@ class StatementTest {
         )
 
         val bindInt64Result = sqlite3_bind_int64(stmt, 1, 500L)
-        assertEquals(SqliteResultCode.OK, bindInt64Result)
+        assertEquals(OK, bindInt64Result)
 
         val text = "Poire".encodeToByteArray()
         val textBuffer = assertNotNull(sqlite3_malloc(text.size))
@@ -203,12 +198,11 @@ class StatementTest {
 
         var textBufferDestructorCalled = false
 
-        val bindText64Result =
-            sqlite3_bind_text64(stmt, 3, textBuffer, textBuffer.byteSize, SqliteTextEncoding.UTF8) {
-                textBufferDestructorCalled = true
-            }
+        val bindText64Result = sqlite3_bind_text64(stmt, 3, textBuffer, textBuffer.byteSize, UTF8) {
+            textBufferDestructorCalled = true
+        }
 
-        assertEquals(SqliteResultCode.OK, bindText64Result)
+        assertEquals(OK, bindText64Result)
 
         val blobBuffer = assertNotNull(sqlite3_malloc(blob.size))
         blobBuffer.write(blob)
@@ -219,10 +213,10 @@ class StatementTest {
             blobBufferDestructorCalled = true
         }
 
-        assertEquals(SqliteResultCode.OK, bindBlob64Result)
+        assertEquals(OK, bindBlob64Result)
 
         val bindZeroBlob64Result = sqlite3_bind_zeroblob64(stmt, 5, 948948489UL)
-        assertEquals(SqliteResultCode.OK, bindZeroBlob64Result)
+        assertEquals(OK, bindZeroBlob64Result)
 
         val bound64ExpandedSql = sqlite3_expanded_sql(stmt)
         assertEquals(
@@ -231,12 +225,12 @@ class StatementTest {
         )
 
         val cleanupResult = sqlite3_clear_bindings(stmt)
-        assertEquals(SqliteResultCode.OK, cleanupResult)
+        assertEquals(OK, cleanupResult)
         assertTrue(textBufferDestructorCalled)
         assertTrue(blobBufferDestructorCalled)
 
         val finalizeResult = sqlite3_finalize(stmt)
-        assertEquals(SqliteResultCode.OK, finalizeResult)
+        assertEquals(OK, finalizeResult)
     }
 
     @Test
@@ -248,21 +242,21 @@ class StatementTest {
         """.trimIndent()
 
         val insertResult = sqlite3_exec(db, insertSql, null, null, null)
-        assertEquals(SqliteResultCode.OK, insertResult)
+        assertEquals(OK, insertResult)
 
         val selectSql = "SELECT * FROM test;"
         val outStmt = sqlite3_stmt.OutputParam()
 
         val prepareResult = sqlite3_prepare_v2(db, selectSql, outStmt)
-        assertEquals(SqliteResultCode.OK, prepareResult)
+        assertEquals(OK, prepareResult)
 
         val stmt = assertNotNull(outStmt.value)
 
         val step1Result = sqlite3_step(stmt)
-        assertEquals(SqliteResultCode.ROW, step1Result)
+        assertEquals(ROW, step1Result)
 
         val col0Type = sqlite3_column_type(stmt, 0)
-        assertEquals(SqliteDataType.INTEGER, col0Type)
+        assertEquals(INTEGER, col0Type)
 
         val col0Value = sqlite3_column_int(stmt, 0)
         assertEquals(18, col0Value)
@@ -282,22 +276,22 @@ class StatementTest {
         assertContentEquals(col4ExpectedValue, col4Value)
 
         val step2Result = sqlite3_step(stmt)
-        assertEquals(SqliteResultCode.ROW, step2Result)
+        assertEquals(ROW, step2Result)
 
         val col0Value64 = sqlite3_column_int64(stmt, 0)
         assertEquals(623L, col0Value64)
 
         val col1Type = sqlite3_column_type(stmt, 1)
-        assertEquals(SqliteDataType.NULL, col1Type)
+        assertEquals(NULL, col1Type)
 
         // Value API is tested somewhere else
         val value = sqlite3_column_value(stmt, 0)
         assertNotNull(value)
 
         val step3Result = sqlite3_step(stmt)
-        assertEquals(SqliteResultCode.DONE, step3Result)
+        assertEquals(DONE, step3Result)
 
         val finalizeResult = sqlite3_finalize(stmt)
-        assertEquals(SqliteResultCode.OK, finalizeResult)
+        assertEquals(OK, finalizeResult)
     }
 }

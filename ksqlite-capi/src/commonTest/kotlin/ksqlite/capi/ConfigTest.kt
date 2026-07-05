@@ -4,7 +4,6 @@ import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.types.SqliteOpenFlag
-import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteSqlLogEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,66 +23,66 @@ class ConfigTest {
     @Test
     fun configsWorks() = runTestNoInit {
         val singleThreadResult = sqlite3_config(SqliteConfigOption.SINGLETHREAD)
-        assertEquals(SqliteResultCode.OK, singleThreadResult)
+        assertEquals(OK, singleThreadResult)
 
         val multiThreadResult = sqlite3_config(SqliteConfigOption.MULTITHREAD)
-        assertEquals(SqliteResultCode.OK, multiThreadResult)
+        assertEquals(OK, multiThreadResult)
 
         val serializedResult = sqlite3_config(SqliteConfigOption.SERIALIZED)
-        assertEquals(SqliteResultCode.OK, serializedResult)
+        assertEquals(OK, serializedResult)
 
         val memStatus = SqliteConfigOption.MEMSTATUS(1)
         val memStatusResult = sqlite3_config(memStatus)
-        assertEquals(SqliteResultCode.OK, memStatusResult)
+        assertEquals(OK, memStatusResult)
 
         val lookaside = SqliteConfigOption.LOOKASIDE(128, 2)
         val lookasideResult = sqlite3_config(lookaside)
-        assertEquals(SqliteResultCode.OK, lookasideResult)
+        assertEquals(OK, lookasideResult)
 
         val uri = SqliteConfigOption.URI(1)
         val uriResult = sqlite3_config(uri)
-        assertEquals(SqliteResultCode.OK, uriResult)
+        assertEquals(OK, uriResult)
 
         val coveringIndexScan = SqliteConfigOption.COVERING_INDEX_SCAN(1)
         val coveringIndexScanResult = sqlite3_config(coveringIndexScan)
-        assertEquals(SqliteResultCode.OK, coveringIndexScanResult)
+        assertEquals(OK, coveringIndexScanResult)
 
         val mmapSize = SqliteConfigOption.MMAP_SIZE(128, 2)
         val mmapSizeResult = sqlite3_config(mmapSize)
-        assertEquals(SqliteResultCode.OK, mmapSizeResult)
+        assertEquals(OK, mmapSizeResult)
 
         val outPCacheHdrsz = Int32OutputParam(-1)
         val pCacheHdrsz = SqliteConfigOption.PCACHE_HDRSZ(outPCacheHdrsz)
         val pCacheHdrszResult = sqlite3_config(pCacheHdrsz)
-        assertEquals(SqliteResultCode.OK, pCacheHdrszResult)
+        assertEquals(OK, pCacheHdrszResult)
         assertNotEquals(-1, outPCacheHdrsz.value)
 
         val pmaSz = SqliteConfigOption.PMASZ(1U)
         val pmaSzResult = sqlite3_config(pmaSz)
-        assertEquals(SqliteResultCode.OK, pmaSzResult)
+        assertEquals(OK, pmaSzResult)
 
         val stmtJrnlSpill = SqliteConfigOption.STMTJRNL_SPILL(1)
         val stmtJrnlSpillResult = sqlite3_config(stmtJrnlSpill)
-        assertEquals(SqliteResultCode.OK, stmtJrnlSpillResult)
+        assertEquals(OK, stmtJrnlSpillResult)
 
         val smallMalloc = SqliteConfigOption.SMALL_MALLOC(1)
         val smallMallocResult = sqlite3_config(smallMalloc)
-        assertEquals(SqliteResultCode.OK, smallMallocResult)
+        assertEquals(OK, smallMallocResult)
 
         val memdbMaxsize = SqliteConfigOption.MEMDB_MAXSIZE(128)
         val memdbMaxsizeResult = sqlite3_config(memdbMaxsize)
-        assertEquals(SqliteResultCode.OK, memdbMaxsizeResult)
+        assertEquals(OK, memdbMaxsizeResult)
 
         val outRowidInView = Int32OutputParam(-1)
         val rowidInView = SqliteConfigOption.ROWID_IN_VIEW(outRowidInView)
         val rowidInViewResult = sqlite3_config(rowidInView)
-        assertEquals(SqliteResultCode.OK, rowidInViewResult)
+        assertEquals(OK, rowidInViewResult)
         assertNotEquals(-1, outRowidInView.value)
 
         val pageCacheBuffer = assertNotNull(OpaqueBuffer.allocate(128))
         val pageCache = SqliteConfigOption.PAGECACHE(pageCacheBuffer, 128, 2)
         val pageCacheResult = sqlite3_config(pageCache)
-        assertEquals(SqliteResultCode.OK, pageCacheResult)
+        assertEquals(OK, pageCacheResult)
         pageCacheBuffer.close()
     }
 
@@ -100,7 +99,7 @@ class ConfigTest {
         }
 
         val logResult = sqlite3_config(log)
-        assertEquals(SqliteResultCode.OK, logResult)
+        assertEquals(OK, logResult)
 
         sqlite3_log(logCode, logMessage)
         assertTrue(logCalled)
@@ -131,10 +130,10 @@ class ConfigTest {
         }
 
         val sqlLogResult = sqlite3_config(sqlLog)
-        assertEquals(SqliteResultCode.OK, sqlLogResult)
+        assertEquals(OK, sqlLogResult)
 
         val initResult = sqlite3_initialize()
-        assertEquals(SqliteResultCode.OK, initResult)
+        assertEquals(OK, initResult)
 
         val outDb = sqlite3.OutputParam()
 
@@ -145,20 +144,20 @@ class ConfigTest {
             vfs = null
         )
 
-        assertEquals(SqliteResultCode.OK, openResult)
+        assertEquals(OK, openResult)
 
         val db = assertNotNull(outDb.value)
         assertTrue(databaseOpened)
 
         val execResult = sqlite3_exec(db, statement, null, null, null)
-        assertEquals(SqliteResultCode.OK, execResult)
+        assertEquals(OK, execResult)
         assertTrue(statementExecuted)
 
         val closeResult = sqlite3_close(db)
-        assertEquals(SqliteResultCode.OK, closeResult)
+        assertEquals(OK, closeResult)
         assertTrue(databaseClosed)
 
         val shutdownResult = sqlite3_shutdown()
-        assertEquals(SqliteResultCode.OK, shutdownResult)
+        assertEquals(OK, shutdownResult)
     }
 }

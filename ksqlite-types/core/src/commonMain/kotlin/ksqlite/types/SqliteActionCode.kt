@@ -29,56 +29,56 @@ public sealed class SqliteActionCode(public val code: Int) {
      * | ---------------- | ---------------- |
      * | Index Name       | Table Name       |
      */
-    public data object INDEX : SqliteActionCode(1)
+    public data object CREATE_INDEX : SqliteActionCode(1)
 
     /**
      * | 3rd              | 4th              |
      * | ---------------- | ---------------- |
      * | Table Name       | NULL             |
      */
-    public data object TABLE : SqliteActionCode(2)
+    public data object CREATE_TABLE : SqliteActionCode(2)
 
     /**
      * | 3rd              | 4th              |
      * | ---------------- | ---------------- |
      * | Index Name       | Table Name       |
      */
-    public data object TEMP_INDEX : SqliteActionCode(3)
+    public data object CREATE_TEMP_INDEX : SqliteActionCode(3)
 
     /**
      * | 3rd              | 4th              |
      * | ---------------- | ---------------- |
      * | Table Name       | NULL             |
      */
-    public data object TEMP_TABLE : SqliteActionCode(4)
+    public data object CREATE_TEMP_TABLE : SqliteActionCode(4)
 
     /**
      * | 3rd              | 4th              |
      * | ---------------- | ---------------- |
      * | Trigger Name     | Table Name       |
      */
-    public data object TEMP_TRIGGER : SqliteActionCode(5)
+    public data object CREATE_TEMP_TRIGGER : SqliteActionCode(5)
 
     /**
      * | 3rd              | 4th              |
      * | ---------------- | ---------------- |
      * | View Name        | NULL             |
      */
-    public data object TEMP_VIEW : SqliteActionCode(6)
+    public data object CREATE_TEMP_VIEW : SqliteActionCode(6)
 
     /**
      * | 3rd              | 4th              |
      * | ---------------- | ---------------- |
      * | Trigger Name     | Table Name       |
      */
-    public data object TRIGGER : SqliteActionCode(7)
+    public data object CREATE_TRIGGER : SqliteActionCode(7)
 
     /**
      * | 3rd              | 4th              |
      * | ---------------- | ---------------- |
      * | View Name        | NULL             |
      */
-    public data object VIEW : SqliteActionCode(8)
+    public data object CREATE_VIEW : SqliteActionCode(8)
 
     /**
      * | 3rd              | 4th              |
@@ -225,7 +225,7 @@ public sealed class SqliteActionCode(public val code: Int) {
      * | ---------------- | ---------------- |
      * | Table Name       | Module Name      |
      */
-    public data object VTABLE : SqliteActionCode(29)
+    public data object CREATE_VTABLE : SqliteActionCode(29)
 
     /**
      * | 3rd              | 4th              |

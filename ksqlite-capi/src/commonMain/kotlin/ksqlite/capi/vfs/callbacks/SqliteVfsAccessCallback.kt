@@ -1,6 +1,6 @@
 package ksqlite.capi.vfs.callbacks
 
-import ksqlite.capi.vfs.SqliteVfsAccessFlagsOutputParam
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.vfs.sqlite3_vfs
 import ksqlite.types.SqliteAccessFlag
 import ksqlite.types.SqliteResultCode
@@ -17,6 +17,6 @@ public fun interface SqliteVfsAccessCallback {
         vfs: sqlite3_vfs,
         name: String,
         flags: SqliteAccessFlag,
-        outFlags: SqliteVfsAccessFlagsOutputParam?
+        outFlags: Int32OutputParam?
     ): SqliteResultCode
 }

@@ -52,7 +52,7 @@ public actual class sqlite3_vfs private constructor(private val vfs: s3_vfs) :
 
     public actual val xAccess: SqliteVfsAccessCallback by lazy {
         SqliteVfsAccessCallback { pVfs, name, flags, outFlags ->
-            convertResultCode(useParam(outFlags?.base) { flagsPtr ->
+            convertResultCode(useParam(outFlags) { flagsPtr ->
                 vfsAccess(vfs.xAccess, pVfs.pointer, name, flags.value, flagsPtr)
             })
         }

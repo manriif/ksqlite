@@ -277,7 +277,7 @@ internal fun interface ReferenceFunction {
 
 @JsFun("(jsRef, handler) => (p0) => handler(jsRef, p0)")
 private external fun refFunction(
-    reference: JsReference<ReferenceFunction>,
+    jsRef: JsReference<ReferenceFunction>,
     handler: (
         jsRef: JsReference<ReferenceFunction>,
         refPointer: WasmPointer

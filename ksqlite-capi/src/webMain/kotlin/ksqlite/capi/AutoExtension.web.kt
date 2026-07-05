@@ -7,7 +7,7 @@ import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
 
-@JsFun("(p0, p1, p2) => handler(p0, p1, p2)")
+@JsFun("(handler) => (p0, p1, p2) => handler(p0, p1, p2)")
 private external fun autoExtension(
     handler: (
         db: WasmPointer,

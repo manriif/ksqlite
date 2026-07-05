@@ -67,7 +67,7 @@ public actual class sqlite3_vfs internal constructor(override val pointer: CPoin
     public actual val xAccess: SqliteVfsAccessCallback by lazy {
         SqliteVfsAccessCallback { vfs, name, flags, outFlags ->
             convertResultCode(memScoped {
-                useParam(outFlags?.base) { flagsPtr ->
+                useParam(outFlags) { flagsPtr ->
                     pointer.pointed.xAccess!!.invoke(
                         vfs.pointer,
                         name.cstr.ptr,

@@ -67,7 +67,7 @@ public actual class sqlite3_vfs internal constructor(pointer: MemorySegment) :
     public actual val xAccess: SqliteVfsAccessCallback by lazy {
         SqliteVfsAccessCallback { vfs, name, flags, outFlags ->
             convertResultCode(memScoped {
-                useParam(outFlags?.base) { flagsPtr ->
+                useParam(outFlags) { flagsPtr ->
                     s3_vfs.xAccess.invoke(
                         s3_vfs.xAccess(pointer),
                         vfs.pointer,

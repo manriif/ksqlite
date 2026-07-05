@@ -2,6 +2,7 @@
 
 package ksqlite.capi.vfs
 
+import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.vfs.callbacks.SqliteVfsAccessCallback
 import ksqlite.capi.vfs.callbacks.SqliteVfsDeleteCallback
@@ -67,5 +68,5 @@ public fun sqlite3_vfs.xDelete(
 public fun sqlite3_vfs.xAccess(
     name: String,
     flags: SqliteAccessFlag,
-    outFlags: SqliteVfsAccessFlagsOutputParam?
+    outFlags: Int32OutputParam?
 ): SqliteResultCode = xAccess.apply(this, name, flags, outFlags)

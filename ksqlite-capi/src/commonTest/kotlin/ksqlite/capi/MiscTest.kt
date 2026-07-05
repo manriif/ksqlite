@@ -2,7 +2,6 @@ package ksqlite.capi
 
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.types.SqliteCompleteResult
-import ksqlite.types.SqliteResultCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -22,7 +21,7 @@ class MiscTest {
         val outKeywordName = Utf8OutputParam()
         val keywordResult = sqlite3_keyword_name(0, outKeywordName)
 
-        assertEquals(SqliteResultCode.OK, keywordResult)
+        assertEquals(OK, keywordResult)
         assertNotNull(outKeywordName.value)
 
         val isKeyword = sqlite3_keyword_check("MATERIALIZED")

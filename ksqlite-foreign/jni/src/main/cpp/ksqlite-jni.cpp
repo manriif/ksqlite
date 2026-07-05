@@ -1486,8 +1486,9 @@ static DbState* getDbState(
  * The previous instance is returned.
  */
 #define DbHookReplaceInstance(H, signature, className, install, uninstall) DbHookReplace(H,,    \
-    install;, uninstall;,                                                                       \
     HookConfigure(hook, callback, signature, className);,                                       \
+    install;,                                                                                   \
+    uninstall;,                                                                       \
     return oldCallback                                                                          \
 )
 
@@ -3251,7 +3252,7 @@ static void collationNeededCaller(
     const auto name = Utf8ToJstring(zName);
 
     HookEnterDbState(collationNeeded);
-    env->CallVoidMethod(instance, apply, db, eTextRep, zName);
+    env->CallVoidMethod(instance, apply, db, eTextRep, name);
     HookLeave();
 
     LocalRefDestroy(name);
@@ -3266,7 +3267,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1collation_1needed(
     jobject callback
 ) {
     DbHookReplaceResultCode(
-        busyHandler,
+        collationNeeded,
         "(JILjava/lang/String;)V",
         "CollationNeededCallback",
         sqlite3_collation_needed(pDb, pDbState, collationNeededCaller),
@@ -4377,9 +4378,16 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1exec(
 ) {
     const auto pDb = LongTo_s3(db);
     const auto zSql = JstringToUtf8(sql);
+    auto rc = SQLITE_OK;
 
     OutputPointerEnterString(errorMessage);
-    const auto rc = sqlite3_exec(pDb, zSql, execCaller, callback, errorMessage_);
+
+    if (callback == nullptr) {
+        rc = sqlite3_exec(pDb, zSql, nullptr, nullptr, errorMessage_);
+    } else {
+        rc = sqlite3_exec(pDb, zSql, execCaller, callback, errorMessage_);
+    }
+
     OutputPointerLeaveString(errorMessage);
 
     sqlite3_free(*errorMessage_);
@@ -4786,8 +4794,11 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1open(
 
     sqlite3_free(zFileName);
 
-    if (rc == SQLITE_OK) {
-        pushDbState(env, *outDb_);
+    const auto pDb = *outDb_;
+
+    // pDb may be != nullptr even if rc == SQLITE_OK, but it is in error state
+    if (pDb != nullptr) {
+        pushDbState(env, pDb);
     }
 
     return rc;
@@ -4813,8 +4824,11 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1open_1v2(
     sqlite3_free(zVfs);
     sqlite3_free(zFileName);
 
-    if (rc == SQLITE_OK) {
-        pushDbState(env, *outDb_);
+    const auto pDb = *outDb_;
+
+    // pDb may be != nullptr even if rc == SQLITE_OK, but it is in error state
+    if (pDb != nullptr) {
+        pushDbState(env, pDb);
     }
 
     return rc;
@@ -5005,9 +5019,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1progress_1handler(
     jobject callback
 ) {
     DbHookReplace(
-        preupdateHook, ,
+        progressHandler, ,
         HookConfigure(hook, callback, "()I", "ProgressHandlerCallback");,
-        sqlite3_progress_handler(pDb, nOps, progressHandlerCaller, nullptr);,
+        sqlite3_progress_handler(pDb, nOps, progressHandlerCaller, pDbState);,
         sqlite3_progress_handler(pDb, 0, nullptr, nullptr);,
     )
 }
@@ -5378,30 +5392,30 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1serialize(
 /**
  * Calls the `AuthorizerCallback` hook.
  */
-static int authorizerHookCaller(
+static int authorizerCaller(
     void* pDbStateHook,
     int opId,
-    const char* pString1,
-    const char* pString2,
-    const char* pString3,
-    const char* pString4
+    const char* zArg1,
+    const char* zArg2,
+    const char* zArg3,
+    const char* zArg4
 ) {
     JniEnvDeclare();
     DbStateDeclareDirect(pDbStateHook);
 
-    const auto string1 = Utf8ToJstring(pString1);
-    const auto string2 = Utf8ToJstring(pString2);
-    const auto string3 = Utf8ToJstring(pString3);
-    const auto string4 = Utf8ToJstring(pString4);
+    const auto arg1 = Utf8ToJstring(zArg1);
+    const auto arg2 = Utf8ToJstring(zArg2);
+    const auto arg3 = Utf8ToJstring(zArg3);
+    const auto arg4 = Utf8ToJstring(zArg4);
 
     HookEnterDbState(authorizer);
-    jint result = env->CallIntMethod(instance, apply, opId, string1, string2, string3, string4);
+    jint result = env->CallIntMethod(instance, apply, opId, arg1, arg2, arg3, arg4);
     HookLeave();
 
-    LocalRefDestroy(string1);
-    LocalRefDestroy(string2);
-    LocalRefDestroy(string3);
-    LocalRefDestroy(string4);
+    LocalRefDestroy(arg1);
+    LocalRefDestroy(arg2);
+    LocalRefDestroy(arg3);
+    LocalRefDestroy(arg4);
 
     return result;
 }
@@ -5416,9 +5430,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1set_1authorizer(
 ) {
     DbHookReplaceResultCode(
         authorizer,
-        "()I",
-        "AuthorizerHookCallback",
-        sqlite3_set_authorizer(pDb, authorizerHookCaller, pDbState),
+        "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I",
+        "AuthorizerCallback",
+        sqlite3_set_authorizer(pDb, authorizerCaller, pDbState),
         sqlite3_set_authorizer(pDb, nullptr, nullptr)
     );
 }
