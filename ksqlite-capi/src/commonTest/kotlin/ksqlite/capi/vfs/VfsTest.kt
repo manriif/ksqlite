@@ -1,12 +1,9 @@
-package ksqlite.capi
+package ksqlite.capi.vfs
 
+import ksqlite.capi.findVfs
+import ksqlite.capi.ksqliteTempTestFile
 import ksqlite.capi.memory.Int32OutputParam
-import ksqlite.capi.vfs.SqliteVfsOpenFlagsOutputParam
-import ksqlite.capi.vfs.sqlite3_file
-import ksqlite.capi.vfs.xAccess
-import ksqlite.capi.vfs.xClose
-import ksqlite.capi.vfs.xDelete
-import ksqlite.capi.vfs.xOpen
+import ksqlite.capi.runSqliteTest
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
 import kotlin.test.Test
@@ -20,8 +17,8 @@ import kotlin.test.assertTrue
 class VfsTest {
 
     @Test
-    fun memberPropertiesWorks() = runSqliteTest {
-        val vfs = assertNotNull(sqlite3_vfs_find(null))
+    fun memberPropertiesWorks() = runSqliteTest { isWasm ->
+        val vfs = findVfs(isWasm)
 
         assertTrue(vfs.iVersion >= VERSION_1)
         assertTrue(vfs.szOsFile > 0)
@@ -30,10 +27,10 @@ class VfsTest {
     }
 
     @Test
-    fun memberFunctionsWorks() = runSqliteTest {
-        val vfs = assertNotNull(sqlite3_vfs_find(null))
+    fun memberFunctionsWorks() = runSqliteTest { isWasm ->
+        val vfs = findVfs(isWasm)
         val file = sqlite3_file(vfs)
-        val path = ksqliteTemporaryTestFile("vfs.db")
+        val path = ksqliteTempTestFile("vfs.db")
 
         val inOpenFlags = SqliteOpenFlag.READWRITE.vfs() or CREATE or DELETEONCLOSE or TEMP_DB
         val outOpenFlags = SqliteVfsOpenFlagsOutputParam()

@@ -9,8 +9,9 @@ internal interface Disposable {
 
     /**
      * Disposes the resource.
+     * If [callDestructor] is `true` then the application supplied destructor, if any, is invoked.
      */
-    fun dispose()
+    fun dispose(callDestructor: Boolean = true)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -70,9 +71,12 @@ internal class InstanceDestructor<Instance>(
     private val destructor: SqliteDestroyCallback<Instance>
 ) : Disposable {
 
-    override fun dispose() {
+    override fun dispose(callDestructor: Boolean) {
         unregisterGlobalDisposable(address)
-        destructor.apply(instance)
+
+        if (callDestructor) {
+            destructor.apply(instance)
+        }
     }
 }
 

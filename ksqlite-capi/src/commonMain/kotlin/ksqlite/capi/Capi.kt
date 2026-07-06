@@ -1096,6 +1096,39 @@ public expect fun sqlite3_file_control(
 ): SqliteResultCode
 
 /**
+ * Translate a filename that was handed to a VFS routine into the corresponding database, journal,
+ * or WAL file.
+ *
+ * It is an error to pass this routine a filename string that was not passed into the VFS from the
+ * SQLite core.  Doing so is similar to passing free() a pointer that was not obtained from
+ * malloc() - it is an error that we cannot easily detect but that will likely cause memory
+ * corruption.
+ */
+public expect fun sqlite3_filename_database(fileName: sqlite3_filename): String?
+
+/**
+ * Translate a filename that was handed to a VFS routine into the corresponding database, journal,
+ * or WAL file.
+ *
+ * It is an error to pass this routine a filename string that was not passed into the VFS from the
+ * SQLite core.  Doing so is similar to passing free() a pointer that was not obtained from
+ * malloc() - it is an error that we cannot easily detect but that will likely cause memory
+ * corruption.
+ */
+public expect fun sqlite3_filename_journal(fileName: sqlite3_filename): String?
+
+/**
+ * Translate a filename that was handed to a VFS routine into the corresponding database, journal,
+ * or WAL file.
+ *
+ * It is an error to pass this routine a filename string that was not passed into the VFS from the
+ * SQLite core.  Doing so is similar to passing free() a pointer that was not obtained from
+ * malloc() - it is an error that we cannot easily detect but that will likely cause memory
+ * corruption.
+ */
+public expect fun sqlite3_filename_wal(fileName: sqlite3_filename): String?
+
+/**
  * The following routine destroys a virtual machine that is created by the sqlite3_compile()
  * routine. The integer returned is an SQLITE_ success/failure code that describes the result of
  * executing the virtual machine.

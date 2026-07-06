@@ -11,4 +11,4 @@ private val SqliteDataTypeMap = SqliteDataType.entries.associateBy(SqliteDataTyp
  * Converts [type] to [ksqlite.types.SqliteDataType].
  */
 public fun convertDataType(type: Int): SqliteDataType =
-    checkNotNull(SqliteDataTypeMap[type]) { "Unknown SQLite data type $type" }
+    checkNotNull(SqliteDataTypeMap[type]) { "Unknown SQLite data type: $type" }

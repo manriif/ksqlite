@@ -733,13 +733,13 @@ public  external interface WasmMemory {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns a [CString] from an array returned by [allocCString] and
- * [scopedAllocCStringStruct].
+ * Returns a [CString] from an array returned by [allocCString] and [scopedAllocCStringStruct].
+ * The length includes the null terminator character.
  */
 private fun JsAny.toCString(): CString = unsafeCast<ReadonlyArray<JsAny>>().run {
     CString(
         pointer = get(0).unsafeCast<WasmPointer>(),
-        byteLength = get(1).unsafeCast<JsInt>().toKotlinInt()
+        byteLength = get(1).unsafeCast<JsInt>().toKotlinInt() + 1
     )
 }
 

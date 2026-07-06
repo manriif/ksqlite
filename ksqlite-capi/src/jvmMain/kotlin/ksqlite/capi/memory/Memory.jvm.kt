@@ -57,6 +57,12 @@ internal fun MemorySegment.setValue(value: Int) {
     set(ValueLayout.JAVA_INT, 0, value)
 }
 
+/**
+ * Returns [Pointer] instantiated after [factory] which is passed `this` non-null pointing [Long].
+ */
+internal fun <Pointer : Struct> MemorySegment.wrapOrNull(factory: (MemorySegment) -> Pointer): Pointer? =
+    orNull?.let(factory)
+
 ///////////////////////////////////////////////////////////////////////////
 // Allocator
 ///////////////////////////////////////////////////////////////////////////

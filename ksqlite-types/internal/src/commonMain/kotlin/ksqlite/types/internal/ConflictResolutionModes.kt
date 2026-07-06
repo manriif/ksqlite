@@ -13,5 +13,5 @@ private val SqliteConflictResolutionModeMap =
  */
 public fun convertConflictResolutionMode(mode: Int): SqliteConflictResolutionMode =
     checkNotNull(SqliteConflictResolutionModeMap[mode]) {
-        "Unknown SQLite conflict resolution mode $mode"
+        "Unknown SQLite conflict resolution mode: $mode"
     }

@@ -3,6 +3,7 @@
 package ksqlite.capi
 
 import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.PointerOutputParam
 import ksqlite.capi.memory.Struct
@@ -15,6 +16,7 @@ internal typealias s3 = cnames.structs.sqlite3
 internal typealias s3_backup = cnames.structs.sqlite3_backup
 internal typealias s3_blob = cnames.structs.sqlite3_blob
 internal typealias s3_api = cnames.structs.sqlite3_api_routines
+internal typealias s3_filename = ksqlite.foreign.sqlite3_filename
 internal typealias s3_context = cnames.structs.sqlite3_context
 internal typealias s3_stmt = cnames.structs.sqlite3_stmt
 internal typealias s3_value = cnames.structs.sqlite3_value
@@ -49,6 +51,13 @@ public actual class sqlite3_blob internal constructor(override val pointer: CPoi
 
 public actual class sqlite3_context internal constructor(override val pointer: CPointer<s3_context>) :
     Struct(pointer)
+
+public actual class sqlite3_filename internal constructor(override val pointer: s3_filename) :
+    Struct(pointer) {
+
+    public actual val content: String
+        get() = pointer.toKStringFromUtf8()
+}
 
 public actual class sqlite3_snapshot internal constructor(override val pointer: CPointer<s3_snapshot>) :
     Struct(pointer) {

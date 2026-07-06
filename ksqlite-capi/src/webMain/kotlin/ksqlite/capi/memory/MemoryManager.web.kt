@@ -35,6 +35,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * @throws NullPointerException if there is no object associated with [pointer].
      */
     fun <AppData> getStableRef(pointer: WasmPointer): Reference<AppData> = notClosed {
+        check(!pointer.isNull) { "Pointer must not point to null" }
         val refId = wasm.peek64(pointer).toLong()
         val reference = getDisposable<AppData, StableRefReference<AppData>>(refId)
         return reference

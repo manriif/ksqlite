@@ -126,6 +126,7 @@ internal fun structReinterpret(
  * [ByteBuffer] pointing to the address of the struct.
  *
  * The allocated struct address is written into [pointer].
+ * The returned memory region is zeroized.
  */
 private external fun nativeStructMalloc(
     size: Int,
@@ -502,7 +503,7 @@ public external fun sqlite3_db_config(
 public external fun sqlite3_db_filename(
     db: Long,
     name: String
-): String?
+): Long
 
 public external fun sqlite3_db_handle(stmt: Long): Long
 
@@ -585,6 +586,12 @@ public external fun sqlite3_file_control(
     opcode: Int,
     param: Any?
 ): Int
+
+public external fun sqlite3_filename_database(fileName: Long): String?
+
+public external fun sqlite3_filename_journal(fileName: Long): String?
+
+public external fun sqlite3_filename_wal(fileName: Long): String?
 
 public external fun sqlite3_finalize(stmt: Long): Int
 
@@ -996,24 +1003,24 @@ public external fun sqlite3_update_hook(
 ): UpdateHookCallback?
 
 public external fun sqlite3_uri_boolean(
-    fileName: String,
+    fileName: Long,
     parameter: String,
     def: Int
 ): Int
 
 public external fun sqlite3_uri_int64(
-    fileName: String,
+    fileName: Long,
     parameter: String,
     def: Long
 ): Long
 
 public external fun sqlite3_uri_key(
-    fileName: String,
+    fileName: Long,
     index: Int
 ): String?
 
 public external fun sqlite3_uri_parameter(
-    fileName: String,
+    fileName: Long,
     parameter: String
 ): String?
 

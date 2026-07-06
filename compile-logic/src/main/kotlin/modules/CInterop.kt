@@ -16,6 +16,9 @@ val KsqliteNoStringConversions = listOf(
     "blob_open",
     "exec",
     "file_control",
+    "filename_database",
+    "filename_journal",
+    "filename_wal",
     "keyword_check",
     "open",
     "open_v2",
@@ -27,5 +30,9 @@ val KsqliteNoStringConversions = listOf(
     "result_text64",
     "serialize",
     "table_column_metadata",
+    "uri_parameter",
+    "uri_boolean",
+    "uri_int64",
+    "uri_key",
     "wal_checkpoint_v2"
 ).sqlitePrefixed()

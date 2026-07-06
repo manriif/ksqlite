@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
 class ConnectionTest {
 
     @Test
-    fun connectionOpens() = runSqliteTest {
+    fun connectionWorks() = runSqliteTest {
         val outDb = sqlite3.OutputParam()
 
         val openResult = sqlite3_open(":memory:", outDb)
@@ -34,9 +34,6 @@ class ConnectionTest {
 
         val name = sqlite3_db_name(db, 1)
         assertEquals("temp", name)
-
-        val fileName = sqlite3_db_filename(db, "main")
-        assertEquals("", fileName)
 
         val autocommitMode = sqlite3_get_autocommit(db)
         assertEquals(1, autocommitMode)
@@ -80,7 +77,7 @@ class ConnectionTest {
     }
 
     @Test
-    fun errorApisWorks() = runSqliteConnectionTest { db ->
+    fun errorWorks() = runSqliteConnectionTest { db ->
         val extendedResultCodesResult = sqlite3_extended_result_codes(db, 1)
         assertEquals(OK, extendedResultCodesResult)
 
@@ -115,6 +112,43 @@ class ConnectionTest {
 
         val systemErrNo = sqlite3_system_errno(db)
         assertEquals(0, systemErrNo)
+    }
+
+    @Test
+    fun fileNameWorks() = runSqliteTest { isWasm ->
+        findVfs(isWasm).usingRealTempFile("filename.db") { path ->
+            val uri = "file:$path?mode=rwc&testFlag=1&testSize=42&testText=world&hello="
+            val outDb = sqlite3.OutputParam()
+            val dbOpenResult = sqlite3_open(uri, outDb)
+            assertEquals(OK, dbOpenResult)
+
+            val db = assertNotNull(outDb.value)
+            val fileName = assertNotNull(sqlite3_db_filename(db, "main"))
+            val fileNameDatabase = assertNotNull(sqlite3_filename_database(fileName))
+
+            val fileNameJournal = assertNotNull(sqlite3_filename_journal(fileName))
+            val expectedJournalName = "$fileNameDatabase-journal"
+            assertEquals(expectedJournalName, fileNameJournal)
+
+            val fileNameWal = assertNotNull(sqlite3_filename_wal(fileName))
+            val expectedWalName = "$fileNameDatabase-wal"
+            assertEquals(fileNameWal, expectedWalName)
+
+            val uriBoolean = sqlite3_uri_boolean(fileName, "testFlag", 0)
+            assertEquals(1, uriBoolean)
+
+            val uriInt64 = sqlite3_uri_int64(fileName, "testSize", 0)
+            assertEquals(42, uriInt64)
+
+            val uriKey = sqlite3_uri_key(fileName, 4)
+            assertEquals("hello", uriKey)
+
+            val uriParameter = sqlite3_uri_parameter(fileName, "testText")
+            assertEquals("world", uriParameter)
+
+            val closeResult = sqlite3_close(db)
+            assertEquals(OK, closeResult)
+        }
     }
 
     @Test

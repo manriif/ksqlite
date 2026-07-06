@@ -6,6 +6,7 @@ import ksqlite.capi.memory.JniPointer
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.PointerOutputParam
 import ksqlite.capi.memory.Struct
+import ksqlite.capi.memory.toKStringFromUtf8
 
 public actual class sqlite3 internal constructor(pointer: JniPointer) :
     Struct(pointer),
@@ -31,6 +32,13 @@ public actual class sqlite3_blob internal constructor(pointer: JniPointer) :
 
 public actual class sqlite3_context internal constructor(pointer: JniPointer) :
     Struct(pointer)
+
+public actual class sqlite3_filename internal constructor(pointer: JniPointer) :
+    Struct(pointer) {
+
+    public actual val content: String
+        get() = pointer.toKStringFromUtf8()
+}
 
 public actual class sqlite3_snapshot internal constructor(pointer: JniPointer) :
     Struct(pointer) {

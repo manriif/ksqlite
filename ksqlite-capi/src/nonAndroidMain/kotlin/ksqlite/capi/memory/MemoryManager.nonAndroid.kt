@@ -151,7 +151,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
         var disposableKey: String? = null
 
         /**
-         * The associated client data.
+         * The associated application data.
          * */
         abstract val appData: AppData
 
@@ -163,15 +163,18 @@ internal abstract class MemoryManagerBase : AutoCloseable {
         /**
          * Invokes destructor and releases the resource(s).
          */
-        fun destroy() {
-            destructor?.apply(appData)
+        fun destroy(callDestructor: Boolean = true) {
             release()
+
+            if (callDestructor) {
+                destructor?.apply(appData)
+            }
         }
 
         /**
          * Removes `this` from the [disposables] and [destroy] the instance.
          */
-        final override fun dispose() {
+        final override fun dispose(callDestructor: Boolean) {
             val instance = checkNotNull(disposableLock.withLock {
                 disposables.remove(
                     when (val key = disposableKey) {
@@ -188,7 +191,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
             }
 
             check(instance === this) { "Unexpected disposable instance" }
-            destroy()
+            destroy(callDestructor)
         }
     }
 }
@@ -198,8 +201,5 @@ internal abstract class MemoryManagerBase : AutoCloseable {
  *
  * Provides helper functions to obtain native pointers to long-lived object and ensuring no object
  * leak.
- *
- * Note that this is meaningless on Android, but declaring it here reduce the source code
- * complexity.
  */
 internal expect class MemoryManager() : MemoryManagerBase

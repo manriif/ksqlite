@@ -1,6 +1,9 @@
 package ksqlite.capi
 
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.Disposable
+import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.memoryOrNull
 import ksqlite.types.SqliteDataType
 import ksqlite.types.SqliteResultCode
@@ -27,6 +30,31 @@ internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): SqliteResultC
     }
 
     return convertResultCode(result)
+}
+
+/**
+ * Handles the [sqlite3_create_collation_v2].
+ *
+ * If the function fails, [getDisposable] is invoked to obtains a [Disposable] that is then is
+ * disposed to release allocated memory.
+ */
+internal inline fun <Pointer: Any> commonCreateCollation(
+    db: sqlite3,
+    getDisposable: MemoryManager.(Pointer) -> Disposable,
+    execute: MemoryManager.(setPointer: (Pointer?) -> Pointer?) -> Int
+): SqliteResultCode {
+    var pointer: Pointer? = null
+    val memory = db.memory
+    val result = convertResultCode(memory.execute { it.also { pointer = it } })
+
+    if (result != SqliteResultCode.OK) {
+        // SQLite does not call the destructor in that specific case so we keep the behavior
+        pointer
+            ?.let { getDisposable(memory, it) }
+            ?.dispose(callDestructor = false)
+    }
+
+    return result
 }
 
 ///////////////////////////////////////////////////////////////////////////

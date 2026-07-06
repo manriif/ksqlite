@@ -14,7 +14,7 @@ internal class StableRefDisposerHandler : Handler(), ReferenceFunction {
         functions.installReferenceFunction(this)
 
     override fun apply(refPointer: WasmPointer) {
-        manager.getStableRef<Nothing?>(refPointer).dispose()
+        manager.stableRefDisposable(refPointer).dispose()
     }
 }
 
@@ -28,16 +28,19 @@ internal fun MemoryManager.stableRefDisposer(
 ): WasmPointer = stableRefDisposer.takeIf { data != null || destructor != null } ?: NullPtr
 
 /**
- * Returns the object [Data] backed by [pointer] with an optional user data pointer.
+ * Returns the [Disposable] referenced by [pointer].
+ */
+internal fun MemoryManager.stableRefDisposable(pointer: WasmPointer): Disposable =
+    getStableRef<Nothing?>(pointer)
+
+/**
+ * Returns the object [Data] referenced by [pointer] with an optional user data pointer.
  *
  * Throws [IllegalStateException] if [pointer] is [NullPtr].
  */
 internal inline fun <reified Data : Any, AppData> MemoryManager.stableRefDataHolder(
     pointer: WasmPointer
-): DataHolder<Data, AppData> {
-    check(!pointer.isNull) { "Pointer must not point to null" }
-    return getStableRef<AppData>(pointer).cast()
-}
+): DataHolder<Data, AppData> = getStableRef<AppData>(pointer).cast()
 
 /**
  * Returns the [Data] referenced by [pointer].

@@ -5,6 +5,7 @@ package ksqlite.capi
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.PointerOutputParam
 import ksqlite.capi.memory.Struct
+import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.foreign.wasm.WasmMemory
 import ksqlite.foreign.wasm.WasmPointer
 
@@ -32,6 +33,13 @@ public actual class sqlite3_blob internal constructor(pointer: WasmPointer) :
 
 public actual class sqlite3_context internal constructor(pointer: WasmPointer) :
     Struct(pointer)
+
+public actual class sqlite3_filename internal constructor(pointer: WasmPointer) :
+    Struct(pointer) {
+
+    public actual val content: String
+        get() = pointer.toKStringFromUtf8()
+}
 
 public actual class sqlite3_snapshot internal constructor(pointer: WasmPointer) :
     Struct(pointer) {

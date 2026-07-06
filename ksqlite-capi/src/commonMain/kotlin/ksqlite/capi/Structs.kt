@@ -67,7 +67,13 @@ public expect class sqlite3_context : Struct
  *
  * [sqlite3_filename](https://sqlite.org/c3ref/filename.html)
  */
-public typealias sqlite3_filename = String
+public expect class sqlite3_filename : Struct {
+
+    /**
+     * Filename raw content.
+     */
+    public val content: String
+}
 
 /**
  * An instance of the snapshot object records the state of a WAL mode database for some specific

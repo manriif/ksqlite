@@ -98,7 +98,7 @@ public abstract class JniStruct private constructor(
      * Writes four bytes [value] at the offset of the field at [index].
      */
     protected fun writeInt(index: Int, value: Int) {
-        withOffsetAndLength(index, 1) { putInt(it, value) }
+        withOffsetAndLength(index, 4) { putInt(it, value) }
     }
 
     /**
@@ -111,7 +111,7 @@ public abstract class JniStruct private constructor(
      * Writes eight bytes [value] at the offset of the field at [index].
      */
     protected fun writeLong(index: Int, value: Long) {
-        withOffsetAndLength(index, 1) { putLong(it, value) }
+        withOffsetAndLength(index, 8) { putLong(it, value) }
     }
 
     /**
@@ -124,7 +124,7 @@ public abstract class JniStruct private constructor(
      * Writes eight bytes [value] at the offset of the field at [index].
      */
     protected fun writeDouble(index: Int, value: Double) {
-        withOffsetAndLength(index, 1) { putDouble(it, value) }
+        withOffsetAndLength(index, 8) { putDouble(it, value) }
     }
 
     ///////////////////////////////////////////////////////////////////////////

@@ -12,7 +12,7 @@ private val SqliteVfsVersionMap = SqliteVfsVersion.entries.associateBy(SqliteVfs
  * Converts [version] to [SqliteVfsVersion].
  */
 public fun convertVfsVersion(version: Int): SqliteVfsVersion =
-    checkNotNull(SqliteVfsVersionMap[version]) { "Unknown SQLite VFS version $version" }
+    checkNotNull(SqliteVfsVersionMap[version]) { "Unknown SQLite VFS version: $version" }
 
 /**
  * [SqliteIoMethodsVersion]s associated by their iVersion.

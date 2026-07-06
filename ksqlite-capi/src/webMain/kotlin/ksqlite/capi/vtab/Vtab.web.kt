@@ -2,7 +2,6 @@ package ksqlite.capi.vtab
 
 import ksqlite.capi.capi
 import ksqlite.capi.createFunction
-import ksqlite.capi.functionKey
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.setPointerValue
@@ -320,7 +319,7 @@ internal val VtabFindFunctionHandler = vTabHandler(
 
                     outData.setPointerValue(
                         instance.memory.keyedStableRefPointer(
-                            key = functionKey(functionName, argc, null),
+                            key = vTabFunctionKey(functionName, argc),
                             data = fn,
                             appData = appData,
                             destructor = fnDestroy

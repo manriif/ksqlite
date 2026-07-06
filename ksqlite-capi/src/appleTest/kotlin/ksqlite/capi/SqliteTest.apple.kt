@@ -7,7 +7,7 @@ import platform.posix.errno
 import platform.posix.mkdir
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun temporaryTestDirectory(subdirectory: String): String {
+internal actual fun tempTestDirectory(subdirectory: String): String {
     val tmp = NSTemporaryDirectory()
     val path = "$tmp/$subdirectory"
 

@@ -12,7 +12,7 @@ import platform.windows.GetTempPathW
 import platform.windows.MAX_PATH
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun temporaryTestDirectory(subdirectory: String): String {
+internal actual fun tempTestDirectory(subdirectory: String): String {
     val tmp = memScoped {
         val buffer = allocArray<UShortVar>(MAX_PATH + 1)
         val len = GetTempPathW(MAX_PATH.toUInt(), buffer)

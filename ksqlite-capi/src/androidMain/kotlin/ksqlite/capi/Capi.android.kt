@@ -176,6 +176,9 @@ import ksqlite.foreign.sqlite3_expanded_sql as jni_sqlite3_expanded_sql
 import ksqlite.foreign.sqlite3_extended_errcode as jni_sqlite3_extended_errcode
 import ksqlite.foreign.sqlite3_extended_result_codes as jni_sqlite3_extended_result_codes
 import ksqlite.foreign.sqlite3_file_control as jni_sqlite3_file_control
+import ksqlite.foreign.sqlite3_filename_database as jni_sqlite3_filename_database
+import ksqlite.foreign.sqlite3_filename_journal as jni_sqlite3_filename_journal
+import ksqlite.foreign.sqlite3_filename_wal as jni_sqlite3_filename_wal
 import ksqlite.foreign.sqlite3_finalize as jni_sqlite3_finalize
 import ksqlite.foreign.sqlite3_free as jni_sqlite3_free
 import ksqlite.foreign.sqlite3_get_autocommit as jni_sqlite3_get_autocommit
@@ -291,6 +294,7 @@ import ksqlite.foreign.sqlite3_vfs_find as jni_sqlite3_vfs_find
 import ksqlite.foreign.sqlite3_vfs_register as jni_sqlite3_vfs_register
 import ksqlite.foreign.sqlite3_vfs_unregister as jni_sqlite3_vfs_unregister
 import ksqlite.foreign.sqlite3_vtab_collation as jni_sqlite3_vtab_collation
+import ksqlite.foreign.sqlite3_vtab_config as jni_sqlite3_vtab_config
 import ksqlite.foreign.sqlite3_vtab_distinct as jni_sqlite3_vtab_distinct
 import ksqlite.foreign.sqlite3_vtab_in as jni_sqlite3_vtab_in
 import ksqlite.foreign.sqlite3_vtab_in_first as jni_sqlite3_vtab_in_first
@@ -700,9 +704,9 @@ public actual fun <AppData> sqlite3_create_function_v2(
             nArg,
             encoding.value,
             fn,
-            callbackHandler(fn, null, ::FunctionFuncHandler),
-            callbackHandler(fn, null, ::FunctionStepHandler),
-            callbackHandler(fn, null, ::FunctionFinalHandler),
+            callbackHandler(fn.takeIf { func != null }, null, ::FunctionFuncHandler),
+            callbackHandler(fn.takeIf { step != null }, null, ::FunctionStepHandler),
+            callbackHandler(fn.takeIf { final != null }, null, ::FunctionFinalHandler),
             destructorHandler(fn, fnDestroy)
         )
     }
@@ -745,10 +749,10 @@ public actual fun <AppData> sqlite3_create_window_function(
             nArg,
             encoding.value,
             fn,
-            callbackHandler(fn, null, ::FunctionStepHandler),
-            callbackHandler(fn, null, ::FunctionFinalHandler),
-            callbackHandler(fn, null, ::FunctionValueHandler),
-            callbackHandler(fn, null, ::FunctionInverseHandler),
+            callbackHandler(fn.takeIf { step != null }, null, ::FunctionStepHandler),
+            callbackHandler(fn.takeIf { final != null }, null, ::FunctionFinalHandler),
+            callbackHandler(fn.takeIf { value != null }, null, ::FunctionValueHandler),
+            callbackHandler(fn.takeIf { inverse != null }, null, ::FunctionInverseHandler),
             destructorHandler(fn, fnDestroy)
         )
     }
@@ -780,10 +784,10 @@ public actual fun sqlite3_db_filename(
     db: sqlite3,
     database: String
 ): sqlite3_filename? = jni_sqlite3_db_filename(db.pointer, database)
+    .wrapOrNull(::sqlite3_filename)
 
 public actual fun sqlite3_db_handle(stmt: sqlite3_stmt): sqlite3? =
-    jni_sqlite3_db_handle(stmt.pointer)
-        .wrapOrNull(::sqlite3)
+    jni_sqlite3_db_handle(stmt.pointer).wrapOrNull(::sqlite3)
 
 public actual fun sqlite3_db_name(
     db: sqlite3,
@@ -917,6 +921,15 @@ public actual fun sqlite3_file_control(
         }
     }
 )
+
+public actual fun sqlite3_filename_database(fileName: sqlite3_filename): String? =
+    jni_sqlite3_filename_database(fileName.pointer)
+
+public actual fun sqlite3_filename_journal(fileName: sqlite3_filename): String? =
+    jni_sqlite3_filename_journal(fileName.pointer)
+
+public actual fun sqlite3_filename_wal(fileName: sqlite3_filename): String? =
+    jni_sqlite3_filename_wal(fileName.pointer)
 
 public actual fun sqlite3_finalize(stmt: sqlite3_stmt): SqliteResultCode =
     convertResultCode(jni_sqlite3_finalize(stmt.pointer))
@@ -1483,23 +1496,23 @@ public actual fun sqlite3_uri_boolean(
     fileName: sqlite3_filename,
     parameter: String,
     default: Int
-): Int = jni_sqlite3_uri_boolean(fileName, parameter, default)
+): Int = jni_sqlite3_uri_boolean(fileName.pointer, parameter, default)
 
 public actual fun sqlite3_uri_int64(
     fileName: sqlite3_filename,
     parameter: String,
     default: Long
-): Long = jni_sqlite3_uri_int64(fileName, parameter, default)
+): Long = jni_sqlite3_uri_int64(fileName.pointer, parameter, default)
 
 public actual fun sqlite3_uri_key(
     fileName: sqlite3_filename,
     index: Int
-): String? = jni_sqlite3_uri_key(fileName, index)
+): String? = jni_sqlite3_uri_key(fileName.pointer, index)
 
 public actual fun sqlite3_uri_parameter(
     fileName: sqlite3_filename,
     parameter: String
-): String? = jni_sqlite3_uri_parameter(fileName, parameter)
+): String? = jni_sqlite3_uri_parameter(fileName.pointer, parameter)
 
 public actual fun sqlite3_value_blob(value: sqlite3_value): ByteArray? =
     jni_sqlite3_value_blob(value.pointer)
@@ -1563,7 +1576,7 @@ public actual fun sqlite3_vtab_config(
     db: sqlite3,
     option: SqliteVtabConfigOption
 ): SqliteResultCode = commonVtabConfig(option) { id, values ->
-    jni_sqlite3_db_config(db.pointer, id, values.toJniJavaObjectArray())
+    jni_sqlite3_vtab_config(db.pointer, id, values.toJniJavaObjectArray())
 }
 
 public actual fun sqlite3_vtab_distinct(info: sqlite3_index_info): Int =

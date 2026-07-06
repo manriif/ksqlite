@@ -110,7 +110,7 @@ class CallbackTest {
         val pragmaResult = sqlite3_exec(db, pragmaSql, null, null, null)
         assertEquals(OK, pragmaResult)
 
-        var destroyerCalled = false
+        var destructorCalled = false
         var callbackCallCount = 0
 
         val autovacuumPagesResult = sqlite3_autovacuum_pages(
@@ -118,7 +118,7 @@ class CallbackTest {
             appData = 90,
             destroy = { appData ->
                 assertEquals(90, appData)
-                destroyerCalled = true
+                destructorCalled = true
             },
             callback = { appData, schemaName, _, _, bytePerPage ->
                 assertEquals(90, appData)
@@ -169,9 +169,21 @@ class CallbackTest {
         assertEquals(OK, deleteResult)
         assertTrue(callbackCallCount > 0)
 
+        var secondDestroyerCalled = false
+
+        val replaceResult = sqlite3_autovacuum_pages(
+            db = db,
+            appData = null,
+            destroy = { secondDestroyerCalled = true },
+            callback = { _, _, _, _, bpp -> bpp }
+        )
+
+        assertEquals(OK, replaceResult)
+        assertTrue(destructorCalled)
+
         val closeResult = sqlite3_close(db)
         assertEquals(OK, closeResult)
-        assertTrue(destroyerCalled)
+        assertTrue(secondDestroyerCalled)
     }
 
     @Test
@@ -395,12 +407,12 @@ class CallbackTest {
 
             when (action) {
                 CREATE_TABLE -> {
-                    assertEquals("fruit", d1)
+                    assertEquals("fruits", d1)
                     createTableCalled = true
                     OK
                 }
 
-                INSERT -> if (d1 == "fruit") {
+                INSERT -> if (d1 == "fruits") {
                     insertCalled = true
                     DENY
                 } else {
@@ -409,13 +421,13 @@ class CallbackTest {
 
                 CREATE_TRIGGER -> {
                     assertEquals("select_fruits", d1)
-                    assertEquals("fruit", d2)
+                    assertEquals("fruits", d2)
                     createTriggerCalled = true
                     IGNORE
                 }
 
                 DROP_TABLE -> {
-                    assertEquals("fruit", d1)
+                    assertEquals("fruits", d1)
                     dropTableCalled = true
                     DENY
                 }
@@ -449,7 +461,7 @@ class CallbackTest {
         assertEquals(OK, createTriggerResult)
         assertTrue(createTriggerCalled)
 
-        val dropTableSql = "DROP TABLE fruit;"
+        val dropTableSql = "DROP TABLE fruits;"
         val dropTableResult = sqlite3_exec(db, dropTableSql, null, null, null)
         assertEquals(AUTH, dropTableResult)
         assertTrue(dropTableCalled)
@@ -532,7 +544,7 @@ class CallbackTest {
             assertEquals(79787, appData)
             assertEquals(UPDATE, dml)
             assertEquals("main", dbName)
-            assertEquals("fruit", tableName)
+            assertEquals("fruits", tableName)
             assertEquals(1, rowid)
 
             callbackCalled = true

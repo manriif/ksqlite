@@ -538,6 +538,18 @@ public external interface Sqlite3WasmExports : JsAny {
         p3: JsBigInt,
     ): Int
 
+    public fun sqlite3_filename_database(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    public fun sqlite3_filename_journal(
+        p0: JsBigInt,
+    ): JsBigInt
+
+    public fun sqlite3_filename_wal(
+        p0: JsBigInt,
+    ): JsBigInt
+
     public fun sqlite3_finalize(
         p0: JsBigInt,
     ): Int

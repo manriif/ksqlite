@@ -3,7 +3,7 @@ package ksqlite.capi
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 
-internal actual fun temporaryTestDirectory(subdirectory: String): String =
+internal actual fun tempTestDirectory(subdirectory: String): String =
     InstrumentationRegistry.getInstrumentation()
         .targetContext
         .cacheDir

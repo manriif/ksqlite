@@ -22,4 +22,4 @@ private val TraceConstantMap = sqliteTraceConstants().associateBy(SqliteTraceEve
  * Converts [code] to [SqliteTransactionState].
  */
 public fun convertTraceCode(code: Int): SqliteTraceEventCode.Constant =
-    checkNotNull(TraceConstantMap[code]) { "Unknown SQLite trace code $code" }
+    checkNotNull(TraceConstantMap[code]) { "Unknown SQLite trace code: $code" }

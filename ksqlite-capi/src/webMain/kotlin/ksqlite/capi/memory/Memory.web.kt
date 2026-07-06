@@ -89,6 +89,12 @@ internal fun WasmPointer.setValue(
     memory.poke32(this, value)
 }
 
+/**
+ * Returns [Pointer] instantiated after [factory] which is passed `this` non-null pointing [Long].
+ */
+internal fun <Pointer : Struct> WasmPointer.wrapOrNull(factory: (WasmPointer) -> Pointer): Pointer? =
+    orNull?.let(factory)
+
 ///////////////////////////////////////////////////////////////////////////
 // Allocators
 ///////////////////////////////////////////////////////////////////////////

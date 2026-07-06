@@ -57,6 +57,6 @@ public inline fun <reified A : SqliteActionCode> convertActionCode(code: Int): A
         "Unknown SQLite action code $code"
     }
 
-    check(actionCode is A) { "Unexpected action type $actionCode" }
+    check(actionCode is A) { "Unexpected action code: $actionCode" }
     return actionCode
 }

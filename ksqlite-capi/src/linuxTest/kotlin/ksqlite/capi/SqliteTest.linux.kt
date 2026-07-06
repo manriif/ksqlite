@@ -8,7 +8,7 @@ import platform.posix.getenv
 import platform.posix.mkdir
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun temporaryTestDirectory(subdirectory: String): String {
+internal actual fun tempTestDirectory(subdirectory: String): String {
     val tmp = getenv("TMPDIR")?.toKString() ?: "/tmp"
     val path = "$tmp/$subdirectory"
 

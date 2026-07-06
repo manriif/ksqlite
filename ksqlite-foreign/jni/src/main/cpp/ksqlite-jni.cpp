@@ -1,3 +1,7 @@
+#include <jni.h>
+
+#include <jni.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -633,7 +637,7 @@ struct DbState : MutexGuarded {
         Hook authorizer;
         HookDestroyable autovacuumPages;
         Hook busyHandler;
-        HookDestroyable collationCompare;
+        HookDestroyable collation;
         Hook collationNeeded;
         Hook commitHook;
         Hook preupdateHook;
@@ -683,7 +687,7 @@ static void destroyDbState(
 
     // Destructors must have been called by SQLite for theses hooks.
     RequireNull(hooks.autovacuumPages.instance);
-    RequireNull(hooks.collationCompare.instance);
+    RequireNull(hooks.collation.instance);
 
     sqlite3_free(state.configMainDbName);
     MutexDestroy(state);
@@ -1179,20 +1183,21 @@ JNI_OnUnload(
 #define PtrToLong(P) reinterpret_cast<jlong>(P)
 #define LongToPtr(L) reinterpret_cast<void*>(L)
 
-#define LongCast(T, L) reinterpret_cast<T*>(L)
-#define LongTo_s3(L) LongCast(sqlite3, (L))
-#define LongTo_s3_backup(L) LongCast(sqlite3_backup, (L))
-#define LongTo_s3_blob(L) LongCast(sqlite3_blob, (L))
-#define LongTo_s3_context(L) LongCast(sqlite3_context, (L))
-#define LongTo_s3_file(L) LongCast(sqlite3_file, (L))
-#define LongTo_s3_index_info(L) LongCast(sqlite3_index_info, (L))
-//#define LongTo_s3_io_methods(L) LongCast(sqlite3_io_methods, (L))
-#define LongTo_s3_module(L) LongCast(Module, (L))
-#define LongTo_s3_snapshot(L) LongCast(sqlite3_snapshot, (L))
-#define LongTo_s3_stmt(L) LongCast(sqlite3_stmt, (L))
-#define LongTo_s3_value(L) LongCast(sqlite3_value, (L))
-#define LongTo_s3_vtab(L) LongCast(Vtab, (L))
-#define LongTo_s3_vfs(L) LongCast(sqlite3_vfs, (L))
+#define LongCast(T, L) reinterpret_cast<T>(L)
+#define LongTo_s3(L) LongCast(sqlite3*, (L))
+#define LongTo_s3_backup(L) LongCast(sqlite3_backup*, (L))
+#define LongTo_s3_blob(L) LongCast(sqlite3_blob*, (L))
+#define LongTo_s3_context(L) LongCast(sqlite3_context*, (L))
+#define LongTo_s3_file(L) LongCast(sqlite3_file*, (L))
+#define LongTo_s3_filename(L) LongCast(sqlite3_filename, (L))
+#define LongTo_s3_index_info(L) LongCast(sqlite3_index_info*, (L))
+//#define LongTo_s3_io_methods(L) LongCast(sqlite3_io_methods*, (L))
+#define LongTo_s3_module(L) LongCast(Module*, (L))
+#define LongTo_s3_snapshot(L) LongCast(sqlite3_snapshot*, (L))
+#define LongTo_s3_stmt(L) LongCast(sqlite3_stmt*, (L))
+#define LongTo_s3_value(L) LongCast(sqlite3_value*, (L))
+#define LongTo_s3_vtab(L) LongCast(Vtab*, (L))
+#define LongTo_s3_vfs(L) LongCast(sqlite3_vfs*, (L))
 
 ///////////////////////////////////////////////////////////////////////////
 // Hook operations
@@ -2380,7 +2385,7 @@ static jintArray structLayoutSqlite3Module(JNIEnv* env) {
     StructLayoutAppend(sqlite3_module, xRollbackTo);
     StructLayoutAppend(sqlite3_module, xShadowName);
     StructLayoutAppend(sqlite3_module, xIntegrity);
-    StructLayoutEnd(sqlite3_module);
+    StructLayoutEnd(Module);
 }
 
 /**
@@ -2391,7 +2396,7 @@ static jintArray structLayoutSqlite3Vtab(JNIEnv* env) {
     StructLayoutAppend(sqlite3_vtab, pModule);
     StructLayoutAppend(sqlite3_vtab, nRef);
     StructLayoutAppend(sqlite3_vtab, zErrMsg);
-    StructLayoutEnd(sqlite3_vtab);
+    StructLayoutEnd(Vtab);
 }
 
 /**
@@ -2524,6 +2529,7 @@ Java_ksqlite_foreign_KsqliteJni_nativeStructMalloc(
 ) {
     const auto address = sqlite3_malloc(size);
     OutOfMemoryCheck(address);
+    memset(address, 0, size);
 
     const auto buffer = env->NewDirectByteBuffer(address, size);
     OutOfMemoryCheck(buffer);
@@ -3679,9 +3685,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1context_1db_1handle(
 }
 
 /**
- * Calls the `CollationCompareCallback` hook.
+ * Calls the `CollationCallback` hook.
  */
-static int collationCompareCaller(
+static int collationCaller(
     void* pHook,
     int nLhs,
     const void* lhs,
@@ -3694,7 +3700,7 @@ static int collationCompareCaller(
     const auto lhsByteArray = BufferToByteArray(lhs, nLhs);
     const auto rhsByteArray = BufferToByteArray(rhs, nRhs);
 
-    HookEnterDbState(collationCompare);
+    HookEnterDbState(collation);
     jint result = env->CallIntMethod(instance, apply, lhsByteArray, rhsByteArray);
     HookLeave();
 
@@ -3718,15 +3724,15 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1create_1collation_1v2(
     const auto zName = JstringToUtf8(name);
 
     DbHookDestructorReplace(
-        collationCompare,
+        collation,
         "([B[B)I",
-        "CollationCompareCallback",
+        "CollationCallback",
         sqlite3_create_collation_v2(
             pDb,
             zName,
             eTextRep,
             pHook,
-            collationCompareCaller,
+            collationCaller,
             hookDestroyer
         ),
         sqlite3_create_collation_v2(pDb, zName, eTextRep, nullptr, nullptr, nullptr),
@@ -3820,12 +3826,12 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1create_1function_1v2(
 
     if (func != nullptr) { // Scalar function
         if (step != nullptr || final != nullptr) {
-            return SQLITE_MISUSE; // Invalid scalar function
+            return SQLITE_TOOBIG; // Invalid scalar function
         }
     } else {
         if (step == nullptr && final == nullptr) { // Function deletion
             if (destroy != nullptr) {
-                return SQLITE_MISUSE; // No destructor is allowed here
+                return SQLITE_NOTADB; // No destructor is allowed here
             }
 
             ReturnWithString(name, sqlite3_create_function_v2(
@@ -3840,7 +3846,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1create_1function_1v2(
                 nullptr
             ));
         } else if (step == nullptr || final == nullptr) {
-            return SQLITE_MISUSE; // Invalid aggregate function
+            return SQLITE_NOLFS; // Invalid aggregate function
         } else {
             isAggregate = true;
         }
@@ -4119,14 +4125,14 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1db_1config(
 }
 
 extern "C"
-JNIEXPORT jstring JNICALL
+JNIEXPORT jlong JNICALL
 Java_ksqlite_foreign_KsqliteJni_sqlite3_1db_1filename(
     JNIEnv* env,
     jclass clazz,
     jlong db,
     jstring name
 ) {
-    ReturnWithString(name, Utf8ToJstring(sqlite3_db_filename(LongTo_s3(db), name_)));
+    ReturnWithString(name, PtrToLong(sqlite3_db_filename(LongTo_s3(db), name_)));
 }
 
 extern "C"
@@ -4503,6 +4509,36 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1file_1control(
 
     sqlite3_free(zName);
     return rc;
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3_1filename_1database(
+    JNIEnv* env,
+    jclass clazz,
+    jlong fileName
+) {
+    return Utf8ToJstring(sqlite3_filename_database(LongTo_s3_filename(fileName)));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3_1filename_1journal(
+    JNIEnv* env,
+    jclass clazz,
+    jlong fileName
+) {
+    return Utf8ToJstring(sqlite3_filename_journal(LongTo_s3_filename(fileName)));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3_1filename_1wal(
+    JNIEnv* env,
+    jclass clazz,
+    jlong fileName
+) {
+    return Utf8ToJstring(sqlite3_filename_wal(LongTo_s3_filename(fileName)));
 }
 
 extern "C"
@@ -5932,11 +5968,11 @@ JNIEXPORT jint JNICALL
 Java_ksqlite_foreign_KsqliteJni_sqlite3_1uri_1boolean(
     JNIEnv* env,
     jclass clazz,
-    jstring fileName,
+    jlong fileName,
     jstring parameter,
     jint def
 ) {
-    ReturnWithStrings(fileName, parameter, sqlite3_uri_boolean(fileName_, parameter_, def));
+    ReturnWithString(parameter, sqlite3_uri_boolean(LongTo_s3_filename(fileName), parameter_, def));
 }
 
 extern "C"
@@ -5944,11 +5980,11 @@ JNIEXPORT jlong JNICALL
 Java_ksqlite_foreign_KsqliteJni_sqlite3_1uri_1int64(
     JNIEnv* env,
     jclass clazz,
-    jstring fileName,
+    jlong fileName,
     jstring parameter,
     jlong def
 ) {
-    ReturnWithStrings(fileName, parameter, sqlite3_uri_int64(fileName_, parameter_, def));
+    ReturnWithString(parameter, sqlite3_uri_int64(LongTo_s3_filename(fileName), parameter_, def));
 }
 
 extern "C"
@@ -5956,10 +5992,10 @@ JNIEXPORT jstring JNICALL
 Java_ksqlite_foreign_KsqliteJni_sqlite3_1uri_1key(
     JNIEnv* env,
     jclass clazz,
-    jstring fileName,
+    jlong fileName,
     jint index
 ) {
-    ReturnWithString(fileName, Utf8ToJstring(sqlite3_uri_key(fileName_, index)));
+    return Utf8ToJstring(sqlite3_uri_key(LongTo_s3_filename(fileName), index));
 }
 
 extern "C"
@@ -5967,13 +6003,12 @@ JNIEXPORT jstring JNICALL
 Java_ksqlite_foreign_KsqliteJni_sqlite3_1uri_1parameter(
     JNIEnv* env,
     jclass clazz,
-    jstring fileName,
+    jlong fileName,
     jstring parameter
 ) {
-    ReturnWithStrings(
-        fileName,
+    ReturnWithString(
         parameter,
-        Utf8ToJstring(sqlite3_uri_parameter(fileName_, parameter_))
+        Utf8ToJstring(sqlite3_uri_parameter(LongTo_s3_filename(fileName), parameter_))
     );
 }
 
@@ -6492,13 +6527,16 @@ static int callModuleXCreateOrXConnect(
     }
 
     const auto db = PtrToLong(pDb);
-    const auto appData = freeablePtr->data;
+    const auto appData = env->NewLocalRef(freeablePtr->data);
     const auto outVtab = OutputPointerNew(ofPointer);
     const auto outErrMsg = OutputPointerNew(ofString);
     const auto rc = ModuleCall(method, db, appData, arguments, outVtab, outErrMsg);
 
-    *ppVtab = OutputPointerGetPointerValue(sqlite3_vtab*, outVtab);
-    *pzErrMsg = OutputPointerGetStringValue(outErrMsg);
+    if (rc == SQLITE_OK) {
+        *ppVtab = OutputPointerGetPointerValue(sqlite3_vtab*, outVtab);
+    } else {
+        *pzErrMsg = OutputPointerGetStringValue(outErrMsg);
+    }
 
     env->DeleteLocalRef(appData);
     env->DeleteLocalRef(arguments);
@@ -6646,12 +6684,18 @@ static int moduleXNextCaller(sqlite3_vtab_cursor* pCursor) {
     return callModuleVtabAndCursor(pCursor, KKVC.next);
 }
 
-
 /**
  * Calls the `VtabModuleCallbacks.eof` hook.
  */
 static int moduleXEofCaller(sqlite3_vtab_cursor* pCursor) {
-    return callModuleVtabAndCursor(pCursor, KKVC.eof);
+    JniEnvDeclare();
+    ModuleDeclareCursor();
+
+    const auto callbacks = env->NewLocalRef(pModule->callbacks);
+    const auto x = env->CallIntMethod(callbacks, KKVC.eof, 0, 0);
+
+    return ModuleCall(KKVC.eof, vTab, cursor);
+    //return callModuleVtabAndCursor(pCursor, KKVC.eof);
 }
 
 /**
@@ -6901,10 +6945,10 @@ Java_ksqlite_foreign_KsqliteJni_nativeModuleInit(
     RequireNull(pModule->callbacks);
     pModule->callbacks = GlobalRefCreate(callbacks);
 
-    if (ModuleCallbackEnabled(ModuleMemberIndexXCreate)) {
-        pModule->xCreate = moduleXCreateCaller;
-    } else if (eponymous) {
+    if (eponymous) {
         pModule->xCreate = moduleXConnectCaller;
+    } else if (ModuleCallbackEnabled(ModuleMemberIndexXCreate)) {
+        pModule->xCreate = moduleXCreateCaller;
     } else {
         // Eponymous only
         pModule->xCreate = nullptr;

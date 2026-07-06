@@ -52,7 +52,7 @@ internal inline fun <R> useMemoryManager(block: MemoryManager.() -> R): R =
 /**
  * Returns `true` if all the memory managers are empty, `false` otherwise.
  */
-internal fun memoryEmpty(strict: Boolean = true): Boolean {
+internal fun isMemoryEmpty(strict: Boolean = true): Boolean {
     if (!globalMemory.isEmpty) {
         return false
     }

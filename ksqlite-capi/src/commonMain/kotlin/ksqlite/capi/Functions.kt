@@ -54,10 +54,8 @@ internal class ApplicationDefinedFunction<AppData>(
      * Ensures that [instance] is not null.
      */
     @IgnorableReturnValue
-    private inline fun ensureInstanceExists(instance: Any?): Any {
-        return checkNotNull(instance) {
-            "Aggregate context or auxiliary data was created but the Kotlin instance is lost"
-        }
+    private inline fun ensureInstanceExists(instance: Any?): Any = checkNotNull(instance) {
+        "Aggregate context or auxiliary data was created but the Kotlin instance is lost..."
     }
 
     /**
@@ -67,19 +65,6 @@ internal class ApplicationDefinedFunction<AppData>(
     private inline fun getCachedInstance(getKey: () -> Long?): Any? {
         val key = getKey() ?: return null // No data exist or old is destroyed
         return ensureInstanceExists(identifiedInstances[key])
-    }
-
-    /**
-     * Caches the [instance] ensuring no one already exists with [key].
-     */
-    @IgnorableReturnValue
-    private fun cacheInstance(key: Long, instance: Any): Any {
-        check(identifiedInstances.put(key, instance) == null) {
-            "An instance of Aggregate context or auxiliary data already exists for the supplied " +
-                    "key, memory leak is near"
-        }
-
-        return instance
     }
 
     /**
@@ -112,7 +97,10 @@ internal class ApplicationDefinedFunction<AppData>(
         factory: () -> Any
     ): Any? {
         val key = aggregateContextInternal(context, true) ?: return null // Out of memory
-        return cacheInstance(key, factory())
+
+        return identifiedInstances.computeIfAbsent(key) {
+            factory()
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -146,7 +134,7 @@ internal class ApplicationDefinedFunction<AppData>(
         }
 
         key = setAuxdataInternal(context, index, destroyAndRemove) ?: return // Out of memory
-        cacheInstance(key, instance)
+        identifiedInstances[key] = instance
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -209,7 +197,7 @@ private inline fun <AppData, R> appFunction(
  * Invokes [block] with a [ApplicationDefinedFunction] for aggregate and scalar functions and a
  * destructor to use in place of application [destroy].
  *
- * TODO: throws if callback misuse ?
+ * TODO: throws if callbacks misuse ?
  */
 internal inline fun <AppData, R> createFunction(
     appData: AppData,
@@ -244,7 +232,7 @@ internal inline fun <AppData, R> createFunction(
  * Returns a [ApplicationDefinedFunction] for window function and a destructor to use in place of
  * application [destroy].
  *
- * TODO: throws if callback misuse ?
+ * TODO: throws if callbacks misuse ?
  */
 internal inline fun <AppData, R> createWindowFunction(
     appData: AppData,

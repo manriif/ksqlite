@@ -11,8 +11,7 @@ import ksqlite.capi.callbacks.SqliteDestroyCallback
  * Throws [IllegalStateException] if the [COpaquePointer] passed to the function is `null`.
  */
 private val StableRefDisposer = staticCFunction { pointer: COpaquePointer? ->
-    checkNotNull(pointer)
-    pointer.asStableRef<Reference<*>>().get().dispose()
+    stableRefDisposable(checkNotNull(pointer)).dispose()
 }
 
 /**
@@ -24,14 +23,18 @@ internal fun stableRefDisposer(
 ) = StableRefDisposer.takeIf { data != null || destructor != null }
 
 /**
+ * Returns the [Disposable] referenced by [pointer].
+ */
+internal fun stableRefDisposable(pointer: COpaquePointer): Disposable =
+    pointer.asStableRef<Disposable>().get()
+
+/**
  * Returns the [DataHolder] referenced by [pointer].
  */
 internal inline fun <reified Data : Any, AppData> stableRefDataHolder(
     pointer: COpaquePointer?
 ): DataHolder<Data, AppData> = checkNotNull(pointer) { "Pointer must not be null" }
-    .asStableRef<Reference<AppData>>()
-    .get()
-    .cast()
+    .asStableRef<Reference<AppData>>().get().cast()
 
 /**
  * Returns the [Data] referenced by [pointer].

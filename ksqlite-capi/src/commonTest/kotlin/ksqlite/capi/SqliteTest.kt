@@ -126,18 +126,18 @@ internal fun runSqliteConnectionDataTest(
  * Returns the path to [subdirectory] against the OS temporary directory.
  * The returned directory is created if it does not exist and must be writable.
  */
-internal expect fun temporaryTestDirectory(subdirectory: String): String
+internal expect fun tempTestDirectory(subdirectory: String): String
 
 /**
  * Returns the path to the temporary test directory.
  */
-internal fun ksqliteTemporaryTestDirectory(): String = temporaryTestDirectory("ksqlite-test")
+internal fun ksqliteTempTestDirectory(): String = tempTestDirectory("ksqlite-test")
 
 /**
  * Returns the path to the temporary test file named after [fileName].
  */
-internal fun ksqliteTemporaryTestFile(fileName: String): String =
-    "${ksqliteTemporaryTestDirectory()}/$fileName"
+internal fun ksqliteTempTestFile(fileName: String): String =
+    "${ksqliteTempTestDirectory()}/$fileName"
 
 /**
  * Invokes [block] passing it the path to a temporary file, named after [fileName], which isn't
@@ -151,7 +151,7 @@ internal inline fun <R> sqlite3_vfs.usingRealTempFile(
     fileName: String,
     block: (path: String) -> R
 ): R {
-    val path = ksqliteTemporaryTestFile(fileName)
+    val path = ksqliteTempTestFile(fileName)
 
     val deleteFile = { message: String ->
         val deleteResult = xDelete(path, 0)
@@ -177,13 +177,22 @@ internal inline fun <R> sqlite3_vfs.usingRealTempFile(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
+ * Returns a VFS suitable for real temporary file related tests that does not require WAL nor
+ * locking.
+ */
+@Suppress("unused")
+internal fun findVfs(isWasm: Boolean): sqlite3_vfs {
+    // The default WASM vfs can be used here
+    return assertNotNull(sqlite3_vfs_find(null))
+}
+
+/**
  * Returns a VFS suitable for WAL related tests.
+ * TODO use a VFS that supports WAL on WASM
  */
 internal fun findWalVfs(isWasm: Boolean): sqlite3_vfs? {
-    // TODO use a VFS that supports WAL on WASM
     val vfsName: String? = if (isWasm) return null else null
-    val vfs = assertNotNull(sqlite3_vfs_find(vfsName))
-    return vfs
+    return assertNotNull(sqlite3_vfs_find(vfsName))
 }
 
 /**

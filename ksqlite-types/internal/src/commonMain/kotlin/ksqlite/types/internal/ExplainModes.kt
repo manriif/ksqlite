@@ -11,4 +11,4 @@ private val SqliteExplainModeMap = SqliteExplainMode.entries.associateBy(SqliteE
  * Converts [mode] to [SqliteExplainMode].
  */
 public fun convertExplainMode(mode: Int): SqliteExplainMode =
-    checkNotNull(SqliteExplainModeMap[mode]) { "Unknown SQLite explain mode $mode" }
+    checkNotNull(SqliteExplainModeMap[mode]) { "Unknown SQLite explain mode: $mode" }

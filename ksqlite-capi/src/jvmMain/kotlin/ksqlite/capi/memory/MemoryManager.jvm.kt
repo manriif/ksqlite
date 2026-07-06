@@ -28,6 +28,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * @throws NullPointerException if there is no object associated with [pointer].
      */
     fun <AppData> getStableRef(pointer: MemorySegment): Reference<AppData> = notClosed {
+        check(!pointer.isNull) { "Pointer must not point to null" }
         val refId = pointer.address()
         val reference = getDisposable<AppData, StableRefReference<AppData>>(refId)
         return reference

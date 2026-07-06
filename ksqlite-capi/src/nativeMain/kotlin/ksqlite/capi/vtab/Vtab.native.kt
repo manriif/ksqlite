@@ -12,7 +12,6 @@ import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.toLong
 import kotlinx.cinterop.value
 import ksqlite.capi.createFunction
-import ksqlite.capi.functionKey
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.memory.memory
@@ -179,7 +178,7 @@ internal val VtabFindFunctionHandler = staticCFunction { vTab: CPointer<s3_vtab>
                 outFunction!!.pointed.value = callbackHandler(function, FunctionFuncHandler)
 
                 outAppData!!.pointed.value = instance.memory.keyedStableRefPointer(
-                    key = functionKey(functionName, argc, null),
+                    key = vTabFunctionKey(functionName, argc),
                     data = fn,
                     appData = appData,
                     destructor = fnDestroy
