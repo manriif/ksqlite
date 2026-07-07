@@ -67,15 +67,9 @@ internal object VtabModuleHandler : JniVtabModuleCallbacks {
         info = sqlite3_index_info(info)
     )
 
-    override fun disconnect(vTab: Long): Int = vTabDisconnect(
-        vTab = vTab,
-        cleanup = {}
-    )
+    override fun disconnect(vTab: Long): Int = vTabDisconnect(vTab = vTab)
 
-    override fun destroy(vTab: Long): Int = vTabDestroy(
-        vTab = vTab,
-        cleanup = {}
-    )
+    override fun destroy(vTab: Long): Int = vTabDestroy(vTab = vTab)
 
     override fun open(
         vTab: Long,

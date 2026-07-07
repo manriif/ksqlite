@@ -61,7 +61,8 @@ public sealed interface SqliteTextEncoding {
         BindText,
         CollationNeeded,
         CreateCollation,
-        ResultText
+        ResultText,
+        ValueEncoding
 
     /**
      * IMP: R-03371-37637.
@@ -72,7 +73,8 @@ public sealed interface SqliteTextEncoding {
         BindText,
         CollationNeeded,
         CreateCollation,
-        ResultText*/
+        ResultText,
+        ValueEncoding*/
 
     /**
      * IMP: R-51971-34154
@@ -83,7 +85,8 @@ public sealed interface SqliteTextEncoding {
         BindText,
         CollationNeeded,
         CreateCollation,
-        ResultText*/
+        ResultText,
+        ValueEncoding*/
 
     /**
      * Use native byte order.

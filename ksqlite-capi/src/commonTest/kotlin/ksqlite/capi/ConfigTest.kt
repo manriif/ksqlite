@@ -13,13 +13,12 @@ import kotlin.test.assertTrue
 
 /**
  * Tests SQLite configuration.
+ *
+ * /!\ These tests may affect other tests if they share the same SQLite instance. Should be
+ * executed isolated if possible (or default values must be restored then).
  */
 class ConfigTest {
 
-    /**
-     * /!\ These tests may affect other tests if they share the same SQLite instance. Should be
-     * executed isolated if possible (or default values must be restored then).
-     */
     @Test
     fun configsWorks() = runTestNoInit {
         val singleThreadResult = sqlite3_config(SqliteConfigOption.SINGLETHREAD)

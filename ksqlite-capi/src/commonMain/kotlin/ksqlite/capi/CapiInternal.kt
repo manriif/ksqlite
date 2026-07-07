@@ -98,7 +98,8 @@ internal inline fun <reified Data> castOrThrows(instance: Any?): Data? {
 
     if (instance !is Data) {
         throw ClassCastException(
-            "Expected type (${Data::class}) differs from actual type (${instance::class})"
+            "Expected type (${Data::class.simpleName}) differs from actual type " +
+                    "(${instance::class.simpleName})"
         )
     }
 

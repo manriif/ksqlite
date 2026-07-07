@@ -8,7 +8,7 @@ internal enum class SqliteModuleKind {
     /**
      * xCreate is not null but distinct from xConnect.
      */
-    Ordinal,
+    Regular,
 
     /**
      * xCreate is referentially equals to xConnect.

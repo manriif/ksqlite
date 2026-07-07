@@ -6688,14 +6688,7 @@ static int moduleXNextCaller(sqlite3_vtab_cursor* pCursor) {
  * Calls the `VtabModuleCallbacks.eof` hook.
  */
 static int moduleXEofCaller(sqlite3_vtab_cursor* pCursor) {
-    JniEnvDeclare();
-    ModuleDeclareCursor();
-
-    const auto callbacks = env->NewLocalRef(pModule->callbacks);
-    const auto x = env->CallIntMethod(callbacks, KKVC.eof, 0, 0);
-
-    return ModuleCall(KKVC.eof, vTab, cursor);
-    //return callModuleVtabAndCursor(pCursor, KKVC.eof);
+    return callModuleVtabAndCursor(pCursor, KKVC.eof);
 }
 
 /**
@@ -6800,7 +6793,10 @@ static int moduleXFindFunctionCaller(
     const auto outAppData = OutputPointerNew(ofObject);
     const auto outCallback = OutputPointerNew(ofObject);
     const auto outDestroy = OutputPointerNew(ofObject);
-    const auto rc = ModuleCall(KKVC.findFunction, nArg, name, outAppData, outCallback, outDestroy);
+
+    const auto
+        rc = ModuleCall(KKVC.findFunction, vTab, nArg, name, outAppData, outCallback, outDestroy);
+
     const auto appData = OutputPointerGetValue(outAppData);
     const auto callback = OutputPointerGetValue(outCallback);
     const auto destroy = OutputPointerGetValue(outDestroy);

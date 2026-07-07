@@ -2294,7 +2294,7 @@ public inline fun <reified AppData : Any> sqlite3_user_data(context: sqlite3_con
 public expect fun sqlite3_value_blob(value: sqlite3_value): ByteArray?
 
 /**
- * Variant of [sqlite3_value_blob] that returns a [Buffer] instead.
+ * Variant of [sqlite3_value_blob] that returns a [ReadableBuffer] instead.
  */
 public fun sqlite3_value_buffer(value: sqlite3_value): ReadableBuffer? =
     valueBufferInternal(value)?.readOnly()

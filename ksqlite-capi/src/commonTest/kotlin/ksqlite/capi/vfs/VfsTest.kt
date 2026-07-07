@@ -59,5 +59,7 @@ class VfsTest {
 
         val deleteResult = vfs.xDelete(path, 0)
         assertEquals(SqliteResultCode.IOERR.DELETE_NOENT, deleteResult)
+
+        file.close()
     }
 }

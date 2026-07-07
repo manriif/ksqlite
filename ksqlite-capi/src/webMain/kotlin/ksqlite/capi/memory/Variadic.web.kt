@@ -17,8 +17,13 @@ internal inline fun <Result> HeapAllocatorScope.invokeVariadic(
     noinline manager: () -> MemoryManager,
     invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
 ): Result {
-    val pointerSize = memory.sizeofIR(IR.Ptr)
     val argCount = arraySize(values)
+
+    if (argCount == 0) {
+        return invoke(NullPtr)
+    }
+
+    val pointerSize = memory.sizeofIR(IR.Ptr)
     val vaArgsSize = pointerSize * argCount
     val vaArgsPointer = allocate(vaArgsSize)
 

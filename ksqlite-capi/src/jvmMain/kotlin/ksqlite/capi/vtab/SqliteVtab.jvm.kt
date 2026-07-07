@@ -4,6 +4,7 @@ package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.memory.MemoryScope
+import ksqlite.capi.memory.destroyMemory
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
 import ksqlite.foreign.sqlite3
@@ -23,4 +24,9 @@ public actual open class sqlite3_vtab public actual constructor() :
             sqlite3.sqlite3_free(s3_vtab.zErrMsg(pointer))
             s3_vtab.zErrMsg(pointer, sqlite3_mprintf(value))
         }
+
+    override fun close() {
+        super.close()
+        destroyMemory()
+    }
 }

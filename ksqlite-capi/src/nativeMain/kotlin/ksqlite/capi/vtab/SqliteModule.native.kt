@@ -6,7 +6,7 @@ import kotlinx.cinterop.CPointer
 import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.vtab.SqliteModuleKind.Eponymous
 import ksqlite.capi.vtab.SqliteModuleKind.EponymousOnly
-import ksqlite.capi.vtab.SqliteModuleKind.Ordinal
+import ksqlite.capi.vtab.SqliteModuleKind.Regular
 
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
@@ -23,7 +23,7 @@ public actual class sqlite3_module<AppData> private constructor(
         xCreate = when (callbacks.moduleKind) {
             EponymousOnly -> null
             Eponymous -> VtabConnectHandler
-            Ordinal -> VtabCreateHandler
+            Regular -> VtabCreateHandler
         }
 
         xConnect = VtabConnectHandler

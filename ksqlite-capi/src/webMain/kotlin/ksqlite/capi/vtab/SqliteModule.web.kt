@@ -23,7 +23,7 @@ public actual class sqlite3_module<AppData> private constructor(
         xCreate = when (callbacks.moduleKind) {
             EponymousOnly -> NullPtr
             Eponymous -> VtabConnectHandler
-            Ordinal -> VtabCreateHandler
+            Regular -> VtabCreateHandler
         }
 
         xConnect = VtabConnectHandler

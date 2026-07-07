@@ -33,7 +33,8 @@ public actual open class AllocatedStruct(private val struct: StructType) :
 }
 
 /**
- * For [struct] that do not own its pointer and thus is not responsible for freeing it.
+ * For [StructType] that does not own its pointer and thus is not responsible for freeing it in
+ * [StructType.dispose].
  */
 public open class DeallocStruct(struct: StructType) : AllocatedStruct(struct) {
 

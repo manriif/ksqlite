@@ -126,6 +126,8 @@ private class ReadOnlyBuffer(private val source: ReadableBuffer) :
             destinationOffset = destinationOffset
         )
     }
+
+    override fun toString(): String = source.toString()
 }
 
 /**

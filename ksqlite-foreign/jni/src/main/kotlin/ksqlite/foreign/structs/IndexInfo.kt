@@ -74,14 +74,14 @@ public class sqlite3_index_info(pointer: Long) : JniStruct(layout, pointer) {
      */
     public fun constraintUsage(index: Int): sqlite3_index_constraint_usage =
         sqlite3_index_constraint_usage(
-            arrayItemAddress(aConstraint, index, sqlite3_index_constraint_usage.layout)
+            arrayItemAddress(aConstraintUsage, index, sqlite3_index_constraint_usage.layout)
         )
 
     /**
      * Returns the [sqlite3_index_orderby] at [index].
      */
     public fun orderBy(index: Int): sqlite3_index_orderby =
-        sqlite3_index_orderby(arrayItemAddress(aConstraint, index, sqlite3_index_orderby.layout))
+        sqlite3_index_orderby(arrayItemAddress(aOrderBy, index, sqlite3_index_orderby.layout))
 
     /**
      * Wraps an instance of `sqlite3_index_constraint` at address [pointer] and supplies getters and

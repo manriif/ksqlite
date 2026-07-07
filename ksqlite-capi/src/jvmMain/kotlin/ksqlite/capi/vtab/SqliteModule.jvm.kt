@@ -20,7 +20,7 @@ public actual class sqlite3_module<AppData> internal actual constructor(
             when (callbacks.moduleKind) {
                 EponymousOnly -> NullPtr
                 Eponymous -> VtabConnectHandler
-                Ordinal -> VtabCreateHandler
+                Regular -> VtabCreateHandler
             }
         )
 

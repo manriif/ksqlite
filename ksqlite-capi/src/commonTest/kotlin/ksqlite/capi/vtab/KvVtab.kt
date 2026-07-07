@@ -14,15 +14,10 @@ import ksqlite.capi.sqlite3_vtab_on_conflict
 import ksqlite.capi.vtab.callbacks.SqliteVtabCreateOrConnectCallback
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteResultCode
 import ksqlite.types.vtab.SqliteModuleVersion
-import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
-import ksqlite.types.vtab.SqliteVtabScanFlag.UNIQUE
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-
-///////////////////////////////////////////////////////////////////////////
-// Generated with Claude help, was too lazy to write whole virtual table tests
-///////////////////////////////////////////////////////////////////////////
 
 /**
  * Minimal in-memory virtual table over a single (id, name) row store. SQLite's own
@@ -74,14 +69,24 @@ internal class KvModuleRecorder {
     val rollbackToCalls = mutableListOf<Int>()
     var integrityCallCount = 0
     var findFunctionCallCount = 0
+    var findFunctionOfferedCount = 0
+    var overloadCallCount = 0
+    var overloadDestroyCalled = false
 }
 
-internal fun createKvTabModule(
-    recorder: KvModuleRecorder,
-    appDataCheck: Int = 0
-): sqlite3_module<Int> {
-    val createOrConnect = SqliteVtabCreateOrConnectCallback { db, appData, _ ->
-        assertEquals(appDataCheck, appData)
+internal fun createKvTabModule(recorder: KvModuleRecorder): sqlite3_module<Int> {
+    val createOrConnect = SqliteVtabCreateOrConnectCallback cb@{ db, appData: Int, arguments ->
+        assertEquals(4, arguments.size)
+        assertEquals("kvtab", arguments[0])
+        assertEquals("main", arguments[1])
+
+        // Expected appData for error injection
+        val actualAppData = arguments[3].toInt()
+
+        if (appData != actualAppData) {
+            return@cb failure("Invalid appData, expected $appData but got $actualAppData")
+        }
+
         recorder.createOrConnectCallCount++
 
         val sql = "CREATE TABLE x(id INTEGER PRIMARY KEY, name TEXT NOT NULL)"
@@ -113,7 +118,7 @@ internal fun createKvTabModule(
             for (i in 0 until info.nConstraint) {
                 if (info.getConstraintUsable(i) != 0 &&
                     info.getConstraintColumn(i) == 0 &&
-                    info.getConstraintOp(i) == SqliteVtabConstraintOperatorCode.EQ
+                    info.getConstraintOp(i) == EQ
                 ) {
                     info.setConstraintUsageArgvIndex(i, 1)
                     info.setConstraintUsageOmit(i, 1)
@@ -134,11 +139,13 @@ internal fun createKvTabModule(
 
             OK
         },
-        disconnect = { _ ->
+        disconnect = { vTab ->
+            vTab.close()
             recorder.disconnectCallCount++
             OK
         },
-        destroy = { _ ->
+        destroy = { vTab ->
+            vTab.close()
             recorder.destroyCallCount++
             OK
         },
@@ -146,7 +153,8 @@ internal fun createKvTabModule(
             recorder.openCallCount++
             success(KvCursor(vTab))
         },
-        close = { _ ->
+        close = { cursor ->
+            cursor.close()
             recorder.closeCallCount++
             OK
         },
@@ -154,13 +162,18 @@ internal fun createKvTabModule(
             recorder.filterCallCount++
 
             cursor.rowids = if (idxNum == IDX_POINT_LOOKUP) {
-                val id = assertNotNull(sqlite3_value_int64(arguments[0]))
-                if (cursor.owner.rows.containsKey(id)) listOf(id) else emptyList()
+                val id = sqlite3_value_int64(arguments[0])
+
+                if (cursor.owner.rows.containsKey(id)) {
+                    listOf(id)
+                } else {
+                    emptyList()
+                }
             } else {
                 cursor.owner.rows.keys.toList()
             }
-            cursor.position = 0
 
+            cursor.position = 0
             OK
         },
         next = { cursor ->
@@ -177,6 +190,7 @@ internal fun createKvTabModule(
 
             when (columnIndex) {
                 0 -> sqlite3_result_int64(context, rowid)
+
                 1 -> if (sqlite3_vtab_nochange(context) != 0) {
                     recorder.nochangeSeenCount++
                     sqlite3_result_null(context)
@@ -184,7 +198,10 @@ internal fun createKvTabModule(
                     sqlite3_result_text(context, cursor.owner.rows.getValue(rowid))
                 }
 
-                else -> error("Unexpected column index: $columnIndex")
+                else -> {
+                    cursor.owner.errMsg = "Unexpected column index: $columnIndex"
+                    return@sqlite3_module ERROR
+                }
             }
 
             OK
@@ -200,7 +217,7 @@ internal fun createKvTabModule(
             when {
                 // nArg == 1: DELETE, argv[0] holds the rowid to remove.
                 arguments.size == 1 -> {
-                    val rowid = assertNotNull(sqlite3_value_int64(arguments[0]))
+                    val rowid = sqlite3_value_int64(arguments[0])
                     vTab.rows.remove(rowid)
                     success(null)
                 }
@@ -208,32 +225,65 @@ internal fun createKvTabModule(
                 // argv[0] NULL: INSERT. argv[1] is the proposed rowid (NULL = auto-assign),
                 // argv[2]/argv[3] are the id/name column values.
                 sqlite3_value_type(arguments[0]) == SqliteDataType.NULL -> {
+                    val explicitId = sqlite3_value_int64(arguments[2])
+                        .takeIf { sqlite3_value_type(arguments[2]) != SqliteDataType.NULL }
+
                     val proposedRowid = sqlite3_value_int64(arguments[1])
                         .takeIf { sqlite3_value_type(arguments[1]) != SqliteDataType.NULL }
-                    val rowid = proposedRowid ?: vTab.nextRowid
+
+                    val rowid = explicitId ?: proposedRowid ?: vTab.nextRowid
                     val name = assertNotNull(sqlite3_value_text(arguments[3]))
 
-                    vTab.rows[rowid] = name
-                    vTab.nextRowid = maxOf(vTab.nextRowid, rowid + 1)
-                    success(rowid)
+                    if (vTab.rows.containsKey(rowid)) {
+                        when (sqlite3_vtab_on_conflict(assertNotNull(vTab.db))) {
+                            IGNORE -> success(null)
+                            REPLACE -> {
+                                vTab.rows[rowid] = name
+                                vTab.nextRowid = maxOf(vTab.nextRowid, rowid + 1)
+                                success(rowid)
+                            }
+                            else -> failure(SqliteResultCode.CONSTRAINT.PRIMARYKEY)
+                        }
+                    } else {
+                        vTab.rows[rowid] = name
+                        vTab.nextRowid = maxOf(vTab.nextRowid, rowid + 1)
+                        success(rowid)
+                    }
                 }
 
                 // Otherwise: UPDATE. argv[0] is the existing rowid, argv[1] the (possibly new) one.
                 else -> {
-                    val oldRowid = assertNotNull(sqlite3_value_int64(arguments[0]))
-                    val newRowid = assertNotNull(sqlite3_value_int64(arguments[1]))
-                    val name = assertNotNull(sqlite3_value_text(arguments[3]))
-
-                    vTab.rows.remove(oldRowid)
-                    vTab.rows[newRowid] = name
+                    val oldRowid = sqlite3_value_int64(arguments[0])
+                    val newRowid = sqlite3_value_int64(arguments[1])
+                    val newName = sqlite3_value_text(arguments[3])
+                    val oldName = assertNotNull(vTab.rows.remove(oldRowid))
+                    vTab.rows[newRowid] = newName ?: oldName
                     vTab.nextRowid = maxOf(vTab.nextRowid, newRowid + 1)
+
                     success(newRowid)
                 }
             }
         },
-        findFunction = { _, _, _ ->
+        findFunction = { _, argumentCount, functionName ->
             recorder.findFunctionCallCount++
-            doNotOverload()
+
+            if (functionName == "tag" && argumentCount == 1) {
+                recorder.findFunctionOfferedCount++
+
+                overload(
+                    appData = recorder,
+                    function = { appData, context, values ->
+                        val text = assertNotNull(sqlite3_value_text(values[0]))
+                        appData.overloadCallCount++
+                        sqlite3_result_text(context, "vtab:$text")
+                    },
+                    destroy = { appData ->
+                        appData.overloadDestroyCalled = true
+                    },
+                )
+            } else {
+                doNotOverload()
+            }
         },
         begin = { vTab ->
             recorder.beginCallCount++

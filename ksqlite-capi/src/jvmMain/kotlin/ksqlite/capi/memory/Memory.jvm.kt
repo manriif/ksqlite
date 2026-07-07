@@ -251,8 +251,8 @@ context(allocator: SegmentAllocator)
 internal fun String?.allocateUtf8(): MemorySegment = allocateUtf8(allocator)
 
 /**
- * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
- * the result into a memory segment.
+ * Converts this array of Kotlin strings to C array of C strings, allocating memory for the array
+ * and C strings with given [SegmentAllocator].
  */
 context(allocator: SegmentAllocator)
 internal fun Array<String>?.allocateUtf8Array(): MemorySegment {

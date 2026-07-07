@@ -24,7 +24,7 @@ import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
 import kotlin.js.toLong
 import ksqlite.foreign.wasm.FunctionSignature.Int32 as I32
-import ksqlite.foreign.wasm.FunctionSignature.Int64 as I64
+import ksqlite.foreign.wasm.FunctionSignature.Pointer as Ptr
 
 ///////////////////////////////////////////////////////////////////////////
 // Aliases
@@ -67,29 +67,29 @@ private fun vTabHandler(
     function = function
 )
 
-@JsFun("(p0) => handler(p0)")
+@JsFun("(handler) => (p0) => handler(p0)")
 private external fun function1(handler: (p0: WasmPointer) -> Int): JsFunction
 
 /**
  * Installs a new [vTabHandler] accepting only a single [WasmPointer].
  */
 private fun vTabHandler1(handler: (p0: WasmPointer) -> Int) =
-    vTabHandler(I64, function = function1(handler))
+    vTabHandler(Ptr, function = function1(handler))
 
-@JsFun("(p0, p1) => handler(p0, p1)")
+@JsFun("(handler) => (p0, p1) => handler(p0, p1)")
 private external fun function2(handler: (p0: WasmPointer, p1: WasmPointer) -> Int): JsFunction
 
 /**
  * Installs a new [vTabHandler] accepting two [WasmPointer].
  */
 private fun vTabHandler2(handler: (p0: WasmPointer, p1: WasmPointer) -> Int) =
-    vTabHandler(I64, I64, function = function2(handler))
+    vTabHandler(Ptr, Ptr, function = function2(handler))
 
 ///////////////////////////////////////////////////////////////////////////
 // Create, connect
 ///////////////////////////////////////////////////////////////////////////
 
-@JsFun("(p0, p1, p2, p3, p4, p5, p6, p7) => handler(p0, p1, p2, p3, p4, p5, p6, p7)")
+@JsFun("(handler) => (p0, p1, p2, p3, p4, p5) => handler(p0, p1, p2, p3, p4, p5)")
 private external fun createOrConnect(
     handler: (
         db: WasmPointer,
@@ -102,7 +102,7 @@ private external fun createOrConnect(
 ): JsFunction
 
 internal val VtabCreateHandler = vTabHandler(
-    I64, I32, I64, I64, I64, I64,
+    Ptr, Ptr, I32, Ptr, Ptr, Ptr,
     function = createOrConnect { db, refPointer, argc, argv, outVtab, outErr ->
         sqlite3(db).let { db ->
             vTabCreate(
@@ -117,7 +117,7 @@ internal val VtabCreateHandler = vTabHandler(
 )
 
 internal val VtabConnectHandler = vTabHandler(
-    I64, I32, I64, I64, I64, I64,
+    Ptr, Ptr, I32, Ptr, Ptr, Ptr,
     function = createOrConnect { db, refPointer, argc, argv, outVtab, outErr ->
         sqlite3(db).let { db ->
             vTabCreate(
@@ -135,7 +135,7 @@ internal val VtabConnectHandler = vTabHandler(
 // BestIndex
 ///////////////////////////////////////////////////////////////////////////
 
-@JsFun("(p0, p1) => handler(p0, p1)")
+@JsFun("(handler) => (p0, p1) => handler(p0, p1)")
 private external fun bestIndex(
     handler: (
         vTab: WasmPointer,
@@ -144,7 +144,7 @@ private external fun bestIndex(
 ): JsFunction
 
 internal val VtabBestIndexHandler = vTabHandler(
-    I64, I64,
+    Ptr, Ptr,
     function = bestIndex { vTab, info ->
         vTabBestIndex(
             vTab = vTab.toLong(),
@@ -183,7 +183,7 @@ internal val VtabCloseHandler = vTabHandler1 { cursor: WasmPointer ->
 // Filter
 ///////////////////////////////////////////////////////////////////////////
 
-@JsFun("(p0, p1, p2, p3, p4) => handler(p0, p1, p2, p3, p4)")
+@JsFun("(handler) => (p0, p1, p2, p3, p4) => handler(p0, p1, p2, p3, p4)")
 private external fun filter(
     handler: (
         cursor: WasmPointer,
@@ -195,7 +195,7 @@ private external fun filter(
 ): JsFunction
 
 internal val VtabFilterHandler = vTabHandler(
-    I64, I32, I64, I32, I64,
+    Ptr, I32, Ptr, I32, Ptr,
     function = filter { cursor, idxNum, idxStr, argc, argv ->
         vTabFilter(
             vTab = vTabPointerAddressFromCursor(cursor),
@@ -229,7 +229,7 @@ internal val VtabEofHandler = vTabHandler1 { cursor ->
 // Column
 ///////////////////////////////////////////////////////////////////////////
 
-@JsFun("(p0, p1, p2) => handler(p0, p1, p2)")
+@JsFun("(handler) => (p0, p1, p2) => handler(p0, p1, p2)")
 private external fun column(
     handler: (
         cursor: WasmPointer,
@@ -239,7 +239,7 @@ private external fun column(
 ): JsFunction
 
 internal val VtabColumnHandler = vTabHandler(
-    I64, I64, I32,
+    Ptr, Ptr, I32,
     function = column { cursor, context, columnIndex ->
         vTabColumn(
             vTab = vTabPointerAddressFromCursor(cursor),
@@ -266,7 +266,7 @@ internal val VtabRowidHandler = vTabHandler2 { cursor, outRowid ->
 // Update
 ///////////////////////////////////////////////////////////////////////////
 
-@JsFun("(p0, p1, p2, p3) => handler(p0, p1, p2, p3)")
+@JsFun("(handler) => (p0, p1, p2, p3) => handler(p0, p1, p2, p3)")
 private external fun update(
     handler: (
         vTab: WasmPointer,
@@ -277,7 +277,7 @@ private external fun update(
 ): JsFunction
 
 internal val VtabUpdateHandler = vTabHandler(
-    I64, I32, I64, I64,
+    Ptr, I32, Ptr, Ptr,
     function = update { vTab, argc, argv, outRowid ->
         vTabUpdate(
             vTab = vTab.toLong(),
@@ -291,7 +291,7 @@ internal val VtabUpdateHandler = vTabHandler(
 // FindFunction
 ///////////////////////////////////////////////////////////////////////////
 
-@JsFun("(p0, p1, p2, p3, p4) => handler(p0, p1, p2, p3, p4)")
+@JsFun("(handler) => (p0, p1, p2, p3, p4) => handler(p0, p1, p2, p3, p4)")
 private external fun findFunction(
     handler: (
         vTab: WasmPointer,
@@ -303,7 +303,7 @@ private external fun findFunction(
 ): JsFunction
 
 internal val VtabFindFunctionHandler = vTabHandler(
-    I64, I32, I64, I64, I64,
+    Ptr, I32, Ptr, Ptr, Ptr,
     function = findFunction { vTab, argc, name, outFn, outData ->
         val functionName = name.toKStringFromUtf8()
 
@@ -362,11 +362,11 @@ internal val VtabRenameHandler = vTabHandler2 { vTab, newName ->
 // Savepoint, Release, RollbackTo
 ///////////////////////////////////////////////////////////////////////////
 
-@JsFun("(p0, p1) => handler(p0, p1)")
+@JsFun("(handler) => (p0, p1) => handler(p0, p1)")
 private external fun savepoint(handler: (vTab: WasmPointer, savepoint: Int) -> Int): JsFunction
 
 private fun vTabSavepointHandler(handler: (vTab: WasmPointer, savepoint: Int) -> Int) =
-    vTabHandler(I64, I32, function = savepoint(handler))
+    vTabHandler(Ptr, I32, function = savepoint(handler))
 
 internal val VtabSavepointHandler = vTabSavepointHandler { vTab, savepoint ->
     vTabSavepoint(
@@ -393,7 +393,7 @@ internal val VtabRollbackToHandler = vTabSavepointHandler { vTab, savepoint ->
 // Integrity
 ///////////////////////////////////////////////////////////////////////////
 
-@JsFun("(p0, p1, p2, p3, p4) => handler(p0, p1, p2, p3, p4)")
+@JsFun("(handler) => (p0, p1, p2, p3, p4) => handler(p0, p1, p2, p3, p4)")
 private external fun integrity(
     handler: (
         vTab: WasmPointer,
@@ -405,7 +405,7 @@ private external fun integrity(
 ): JsFunction
 
 internal val VtabIntegrityHandler = vTabHandler(
-    I64, I64, I64, I32, I64,
+    Ptr, Ptr, Ptr, I32, Ptr,
     function = integrity { vTab, schema, tableName, flags, outErr ->
         vTabIntegrity(
             vTab = vTab.toLong(),

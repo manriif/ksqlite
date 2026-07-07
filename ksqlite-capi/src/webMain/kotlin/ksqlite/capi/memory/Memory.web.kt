@@ -197,8 +197,8 @@ internal fun String?.allocateUtf8Pointer(): WasmPointer =
     if (this == null) NullPtr else scope.allocateUtf8(this).pointer
 
 /**
- * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
- * the result into a memory segment.
+ * Converts this array of Kotlin strings to C array of C strings, allocating memory for the array
+ * and C strings with given [HeapAllocatorScope].
  */
 context(scope: HeapAllocatorScope)
 internal fun allocateUtf8Array(array: Array<String>?): WasmPointer {

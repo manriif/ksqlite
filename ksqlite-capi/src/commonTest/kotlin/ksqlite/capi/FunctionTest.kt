@@ -3,6 +3,7 @@ package ksqlite.capi
 import ksqlite.types.SqliteTextEncoding
 import kotlin.math.pow
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -12,30 +13,44 @@ import kotlin.test.assertTrue
  */
 class FunctionTest {
 
+    class Power(val number: Double)
+
     @Test
     fun scalarFunctionWorks() = runSqliteConnectionTest { db ->
         var destructorCalled = false
-        var funcCalled = false
-        val encoding = SqliteTextEncoding.UTF8
+        var powerDestructorCalled = false
+        var powerReuseCount = 0
+        var funcCallCount = 0
 
         val createResult = sqlite3_create_function_v2(
             db = db,
-            name = "pow2",
-            nArg = 1,
-            encoding = encoding,
+            name = "power",
+            nArg = 2,
+            encoding = SqliteTextEncoding.UTF8,
             appData = 50000,
             step = null,
             final = null,
             func = { appData, context, values ->
                 assertEquals(50000, appData)
-                assertEquals(1, values.size)
+                assertEquals(2, values.size)
 
-                val value = values[0]
-                val number = sqlite3_value_double(value)
-                val result = number.pow(2)
+                var power = sqlite3_get_auxdata<Power>(context, 1)
 
+                if (power != null) {
+                    powerReuseCount++
+                } else {
+                    power = Power(sqlite3_value_double(values[1]))
+
+                    sqlite3_set_auxdata(context, 1, power) {
+                        powerDestructorCalled = true
+                    }
+                }
+
+                val value = sqlite3_value_double(values[0])
+                val result = value.pow(power.number)
                 sqlite3_result_double(context, result)
-                funcCalled = true
+
+                funcCallCount++
             },
             destroy = { appData ->
                 assertEquals(50000, appData)
@@ -45,28 +60,37 @@ class FunctionTest {
 
         assertEquals(OK, createResult)
 
-        val failSql = "SELECT pow2(2, 18);"
-        val failResult = sqlite3_exec(db, failSql, null, null, null)
-        assertEquals(ERROR, failResult)
+        val insertSql = """
+            CREATE TABLE numbers(value INTEGER NOT NULL);
+            INSERT INTO numbers VALUES (1), (2), (3), (4);
+        """.trimIndent()
 
-        val sql = "SELECT pow2(4);"
-        var result: Double? = null
+        val insertResult = sqlite3_exec(db, insertSql, null, null, null)
+        assertEquals(OK, insertResult)
 
-        val execResult = sqlite3_exec(db, sql, null, null) { _, count, values, _ ->
+        val selectSql = "SELECT power(value, 2) FROM numbers;"
+        val actualResults = mutableListOf<Double>()
+
+        val execResult = sqlite3_exec(db, selectSql, null, null) { _, count, values, _ ->
             assertEquals(1, count)
-            result = values[0]?.toDoubleOrNull()
+            val result = assertNotNull(values[0]?.toDoubleOrNull())
+            actualResults.add(result)
             0
         }
 
         assertEquals(OK, execResult)
-        assertTrue(funcCalled)
-        assertEquals(16.0, assertNotNull(result), .0)
+        assertEquals(3, powerReuseCount)
+        assertEquals(4, funcCallCount)
+        assertTrue(powerDestructorCalled)
+
+        val expectedResult = listOf(1.0, 4.0, 9.0, 16.0)
+        assertContentEquals(expectedResult, actualResults)
 
         val deleteResult = sqlite3_create_function(
             db = db,
-            name = "pow2",
-            nArg = 1,
-            encoding = encoding,
+            name = "power",
+            nArg = 2,
+            encoding = SqliteTextEncoding.UTF8,
             appData = null,
             func = null,
             step = null,
@@ -287,14 +311,5 @@ class FunctionTest {
 
         assertEquals(OK, deleteResult)
         assertTrue(destructorCalled)
-    }
-
-    @Test
-    fun valueWorks() = runSqliteConnectionTest {
-
-        // TODO move
-        //val contextDb = sqlite3_context_db_handle(context)
-        //assertEquals(db, contextDb)
-
     }
 }

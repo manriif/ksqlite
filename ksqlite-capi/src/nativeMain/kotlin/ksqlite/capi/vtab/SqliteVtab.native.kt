@@ -6,6 +6,7 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.pointed
 import ksqlite.capi.memory.AllocatedStruct
 import ksqlite.capi.memory.MemoryScope
+import ksqlite.capi.memory.destroyMemory
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.foreign.sqlite3_free
 import ksqlite.foreign.sqlite3_mprintf
@@ -28,4 +29,9 @@ private constructor(override val pointer: CPointer<s3_vtab>) :
             sqlite3_free(zErrMsg)
             zErrMsg = value?.let { sqlite3_mprintf(it) }
         }
+
+    override fun close() {
+        super.close()
+        destroyMemory()
+    }
 }
