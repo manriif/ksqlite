@@ -520,7 +520,7 @@ public expect fun sqlite3_column_blob(
 ): ByteArray?
 
 /**
- * Variant of [sqlite3_column_blob] that returns a [Buffer] instead.
+ * Variant of [sqlite3_column_blob] that returns a [ReadableBuffer] instead.
  */
 public fun sqlite3_column_buffer(
     stmt: sqlite3_stmt,

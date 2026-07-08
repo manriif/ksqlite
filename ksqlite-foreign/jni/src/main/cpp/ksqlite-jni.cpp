@@ -1206,31 +1206,38 @@ JNI_OnUnload(
 /**
  * Declares the code needed to replace a global hook.
  */
-#define GlobalHookReplace(H, function, initValue, configure, result) \
-    auto R = initValue;                                              \
-                                                                     \
-    MutexEnter(K.hooks);                                             \
-    const auto pHook = &K.hooks.H;                                   \
-    auto& hook = *pHook;                                             \
-                                                                     \
-    if (hook.instance != nullptr) {                                  \
-        HookClear(hook);                                             \
-    }                                                                \
-                                                                     \
-    if (callback != nullptr) {                                       \
-        R = function;                                                \
-        configure                                                    \
-    }                                                                \
-                                                                     \
-    MutexLeave(K.hooks);                                             \
+#define GlobalHookReplace(H, initValue, configure, install, uninstall, result) \
+    auto R = initValue;                                                        \
+                                                                               \
+    MutexEnter(K.hooks);                                                       \
+    const auto pHook = &K.hooks.H;                                             \
+    auto& hook = *pHook;                                                       \
+                                                                               \
+    if (hook.instance != nullptr) {                                            \
+        HookClear(hook);                                                       \
+        uninstall                                                              \
+    }                                                                          \
+                                                                               \
+    if (callback != nullptr) {                                                 \
+        R = install                                                            \
+        configure                                                              \
+    }                                                                          \
+                                                                               \
+    MutexLeave(K.hooks);                                                       \
     return result
 
 /**
  * Declares the code needed to replace a database connection hook without destructor.
  * The function is expected to return an sqlite result code.
  */
-#define GlobalHookReplaceRC(H, S, N, F) \
-    GlobalHookReplace(H, F, SQLITE_OK, if (R == SQLITE_OK) { HookConfigure(hook, callback, S, N); }, R)
+#define GlobalHookReplaceRC(H, signature, className, install, uninstall) GlobalHookReplace( \
+    H,                                                                                      \
+    SQLITE_OK,                                                                              \
+    if (R == SQLITE_OK) { HookConfigure(hook, callback, signature, className); },           \
+    install;,                                                                               \
+    uninstall;,                                                                             \
+    R                                                                                       \
+)
 
 /**
  * Calls the Java destructor for the given Hook pointer and releases associated resources.
@@ -3315,9 +3322,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1column_1buffer(
     const auto pStmt = LongTo_s3_stmt(stmt);
 
     BufferBlobDeclare(
-        void*,
+        const void*,
         KK.emptyBufferPointer,
-        BufferToByteArray(pointer, length),
+        pointer,
         sqlite3_column_blob(pStmt, index),
         sqlite3_column_bytes(pStmt, index),
         sqlite3_column_type(pStmt, index),
@@ -3649,11 +3656,13 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
         case SQLITE_CONFIG_LOG: {
             ArrayLengthEnsure(args, 2);
             const auto callback = ArrayObjectGet(args, 0, KK.configLogCallback);
+
             GlobalHookReplaceRC(
                 log,
                 "(ILjava/lang/String;)V",
                 "ConfigLogCallback",
-                sqlite3_config(id, configLogCaller, nullptr);
+                sqlite3_config(id, configLogCaller, nullptr),
+                sqlite3_config(id, nullptr, nullptr)
             );
         }
 
@@ -3661,11 +3670,13 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
         case SQLITE_CONFIG_SQLLOG: {
             ArrayLengthEnsure(args, 2);
             const auto callback = ArrayObjectGet(args, 0, KK.configSqlLogCallback);
+
             GlobalHookReplaceRC(
                 sqlLog,
                 "(JLjava/lang/String;I)V",
                 "ConfigSqlLogCallback",
-                sqlite3_config(id, configSqlLogCaller, nullptr);
+                sqlite3_config(id, configSqlLogCaller, nullptr),
+                sqlite3_config(id, nullptr, nullptr)
             );
         }
 
@@ -4260,6 +4271,12 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1drop_1modules(
     jlong db,
     jobjectArray modules
 ) {
+    const auto pDb = LongTo_s3(db);
+
+    if (modules == nullptr) {
+        return sqlite3_drop_modules(pDb, nullptr);
+    }
+
     const auto length = env->GetArrayLength(modules);
     const char** azKeep = nullptr;
     char** utf8s = nullptr;
@@ -4278,7 +4295,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1drop_1modules(
         azKeep[length] = nullptr;
     }
 
-    const auto rc = sqlite3_drop_modules(LongTo_s3(db), azKeep);
+    const auto rc = sqlite3_drop_modules(pDb, azKeep);
 
     if (length > 0) {
         for (jsize i = 0; i < length; i++) {
@@ -6055,9 +6072,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1value_1buffer(
     const auto pValue = LongTo_s3_value(value);
 
     BufferBlobDeclare(
-        void *,
+        const void*,
         KK.emptyBufferPointer,
-        BufferToByteArray(pointer, length),
+        pointer,
         sqlite3_value_blob(pValue),
         sqlite3_value_bytes(pValue),
         sqlite3_value_type(pValue),
