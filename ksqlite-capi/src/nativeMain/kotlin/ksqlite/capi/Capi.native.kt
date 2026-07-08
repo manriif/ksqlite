@@ -6,12 +6,12 @@ import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.IntVar
+import kotlinx.cinterop.allocArrayOf
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.refTo
 import kotlinx.cinterop.reinterpret
-import kotlinx.cinterop.toCStringArray
 import kotlinx.cinterop.toKStringFromUtf8
 import ksqlite.capi.callbacks.SqliteAuthorizerCallback
 import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
@@ -958,7 +958,11 @@ public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): SqliteResultCode = convertResultCode(memScoped {
-    native_sqlite3_drop_modules(db.pointer, keep?.toCStringArray(this))
+    native_sqlite3_drop_modules(db.pointer, keep?.let { names ->
+        allocArrayOf((listOf(*names, null)).map { name ->
+            name?.cstr?.getPointer(this)
+        })
+    })
 })
 
 public actual fun sqlite3_errcode(db: sqlite3): SqliteResultCode =

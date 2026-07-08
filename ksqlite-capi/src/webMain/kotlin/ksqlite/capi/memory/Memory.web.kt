@@ -2,10 +2,9 @@
 
 package ksqlite.capi.memory
 
+import js.string.JsStrings.toKotlinString
 import js.typedarrays.Int8Array
 import ksqlite.capi.wasm
-import ksqlite.foreign.js.arrayForEachIndexed
-import ksqlite.foreign.js.arraySize
 import ksqlite.foreign.js.asInt8Array
 import ksqlite.foreign.js.plus
 import ksqlite.foreign.js.toByteArray
@@ -197,26 +196,23 @@ internal fun String?.allocateUtf8Pointer(): WasmPointer =
     if (this == null) NullPtr else scope.allocateUtf8(this).pointer
 
 /**
- * Converts this array of Kotlin strings to C array of C strings, allocating memory for the array
+ * Converts this list of Kotlin strings to C array of C strings, allocating memory for the array
  * and C strings with given [HeapAllocatorScope].
  */
 context(scope: HeapAllocatorScope)
-internal fun allocateUtf8Array(array: Array<String>?): WasmPointer {
-    if (array == null) {
-        return NullPtr
-    }
-
+internal fun List<String?>.toCStringArray(): WasmPointer {
     val pointerSize = scope.memory.sizeofIR(IR.Ptr)
-    val baseArrayPointer = scope.allocate(pointerSize * arraySize(array))
+    val regionSize = pointerSize * size
+    val startAddress = scope.allocate(regionSize)
 
-    arrayForEachIndexed(array) { index, string ->
+    forEachIndexed { index, string ->
         scope.memory.pokePtr(
-            address = baseArrayPointer + (index * pointerSize),
+            address = startAddress + (index * pointerSize),
             value = string.allocateUtf8Pointer()
         )
     }
 
-    return baseArrayPointer
+    return startAddress
 }
 
 /**
@@ -433,7 +429,7 @@ internal fun WasmPointer.readByteArray(
  * Reads bytes from this pointer until NULL and then convert to string.
  */
 internal fun WasmPointer.toKStringFromUtf8OrNull(memory: WasmMemory = wasm): String? =
-    memory.cstrToJs(this)?.toString()
+    memory.cstrToJs(this)?.toKotlinString()
 
 /**
  * Reads bytes from this pointer until NULL and then convert to string.

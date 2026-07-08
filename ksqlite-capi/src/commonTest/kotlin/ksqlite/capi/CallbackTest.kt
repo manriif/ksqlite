@@ -187,7 +187,7 @@ class CallbackTest {
     }
 
     @Test
-    fun busyHandlerWorks() = runSqliteTest { isWasm ->
+    fun busyHandlerWorks() = runSqliteTest {
         val outDb = sqlite3.OutputParam()
         val openResult = sqlite3_open(":memory:", outDb)
         assertEquals(OK, openResult)
@@ -199,7 +199,7 @@ class CallbackTest {
         val closeResult = sqlite3_close(db)
         assertEquals(OK, closeResult)
 
-        findWalVfs(isWasm)?.usingRealTempFile("busy.db") { path ->
+        findWalVfs()?.usingRealTempFile("busy.db") { path ->
             val outDb1 = sqlite3.OutputParam()
             val openDb1Result = sqlite3_open(path, outDb1)
             assertEquals(OK, openDb1Result)

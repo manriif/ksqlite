@@ -251,22 +251,22 @@ context(allocator: SegmentAllocator)
 internal fun String?.allocateUtf8(): MemorySegment = allocateUtf8(allocator)
 
 /**
- * Converts this array of Kotlin strings to C array of C strings, allocating memory for the array
+ * Converts this list of Kotlin strings to C array of C strings, allocating memory for the array
  * and C strings with given [SegmentAllocator].
  */
 context(allocator: SegmentAllocator)
-internal fun Array<String>?.allocateUtf8Array(): MemorySegment {
-    if (this == null) {
-        return NullPtr
-    }
-
-    val pointers = allocator.allocate(ValueLayout.ADDRESS, size.toLong())
+internal fun List<String?>.toCStringArray(): MemorySegment {
+    val startAddress = allocator.allocate(ValueLayout.ADDRESS, size.toLong())
 
     forEachIndexed { index, string ->
-        pointers.setAtIndex(ValueLayout.ADDRESS, index.toLong(), string.allocateUtf8())
+        startAddress.setAtIndex(
+            ValueLayout.ADDRESS,
+            index.toLong(),
+            string.allocateUtf8()
+        )
     }
 
-    return pointers
+    return startAddress
 }
 
 /**

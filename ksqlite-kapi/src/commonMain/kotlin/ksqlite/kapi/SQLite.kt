@@ -117,9 +117,7 @@ public interface SQLite : AutoCloseable {
     /**
      * Provides access to SQLite APIs that do not require SQLite initialization.
      */
-    public companion object :
-        SQLiteLoader by sqliteLoader(),
-        SQLiteStatic by SQLiteStaticImpl
+    public companion object : SQLiteStatic by SQLiteStaticImpl
 }
 
 ///////////////////////////////////////////////////////////////////////////

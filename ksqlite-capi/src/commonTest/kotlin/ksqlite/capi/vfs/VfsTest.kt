@@ -17,8 +17,8 @@ import kotlin.test.assertTrue
 class VfsTest {
 
     @Test
-    fun memberPropertiesWorks() = runSqliteTest { isWasm ->
-        val vfs = findVfs(isWasm)
+    fun memberPropertiesWorks() = runSqliteTest {
+        val vfs = findVfs()
 
         assertTrue(vfs.iVersion >= VERSION_1)
         assertTrue(vfs.szOsFile > 0)
@@ -27,8 +27,8 @@ class VfsTest {
     }
 
     @Test
-    fun memberFunctionsWorks() = runSqliteTest { isWasm ->
-        val vfs = findVfs(isWasm)
+    fun memberFunctionsWorks() = runSqliteTest {
+        val vfs = findVfs()
         val file = sqlite3_file(vfs)
         val path = ksqliteTempTestFile("vfs.db")
 

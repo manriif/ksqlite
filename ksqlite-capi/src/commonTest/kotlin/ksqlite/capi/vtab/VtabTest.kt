@@ -105,7 +105,7 @@ class VtabTest {
 
     internal fun runSqliteVtabTest(
         afterClose: (KvModuleRecorder.() -> Unit)? = null,
-        block: suspend KvModuleRecorder.(db: sqlite3) -> Unit
+        block: KvModuleRecorder.(db: sqlite3) -> Unit
     ) = runSqliteConnectionTest { db ->
         val recorder = KvModuleRecorder()
         val module = createKvTabModule(recorder)

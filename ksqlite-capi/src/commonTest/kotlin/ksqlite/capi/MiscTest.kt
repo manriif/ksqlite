@@ -52,6 +52,11 @@ class MiscTest {
 
     @Test
     fun otherThingsWorks() = runTestNoInit {
+        if (!isWasm) {
+            val threadSafe = sqlite3_threadsafe()
+            assertEquals(1, threadSafe)
+        }
+
         val sql1 = "CREATE TABLE test"
         val completeResult1 = sqlite3_complete(sql1)
         assertIs<SqliteCompleteResult.Incomplete>(completeResult1)

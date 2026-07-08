@@ -61,7 +61,9 @@ artifacts {
 }
 
 kotlin {
-    webTargets()
+    webTargets().forEach { target ->
+        target.outputModuleName = "ksqlite-foreign"
+    }
 
     sourceSets {
         all {
@@ -73,5 +75,9 @@ kotlin {
                 api(libs.kotlin.wrappers.js)
             }
         }
+    }
+
+    zipWasmResources.configure {
+        from(sourceSets.webMain.map { it.resources })
     }
 }

@@ -115,8 +115,8 @@ class ConnectionTest {
     }
 
     @Test
-    fun fileNameWorks() = runSqliteTest { isWasm ->
-        findVfs(isWasm).usingRealTempFile("filename.db") { path ->
+    fun fileNameWorks() = runSqliteTest {
+        findVfs().usingRealTempFile("filename.db") { path ->
             val uri = "file:$path?mode=rwc&testFlag=1&testSize=42&testText=world&hello="
             val outDb = sqlite3.OutputParam()
             val dbOpenResult = sqlite3_open(uri, outDb)

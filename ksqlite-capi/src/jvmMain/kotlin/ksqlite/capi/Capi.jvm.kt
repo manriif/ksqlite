@@ -52,7 +52,7 @@ import ksqlite.capi.memory.OutputParamBase
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.allocate
 import ksqlite.capi.memory.allocateUtf8
-import ksqlite.capi.memory.allocateUtf8Array
+import ksqlite.capi.memory.toCStringArray
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.contentSize
 import ksqlite.capi.memory.globalDisposer
@@ -747,7 +747,9 @@ public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
 ): SqliteResultCode = convertResultCode(memScoped {
-    native.sqlite3_drop_modules(db.pointer, keep.allocateUtf8Array())
+    native.sqlite3_drop_modules(db.pointer, keep?.let { names ->
+        listOf(*names, null).toCStringArray()
+    }.notNull)
 })
 
 public actual fun sqlite3_errcode(db: sqlite3): SqliteResultCode =

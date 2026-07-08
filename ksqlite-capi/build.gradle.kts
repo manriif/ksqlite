@@ -3,9 +3,8 @@ plugins {
     alias(libs.plugins.conventions.kmp)
 }
 
-val extractWasmResources = registerExtractWasmResourcesTask(projects.ksqliteForeign.wasm)
-
 kotlin {
+    configureWasmResources(projects.ksqliteForeign.wasm)
     allTargets()
 
     sourceSets {
@@ -17,6 +16,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            // This is currently required due to a suspicious issue in Kotlin/JS
             implementation(libs.kotlinx.coroutinesTest)
         }
 
@@ -37,8 +37,6 @@ kotlin {
         }
 
         webTest {
-            resources.srcDir(extractWasmResources)
-
             dependencies {
                 implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
             }

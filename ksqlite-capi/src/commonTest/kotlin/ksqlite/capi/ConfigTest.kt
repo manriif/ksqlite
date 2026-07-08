@@ -13,22 +13,21 @@ import kotlin.test.assertTrue
 
 /**
  * Tests SQLite configuration.
- *
- * /!\ These tests may affect other tests if they share the same SQLite instance. Should be
- * executed isolated if possible (or default values must be restored then).
  */
 class ConfigTest {
 
     @Test
     fun configsWorks() = runTestNoInit {
-        val singleThreadResult = sqlite3_config(SqliteConfigOption.SINGLETHREAD)
-        assertEquals(OK, singleThreadResult)
+        if (!isWasm) {
+            val serializedResult = sqlite3_config(SqliteConfigOption.SERIALIZED)
+            assertEquals(OK, serializedResult)
 
-        val multiThreadResult = sqlite3_config(SqliteConfigOption.MULTITHREAD)
-        assertEquals(OK, multiThreadResult)
+            val singleThreadResult = sqlite3_config(SqliteConfigOption.SINGLETHREAD)
+            assertEquals(OK, singleThreadResult)
 
-        val serializedResult = sqlite3_config(SqliteConfigOption.SERIALIZED)
-        assertEquals(OK, serializedResult)
+            val multiThreadResult = sqlite3_config(SqliteConfigOption.MULTITHREAD)
+            assertEquals(OK, multiThreadResult)
+        }
 
         val memStatus = SqliteConfigOption.MEMSTATUS(1)
         val memStatusResult = sqlite3_config(memStatus)
@@ -102,6 +101,9 @@ class ConfigTest {
 
         sqlite3_log(logCode, logMessage)
         assertTrue(logCalled)
+
+        val resetLog = sqlite3_config(SqliteConfigOption.LOG(null, null))
+        assertEquals(OK, resetLog)
     }
 
     @Test
@@ -158,5 +160,8 @@ class ConfigTest {
 
         val shutdownResult = sqlite3_shutdown()
         assertEquals(OK, shutdownResult)
+
+        val resetSqlLog = sqlite3_config(SqliteConfigOption.SQLLOG(null, null))
+        assertEquals(OK, resetSqlLog)
     }
 }

@@ -17,14 +17,53 @@ import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.useParam
 import ksqlite.capi.memory.withMemoryManager
+import ksqlite.foreign.Sqlite3Capi
+import ksqlite.foreign.Sqlite3Wasm
 import ksqlite.foreign.Sqlite3WasmExports
+import ksqlite.foreign.sqlite3
 import ksqlite.foreign.wasm.IR
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.sizeofIR
 import ksqlite.types.SqliteSerializeFlag
+import kotlin.js.JsBigInt
+import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 
+///////////////////////////////////////////////////////////////////////////
+// Constants
+///////////////////////////////////////////////////////////////////////////
+
 private val pointerSize = wasm.sizeofIR(IR.Ptr)
+
+internal val sqliteTransient: JsBigInt by lazy {
+    sqlite3.capi.SQLITE_TRANSIENT.toLong().toJsBigInt()
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Shortucts
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the [Sqlite3Capi] instance.
+ */
+internal inline val capi: Sqlite3Capi
+    get() = sqlite3.capi
+
+/**
+ * Returns the [Sqlite3Wasm] instance.
+ */
+internal inline val wasm: Sqlite3Wasm
+    get() = sqlite3.wasm
+
+/**
+ * Returns the [Sqlite3WasmExports] instance.
+ */
+internal inline val exports: Sqlite3WasmExports
+    get() = wasm.exports
+
+///////////////////////////////////////////////////////////////////////////
+// Custom handling
+///////////////////////////////////////////////////////////////////////////
 
 internal actual fun columnBufferInternal(
     stmt: sqlite3_stmt,

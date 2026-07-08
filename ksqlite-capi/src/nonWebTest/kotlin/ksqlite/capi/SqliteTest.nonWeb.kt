@@ -1,3 +1,4 @@
 package ksqlite.capi
 
-internal actual suspend fun loadSqliteForTest(): Boolean = false
+internal actual val isWasm: Boolean
+    get() = false

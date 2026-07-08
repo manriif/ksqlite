@@ -2,6 +2,7 @@ import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.invoke
+import org.jetbrains.kotlin.gradle.ExperimentalJsTestDsl
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -11,6 +12,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithHostTests
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+import java.time.Duration
 
 /**
  * Adds Android JVM targets to `this` [KotlinMultiplatformExtension] and returns them.
@@ -143,9 +145,18 @@ fun KotlinMultiplatformExtension.windowsTargets(): List<KotlinNativeTargetWithHo
 /**
  * Adds Js targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
+@OptIn(ExperimentalJsTestDsl::class)
 fun KotlinMultiplatformExtension.jsTargets(): List<KotlinJsTargetDsl> = listOf(js {
     useEsModules()
-    browser()
+
+    browser {
+        test {
+            browserDefaults {
+                timeout = Duration.ofSeconds(30)
+                headless = true
+            }
+        }
+    }
 })
 
 /**
