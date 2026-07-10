@@ -1,6 +1,8 @@
-import com.android.build.api.dsl.AndroidLibrarySourceSet
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SourcesJar
 import modules.cmakeArguments
-import modules.createSqliteJniRuntimeMetadataContent
+import tasks.GenerateJniSourcesTask
 
 plugins {
     alias(libs.plugins.android.library)
@@ -8,36 +10,19 @@ plugins {
     alias(kompleLibs.plugins.komple)
 }
 
-val generatedKotlinSourceDirectory = layout.buildDirectory.dir("generated/ksqlite/src/main/kotlin")
-
-val generateJniMetadata by tasks.registeringKsqlite {
-    val cProject = komple.projects.kotlinSqlite.kProject
-
-    val metadataFile = generatedKotlinSourceDirectory.zip(cProject.packageName) { directory, name ->
-        directory.file("$name/KsqliteJniGenerated.kt")
-    }
-
-    outputs.file(metadataFile)
-
-    doLast {
-        metadataFile.writeContent(createSqliteJniRuntimeMetadataContent(cProject))
-    }
+val generateJniSources by tasks.registeringKsqlite<GenerateJniSourcesTask> {
+    outputDirectory = layout.buildDirectory.dir("generated/ksqlite/src/main/kotlin")
+    cProject = komple.projects.kotlinSqlite.kProject
 }
 
-registerTaskForIde(generateJniMetadata)
+registerTaskForIde(generateJniSources)
 
 kotlin {
     configureKotlin()
-
-    target.compilations.configureEach {
-        compileTaskProvider.configure {
-            dependsOn(generateJniMetadata)
-        }
-    }
 }
 
 android {
-    namespace = projectNamespace
+    namespace = localNamespace
 
     compileOptions {
         sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.android.get())
@@ -70,9 +55,22 @@ android {
         }
     }
 
-    // FIXME AGP 9.2.0 broken cast com.android.build.gradle.api.AndroidLibrarySourceSet =>
-    //  com.android.build.api.dsl.AndroidLibrarySourceSet
-    sourceSets.named(SourceSet.MAIN_SOURCE_SET_NAME, Action<AndroidLibrarySourceSet> {
-        kotlin.directories += generatedKotlinSourceDirectory.get().asFile.absolutePath
-    })
+    androidComponents {
+        onVariants { variant ->
+            variant.sources.kotlin?.addGeneratedSourceDirectory(
+                taskProvider = generateJniSources,
+                wiredWith = GenerateJniSourcesTask::outputDirectory
+            )
+        }
+    }
+}
+
+mavenPublishing {
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            javadocJar = JavadocJar.Empty(),
+            sourcesJar = SourcesJar.Sources()
+        )
+    )
 }

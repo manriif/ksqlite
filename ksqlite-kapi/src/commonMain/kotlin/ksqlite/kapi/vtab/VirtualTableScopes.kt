@@ -1,7 +1,9 @@
 package ksqlite.kapi.vtab
 
+import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_declare_vtab
 import ksqlite.capi.sqlite3_overload_function
+import ksqlite.capi.sqlite3_value
 import ksqlite.capi.sqlite3_value_nochange
 import ksqlite.capi.sqlite3_vtab_collation
 import ksqlite.capi.sqlite3_vtab_distinct
@@ -11,10 +13,9 @@ import ksqlite.capi.sqlite3_vtab_in_next
 import ksqlite.capi.sqlite3_vtab_nochange
 import ksqlite.capi.sqlite3_vtab_on_conflict
 import ksqlite.capi.sqlite3_vtab_rhs_value
-import ksqlite.capi.sqlite3
 import ksqlite.capi.vtab.sqlite3_index_info
-import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.ContextClosableScope
+import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.kapi.value.ValueReturnScope
@@ -53,7 +54,7 @@ internal class VirtualTableBestIndexScopeImpl(
         notClosed { sqlite3_vtab_in(info, index, handle) != 0 }
 
     override fun rhsValue(index: Int): ProtectedValue? = notClosed {
-        val outValue = sqlite3_value.Out()
+        val outValue = sqlite3_value.OutputParam()
         val result = sqlite3_vtab_rhs_value(info, index, outValue)
 
         if (result != SqliteResultCode.NOTFOUND) {
@@ -86,11 +87,11 @@ internal class VirtualTableFilterScopeImpl :
      * the [VirtualTableCursor.filter] returns.
      */
     private inline fun createValue(
-        block: (sqlite3_value.Out) -> SqliteResultCode
+        block: (sqlite3_value.OutputParam) -> SqliteResultCode
     ): ProtectedValue? = notClosed {
         lastValue?.scope?.close()
 
-        val outValue = sqlite3_value.Out()
+        val outValue = sqlite3_value.OutputParam()
         val result = block(outValue)
 
         if (result is SqliteResultCode.DONE) {

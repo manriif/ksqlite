@@ -36,17 +36,18 @@ fun createKsqliteFfmRuntimeMetadataContent(
     |internal fun ksqliteLibPath($$OS_NAME: String, $$OS_ARCH: String) = when {
     |$${
     compilations.joinToString("\n") { compilation ->
+        val platform = compilation.platform.get()
         val libName = compilation.libraryFile.get().asFile.name
-        val libPath = "${compilation.platform.ksqliteFfmResourceLibDirectory()}/$libName"
+        val libPath = "${platform.ksqliteFfmResourceLibDirectory()}/$libName"
 
-        val runtimeOsNameTest = when (compilation.platform.operatingSystem) {
+        val runtimeOsNameTest = when (platform.operatingSystem) {
             MacOS -> "isMacOs"
             Linux -> "isLinux"
             Windows -> "isWindows"
             else -> error("Non-desktop OSs aren't supported")
         }
 
-        val runtimeOsArchTest = when (compilation.platform.architecture) {
+        val runtimeOsArchTest = when (platform.architecture) {
             Arm64 -> "isArm64"
             X64 -> "isAmd64"
             else -> error("32-bit CPU architectures aren't supported")

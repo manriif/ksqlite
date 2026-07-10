@@ -97,12 +97,6 @@ internal fun sqlite3.resultCheck(
         cleanup?.invoke()
         sqliteResultThrow(result, this, getMessagePrefix)
     }
-
-    when (result) {
-        is SqliteResultCode.OK -> Unit
-        SqliteResultCode.DONE.Companion -> TODO()
-        SqliteResultCode.ROW.Companion -> TODO()
-    }
 }
 
 /**

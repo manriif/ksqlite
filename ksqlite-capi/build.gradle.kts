@@ -4,13 +4,13 @@ plugins {
 }
 
 kotlin {
-    configureWasmResources(projects.ksqliteForeign.wasm)
+    configureWasmResources(projects.ksqliteForeign.ksqliteForeignWasm)
     allTargets()
 
     sourceSets {
         commonMain.dependencies {
-            api(projects.ksqliteTypes.core)
-            implementation(projects.ksqliteTypes.internal)
+            api(projects.ksqliteTypes.ksqliteTypesCore)
+            implementation(projects.ksqliteTypes.ksqliteTypesInternal)
             implementation(libs.stately.concurrentCollections)
         }
 
@@ -21,25 +21,19 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation(projects.ksqliteForeign.jni)
+            implementation(projects.ksqliteForeign.ksqliteForeignJni)
         }
 
         jvmMain.dependencies {
-            implementation(projects.ksqliteForeign.ffm)
+            implementation(projects.ksqliteForeign.ksqliteForeignFfm)
         }
 
         nativeMain.dependencies {
-            implementation(projects.ksqliteForeign.cinterop)
+            implementation(projects.ksqliteForeign.ksqliteForeignCinterop)
         }
 
         webMain.dependencies {
-            implementation(projects.ksqliteForeign.wasm)
-        }
-
-        webTest {
-            dependencies {
-                implementation(libs.copyWebpackPlugin.get().run { devNpm(module.name, version!!) })
-            }
+            implementation(projects.ksqliteForeign.ksqliteForeignWasm)
         }
     }
 }

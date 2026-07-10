@@ -9,7 +9,8 @@ import ksqlite.kapi.function.ScalarFunction
 import ksqlite.kapi.function.WindowFunction
 import ksqlite.kapi.snapshot.Snapshot
 import ksqlite.kapi.statement.PreparedStatement
-import ksqlite.kapi.value.StatusValue
+import ksqlite.kapi.value.Status
+import ksqlite.kapi.vfs.FileName
 import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteDbStatusOption
@@ -24,8 +25,9 @@ import ksqlite.types.SqliteTransactionState
 import ksqlite.types.vtab.SqliteModuleVersion
 
 /**
- * Exposes the [Database Connection](https://sqlite.org/c3ref/sqlite3.html) API and the
- * [Encryption](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/) API.
+ * Exposes the [Database Connection](https://sqlite.org/c3ref/sqlite3.html) and the associated
+ * [Encryption](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/)
+ * APIs.
  */
 public abstract class DatabaseConnection internal constructor() : AutoCloseable {
 
@@ -49,6 +51,11 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      * Most recent error information.
      */
     public abstract val lastError: LastError
+
+    /**
+     * File control object that allows direct call to the xFileControl.
+     */
+    public abstract val fileControl: FileControl
 
     /**
      * Whether the connection is in autocommit mode.
@@ -256,7 +263,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     /**
      * Returns the absolute pathname of the database [database] of this connection.
      */
-    public abstract fun getFileName(database: String = MAIN_DB_NAME): String?
+    public abstract fun getFileName(database: String = MAIN_DB_NAME): FileName?
 
     /**
      * Returns the schema name for the [index]th database on this connection.
@@ -284,7 +291,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun getStatus(
         option: SqliteDbStatusOption,
         reset: Boolean = false
-    ): StatusValue
+    ): Status
 
     /**
      * Disconnects from [database] and then reopens [database] as an in-memory database based on the
@@ -322,17 +329,6 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun execute(
         sql: String,
         callback: Exec? = null
-    )
-
-    /**
-     * Makes a direct call to the xFileControl method for the sqlite3_io_methods object associated
-     * with [database].
-     *
-     * @throws ksqlite.kapi.SQLiteException if the control fails.
-     */
-    public abstract fun controlFile(
-        opcode: SqliteFileControlOpcode,
-        database: String? = null,
     )
 
     /**

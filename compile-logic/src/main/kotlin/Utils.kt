@@ -1,12 +1,10 @@
 import org.gradle.api.file.CopySpec
 import org.gradle.api.file.FileSystemOperations
-import org.gradle.api.file.RegularFile
-import org.gradle.api.provider.Provider
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
 ///////////////////////////////////////////////////////////////////////////
-// C
+// Files
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -22,10 +20,6 @@ fun cHeaderFile(fileName: String): String {
 fun cSourceFile(fileName: String): String {
     return "$fileName.c"
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Files
-///////////////////////////////////////////////////////////////////////////
 
 /**
  * Copies [directory] content into a temporary directory and returns that temporary directory.
@@ -44,13 +38,6 @@ fun FileSystemOperations.copyToTempDirectory(
     }
 
     return tempDirectory
-}
-
-/**
- * Writes [content] to the provided file.
- */
-fun Provider<RegularFile>.writeContent(content: String) {
-    get().asFile.apply { parentFile.mkdirs() }.writeText(content)
 }
 
 /**

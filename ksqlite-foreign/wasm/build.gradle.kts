@@ -3,7 +3,7 @@ import komple.task.enableTracking
 import komple.task.clearAndGetAsFile
 import modules.copySqliteWasmGeneratedResources
 import org.gradle.kotlin.dsl.support.serviceOf
-import modules.WasmCompileTask
+import tasks.WasmCompileTask
 
 plugins {
     alias(libs.plugins.conventions.kmp)

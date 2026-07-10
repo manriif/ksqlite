@@ -1,5 +1,7 @@
 package ksqlite.kapi
 
+import ksqlite.capi.memory.Utf8OutputParam
+import ksqlite.capi.sqlite3_compileoption_get
 import ksqlite.capi.sqlite3_complete
 import ksqlite.capi.sqlite3_keyword_check
 import ksqlite.capi.sqlite3_keyword_count
@@ -12,9 +14,8 @@ import ksqlite.capi.sqlite3_strglob
 import ksqlite.capi.sqlite3_stricmp
 import ksqlite.capi.sqlite3_strlike
 import ksqlite.capi.sqlite3_threadsafe
-import ksqlite.capi.sqliteCompileOptions
-import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.kapi.helpers.BoundedCaseIndependentComparator
+import ksqlite.kapi.helpers.sqliteList
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.sqliteResultThrow
 import ksqlite.kapi.helpers.usingParam
@@ -22,7 +23,7 @@ import ksqlite.types.SqliteCompleteResult
 
 internal object SQLiteStaticImpl : SQLiteStatic {
 
-    override val compileOptions by lazy(::sqliteCompileOptions)
+    override val compileOptions by lazy { sqliteList(::sqlite3_compileoption_get) }
     override val caseIndependentComparator = Comparator(::sqlite3_stricmp)
 
     override val keywordCount: Int

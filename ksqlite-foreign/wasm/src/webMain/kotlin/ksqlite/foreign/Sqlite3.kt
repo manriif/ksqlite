@@ -3,7 +3,7 @@ package ksqlite.foreign
 import kotlin.js.JsAny
 
 /**
- * Object constructed by the [sqliteInitModule] function.
+ * SQLite object.
  */
 public external interface Sqlite3 : JsAny {
 

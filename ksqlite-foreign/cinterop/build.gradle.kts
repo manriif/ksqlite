@@ -26,9 +26,7 @@ fun KotlinNativeTarget.configureNativeTarget() {
         //  exprimental feature or if some problems have been encountered
         //
         // Faced during development :
-        // - https://youtrack.jetbrains.com/issue/KT-82031
-        //
-        // Above issues aren't a problem, they're easily recoverable
+        // - https://youtrack.jetbrains.com/issue/KT-82031: solved in ksqlite.h / ksqlite.c
         extraOpts("-Xccall-mode", "direct")
     }
 }

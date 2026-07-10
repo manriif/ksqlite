@@ -2,7 +2,12 @@ package ksqlite.kapi.database
 
 import co.touchlab.stately.collections.ConcurrentMutableSet
 import co.touchlab.stately.concurrency.withLock
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
+import ksqlite.capi.memory.Utf8OutputParam
+import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_autovacuum_pages
+import ksqlite.capi.sqlite3_blob
 import ksqlite.capi.sqlite3_blob_open
 import ksqlite.capi.sqlite3_busy_handler
 import ksqlite.capi.sqlite3_busy_timeout
@@ -24,7 +29,6 @@ import ksqlite.capi.sqlite3_deserialize
 import ksqlite.capi.sqlite3_drop_modules
 import ksqlite.capi.sqlite3_exec
 import ksqlite.capi.sqlite3_extended_result_codes
-import ksqlite.capi.sqlite3_file_control
 import ksqlite.capi.sqlite3_get_autocommit
 import ksqlite.capi.sqlite3_interrupt
 import ksqlite.capi.sqlite3_is_interrupted
@@ -39,19 +43,16 @@ import ksqlite.capi.sqlite3_rollback_hook
 import ksqlite.capi.sqlite3_serialize
 import ksqlite.capi.sqlite3_set_authorizer
 import ksqlite.capi.sqlite3_set_last_insert_rowid
+import ksqlite.capi.sqlite3_snapshot
 import ksqlite.capi.sqlite3_snapshot_get
 import ksqlite.capi.sqlite3_snapshot_open
 import ksqlite.capi.sqlite3_snapshot_recover
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.capi.sqlite3_table_column_metadata
 import ksqlite.capi.sqlite3_total_changes64
 import ksqlite.capi.sqlite3_trace_v2
 import ksqlite.capi.sqlite3_txn_state
 import ksqlite.capi.sqlite3_update_hook
-import ksqlite.capi.memory.Int32OutputParam
-import ksqlite.capi.memory.Int64OutputParam
-import ksqlite.capi.memory.Utf8OutputParam
-import ksqlite.capi.sqlite3
-import ksqlite.capi.sqlite3_stmt
 import ksqlite.capi.vtab.callbacks.SqliteVtabConnectCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabCreateCallback
 import ksqlite.capi.vtab.sqlite3_module
@@ -78,8 +79,13 @@ import ksqlite.kapi.snapshot.SnapshotImpl
 import ksqlite.kapi.statement.PreparedStatement
 import ksqlite.kapi.statement.PreparedStatementImpl
 import ksqlite.kapi.throwSQLiteException
-import ksqlite.kapi.value.StatusValue
-import ksqlite.kapi.value.StatusValueImpl
+import ksqlite.kapi.value.Status
+import ksqlite.kapi.value.StatusImpl
+import ksqlite.kapi.vfs.FileName
+import ksqlite.kapi.vfs.FileNameImpl
+import ksqlite.kapi.vtab.VirtualTableModule
+import ksqlite.kapi.vtab.VirtualTableModuleDestructor
+import ksqlite.kapi.vtab.VirtualTableOptionalFunction
 import ksqlite.kapi.vtab.Vtab
 import ksqlite.kapi.vtab.VtabBeginCallback
 import ksqlite.kapi.vtab.VtabBestIndexCallback
@@ -104,13 +110,9 @@ import ksqlite.kapi.vtab.VtabRowidCallback
 import ksqlite.kapi.vtab.VtabSavepointCallback
 import ksqlite.kapi.vtab.VtabSyncCallback
 import ksqlite.kapi.vtab.VtabUpdateCallback
-import ksqlite.kapi.vtab.VirtualTableModule
-import ksqlite.kapi.vtab.VirtualTableModuleDestructor
-import ksqlite.kapi.vtab.VirtualTableOptionalFunction
 import ksqlite.types.SqliteBlobOpenFlag
 import ksqlite.types.SqliteDbStatusOption
 import ksqlite.types.SqliteDeserializeFlag
-import ksqlite.types.SqliteFileControlOpcode
 import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
@@ -131,6 +133,7 @@ internal class DatabaseConnectionImpl(
 
     override val config = DatabaseConnectionConfigurationImpl(db, scope)
     override val lastError = LastErrorImpl(db, scope)
+    override val fileControl = FileControlImpl(db, scope)
     override val wal = WriteAheadLogImpl(db, scope)
 
     override val changes: Long
@@ -197,7 +200,7 @@ internal class DatabaseConnectionImpl(
         database: String,
         flags: SqliteBlobOpenFlag
     ): Blob = scope.notClosed {
-        BlobImpl(db, usingParam(sqlite3_blob.Out()) { outBlob ->
+        BlobImpl(db, usingParam(sqlite3_blob.OutputParam()) { outBlob ->
             sqliteResultCheck(
                 sqlite3_blob_open(
                     db = db,
@@ -490,8 +493,8 @@ internal class DatabaseConnectionImpl(
     override fun flushCache() =
         scope.notClosed { sqliteResultCheck(sqlite3_db_cacheflush(db)) }
 
-    override fun getFileName(database: String): String? =
-        scope.notClosed { sqlite3_db_filename(db, database) }
+    override fun getFileName(database: String): FileName? =
+        scope.notClosed { sqlite3_db_filename(db, database)?.let(::FileNameImpl) }
 
     override fun getName(index: Int): String? =
         scope.notClosed { sqlite3_db_name(db, index) }
@@ -511,11 +514,11 @@ internal class DatabaseConnectionImpl(
     override fun getStatus(
         option: SqliteDbStatusOption,
         reset: Boolean
-    ): StatusValue = scope.notClosed {
+    ): Status = scope.notClosed {
         usingParams(
             param1 = Int64OutputParam(-1),
             param2 = Int64OutputParam(-1),
-            transform = ::StatusValueImpl
+            transform = ::StatusImpl
         ) { outCur, outHighwater ->
             sqliteResultCheck(
                 sqlite3_db_status64(
@@ -616,9 +619,6 @@ internal class DatabaseConnectionImpl(
         sqliteResultCheck(result)
     }
 
-    override fun controlFile(opcode: SqliteFileControlOpcode, database: String?) =
-        scope.notClosed { sqliteResultCheck(sqlite3_file_control(db, database, opcode)) }
-
     override fun interrupt() = scope.notClosed { sqlite3_interrupt(db) }
 
     override fun setKey(key: ByteArray, size: Int, database: String) =
@@ -699,7 +699,7 @@ internal class DatabaseConnectionImpl(
     )
 
     override fun createSnapshot(database: String?): Snapshot = scope.notClosed {
-        SnapshotImpl(usingParam(sqlite3_snapshot.Out()) { outSnapshot ->
+        SnapshotImpl(usingParam(sqlite3_snapshot.OutputParam()) { outSnapshot ->
             sqliteResultCheck(sqlite3_snapshot_get(db, database, outSnapshot))
         })
     }

@@ -12,7 +12,7 @@ public interface WindowFunction : AggregateFunction {
      * current window. The function arguments, if any, are those passed to [step] for the row being
      * removed.
      */
-    public fun AggregateFunctionStepScope.inverse(arguments: Array<ProtectedValue>)
+    public fun WindowFunctionInverseScope.inverse(arguments: Array<ProtectedValue>)
 
     /**
      * This method is invoked to return the current value of the aggregate. Unlike [final], the

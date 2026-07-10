@@ -1,12 +1,11 @@
 package ksqlite.kapi
 
 import ksqlite.kapi.buffer.Buffer
-import ksqlite.kapi.buffer.readBytes
 import ksqlite.kapi.config.AnyTimeConfiguration
 import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.database.AutoExtension
 import ksqlite.kapi.database.DatabaseConnection
-import ksqlite.kapi.value.StatusValue
+import ksqlite.kapi.value.Status
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteStatusOption
 
@@ -64,7 +63,7 @@ public interface SQLite : AutoCloseable {
     /**
      * Returns the number of bytes of memory currently outstanding and the highwater mark.
      */
-    public fun getMemoryStatus(reset: Boolean): StatusValue
+    public fun getMemoryStatus(reset: Boolean): Status
 
     /**
      * Opens an SQLite database file as specified by [fileName] and returns a [DatabaseConnection].
@@ -93,15 +92,15 @@ public interface SQLite : AutoCloseable {
     public fun releaseMemory(size: Int): Int
 
     /**
-     * Returns the status for the given options.
+     * Returns the status for the given [option].
      */
     public fun getStatus(
         option: SqliteStatusOption,
         reset: Boolean = false
-    ): StatusValue
+    ): Status
 
     /**
-     * Invokes `sqlite3_shutdown()` and resets global SQLite state.
+     * Shutdowns SQLite and resets global SQLite state.
      *
      * It is recommended to terminate any active statement, transaction and opened database
      * connection first before closing `this` [SQLite] instance.
@@ -126,28 +125,15 @@ public interface SQLite : AutoCloseable {
 
 /**
  * Initializes SQLite and returns an [SQLite] instance used to initiate connections.
- * SQLite options can be configured by supplying a value to [configure].
+ * SQLite global options can be configured by supplying a value to [configure].
  *
- * When the returned instance will no longer be needed, [SQLite.close] must be called and this
- * method can be called again.
+ * When the returned instance is no longer needed, then [SQLite.close] must be called and this
+ * factory method can be called again.
  *
- * Only a single instance of [SQLite] exists at a time and an [IllegalStateException] is thrown if
- * a previously returned instance of [SQLite] was not closed.
+ * Only a single instance of [SQLite] exists at a time.
  *
+ * @throws IllegalStateException if a previously returned instance of [SQLite] was not closed.
  * @throws SQLiteException if an operation fails while creating and configuring [SQLite].
  */
 public fun SQLite(configure: (ConfigurationScope.() -> Unit)? = null): SQLite =
     sqliteInitialize(configure)
-
-///////////////////////////////////////////////////////////////////////////
-// Extensions
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns a [ByteArray] of given [size] filled with random bytes.
- */
-public fun SQLite.generateRandomBytes(size: Int): ByteArray {
-    val output = Buffer.allocate(size)
-    generateRandomBytes(output, size)
-    return output.readBytes()
-}

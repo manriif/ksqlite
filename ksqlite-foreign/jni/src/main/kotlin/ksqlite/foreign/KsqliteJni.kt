@@ -35,7 +35,7 @@ public fun ksqliteLoadLibrary() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// Buffer helpers
+// Buffer
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -72,7 +72,7 @@ public external fun nativeBufferWrite(
 )
 
 ///////////////////////////////////////////////////////////////////////////
-// String helpers
+// String
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -178,15 +178,11 @@ public external fun sqlite3_aggregate_context(
     create: Boolean
 ): Long
 
-/**
- * Replaces the previous callback if any.
- */
 public external fun sqlite3_autovacuum_pages(
     db: Long,
     callback: AutovacuumPagesCallback?,
     destructor: DestructorCallback?,
 ): Int
-
 
 public external fun sqlite3_backup_finish(backup: Long): Int
 

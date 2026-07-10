@@ -115,6 +115,7 @@ import ksqlite.types.internal.convertExplainMode
 import ksqlite.types.internal.convertResultCode
 import ksqlite.types.internal.convertTextEncoding
 import ksqlite.types.internal.convertTransactionState
+import ksqliteLoadLibrary
 import ksqlite.foreign.sqlite3_autovacuum_pages as native_sqlite3_autovacuum_pages
 import ksqlite.foreign.sqlite3_backup_finish as native_sqlite3_backup_finish
 import ksqlite.foreign.sqlite3_backup_init as native_sqlite3_backup_init
@@ -326,6 +327,12 @@ import ksqlite.foreign.sqlite3_wal_autocheckpoint as native_sqlite3_wal_autochec
 import ksqlite.foreign.sqlite3_wal_checkpoint as native_sqlite3_wal_checkpoint
 import ksqlite.foreign.sqlite3_wal_checkpoint_v2 as native_sqlite3_wal_checkpoint_v2
 import ksqlite.foreign.sqlite3_wal_hook as native_sqlite3_wal_hook
+
+/**
+ * Loads the native library.
+ */
+@Suppress("unused")
+private val nativeInit = run(::ksqliteLoadLibrary)
 
 public actual fun sqlite3_auto_extension(callback: SqliteAutoExtensionCallback): SqliteResultCode =
     autoExtensionRegister(callback) { ksqlite_auto_extension(AutoExtensionHandler) }

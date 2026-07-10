@@ -21,7 +21,7 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
     val libs = project.libs
 
     val android = extensions.getByName<KotlinMultiplatformAndroidLibraryTarget>("android").apply {
-        namespace = project.projectNamespace
+        namespace = project.localNamespace
 
         compileSdk {
             version = release(libs.versions.android.sdk.compile.get().toInt())

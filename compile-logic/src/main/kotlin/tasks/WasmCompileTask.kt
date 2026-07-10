@@ -1,8 +1,9 @@
-package modules
+package tasks
 
 import komple.task.OutputToolTask
 import komple.task.hasChanged
 import komple.task.clearAndGetAsFile
+import modules.compileSqliteWasm
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask

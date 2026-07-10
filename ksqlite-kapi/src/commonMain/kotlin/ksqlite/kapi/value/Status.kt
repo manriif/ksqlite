@@ -3,7 +3,7 @@ package ksqlite.kapi.value
 /**
  * Holder for a status-like value and its highwater.
  */
-public interface StatusValue {
+public interface Status {
 
     /**
      * Current value.

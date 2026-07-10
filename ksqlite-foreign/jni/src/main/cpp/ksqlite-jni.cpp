@@ -1500,7 +1500,7 @@ static DbState* getDbState(
 #define DbHookReplaceInstance(H, signature, className, install, uninstall) DbHookReplace(H,,    \
     HookConfigure(hook, callback, signature, className);,                                       \
     install;,                                                                                   \
-    uninstall;,                                                                       \
+    uninstall;,                                                                                 \
     return oldCallback                                                                          \
 )
 
@@ -3837,12 +3837,12 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1create_1function_1v2(
 
     if (func != nullptr) { // Scalar function
         if (step != nullptr || final != nullptr) {
-            return SQLITE_TOOBIG; // Invalid scalar function
+            return SQLITE_MISUSE; // Invalid scalar function
         }
     } else {
         if (step == nullptr && final == nullptr) { // Function deletion
             if (destroy != nullptr) {
-                return SQLITE_NOTADB; // No destructor is allowed here
+                return SQLITE_MISUSE; // No destructor is allowed here
             }
 
             ReturnWithString(name, sqlite3_create_function_v2(
@@ -3857,7 +3857,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1create_1function_1v2(
                 nullptr
             ));
         } else if (step == nullptr || final == nullptr) {
-            return SQLITE_NOLFS; // Invalid aggregate function
+            return SQLITE_MISUSE; // Invalid aggregate function
         } else {
             isAggregate = true;
         }

@@ -5,8 +5,7 @@ import ksqlite.kapi.value.ValueReturnScopeImpl
 import ksqlite.kapi.value.ValueReturnScope
 
 /**
- * Scope for use with [AggregateFunction.final] and [WindowFunction.value].
- * Also see [FunctionScope] for error handling.
+ * Scope for use with [AggregateFunction.final], [WindowFunction.final] and [WindowFunction.value].
  */
 public class AggregateFunctionFinalScope internal constructor(
     @PublishedApi
@@ -15,9 +14,9 @@ public class AggregateFunctionFinalScope internal constructor(
     ValueReturnScope by ValueReturnScopeImpl(scope) {
 
     /**
-     * Returns the aggregate context, if any, as [Ctx].
+     * Returns the aggregate context, if any, as [C].
      */
-    public inline fun <reified Ctx : Any> getContextOrNull(): Ctx? {
+    public inline fun <reified C : Any> getContextOrNull(): C? {
         return scope.notClosed { sqlite3_aggregate_context(scope.context, null) }
     }
 }

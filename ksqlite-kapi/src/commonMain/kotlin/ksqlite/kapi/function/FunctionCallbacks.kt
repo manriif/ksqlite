@@ -56,7 +56,7 @@ internal val AggregateFunctionFinalCallback =
 internal val WindowFunctionInverseCallback =
     SqliteFunctionInverseCallback { appData: WindowFunction, context, arguments ->
         appData.scoped(context) { scope ->
-            AggregateFunctionStepScope(scope).inverse(arguments.toProtectedValues(scope))
+            WindowFunctionInverseScope(scope).inverse(arguments.toProtectedValues(scope))
         }
     }
 

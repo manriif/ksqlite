@@ -23,8 +23,8 @@ import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
 import ksqlite.kapi.helpers.usingParams
 import ksqlite.kapi.statement.PreparedStatement
-import ksqlite.kapi.value.StatusValue
-import ksqlite.kapi.value.StatusValueImpl
+import ksqlite.kapi.value.Status
+import ksqlite.kapi.value.StatusImpl
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteStatusOption
 
@@ -89,10 +89,12 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     override fun clearAutoExtensions(): Unit =
         notClosed { autoExtensions.clear() }
 
-    override fun getMemoryStatus(reset: Boolean): StatusValue = StatusValueImpl(
-        current = sqlite3_memory_used(),
-        highwater = sqlite3_memory_highwater(if (reset) 1 else 0)
-    )
+    override fun getMemoryStatus(reset: Boolean): Status = notClosed {
+        StatusImpl(
+            current = sqlite3_memory_used(),
+            highwater = sqlite3_memory_highwater(if (reset) 1 else 0)
+        )
+    }
 
     override fun open(
         fileName: String,
@@ -140,11 +142,11 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     override fun getStatus(
         option: SqliteStatusOption,
         reset: Boolean
-    ): StatusValue = notClosed {
+    ): Status = notClosed {
         usingParams(
             param1 = Int64OutputParam(-1),
             param2 = Int64OutputParam(-1),
-            transform = ::StatusValueImpl
+            transform = ::StatusImpl
         ) { outCur, outHighwater ->
             sqliteResultCheck(
                 sqlite3_status64(

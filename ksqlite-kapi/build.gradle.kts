@@ -8,7 +8,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(projects.ksqliteTypes.core)
+            api(projects.ksqliteTypes.ksqliteTypesCore)
             implementation(projects.ksqliteCapi)
             implementation(libs.stately.concurrentCollections)
         }

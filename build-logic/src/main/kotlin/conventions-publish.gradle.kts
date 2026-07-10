@@ -24,7 +24,7 @@ mavenPublishing {
         name = localName
         description = localDescription
         url = projectWebsite
-        inceptionYear = "2024"
+        inceptionYear = "2026"
 
         licenses {
             license {
