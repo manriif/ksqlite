@@ -1,3 +1,5 @@
+@file:Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
+
 package ksqlite.foreign.js
 
 import kotlin.js.JsBigInt
@@ -12,4 +14,5 @@ public operator fun JsBigInt.plus(value: Int): JsBigInt = (toLong() + value).toJ
 /**
  * Returns a [JsBigInt] which is the sum of `this` + [value].
  */
+@Suppress("Re")
 public operator fun JsBigInt.plus(value: Long): JsBigInt = (toLong() + value).toJsBigInt()

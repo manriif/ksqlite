@@ -61,13 +61,11 @@ fun <Extension> Extension.configureKotlin()
     compilerOptions {
         languageVersion = KotlinVersion.KOTLIN_2_4
         apiVersion = KotlinVersion.KOTLIN_2_4
-        //allWarningsAsErrors = true
+        allWarningsAsErrors = true
         progressiveMode = true
 
         freeCompilerArgs.run {
-            add("-Xcontext-parameters")
             add("-Xexpect-actual-classes")
-            add("-Xexplicit-backing-fields")
             add("-Xreturn-value-checker=full")
             add("-Xcontext-sensitive-resolution")
         }

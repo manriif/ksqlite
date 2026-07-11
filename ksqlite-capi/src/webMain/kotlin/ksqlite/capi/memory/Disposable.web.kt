@@ -1,3 +1,5 @@
+@file:Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
+
 package ksqlite.capi.memory
 
 import ksqlite.capi.callbacks.SqliteDestroyCallback

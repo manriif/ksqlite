@@ -26,7 +26,7 @@ val libraries = Platform.run {
     }
 }
 
-val javaBindings by komple.projects.kotlinSqlite.jextract.bindingGenerators.registering {
+val javaBindings = komple.projects.kotlinSqlite.jextract.bindingGenerators.register(KSQLITE) {
     options {
         headerClassName = SQLITE3
         includeConstants = SqliteConstants
@@ -36,18 +36,21 @@ val javaBindings by komple.projects.kotlinSqlite.jextract.bindingGenerators.regi
     }
 }
 
-val generateFfmSources by tasks.registeringKsqlite<GenerateFfmSourcesTask> {
+val generateFfmSources = tasks.registerKsqlite<GenerateFfmSourcesTask>("generateFfmSources") {
     outputDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
-    cProject = komple.projects.kotlinSqlite.kProject
     compilations = libraries.map(CLibrary::compilation)
+
+    val cProject = komple.projects.kotlinSqlite.kProject
+    libraryName = cProject.libraryName
+    packageName = cProject.packageName
 }
 
-val copyJavaBindings by tasks.registeringKsqlite<Copy> {
+val copyJavaBindings = tasks.registerKsqlite<Copy>("copyJavaBindings") {
     from(javaBindings.map { it.generateDirectory })
     into(generatedSourceDirectory.map { it.dir("java") })
 }
 
-val generateSources by tasks.registeringKsqlite {
+val generateSources = tasks.registerKsqlite<DefaultTask>("generateSources") {
     dependsOn(generateFfmSources)
     dependsOn(copyJavaBindings)
 }

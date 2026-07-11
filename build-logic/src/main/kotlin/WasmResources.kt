@@ -1,3 +1,4 @@
+
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.attributes.HasConfigurableAttributes
@@ -5,24 +6,32 @@ import org.gradle.api.file.ArchiveOperations
 import org.gradle.api.tasks.Sync
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getValue
+import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
+import org.gradle.language.jvm.tasks.ProcessResources
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 
-const val WASM_RESOURCES_CONFIGURATION = "wasmResourcesElements"
-const val WASM_RESOURCES_ATTRIBUTE_NAME = "ksqlite.wasm.resources"
+private const val WASM_RESOURCES_CONFIGURATION = "ksqliteWasmResources"
 
-private val wasmResourcesAttribute = Attribute.of(WASM_RESOURCES_ATTRIBUTE_NAME, String::class.java)
+private val wasmResourcesAttributeTargetName =
+    Attribute.of("ksqlite.wasm.resources.targetName", String::class.java)
+
+/**
+ * Name of the WASM resources consumable configuration.
+ */
+fun wasmResourcesConfigurationName(targetName: String): String =
+    "${WASM_RESOURCES_CONFIGURATION}${targetName.uppercaseFirstChar()}"
 
 /**
  * Applies the attributes for WASM resources configuration to [this@applyWasmResourcesAttributes].
  */
-fun HasConfigurableAttributes<*>.applyWasmResourcesAttributes() {
+fun HasConfigurableAttributes<*>.applyWasmResourcesAttributes(targetName: String) {
     attributes {
-        attribute(wasmResourcesAttribute, "true")
+        attribute(wasmResourcesAttributeTargetName, targetName)
     }
 }
 
@@ -43,49 +52,45 @@ fun KotlinMultiplatformExtension.configureWasmResources(ksqliteWeb: ProjectDepen
 @Suppress("UnstableApiUsage")
 private fun KotlinJsTargetDsl.configureWasmResources(ksqliteWeb: ProjectDependency) {
     val postfix = targetName.uppercaseFirstChar()
+    val configName = "ksqliteWasmResources$postfix"
 
-    val wasmResourcesDeps = project.configurations.register("wasmResourceDependencies$postfix") {
+    val wasmResourcesBase = project.configurations.register("${configName}Base") {
         isCanBeConsumed = false
         isCanBeResolved = false
         isCanBeDeclared = true
     }
 
-    val wasmResources by project.configurations.resolvable("wasmResources$postfix") {
-        extendsFrom(wasmResourcesDeps)
-        applyWasmResourcesAttributes()
+    val wasmResources by project.configurations.resolvable(configName) {
+        extendsFrom(wasmResourcesBase)
+        applyWasmResourcesAttributes(targetName)
     }
 
     project.dependencies {
-        wasmResourcesDeps(
+        wasmResourcesBase(
             project(
                 mapOf(
                     "path" to ksqliteWeb.path,
-                    "configuration" to WASM_RESOURCES_CONFIGURATION
+                    "configuration" to wasmResourcesConfigurationName(targetName)
                 )
             )
         )
     }
 
-    val extractResourceTask = project.tasks.register(
-        name = "extractWasmResources$postfix",
-        type = Sync::class
-    ) {
+    val extractResourceTask = project.tasks.register<Sync>("extractWasmResources$postfix") {
         dependsOn(wasmResources.buildDependencies)
 
         val extractDirectory = project.layout.buildDirectory
-            .dir("extracted/ksqlite/wasm/resources/${targetName.lowercase()}")
+            .dir("ksqlite/wasm/resources/${targetName.lowercase()}")
 
         val archiveOperations = project.serviceOf<ArchiveOperations>()
 
-        from(wasmResources.map(archiveOperations::zipTree)) {
-            include { !it.name.endsWith("-prod.mjs") }
-            rename { it.replace("-test", "") }
-        }
-
+        from(wasmResources.map(archiveOperations::zipTree))
         into(extractDirectory)
     }
 
     compilations.named(KotlinCompilation.TEST_COMPILATION_NAME).configure {
-        defaultSourceSet.resources.srcDir(extractResourceTask)
+        project.tasks.named<ProcessResources>(processResourcesTaskName) {
+            from(extractResourceTask)
+        }
     }
 }

@@ -777,7 +777,7 @@ public expect fun <AppData> sqlite3_create_collation_v2(
  * # Ksqlite
  *
  * This function differs from sqlite3_create_function_v2() in the destroy parameter only.
- * As KSQLite internally associates some resources with the function that need to be clenaed up
+ * As Ksqlite internally associates some resources with the function that need to be clenaed up
  * once the function is dropped, sqlite3_create_function_v2() is used in place of
  * sqlite3_create_function(). That being said, the semantic of both functions is the same as stated
  * by SQLite.

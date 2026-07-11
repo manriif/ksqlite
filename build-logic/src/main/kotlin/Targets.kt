@@ -176,8 +176,7 @@ fun KotlinMultiplatformExtension.webTargets() = buildList {
 }.onEach { target ->
     target.compilerOptions {
         freeCompilerArgs.addAll(
-            "-Xes-long-as-bigint",
-            "-XXLanguage:+JsAllowLongInExportedDeclarations"
+            "-Xes-long-as-bigint"
         )
     }
 }

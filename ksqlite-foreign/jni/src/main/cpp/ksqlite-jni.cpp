@@ -91,7 +91,7 @@ static inline void exceptionClearAndAbort(
  * FIXME: while this has been used during early development to focus on essentials, all out of memory
  *  checks must be handled correctly on call site to align with other platform's behaviour.
  */
-#define OutOfMemoryCheck(P) if (P == nullptr) FatalError("KSQLite JNI is out of memory.")
+#define OutOfMemoryCheck(P) if (P == nullptr) FatalError("Ksqlite JNI is out of memory.")
 
 ///////////////////////////////////////////////////////////////////////////
 // JNI reference management helpers

@@ -10,9 +10,12 @@ plugins {
     alias(kompleLibs.plugins.komple)
 }
 
-val generateJniSources by tasks.registeringKsqlite<GenerateJniSourcesTask> {
+val generateJniSources = tasks.registerKsqlite<GenerateJniSourcesTask>("generateJniSources") {
     outputDirectory = layout.buildDirectory.dir("generated/ksqlite/src/main/kotlin")
-    cProject = komple.projects.kotlinSqlite.kProject
+
+    val cProject = komple.projects.kotlinSqlite.kProject
+    libraryName = cProject.libraryName
+    packageName = cProject.packageName
 }
 
 registerTaskForIde(generateJniSources)

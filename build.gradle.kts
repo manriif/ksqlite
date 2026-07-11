@@ -6,7 +6,7 @@ import komple.project.c.CProject
 plugins {
     alias(libs.plugins.android.multiplatformLibrary) apply false
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.dokka) apply false // true
+    alias(libs.plugins.dokka) apply true
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.vanniktech.mavenPublish) apply false
     alias(libs.plugins.gradle.pluginPublish) apply false
@@ -27,6 +27,19 @@ plugins {
 allprojects {
     group = property("project.group").toString()
     version = rootProject.libs.versions.ksqlite.get()
+}
+
+dependencies {
+    dokka(projects.ksqliteGradlePlugin)
+    dokka(projects.ksqliteCapi)
+    dokka(projects.ksqliteKapi)
+    dokka(projects.ksqliteWasmResources)
+    dokka(projects.ksqliteForeign.ksqliteForeignCinterop)
+    dokka(projects.ksqliteForeign.ksqliteForeignFfm)
+    dokka(projects.ksqliteForeign.ksqliteForeignJni)
+    dokka(projects.ksqliteForeign.ksqliteForeignWasm)
+    dokka(projects.ksqliteTypes.ksqliteTypesCore)
+    dokka(projects.ksqliteTypes.ksqliteTypesInternal)
 }
 
 ksqlite {
@@ -78,7 +91,7 @@ komple {
     }
 
     projects {
-        register<CProject>("Kotlin SQLite") {
+        register<CProject>(property("project.name").toString()) {
             packageName = "ksqlite.foreign"
             libraryName = ksqlite.libraryName
             headerFile = ksqlite.ksqliteDirectory.file(cHeaderFile(KSQLITE))
@@ -103,6 +116,14 @@ komple {
             compilerOptions.addAll(SqliteCompilerOptions)
 
             Platform.run {
+                listOf(androidArm32, androidArm64, androidX86, androidX64).forEach { platform ->
+                    optimization(platform, COptimization.Size)
+
+                    linkerOptions(platform) {
+                        addAll(SqliteAndroidLinkerOptions)
+                    }
+                }
+
                 listOf(linuxArm64, linuxX64, macosArm64, macosX64).forEach { platform ->
                     linkerOptions(platform) {
                         addAll(SqliteUnixLinkerOptions)
@@ -110,5 +131,21 @@ komple {
                 }
             }
         }
+    }
+}
+
+dokka {
+    dokkaPublications.html {
+        moduleName = providers.gradleProperty("project.name")
+        moduleVersion = project.version.toString()
+        outputDirectory = rootDir.resolve("docs/api")
+        failOnWarning = false
+        suppressInheritedMembers = false
+        suppressObviousFunctions = true
+        offlineMode = false
+    }
+
+    pluginsConfiguration.html {
+        footerMessage = "© ${property("project.inceptionYear")} ${property("project.dev.name")}"
     }
 }

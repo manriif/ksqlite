@@ -4,7 +4,7 @@ import kotlin.time.Duration
 
 /**
  * Sets a [BusyHandler] that sleeps for a specified amount of time when a table is locked.
- * Any [BusyHandler] previously passed to [setBusyHandler] is replaced.
+ * Any [BusyHandler] previously passed to [DatabaseConnection.setBusyHandler] is replaced.
  *
  * The [duration] is coerced to [Int.MAX_VALUE] milliseconds.
  *

@@ -1122,7 +1122,7 @@ public actual fun <AppData> sqlite3_progress_handler(
     appData: AppData,
     callback: SqliteProgressHandlerCallback<AppData>?
 ) {
-    val _ = jni_sqlite3_progress_handler(
+    jni_sqlite3_progress_handler(
         db.pointer,
         nOps,
         callbackHandler(callback, appData, ::ProgressHandlerHandler),

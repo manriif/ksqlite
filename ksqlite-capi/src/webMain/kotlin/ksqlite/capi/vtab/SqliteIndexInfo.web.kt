@@ -1,4 +1,4 @@
-@file:Suppress("ClassName", "SpellCheckingInspection")
+@file:Suppress("ClassName", "SpellCheckingInspection", "REDUNDANT_CALL_OF_CONVERSION_METHOD")
 
 package ksqlite.capi.vtab
 

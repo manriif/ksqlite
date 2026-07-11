@@ -2,7 +2,6 @@ package modules
 
 import komple.platform.Platform
 import komple.project.c.CCompilation
-import komple.project.c.CProject
 
 private const val NATIVE_LIBS_RESOURCE_DIR_NAME = "native"
 private const val OS_NAME = "osName"
@@ -20,21 +19,22 @@ fun Platform.ksqliteFfmResourceLibDirectory(): String {
  * Returns the content of the FFM runtime metadata.
  */
 fun createKsqliteFfmRuntimeMetadataContent(
-    cProject: CProject,
+    packageName: String,
+    libraryName: String,
     compilations: List<CCompilation>
-): String = $$"""
-    |package $${cProject.packageName.get()}
+): String = """
+    |package $packageName
     |
     |/**
     | * Name of the Ksqlite native library.
     | */
-    |internal const val KSQLITE_NATIVE_LIB_NAME: String = "$${cProject.libraryName.get()}"
+    |internal const val KSQLITE_NATIVE_LIB_NAME: String = "$libraryName"
     |
     |/**
-    | * Returns the path to the native library for [$$OS_NAME] and [$$OS_ARCH].
+    | * Returns the path to the native library for [$OS_NAME] and [$OS_ARCH].
     | */
-    |internal fun ksqliteLibPath($$OS_NAME: String, $$OS_ARCH: String) = when {
-    |$${
+    |internal fun ksqliteLibPath($OS_NAME: String, $OS_ARCH: String) = when {
+    |${
     compilations.joinToString("\n") { compilation ->
         val platform = compilation.platform.get()
         val libName = compilation.libraryFile.get().asFile.name
@@ -56,6 +56,6 @@ fun createKsqliteFfmRuntimeMetadataContent(
         """    $OS_NAME.$runtimeOsNameTest() && $OS_ARCH.$runtimeOsArchTest() -> "$libPath""""
     }
 }
-    |    else -> error("Unsupported platform: $$$OS_NAME $$$OS_ARCH")
+    |    else -> error("Unsupported platform: $$OS_NAME $$OS_ARCH")
     |}
 """.trimMargin()

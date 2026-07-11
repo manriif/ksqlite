@@ -4,7 +4,7 @@ plugins {
 }
 
 kotlin {
-    configureWasmResources(projects.ksqliteForeign.ksqliteForeignWasm)
+    configureWasmResources(projects.ksqliteWasmResources)
     allTargets()
 
     sourceSets {

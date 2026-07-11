@@ -1,4 +1,4 @@
-@file:JsModule("./ksqlite-bootstrap.mjs")
+@file:JsModule("./ksqlite/ksqlite-bootstrap.mjs")
 
 package ksqlite.foreign
 

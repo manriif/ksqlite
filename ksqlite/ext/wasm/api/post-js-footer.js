@@ -60,16 +60,16 @@ try{
      to provide the necessary configuration state.
   */
 
-  // KSQLite: SQLITE_OMIT_AUTOINIT patch begin
+  // Ksqlite: SQLITE_OMIT_AUTOINIT patch begin
   bootstrapConfig.exports.sqlite3_initialize();
-  // KSQLite: SQLITE_OMIT_AUTOINIT patch end
+  // Ksqlite: SQLITE_OMIT_AUTOINIT patch end
 
   const p = globalThis.sqlite3ApiBootstrap(bootstrapConfig);
   delete globalThis.sqlite3ApiBootstrap;
 
-  // KSQLite: SQLITE_OMIT_AUTOINIT patch begin
+  // Ksqlite: SQLITE_OMIT_AUTOINIT patch begin
   bootstrapConfig.exports.sqlite3_shutdown();
-  // KSQLite: SQLITE_OMIT_AUTOINIT patch end
+  // Ksqlite: SQLITE_OMIT_AUTOINIT patch end
 
   return p /* the eventual result of globalThis.sqlite3InitModule() */;
 }catch(e){

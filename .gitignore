@@ -6,4 +6,5 @@
 .run/
 
 build
+docs
 local.properties

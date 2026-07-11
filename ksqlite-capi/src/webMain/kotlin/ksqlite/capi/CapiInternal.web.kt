@@ -1,4 +1,4 @@
-@file:Suppress("FunctionName", "SpellCheckingInspection")
+@file:Suppress("FunctionName", "SpellCheckingInspection", "REDUNDANT_CALL_OF_CONVERSION_METHOD")
 
 package ksqlite.capi
 
