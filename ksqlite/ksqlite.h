@@ -2,9 +2,7 @@
 #define KSQLITE_H
 
 #ifndef __WASM__
-
-#include "sqlite3mc_amalgamation.h"
-
+#include "sqlite3.h"
 #endif
 
 #ifdef __cplusplus
@@ -12,13 +10,22 @@ extern "C" {
 #endif
 
 /**
+ * Exposes the SQLITE_TRANSIENT macro as a constant so it can be referenced
+ * from Kotlin/Native when using direct ccall mode.
+ */
+__attribute__((unused))
+extern const sqlite3_destructor_type KSQLITE_TRANSIENT;
+
+/**
  * Callback for SQLITE_CONFIG_LOG, exposed for binding generation.
  */
+__attribute__((unused))
 typedef void(*ksqlite_xLog)(void*,int,const char*);
 
 /**
  * Callback for SQLITE_CONFIG_SQLLOG, exposed for binding generation.
  */
+__attribute__((unused))
 typedef void(*ksqlite_xSqllog)(void*, sqlite3*, const char*, int);
 
 /**

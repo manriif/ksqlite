@@ -2,15 +2,13 @@
 
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.capi.callbacks.SqliteFunctionFinalCallback
+import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
+import ksqlite.capi.callbacks.SqliteFunctionInverseCallback
+import ksqlite.capi.callbacks.SqliteFunctionStepCallback
+import ksqlite.capi.callbacks.SqliteFunctionValueCallback
 import ksqlite.capi.memory.ConcurrentMap
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_value
 
 /**
  * Manages an application defined function from [sqlite3_create_function] and
@@ -19,12 +17,12 @@ import ksqlite.capi.types.sqlite3_value
 @PublishedApi
 internal class ApplicationDefinedFunction<AppData>(
     val appData: AppData,
-    private val destroy: Sqlite3DestroyCallback<AppData>?,
-    private val func: Sqlite3FunctionFuncCallback<AppData>?,
-    private val step: Sqlite3FunctionStepCallback<AppData>?,
-    private val final: Sqlite3FunctionFinalCallback<AppData>?,
-    private val value: Sqlite3FunctionValueCallback<AppData>?,
-    private val inverse: Sqlite3FunctionInverseCallback<AppData>?
+    private val destroy: SqliteDestroyCallback<in AppData>?,
+    private val func: SqliteFunctionFuncCallback<in AppData>?,
+    private val step: SqliteFunctionStepCallback<in AppData>?,
+    private val final: SqliteFunctionFinalCallback<in AppData>?,
+    private val value: SqliteFunctionValueCallback<in AppData>?,
+    private val inverse: SqliteFunctionInverseCallback<in AppData>?
 ) {
 
     /**
@@ -56,10 +54,8 @@ internal class ApplicationDefinedFunction<AppData>(
      * Ensures that [instance] is not null.
      */
     @IgnorableReturnValue
-    private inline fun ensureInstanceExists(instance: Any?): Any {
-        return checkNotNull(instance) {
-            "Aggregate context or auxiliary data was created but the Kotlin instance is lost"
-        }
+    private inline fun ensureInstanceExists(instance: Any?): Any = checkNotNull(instance) {
+        "Aggregate context or auxiliary data was created but the Kotlin instance is lost..."
     }
 
     /**
@@ -69,19 +65,6 @@ internal class ApplicationDefinedFunction<AppData>(
     private inline fun getCachedInstance(getKey: () -> Long?): Any? {
         val key = getKey() ?: return null // No data exist or old is destroyed
         return ensureInstanceExists(identifiedInstances[key])
-    }
-
-    /**
-     * Caches the [instance] ensuring no one already exists with [key].
-     */
-    @IgnorableReturnValue
-    private fun cacheInstance(key: Long, instance: Any): Any {
-        check(identifiedInstances.put(key, instance) == null) {
-            "An instance of Aggregate context or auxiliary data already exists for the supplied " +
-                    "key, memory leak is near"
-        }
-
-        return instance
     }
 
     /**
@@ -114,7 +97,10 @@ internal class ApplicationDefinedFunction<AppData>(
         factory: () -> Any
     ): Any? {
         val key = aggregateContextInternal(context, true) ?: return null // Out of memory
-        return cacheInstance(key, factory())
+
+        return identifiedInstances.computeIfAbsent(key) {
+            factory()
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -138,17 +124,17 @@ internal class ApplicationDefinedFunction<AppData>(
         context: sqlite3_context,
         index: Int,
         instance: T,
-        destroy: Sqlite3DestroyCallback<T>?
+        destroy: SqliteDestroyCallback<T>?
     ) {
         var key: Long? = null
 
-        val destroyAndRemove = Sqlite3DestroyCallback<Nothing?> {
+        val destroyAndRemove = SqliteDestroyCallback<Nothing?> {
             destroy?.apply(instance)
             key?.let(::uncacheInstance)
         }
 
         key = setAuxdataInternal(context, index, destroyAndRemove) ?: return // Out of memory
-        cacheInstance(key, instance)
+        identifiedInstances[key] = instance
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -204,60 +190,76 @@ internal class ApplicationDefinedFunction<AppData>(
 @Suppress("UNCHECKED_CAST")
 private inline fun <AppData, R> appFunction(
     function: ApplicationDefinedFunction<AppData>,
-    block: (ApplicationDefinedFunction<Any?>, Sqlite3DestroyCallback<Any?>) -> R
+    block: (ApplicationDefinedFunction<Any?>, SqliteDestroyCallback<Any?>) -> R
 ): R = block(function as ApplicationDefinedFunction<Any?>) { function.cleanup() }
 
 /**
  * Invokes [block] with a [ApplicationDefinedFunction] for aggregate and scalar functions and a
  * destructor to use in place of application [destroy].
+ *
+ * TODO: throws if callbacks misuse ?
  */
 internal inline fun <AppData, R> createFunction(
     appData: AppData,
-    func: Sqlite3FunctionFuncCallback<AppData>?,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?,
+    func: SqliteFunctionFuncCallback<in AppData>?,
+    step: SqliteFunctionStepCallback<in AppData>?,
+    final: SqliteFunctionFinalCallback<in AppData>?,
+    destroy: SqliteDestroyCallback<in AppData>?,
     block: (
-        fn: ApplicationDefinedFunction<Any?>,
-        funDestroy: Sqlite3DestroyCallback<Any?>
+        fn: ApplicationDefinedFunction<Any?>?,
+        funDestroy: SqliteDestroyCallback<Any?>?
     ) -> R
-): R = appFunction(
-    function = ApplicationDefinedFunction(
-        appData = appData,
-        destroy = destroy,
-        func = func,
-        step = step,
-        final = final,
-        value = null,
-        inverse = null
-    ),
-    block = block
-)
+): R {
+    if (func == null && step == null && final == null && destroy == null) {
+        return block(null, null)
+    }
+
+    return appFunction(
+        function = ApplicationDefinedFunction(
+            appData = appData,
+            destroy = destroy,
+            func = func,
+            step = step,
+            final = final,
+            value = null,
+            inverse = null
+        ),
+        block = block
+    )
+}
 
 /**
  * Returns a [ApplicationDefinedFunction] for window function and a destructor to use in place of
  * application [destroy].
+ *
+ * TODO: throws if callbacks misuse ?
  */
 internal inline fun <AppData, R> createWindowFunction(
     appData: AppData,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    value: Sqlite3FunctionValueCallback<AppData>?,
-    inverse: Sqlite3FunctionInverseCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?,
+    step: SqliteFunctionStepCallback<in AppData>?,
+    final: SqliteFunctionFinalCallback<in AppData>?,
+    value: SqliteFunctionValueCallback<in AppData>?,
+    inverse: SqliteFunctionInverseCallback<in AppData>?,
+    destroy: SqliteDestroyCallback<in AppData>?,
     block: (
-        fn: ApplicationDefinedFunction<Any?>,
-        fnDestroy: Sqlite3DestroyCallback<Any?>
+        fn: ApplicationDefinedFunction<Any?>?,
+        fnDestroy: SqliteDestroyCallback<Any?>?
     ) -> R
-): R = appFunction(
-    function = ApplicationDefinedFunction(
-        appData = appData,
-        destroy = destroy,
-        func = null,
-        step = step,
-        final = final,
-        value = value,
-        inverse = inverse
-    ),
-    block = block
-)
+): R {
+    if (step == null && final == null && value == null && inverse == null && destroy == null) {
+        return block(null, null)
+    }
+
+    return appFunction(
+        function = ApplicationDefinedFunction(
+            appData = appData,
+            destroy = destroy,
+            func = null,
+            step = step,
+            final = final,
+            value = value,
+            inverse = inverse
+        ),
+        block = block
+    )
+}

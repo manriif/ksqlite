@@ -38,9 +38,9 @@ private fun rootProjectProperty(name: String): ReadOnlyProperty<Project, String>
     }
 }
 
-val Project.projectNamespace by rootProjectProperty("namespace")
 val Project.projectGroup by rootProjectProperty("group")
 val Project.projectWebsite by rootProjectProperty("website")
+val Project.projectInceptionYear by rootProjectProperty("inceptionYear")
 val Project.projectLicenseName by rootProjectProperty("license.name")
 val Project.projectLicenseUrl by rootProjectProperty("license.url")
 val Project.projectGitBase by rootProjectProperty("git.base")
@@ -61,4 +61,5 @@ private fun localProjectProperty(name: String): ReadOnlyProperty<Project, String
 }
 
 val Project.localName: String by localProjectProperty("name")
+val Project.localNamespace: String by localProjectProperty("namespace")
 val Project.localDescription: String by localProjectProperty("description")

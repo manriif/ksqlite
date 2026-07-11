@@ -1,12 +1,12 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
-import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.callbacks.SqliteConfigLogCallback
+import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.dispatchSqlLogEvent
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
-import ksqlite.capi.types.sqlite3
-import ksqlite.ksqlite_xLog
-import ksqlite.ksqlite_xSqllog
+import ksqlite.capi.sqlite3
+import ksqlite.foreign.ksqlite_xLog
+import ksqlite.foreign.ksqlite_xSqllog
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -24,7 +24,7 @@ internal class ConfigLogHandler :
         refPointer: MemorySegment,
         errCode: Int,
         errMsg: MemorySegment
-    ): Unit = handle(refPointer) { callback: Sqlite3ConfigLogCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteConfigLogCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             errorCode = errCode,
@@ -48,7 +48,7 @@ internal class ConfigSqlLogHandler :
         db: MemorySegment,
         name: MemorySegment,
         type: Int
-    ): Unit = handle(refPointer) { callback: Sqlite3ConfigSqlLogCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteConfigSqlLogCallback<Any?>, appData ->
         dispatchSqlLogEvent(
             callback = callback,
             appData = appData,

@@ -1,10 +1,10 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.FunctionCallback
 import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.memory.toArray
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.sqlite3_context
+import ksqlite.capi.sqlite3_value
+import ksqlite.foreign.callbacks.FunctionCallback
 
 /**
  * Base for function [Handler]s.

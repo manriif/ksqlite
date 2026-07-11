@@ -1,65 +1,61 @@
-@file:Suppress("FunctionName", "SpellCheckingInspection")
+@file:Suppress("FunctionName", "SpellCheckingInspection", "DEPRECATION")
 
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
-import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
-import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
-import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
-import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
-import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
-import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
-import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
-import ksqlite.capi.callbacks.Sqlite3TraceCallback
-import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
+import ksqlite.capi.callbacks.SqliteAuthorizerCallback
+import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
+import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
+import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
+import ksqlite.capi.callbacks.SqliteCollationNeededCallback
+import ksqlite.capi.callbacks.SqliteCommitHookCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.capi.callbacks.SqliteExecCallback
+import ksqlite.capi.callbacks.SqliteFunctionFinalCallback
+import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
+import ksqlite.capi.callbacks.SqliteFunctionInverseCallback
+import ksqlite.capi.callbacks.SqliteFunctionStepCallback
+import ksqlite.capi.callbacks.SqliteFunctionValueCallback
+import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
+import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
+import ksqlite.capi.callbacks.SqliteRollbackHookCallback
+import ksqlite.capi.callbacks.SqliteTraceCallback
+import ksqlite.capi.callbacks.SqliteUpdateHookCallback
+import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.ReadableBuffer
-import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.Int64OutputParam
-import ksqlite.capi.types.Sqlite3BlobOpenFlag
-import ksqlite.capi.types.Sqlite3BlobOutputParam
-import ksqlite.capi.types.Sqlite3CompleteResult
-import ksqlite.capi.types.Sqlite3ConfigOption
-import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DbConfigOption
-import ksqlite.capi.types.Sqlite3DbStatusOption
-import ksqlite.capi.types.Sqlite3DeserializeFlag
-import ksqlite.capi.types.Sqlite3ExplainMode
-import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3OpenFlag
-import ksqlite.capi.types.Sqlite3Limit
-import ksqlite.capi.types.Sqlite3OutputParam
-import ksqlite.capi.types.Sqlite3PrepareFlag
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3SerializeFlag
-import ksqlite.capi.types.Sqlite3StatementStatusCounter
-import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3StmtOutputParam
-import ksqlite.capi.types.Sqlite3TextEncoding
-import ksqlite.capi.types.Sqlite3TraceCode
-import ksqlite.capi.types.Sqlite3TransactionState
-import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
-import ksqlite.capi.types.Utf8OutputParam
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_backup
-import ksqlite.capi.types.sqlite3_blob
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_filename
+import ksqlite.capi.memory.Utf8OutputParam
+import ksqlite.capi.types.SqliteConfigOption
+import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteFileControlOpcode
+import ksqlite.capi.types.SqliteSerializeResult
+import ksqlite.capi.vfs.sqlite3_vfs
+import ksqlite.capi.vtab.SqliteVtabConfigOption
 import ksqlite.capi.vtab.sqlite3_index_info
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.types.sqlite3_vfs
 import ksqlite.capi.vtab.sqlite3_module
+import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteCheckpointMode
+import ksqlite.types.SqliteCompleteResult
+import ksqlite.types.SqliteConflictResolutionMode
+import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteDbReadonlyResult
+import ksqlite.types.SqliteDbStatusOption
+import ksqlite.types.SqliteDeserializeFlag
+import ksqlite.types.SqliteExplainMode
+import ksqlite.types.SqliteFunctionTextEncoding
+import ksqlite.types.SqliteOpenFlag
+import ksqlite.types.SqlitePrepareFlag
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.SqliteRuntimeLimit
+import ksqlite.types.SqliteSerializeFlag
+import ksqlite.types.SqliteStatementStatusCounter
+import ksqlite.types.SqliteStatusOption
+import ksqlite.types.SqliteTextEncoding
+import ksqlite.types.SqliteTraceEventCode
+import ksqlite.types.SqliteTransactionState
+import kotlin.time.Duration
 
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
@@ -72,10 +68,12 @@ import ksqlite.capi.vtab.sqlite3_module
  * # Ksqlite
  *
  * The [Data] instance is created on the first call and is returned on subsequent calls.
- * The [Data] instance, if created, is then made eligible for GC after Xfinalize() is getting called
+ * The [Data] instance, if created, is then made eligible for GC after xFinal() is getting called
  * by SQLite.
  *
  * If the [Data] instance must not be instantiated, then [factory] must be set to `null`.
+ *
+ * If `null` is returned while [factory] is not `null` then the system have run out of memory.
  */
 public inline fun <reified Data : Any> sqlite3_aggregate_context(
     context: sqlite3_context,
@@ -98,7 +96,7 @@ public inline fun <reified Data : Any> sqlite3_aggregate_context(
  *
  * [sqlite3_auto_extension()](https://sqlite.org/c3ref/auto_extension.html)
  */
-public expect fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result
+public expect fun sqlite3_auto_extension(callback: SqliteAutoExtensionCallback): SqliteResultCode
 
 /**
  * Register a function to be invoked prior to each autovacuum that determines the number of pages
@@ -109,16 +107,16 @@ public expect fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback)
 public expect fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?,
-    callback: Sqlite3AutoVacuumPagesCallback<AppData>?
-): Sqlite3Result
+    destroy: SqliteDestroyCallback<in AppData>?,
+    callback: SqliteAutovacuumPagesCallback<in AppData>?
+): SqliteResultCode
 
 /**
  * Release all resources associated with an [sqlite3_backup]* handle.
  *
  * [sqlite3_backup_finish()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupfinish)
  */
-public expect fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result
+public expect fun sqlite3_backup_finish(backup: sqlite3_backup): SqliteResultCode
 
 /**
  * Create an [sqlite3_backup] process to copy the contents of [srcDbName] from connection handle
@@ -148,7 +146,7 @@ public expect fun sqlite3_backup_pagecount(backup: sqlite3_backup): Int
  * Return the number of pages still to be backed up as of the most recent call to
  * [sqlite3_backup_step].
  *
- * [sqlite3_backup_remaining](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
+ * [sqlite3_backup_remaining()](https://sqlite.org/c3ref/backup_finish.html#sqlite3backupremaining)
  */
 public expect fun sqlite3_backup_remaining(backup: sqlite3_backup): Int
 
@@ -160,7 +158,7 @@ public expect fun sqlite3_backup_remaining(backup: sqlite3_backup): Int
 public expect fun sqlite3_backup_step(
     backup: sqlite3_backup,
     nPage: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -172,8 +170,8 @@ public expect fun sqlite3_bind_blob(
     index: Int,
     bytes: ByteArray,
     size: Int,
-    destroy: Sqlite3DestroyCallback<ByteArray>?
-): Sqlite3Result
+    destroy: SqliteDestroyCallback<ByteArray>?
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -185,8 +183,8 @@ public expect fun sqlite3_bind_blob64(
     index: Int,
     buffer: Buffer,
     size: Long,
-    destroy: Sqlite3DestroyCallback<Buffer>?
-): Sqlite3Result
+    destroy: SqliteDestroyCallback<Buffer>?
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -197,7 +195,7 @@ public expect fun sqlite3_bind_double(
     stmt: sqlite3_stmt,
     index: Int,
     value: Double
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -208,7 +206,7 @@ public expect fun sqlite3_bind_int(
     stmt: sqlite3_stmt,
     index: Int,
     value: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -219,7 +217,7 @@ public expect fun sqlite3_bind_int64(
     stmt: sqlite3_stmt,
     index: Int,
     value: Long
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -229,7 +227,7 @@ public expect fun sqlite3_bind_int64(
 public expect fun sqlite3_bind_null(
     stmt: sqlite3_stmt,
     index: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Return the number of wildcards that can be potentially bound to.
@@ -272,8 +270,8 @@ public expect fun <Data> sqlite3_bind_pointer(
     index: Int,
     data: Data,
     type: String?,
-    destroy: Sqlite3DestroyCallback<Data>?
-): Sqlite3Result
+    destroy: SqliteDestroyCallback<Data>?
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -284,7 +282,7 @@ public expect fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
     value: String
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -296,9 +294,9 @@ public expect fun sqlite3_bind_text64(
     index: Int,
     buffer: Buffer,
     size: Long,
-    encoding: Sqlite3TextEncoding.Set1,
-    destroy: Sqlite3DestroyCallback<Buffer>?
-): Sqlite3Result
+    encoding: SqliteTextEncoding.BindText,
+    destroy: SqliteDestroyCallback<Buffer>?
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -309,7 +307,7 @@ public expect fun sqlite3_bind_value(
     stmt: sqlite3_stmt,
     index: Int,
     value: sqlite3_value
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -320,7 +318,7 @@ public expect fun sqlite3_bind_zeroblob(
     stmt: sqlite3_stmt,
     index: Int,
     size: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Bind a blob value to an SQL statement variable.
@@ -331,7 +329,7 @@ public expect fun sqlite3_bind_zeroblob64(
     stmt: sqlite3_stmt,
     index: Int,
     size: ULong
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Query a blob handle for the size of the data.
@@ -345,7 +343,7 @@ public expect fun sqlite3_blob_bytes(blob: sqlite3_blob): Int
  *
  * [sqlite3_blob_close()](https://sqlite.org/c3ref/blob_close.html)
  */
-public expect fun sqlite3_blob_close(blob: sqlite3_blob): Sqlite3Result
+public expect fun sqlite3_blob_close(blob: sqlite3_blob): SqliteResultCode
 
 /**
  * Open a blob handle.
@@ -354,13 +352,13 @@ public expect fun sqlite3_blob_close(blob: sqlite3_blob): Sqlite3Result
  */
 public expect fun sqlite3_blob_open(
     db: sqlite3,
-    databaseName: String,
+    database: String,
     tableName: String,
     columnName: String,
-    rowIndex: Long,
-    flags: Sqlite3BlobOpenFlag,
-    outBlob: Sqlite3BlobOutputParam
-): Sqlite3Result
+    rowid: Long,
+    flags: SqliteBlobOpenFlag,
+    outBlob: sqlite3_blob.OutputParam
+): SqliteResultCode
 
 /**
  * Read data from a blob handle.
@@ -369,10 +367,10 @@ public expect fun sqlite3_blob_open(
  */
 public expect fun sqlite3_blob_read(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    output: ByteArray,
     size: Int,
     offset: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Move an existing blob handle to point to a different row of the same database table.
@@ -386,8 +384,8 @@ public expect fun sqlite3_blob_read(
  */
 public expect fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
-    rowIndex: Long
-): Sqlite3Result
+    rowid: Long
+): SqliteResultCode
 
 /**
  * Write data to a blob handle.
@@ -396,10 +394,10 @@ public expect fun sqlite3_blob_reopen(
  */
 public expect fun sqlite3_blob_write(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    input: ByteArray,
     size: Int,
     offset: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * This routine sets the busy callback for an SQLite database to the given callback function with
@@ -410,8 +408,8 @@ public expect fun sqlite3_blob_write(
 public expect fun <AppData> sqlite3_busy_handler(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3BusyHandlerCallback<AppData>?
-): Sqlite3Result
+    callback: SqliteBusyHandlerCallback<AppData>?
+): SqliteResultCode
 
 /**
  * This routine installs a default busy handler that waits for the specified number of milliseconds
@@ -422,7 +420,27 @@ public expect fun <AppData> sqlite3_busy_handler(
 public expect fun sqlite3_busy_timeout(
     db: sqlite3,
     millis: Int
-): Sqlite3Result
+): SqliteResultCode
+
+/**
+ * This routine installs a default busy handler that waits for the specified number of milliseconds
+ * before returning 0.
+ *
+ * [sqlite3_busy_timeout()](https://sqlite.org/c3ref/busy_timeout.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * The [timeout] is coerced to at most [Int.MAX_VALUE].
+ */
+public fun sqlite3_busy_timeout(
+    db: sqlite3,
+    timeout: Duration
+): SqliteResultCode = sqlite3_busy_timeout(
+    db = db,
+    millis = timeout.inWholeMilliseconds.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+)
 
 /**
  * Cancel a prior call to sqlite3_auto_extension.
@@ -435,7 +453,7 @@ public expect fun sqlite3_busy_timeout(
  *
  * [sqlite3_cancel_auto_extension()](https://sqlite.org/c3ref/cancel_auto_extension.html)
  */
-public expect fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int
+public expect fun sqlite3_cancel_auto_extension(callback: SqliteAutoExtensionCallback): Int
 
 /**
  * Return the number of changes in the most recent call to [sqlite3_exec].
@@ -456,7 +474,7 @@ public expect fun sqlite3_changes64(db: sqlite3): Long
  *
  * [sqlite3_clear_bindings()](https://sqlite.org/c3ref/clear_bindings.html)
  */
-public expect fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result
+public expect fun sqlite3_clear_bindings(stmt: sqlite3_stmt): SqliteResultCode
 
 /**
  * Two variations on the public interface for closing a database.
@@ -466,7 +484,7 @@ public expect fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result
  *
  * [sqlite3_close()](https://sqlite.org/c3ref/close.html)
  */
-public expect fun sqlite3_close(db: sqlite3): Sqlite3Result
+public expect fun sqlite3_close(db: sqlite3): SqliteResultCode
 
 /**
  * Two variations on the public interface for closing a database.
@@ -477,7 +495,7 @@ public expect fun sqlite3_close(db: sqlite3): Sqlite3Result
  *
  * [sqlite3_close_v2()](https://sqlite.org/c3ref/close.html)
  */
-public expect fun sqlite3_close_v2(db: sqlite3): Sqlite3Result
+public expect fun sqlite3_close_v2(db: sqlite3): SqliteResultCode
 
 /**
  * Register a collation sequence factory callback with the database handle [db].
@@ -488,8 +506,8 @@ public expect fun sqlite3_close_v2(db: sqlite3): Sqlite3Result
 public expect fun <AppData> sqlite3_collation_needed(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3CollationNeededCallback<AppData>?,
-): Sqlite3Result
+    callback: SqliteCollationNeededCallback<AppData>?,
+): SqliteResultCode
 
 /**
  * The following routines are used to access elements of the current row in the result set.
@@ -502,7 +520,7 @@ public expect fun sqlite3_column_blob(
 ): ByteArray?
 
 /**
- * Variant of [sqlite3_column_blob] that returns a [Buffer] instead.
+ * Variant of [sqlite3_column_blob] that returns a [ReadableBuffer] instead.
  */
 public fun sqlite3_column_buffer(
     stmt: sqlite3_stmt,
@@ -511,7 +529,7 @@ public fun sqlite3_column_buffer(
 
 /**
  * The following routines are used to access elements of the current row in the result set.
- * Return the ize of a BLOB or a UTF-8 TEXT result in bytes.
+ * Return the size of a BLOB or a UTF-8 TEXT result in bytes.
  *
  * [sqlite3_column_bytes()](https://sqlite.org/c3ref/column_blob.html)
  */
@@ -633,7 +651,7 @@ public expect fun sqlite3_column_text(
 public expect fun sqlite3_column_type(
     stmt: sqlite3_stmt,
     index: Int
-): Sqlite3DataType
+): SqliteDataType
 
 /**
  * The following routines are used to access elements of the current row in the result set.
@@ -660,7 +678,7 @@ public expect fun sqlite3_column_value(
 public expect fun <AppData> sqlite3_commit_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3CommitHookCallback<AppData>?
+    callback: SqliteCommitHookCallback<AppData>?
 )
 
 /**
@@ -685,7 +703,7 @@ public expect fun sqlite3_compileoption_used(optName: String): Int
  *
  * [sqlite3_complete()](https://sqlite.org/c3ref/complete.html)
  */
-public expect fun sqlite3_complete(sql: String): Sqlite3CompleteResult
+public expect fun sqlite3_complete(sql: String): SqliteCompleteResult
 
 /**
  * This API allows applications to modify the global configuration of the SQLite library at
@@ -697,14 +715,15 @@ public expect fun sqlite3_complete(sql: String): Sqlite3CompleteResult
  *
  * [sqlite3_config()](https://sqlite.org/c3ref/config.html)
  */
-public expect fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result
+public expect fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode
 
 /**
+ * Extract the user data from a sqlite3_context structure and return a pointer to it.
  * Extract the user data from a sqlite3_context structure and return a pointer to it.
  *
  * [sqlite3_context_db_handle()](https://sqlite.org/c3ref/context_db_handle.html)
  */
-public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
+public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3
 
 /**
  * Register a new collation sequence with the database handle [db].
@@ -722,10 +741,10 @@ public expect fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3?
 public fun <AppData> sqlite3_create_collation(
     db: sqlite3,
     name: String,
-    encoding: Sqlite3TextEncoding.Set0,
+    encoding: SqliteTextEncoding.CreateCollation,
     appData: AppData,
-    callback: Sqlite3CollationCompareCallback<AppData>?
-): Sqlite3Result = sqlite3_create_collation_v2(
+    callback: SqliteCollationCallback<AppData>?
+): SqliteResultCode = sqlite3_create_collation_v2(
     db = db,
     name = name,
     encoding = encoding,
@@ -742,11 +761,11 @@ public fun <AppData> sqlite3_create_collation(
 public expect fun <AppData> sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
-    encoding: Sqlite3TextEncoding.Set0,
+    encoding: SqliteTextEncoding.CreateCollation,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?,
-    callback: Sqlite3CollationCompareCallback<AppData>?
-): Sqlite3Result
+    destroy: SqliteDestroyCallback<in AppData>?,
+    callback: SqliteCollationCallback<in AppData>?
+): SqliteResultCode
 
 /**
  * Create new user functions.
@@ -758,7 +777,7 @@ public expect fun <AppData> sqlite3_create_collation_v2(
  * # Ksqlite
  *
  * This function differs from sqlite3_create_function_v2() in the destroy parameter only.
- * As KSQLite internally associates some resources with the function that need to be clenaed up
+ * As Ksqlite internally associates some resources with the function that need to be clenaed up
  * once the function is dropped, sqlite3_create_function_v2() is used in place of
  * sqlite3_create_function(). That being said, the semantic of both functions is the same as stated
  * by SQLite.
@@ -767,12 +786,12 @@ public fun <AppData> sqlite3_create_function(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: Sqlite3TextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
-    func: Sqlite3FunctionFuncCallback<AppData>?,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?
-): Sqlite3Result = sqlite3_create_function_v2(
+    func: SqliteFunctionFuncCallback<in AppData>?,
+    step: SqliteFunctionStepCallback<in AppData>?,
+    final: SqliteFunctionFinalCallback<in AppData>?
+): SqliteResultCode = sqlite3_create_function_v2(
     db = db,
     name = name,
     nArg = nArg,
@@ -793,13 +812,13 @@ public expect fun <AppData> sqlite3_create_function_v2(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: Sqlite3TextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
-    func: Sqlite3FunctionFuncCallback<AppData>?,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result
+    func: SqliteFunctionFuncCallback<in AppData>?,
+    step: SqliteFunctionStepCallback<in AppData>?,
+    final: SqliteFunctionFinalCallback<in AppData>?,
+    destroy: SqliteDestroyCallback<in AppData>?
+): SqliteResultCode
 
 /**
  * External API function used to create a new virtual-table module.
@@ -819,7 +838,7 @@ public fun <AppData> sqlite3_create_module(
     name: String,
     module: sqlite3_module<AppData>?,
     appData: AppData
-): Sqlite3Result = sqlite3_create_module_v2(
+): SqliteResultCode = sqlite3_create_module_v2(
     db = db,
     name = name,
     module = module,
@@ -837,8 +856,8 @@ public expect fun <AppData> sqlite3_create_module_v2(
     name: String,
     module: sqlite3_module<AppData>?,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?,
-): Sqlite3Result
+    destroy: SqliteDestroyCallback<in AppData>?,
+): SqliteResultCode
 
 /**
  * Create new user functions.
@@ -849,14 +868,14 @@ public expect fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: Sqlite3TextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    value: Sqlite3FunctionValueCallback<AppData>?,
-    inverse: Sqlite3FunctionInverseCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result
+    step: SqliteFunctionStepCallback<in AppData>?,
+    final: SqliteFunctionFinalCallback<in AppData>?,
+    value: SqliteFunctionValueCallback<in AppData>?,
+    inverse: SqliteFunctionInverseCallback<in AppData>?,
+    destroy: SqliteDestroyCallback<in AppData>?
+): SqliteResultCode
 
 /**
  * Return the number of values available from the current row of the currently executing statement
@@ -871,7 +890,7 @@ public expect fun sqlite3_data_count(stmt: sqlite3_stmt): Int
  *
  * [sqlite3_db_cacheflush()](https://sqlite.org/c3ref/db_cacheflush.html)
  */
-public expect fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
+public expect fun sqlite3_db_cacheflush(db: sqlite3): SqliteResultCode
 
 /**
  * Configuration settings for an individual database connection.
@@ -880,8 +899,8 @@ public expect fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result
  */
 public expect fun sqlite3_db_config(
     db: sqlite3,
-    option: Sqlite3DbConfigOption,
-): Sqlite3Result
+    option: SqliteDbConfigOption,
+): SqliteResultCode
 
 /**
  * Return the filename of the database associated with a database connection.
@@ -890,7 +909,7 @@ public expect fun sqlite3_db_config(
  */
 public expect fun sqlite3_db_filename(
     db: sqlite3,
-    name: String
+    database: String
 ): sqlite3_filename?
 
 /**
@@ -919,15 +938,15 @@ public expect fun sqlite3_db_name(
  */
 public expect fun sqlite3_db_readonly(
     db: sqlite3,
-    name: String
-): Int
+    database: String
+): SqliteDbReadonlyResult
 
 /**
  * Free up as much memory as we can from the given database connection.
  *
  * [sqlite3_db_release_memory()](https://sqlite.org/c3ref/db_release_memory.html)
  */
-public expect fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result
+public expect fun sqlite3_db_release_memory(db: sqlite3): SqliteResultCode
 
 /**
  * 32-bit variant of [sqlite3_db_status64].
@@ -936,11 +955,11 @@ public expect fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result
  */
 public expect fun sqlite3_db_status(
     db: sqlite3,
-    option: Sqlite3DbStatusOption,
+    option: SqliteDbStatusOption,
     outCurrent: Int32OutputParam?,
     outHighwater: Int32OutputParam?,
     resetFlag: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Query status information for a single database connection.
@@ -949,11 +968,11 @@ public expect fun sqlite3_db_status(
  */
 public expect fun sqlite3_db_status64(
     db: sqlite3,
-    option: Sqlite3DbStatusOption,
+    option: SqliteDbStatusOption,
     outCurrent: Int64OutputParam?,
     outHighwater: Int64OutputParam?,
     resetFlag: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * This function is used to set the schema of a virtual table. It is only  valid to call this
@@ -964,7 +983,7 @@ public expect fun sqlite3_db_status64(
 public expect fun sqlite3_declare_vtab(
     db: sqlite3,
     sql: String
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Convert zSchema to a MemDB and initialize its content.
@@ -973,12 +992,12 @@ public expect fun sqlite3_declare_vtab(
  */
 public expect fun sqlite3_deserialize(
     db: sqlite3,
-    schema: String?,
+    database: String?,
     buffer: Buffer,
     dbSize: Long,
     bufferSize: Long,
-    flags: Sqlite3DeserializeFlag?
-): Sqlite3Result
+    flags: SqliteDeserializeFlag?
+): SqliteResultCode
 
 /**
  * External API to drop all virtual-table modules, except those named on the azNames list.
@@ -988,7 +1007,7 @@ public expect fun sqlite3_deserialize(
 public expect fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Return the most recent error code generated by an SQLite routine. If NULL is passed to this
@@ -996,7 +1015,7 @@ public expect fun sqlite3_drop_modules(
  *
  * [sqlite3_errcode()](https://sqlite.org/c3ref/errcode.html)
  */
-public expect fun sqlite3_errcode(db: sqlite3): Int
+public expect fun sqlite3_errcode(db: sqlite3): SqliteResultCode
 
 /**
  * Return UTF-8 encoded English language explanation of the most recent error.
@@ -1017,7 +1036,7 @@ public expect fun sqlite3_error_offset(db: sqlite3): Int
  *
  * [sqlite3_errstr()](https://sqlite.org/c3ref/errcode.html)
  */
-public expect fun sqlite3_errstr(resultCode: Int): String?
+public expect fun sqlite3_errstr(resultCode: SqliteResultCode): String?
 
 /**
  * Execute SQL code. Return one of the SQLITE_ success/failure codes. Also write an error message
@@ -1033,8 +1052,8 @@ public expect fun <AppData> sqlite3_exec(
     sql: String,
     outErrorMessage: Utf8OutputParam?,
     appData: AppData,
-    callback: Sqlite3ExecCallback<AppData>?
-): Sqlite3Result
+    callback: SqliteExecCallback<AppData>?
+): SqliteResultCode
 
 /**
  * Return the SQL associated with a prepared statement with bound parameters expanded. Space to hold
@@ -1053,7 +1072,7 @@ public expect fun sqlite3_expanded_sql(stmt: sqlite3_stmt): String?
  *
  * [sqlite3_extended_errcode()](https://sqlite.org/c3ref/errcode.html)
  */
-public expect fun sqlite3_extended_errcode(db: sqlite3): Int
+public expect fun sqlite3_extended_errcode(db: sqlite3): SqliteResultCode
 
 /**
  * Enable or disable the extended result codes.
@@ -1063,20 +1082,51 @@ public expect fun sqlite3_extended_errcode(db: sqlite3): Int
 public expect fun sqlite3_extended_result_codes(
     db: sqlite3,
     enabled: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  *  Invoke the xFileControl method on a particular database.
  *
  * [sqlite3_file_control()](https://sqlite.org/c3ref/file_control.html)
- *
- * TODO app data
  */
 public expect fun sqlite3_file_control(
     db: sqlite3,
-    name: String?,
-    opcode: Sqlite3FileControlOpcode,
-): Sqlite3Result
+    database: String?,
+    opcode: SqliteFileControlOpcode,
+): SqliteResultCode
+
+/**
+ * Translate a filename that was handed to a VFS routine into the corresponding database, journal,
+ * or WAL file.
+ *
+ * It is an error to pass this routine a filename string that was not passed into the VFS from the
+ * SQLite core.  Doing so is similar to passing free() a pointer that was not obtained from
+ * malloc() - it is an error that we cannot easily detect but that will likely cause memory
+ * corruption.
+ */
+public expect fun sqlite3_filename_database(fileName: sqlite3_filename): String?
+
+/**
+ * Translate a filename that was handed to a VFS routine into the corresponding database, journal,
+ * or WAL file.
+ *
+ * It is an error to pass this routine a filename string that was not passed into the VFS from the
+ * SQLite core.  Doing so is similar to passing free() a pointer that was not obtained from
+ * malloc() - it is an error that we cannot easily detect but that will likely cause memory
+ * corruption.
+ */
+public expect fun sqlite3_filename_journal(fileName: sqlite3_filename): String?
+
+/**
+ * Translate a filename that was handed to a VFS routine into the corresponding database, journal,
+ * or WAL file.
+ *
+ * It is an error to pass this routine a filename string that was not passed into the VFS from the
+ * SQLite core.  Doing so is similar to passing free() a pointer that was not obtained from
+ * malloc() - it is an error that we cannot easily detect but that will likely cause memory
+ * corruption.
+ */
+public expect fun sqlite3_filename_wal(fileName: sqlite3_filename): String?
 
 /**
  * The following routine destroys a virtual machine that is created by the sqlite3_compile()
@@ -1088,7 +1138,7 @@ public expect fun sqlite3_file_control(
  *
  * [sqlite3_finalize()](https://sqlite.org/c3ref/finalize.html)
  */
-public expect fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result
+public expect fun sqlite3_finalize(stmt: sqlite3_stmt): SqliteResultCode
 
 /**
  * Free memory previously obtained from sqlite3Malloc().
@@ -1124,6 +1174,20 @@ public inline fun <reified Data : Any> sqlite3_get_auxdata(
 ): Data? = castOrThrows(userDataInternal(context)?.getAuxiliaryDataOrNull(context, index))
 
 /**
+ * Set the hard heap-size limit for the library. An argument of zero disables the hard heap limit.
+ * A negative argument is a no-op used to obtain the return value without affecting the hard heap
+ * limit.
+ *
+ * The return value is the value of the hard heap limit just prior to calling this interface.
+ *
+ * Setting the hard heap limit will also activate the soft heap limit and constrain the soft heap
+ * limit to be no more than the hard heap limit.
+ *
+ * [sqlite3_hard_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
+ */
+public expect fun sqlite3_hard_heap_limit64(limit: Long): Long
+
+/**
  * Initialize SQLite.
  *
  * This routine must be called to initialize the memory allocation, VFS, and mutex subsystems prior
@@ -1150,7 +1214,7 @@ public inline fun <reified Data : Any> sqlite3_get_auxdata(
  *
  * [sqlite3_initialize()](https://sqlite.org/c3ref/initialize.html)
  */
-public expect fun sqlite3_initialize(): Sqlite3Result
+public expect fun sqlite3_initialize(): SqliteResultCode
 
 /**
  * Cause any pending operation to stop at its earliest opportunity.
@@ -1179,7 +1243,7 @@ public expect fun sqlite3_key(
     db: sqlite3,
     key: ByteArray,
     nKey: Int,
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * sqlite3_key_v2() set the database key to use when accessing an encrypted database, and should
@@ -1194,10 +1258,10 @@ public expect fun sqlite3_key(
  */
 public expect fun sqlite3_key_v2(
     db: sqlite3,
-    dbName: String,
+    database: String,
     key: ByteArray,
     nKey: Int,
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * The sqlite3_keyword_check() interface checks to see whether or not [word] is a keyword, returning
@@ -1226,7 +1290,7 @@ public expect fun sqlite3_keyword_count(): Int
 public expect fun sqlite3_keyword_name(
     index: Int,
     outName: Utf8OutputParam,
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Return the ROWID of the most recent insert.
@@ -1249,7 +1313,7 @@ public expect fun sqlite3_libversion(): String
  *
  * [sqlite3_libversion_number()](https://sqlite.org/c3ref/libversion.html)
  */
-public expect fun sqlite3_libversion_number(db: sqlite3): Int
+public expect fun sqlite3_libversion_number(): Int
 
 /**
  * Change the value of a limit. Report the old value. If an invalid limit index is supplied,
@@ -1263,7 +1327,7 @@ public expect fun sqlite3_libversion_number(db: sqlite3): Int
  */
 public expect fun sqlite3_limit(
     db: sqlite3,
-    id: Sqlite3Limit,
+    id: SqliteRuntimeLimit,
     newVal: Int
 ): Int
 
@@ -1328,7 +1392,7 @@ public expect fun sqlite3_msize(buffer: Buffer): ULong
  */
 public expect fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt
+    stmt: sqlite3_stmt?
 ): sqlite3_stmt?
 
 /**
@@ -1338,8 +1402,8 @@ public expect fun sqlite3_next_stmt(
  */
 public expect fun sqlite3_open(
     fileName: String,
-    outDb: Sqlite3OutputParam
-): Sqlite3Result
+    outDb: sqlite3.OutputParam
+): SqliteResultCode
 
 /**
  * Open a new database handle.
@@ -1348,10 +1412,10 @@ public expect fun sqlite3_open(
  */
 public expect fun sqlite3_open_v2(
     fileName: String,
-    outDb: Sqlite3OutputParam,
-    flags: Sqlite3OpenFlag.Db,
+    outDb: sqlite3.OutputParam,
+    flags: SqliteOpenFlag.Db,
     vfs: String?
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Declare that a function has been overloaded by a virtual table.
@@ -1369,7 +1433,7 @@ public expect fun sqlite3_overload_function(
     db: sqlite3,
     name: String,
     nArg: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * To execute an SQL statement, it must first be compiled into a byte-code program using one of
@@ -1382,9 +1446,9 @@ public expect fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: ByteArray,
     maxBytes: Int,
-    outStmt: Sqlite3StmtOutputParam,
+    outStmt: sqlite3_stmt.OutputParam,
     outOffset: Int32OutputParam?
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * To execute an SQL statement, it must first be compiled into a byte-code program using one of
@@ -1396,8 +1460,8 @@ public expect fun sqlite3_prepare_v2(
 public expect fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
-    outStmt: Sqlite3StmtOutputParam
-): Sqlite3Result
+    outStmt: sqlite3_stmt.OutputParam
+): SqliteResultCode
 
 /**
  * To execute an SQL statement, it must first be compiled into a byte-code program using one of
@@ -1410,10 +1474,10 @@ public expect fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: ByteArray,
     maxBytes: Int,
-    flags: Sqlite3PrepareFlag?,
-    outStmt: Sqlite3StmtOutputParam,
+    flags: SqlitePrepareFlag?,
+    outStmt: sqlite3_stmt.OutputParam,
     outOffset: Int32OutputParam?
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * To execute an SQL statement, it must first be compiled into a byte-code program using one of
@@ -1425,9 +1489,9 @@ public expect fun sqlite3_prepare_v3(
 public expect fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: String,
-    flags: Sqlite3PrepareFlag?,
-    outStmt: Sqlite3StmtOutputParam
-): Sqlite3Result
+    flags: SqlitePrepareFlag?,
+    outStmt: sqlite3_stmt.OutputParam
+): SqliteResultCode
 
 /**
  * This function is designed to be called from within a pre-update callback only.
@@ -1472,7 +1536,7 @@ public expect fun sqlite3_preupdate_depth(db: sqlite3): Int
 public expect fun <AppData> sqlite3_preupdate_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3PreupdateHookCallback<AppData>?
+    callback: SqlitePreupdateHookCallback<AppData>?
 )
 
 /**
@@ -1484,8 +1548,8 @@ public expect fun <AppData> sqlite3_preupdate_hook(
 public expect fun sqlite3_preupdate_new(
     db: sqlite3,
     index: Int,
-    outValue: Sqlite3ValueOutputParam
-): Sqlite3Result
+    outValue: sqlite3_value.OutputParam
+): SqliteResultCode
 
 /**
  * This function is called from within a pre-update callback to retrieve a field of the row
@@ -1496,8 +1560,8 @@ public expect fun sqlite3_preupdate_new(
 public expect fun sqlite3_preupdate_old(
     db: sqlite3,
     index: Int,
-    outValue: Sqlite3ValueOutputParam
-): Sqlite3Result
+    outValue: sqlite3_value.OutputParam
+): SqliteResultCode
 
 /**
  * This routine sets the progress callback for an Sqlite database to the given callback function
@@ -1509,7 +1573,7 @@ public expect fun <AppData> sqlite3_progress_handler(
     db: sqlite3,
     nOps: Int,
     appData: AppData,
-    callback: Sqlite3ProgressHandlerCallback<AppData>?
+    callback: SqliteProgressHandlerCallback<AppData>?
 )
 
 /**
@@ -1557,7 +1621,7 @@ public expect fun sqlite3_rekey(
     db: sqlite3,
     key: ByteArray,
     nKey: Int,
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * sqlite3_rekey_v2() change the database encryption key.
@@ -1575,7 +1639,7 @@ public expect fun sqlite3_rekey_v2(
     dbName: String,
     key: ByteArray,
     nKey: Int,
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Attempt to release up to [size] bytes of non-essential memory currently held by SQLite. An
@@ -1595,7 +1659,7 @@ public expect fun sqlite3_release_memory(size: Int): Int
  *
  * [sqlite3_reset()](https://sqlite.org/c3ref/reset.html)
  */
-public expect fun sqlite3_reset(stmt: sqlite3_stmt): Sqlite3Result
+public expect fun sqlite3_reset(stmt: sqlite3_stmt): SqliteResultCode
 
 /**
  * Reset the automatic extension loading mechanism.
@@ -1613,7 +1677,7 @@ public expect fun sqlite3_result_blob(
     context: sqlite3_context,
     bytes: ByteArray,
     size: Int,
-    destroy: Sqlite3DestroyCallback<ByteArray>?
+    destroy: SqliteDestroyCallback<ByteArray>?
 )
 
 /**
@@ -1625,7 +1689,7 @@ public expect fun sqlite3_result_blob64(
     context: sqlite3_context,
     buffer: Buffer,
     size: Long,
-    destroy: Sqlite3DestroyCallback<Buffer>?
+    destroy: SqliteDestroyCallback<Buffer>?
 )
 
 /**
@@ -1655,7 +1719,7 @@ public expect fun sqlite3_result_error(
  */
 public expect fun sqlite3_result_error_code(
     context: sqlite3_context,
-    errorCode: Int
+    result: SqliteResultCode.Failure
 )
 
 /**
@@ -1708,7 +1772,7 @@ public expect fun <Data> sqlite3_result_pointer(
     context: sqlite3_context,
     data: Data,
     type: String?,
-    destroy: Sqlite3DestroyCallback<Data>?
+    destroy: SqliteDestroyCallback<Data>?
 )
 
 /**
@@ -1741,8 +1805,8 @@ public expect fun sqlite3_result_text64(
     context: sqlite3_context,
     buffer: Buffer,
     size: Long,
-    encoding: Sqlite3TextEncoding.Set1,
-    destroy: Sqlite3DestroyCallback<Buffer>?
+    encoding: SqliteTextEncoding.ResultText,
+    destroy: SqliteDestroyCallback<Buffer>?
 )
 
 /**
@@ -1773,7 +1837,7 @@ public expect fun sqlite3_result_zeroblob(
 public expect fun sqlite3_result_zeroblob64(
     context: sqlite3_context,
     size: ULong
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Register a callback to be invoked each time a transaction is rolled back by this database
@@ -1790,19 +1854,30 @@ public expect fun sqlite3_result_zeroblob64(
 public expect fun <AppData> sqlite3_rollback_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3RollbackHookCallback<AppData>?
+    callback: SqliteRollbackHookCallback<AppData>?
 )
 
 /**
  * Return the serialization of a database.
  *
- * [sqlite3_serialize()](https://sqlite.org/c3ref/serialize.html)
+ * [serializeInternal()](https://sqlite.org/c3ref/serialize.html)
  */
-public expect fun sqlite3_serialize(
+public fun sqlite3_serialize(
     db: sqlite3,
-    schema: String?,
-    flags: Sqlite3SerializeFlag?
-): Buffer?
+    database: String?,
+    flags: SqliteSerializeFlag?
+): SqliteSerializeResult {
+    val outSize = Int64OutputParam(0L)
+
+    val buffer = serializeInternal(db, database, outSize, flags)
+        ?: return SqliteSerializeResult.Failure(outSize.value)
+
+    if (flags != null && SqliteSerializeFlag.NOCOPY in flags) {
+        return SqliteSerializeResult.Immutable(buffer.readOnly())
+    }
+
+    return SqliteSerializeResult.Mutable(buffer)
+}
 
 /**
  * Set or clear the access authorization function.
@@ -1812,8 +1887,8 @@ public expect fun sqlite3_serialize(
 public expect fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3AuthorizerCallback<AppData>?
-): Sqlite3Result
+    callback: SqliteAuthorizerCallback<AppData>?
+): SqliteResultCode
 
 /**
  * Set the auxiliary data pointer and delete function, for the [index]-th argument to the
@@ -1831,7 +1906,7 @@ public inline fun <reified Data : Any> sqlite3_set_auxdata(
     context: sqlite3_context,
     index: Int,
     data: Data,
-    destroy: Sqlite3DestroyCallback<Data>?
+    destroy: SqliteDestroyCallback<Data>?
 ) {
     userDataInternal(context)?.setAuxiliaryData(context, index, data, destroy)
 }
@@ -1843,9 +1918,9 @@ public inline fun <reified Data : Any> sqlite3_set_auxdata(
  */
 public expect fun sqlite3_set_errmsg(
     db: sqlite3,
-    errorCode: Sqlite3Result.Failure,
-    message: String?
-): Sqlite3Result
+    errorCode: SqliteResultCode,
+    errorMessage: String?
+): SqliteResultCode
 
 /**
  * Set the value returned by the [sqlite3_last_insert_rowid] API function.
@@ -1866,7 +1941,71 @@ public expect fun sqlite3_set_last_insert_rowid(
  *
  * [sqlite3_shutdown()](https://sqlite.org/c3ref/initialize.html)
  */
-public expect fun sqlite3_shutdown(): Sqlite3Result
+public expect fun sqlite3_shutdown(): SqliteResultCode
+
+/**
+ * Return a +ve value if snapshot [snapshot1] is newer than [snapshot2]. A -ve value if [snapshot1]
+ * is older than [snapshot2] and zero if [snapshot1] and [snapshot2] are the same snapshot.
+ *
+ * [sqlite3_snapshot_cmp()](https://sqlite.org/c3ref/snapshot_cmp.html)
+ */
+public expect fun sqlite3_snapshot_cmp(
+    snapshot1: sqlite3_snapshot,
+    snapshot2: sqlite3_snapshot
+): Int
+
+/**
+ * Free a snapshot handle obtained from [sqlite3_snapshot_get].
+ *
+ * [sqlite3_snapshot_free()](https://sqlite.org/c3ref/snapshot_free.html)
+ */
+public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot)
+
+/**
+ * Obtain a snapshot handle for the snapshot of database zDb currently being read by handle db.
+ *
+ * [sqlite3_snapshot_get()](https://sqlite.org/c3ref/snapshot_get.html)
+ */
+public expect fun sqlite3_snapshot_get(
+    db: sqlite3,
+    name: String?,
+    outSnapshot: sqlite3_snapshot.OutputParam
+): SqliteResultCode
+
+/**
+ * Open a read-transaction on the snapshot identified by [snapshot].
+ *
+ * [sqlite3_snapshot_open()](https://sqlite.org/c3ref/snapshot_open.html)
+ */
+public expect fun sqlite3_snapshot_open(
+    db: sqlite3,
+    name: String?,
+    snapshot: sqlite3_snapshot
+): SqliteResultCode
+
+/**
+ * Recover as many snapshots as possible from the wal file associated with schema zDb of database
+ * [db].
+ *
+ * [sqlite3_snapshot_recover()](https://sqlite.org/c3ref/snapshot_recover.html)
+ */
+public expect fun sqlite3_snapshot_recover(
+    db: sqlite3,
+    name: String?
+): SqliteResultCode
+
+/**
+ * Set the soft heap-size limit for the library. An argument of zero disables the limit. A negative
+ * argument is a no-op used to obtain the return value.
+ *
+ * The return value is the value of the heap limit just before this interface was called.
+ *
+ * If the hard heap limit is enabled, then the soft heap limit cannot  be disabled nor raised above
+ * the hard heap limit.
+ *
+ * [sqlite3_soft_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
+ */
+public expect fun sqlite3_soft_heap_limit64(limit: Long): Long
 
 /**
  * Return a string that identifies the specific version of the source code that was used to build
@@ -1889,11 +2028,11 @@ public expect fun sqlite3_sql(stmt: sqlite3_stmt): String
  * [sqlite3_status()](https://sqlite.org/c3ref/status.html)
  */
 public expect fun sqlite3_status(
-    option: Sqlite3StatusOption,
+    option: SqliteStatusOption,
     outCurrent: Int32OutputParam,
     outHighwater: Int32OutputParam,
     resetFlag: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Query status information.
@@ -1901,11 +2040,11 @@ public expect fun sqlite3_status(
  * [sqlite3_status64()](https://sqlite.org/c3ref/status.html)
  */
 public expect fun sqlite3_status64(
-    option: Sqlite3StatusOption,
+    option: SqliteStatusOption,
     outCurrent: Int64OutputParam,
     outHighwater: Int64OutputParam,
     resetFlag: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Execute the statement [stmt], either until a row of data is ready, the statement is completely
@@ -1913,7 +2052,7 @@ public expect fun sqlite3_status64(
  *
  * [sqlite3_step()](https://sqlite.org/c3ref/step.html)
  */
-public expect fun sqlite3_step(stmt: sqlite3_stmt): Sqlite3Result
+public expect fun sqlite3_step(stmt: sqlite3_stmt): SqliteResultCode
 
 /**
  * Return true if the prepared statement is in need of being reset.
@@ -1929,15 +2068,15 @@ public expect fun sqlite3_stmt_busy(stmt: sqlite3_stmt): Int
  */
 public expect fun sqlite3_stmt_explain(
     stmt: sqlite3_stmt,
-    mode: Sqlite3ExplainMode
-): Sqlite3Result
+    mode: SqliteExplainMode
+): SqliteResultCode
 
 /**
  * Return 1 if the statement is an EXPLAIN and return 2 if the statement is an EXPLAIN QUERY PLAN.
  *
  * [sqlite3_stmt_isexplain()](https://sqlite.org/c3ref/stmt_isexplain.html)
  */
-public expect fun sqlite3_stmt_isexplain(stmt: sqlite3_stmt): Sqlite3ExplainMode
+public expect fun sqlite3_stmt_isexplain(stmt: sqlite3_stmt): SqliteExplainMode
 
 /**
  * Return true if the prepared statement is guaranteed to not modify the database.
@@ -1953,7 +2092,7 @@ public expect fun sqlite3_stmt_readonly(stmt: sqlite3_stmt): Int
  */
 public expect fun sqlite3_stmt_status(
     stmt: sqlite3_stmt,
-    counter: Sqlite3StatementStatusCounter,
+    counter: SqliteStatementStatusCounter,
     resetFlag: Int
 ): Int
 
@@ -2000,7 +2139,7 @@ public expect fun sqlite3_strlike(
 public expect fun sqlite3_strnicmp(
     first: String,
     second: String,
-    maxCharacters: Int
+    maxBytes: Int
 ): Int
 
 /**
@@ -2022,11 +2161,17 @@ public expect fun sqlite3_table_column_metadata(
     tableName: String,
     columnName: String,
     outDataType: Utf8OutputParam?,
-    outCollationName: Utf8OutputParam?,
+    outCollationSequence: Utf8OutputParam?,
     outNotNull: Int32OutputParam?,
     outPrimaryKey: Int32OutputParam?,
     outAutoIncrement: Int32OutputParam?
-): Sqlite3Result
+): SqliteResultCode
+
+/**
+ * The sqlite3_threadsafe() function returns zero if and only if SQLite was compiled with mutexing
+ * code omitted due to the SQLITE_THREADSAFE compile-time option being set to 0.
+ */
+public expect fun sqlite3_threadsafe(): Int
 
 /**
  * Return the number of changes since the database handle was opened.
@@ -2049,21 +2194,21 @@ public expect fun sqlite3_total_changes64(db: sqlite3): Long
  */
 public expect fun <AppData> sqlite3_trace_v2(
     db: sqlite3,
-    mask: Sqlite3TraceCode?,
+    mask: SqliteTraceEventCode?,
     appData: AppData,
-    callback: Sqlite3TraceCallback<AppData>?
-): Sqlite3Result
+    callback: SqliteTraceCallback<AppData>?
+): SqliteResultCode
 
 /**
  * Return the transaction state for a single database, or the maximum transaction state over all
- * attached databases if [schema] is null.
+ * attached databases if [database] is null.
  *
  * [sqlite3_txn_state()](https://sqlite.org/c3ref/txn_state.html)
  */
 public expect fun sqlite3_txn_state(
     db: sqlite3,
-    schema: String?
-): Sqlite3TransactionState?
+    database: String?
+): SqliteTransactionState?
 
 /**
  * Register a callback to be invoked each time a row is updated, inserted or deleted using this
@@ -2080,7 +2225,7 @@ public expect fun sqlite3_txn_state(
 public expect fun <AppData> sqlite3_update_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3UpdateHookCallback<AppData>?
+    callback: SqliteUpdateHookCallback<AppData>?
 )
 
 /**
@@ -2149,7 +2294,7 @@ public inline fun <reified AppData : Any> sqlite3_user_data(context: sqlite3_con
 public expect fun sqlite3_value_blob(value: sqlite3_value): ByteArray?
 
 /**
- * Variant of [sqlite3_value_blob] that returns a [Buffer] instead.
+ * Variant of [sqlite3_value_blob] that returns a [ReadableBuffer] instead.
  */
 public fun sqlite3_value_buffer(value: sqlite3_value): ReadableBuffer? =
     valueBufferInternal(value)?.readOnly()
@@ -2180,7 +2325,7 @@ public expect fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value?
  *
  * [sqlite3_value_encoding()](https://sqlite.org/c3ref/value_encoding.html)
  */
-public expect fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2?
+public expect fun sqlite3_value_encoding(value: sqlite3_value): SqliteTextEncoding.ValueEncoding
 
 /**
  * Free an sqlite3_value object previously obtained from sqlite3_value_dup().
@@ -2224,14 +2369,14 @@ public expect fun sqlite3_value_nochange(value: sqlite3_value): Int
  *
  * [sqlite3_value_numeric_type()](https://sqlite.org/c3ref/value_blob.html)
  */
-public expect fun sqlite3_value_numeric_type(value: sqlite3_value): Sqlite3DataType
+public expect fun sqlite3_value_numeric_type(value: sqlite3_value): SqliteDataType
 
 /**
  * Extract information from sqlite3_value structure.
  *
  * [sqlite3_value_pointer()](https://sqlite.org/c3ref/value_blob.html)
  */
-public inline fun <reified Data> sqlite3_value_pointer(
+public inline fun <reified Data : Any> sqlite3_value_pointer(
     value: sqlite3_value,
     type: String?
 ): Data? = castOrThrows(valuePointerInternal(value, type))
@@ -2255,7 +2400,7 @@ public expect fun sqlite3_value_text(value: sqlite3_value): String?
  *
  * [sqlite3_value_type()](https://sqlite.org/c3ref/value_blob.html)
  */
-public expect fun sqlite3_value_type(value: sqlite3_value): Sqlite3DataType
+public expect fun sqlite3_value_type(value: sqlite3_value): SqliteDataType
 
 /**
  * Locate a VFS by name. If no name is given, simply return the first VFS on the list.
@@ -2273,14 +2418,14 @@ public expect fun sqlite3_vfs_find(name: String?): sqlite3_vfs?
 public expect fun sqlite3_vfs_register(
     vfs: sqlite3_vfs,
     makeDefault: Int
-): Sqlite3Result
+): SqliteResultCode
 
 /**
  * Unregister a VFS so that it is no longer accessible.
  *
  * [sqlite3_vfs_find()](https://sqlite.org/c3ref/vfs_find.html)
  */
-public expect fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): Sqlite3Result
+public expect fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): SqliteResultCode
 
 /**
  * Return the collating sequence for a constraint passed into xBestIndex.
@@ -2290,7 +2435,7 @@ public expect fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): Sqlite3Result
 public expect fun sqlite3_vtab_collation(
     info: sqlite3_index_info,
     index: Int
-): String?
+): String
 
 /**
  * Call from within the xCreate() or xConnect() methods to provide the SQLite core with additional
@@ -2300,8 +2445,8 @@ public expect fun sqlite3_vtab_collation(
  */
 public expect fun sqlite3_vtab_config(
     db: sqlite3,
-    option: Sqlite3VTabConfigOption
-): Sqlite3Result
+    option: SqliteVtabConfigOption
+): SqliteResultCode
 
 /**
  * Return true if ORDER BY clause may be handled as DISTINCT.
@@ -2331,8 +2476,8 @@ public expect fun sqlite3_vtab_in(
  */
 public expect fun sqlite3_vtab_in_first(
     value: sqlite3_value,
-    outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result
+    outValue: sqlite3_value.OutputParam?
+): SqliteResultCode
 
 /**
  * Set the iterator value [value] to point to the next value in the set.
@@ -2342,8 +2487,8 @@ public expect fun sqlite3_vtab_in_first(
  */
 public expect fun sqlite3_vtab_in_next(
     value: sqlite3_value,
-    outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result
+    outValue: sqlite3_value.OutputParam?
+): SqliteResultCode
 
 /**
  * If this routine is invoked from within an xColumn method of a virtual table, then it returns true
@@ -2367,9 +2512,9 @@ public expect fun sqlite3_vtab_nochange(context: sqlite3_context): Int
  *
  * The results of this routine are undefined unless it is called from  within an xUpdate method.
  *
- * [sqlite3_vtab_on_conflict()](https://sqlite.org/c3ref/vtab_on_conflict.html)
+ * [sqlite3_vtab_on_conflict()](https://sOnqlite.org/c3ref/vtab_on_conflict.html)
  */
-public expect fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result
+public expect fun sqlite3_vtab_on_conflict(db: sqlite3): SqliteConflictResolutionMode
 
 /**
  * This interface is callable from within the xBestIndex callback only.
@@ -2382,5 +2527,64 @@ public expect fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result
 public expect fun sqlite3_vtab_rhs_value(
     info: sqlite3_index_info,
     index: Int,
-    outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result
+    outValue: sqlite3_value.OutputParam?
+): SqliteResultCode
+
+/**
+ * Configure an [sqlite3_wal_hook] callback to automatically checkpoint a database after committing
+ * a transaction if there are [nFrame] or more frames in the log file. Passing zero or a negative
+ * value as the [nFrame] parameter disables automatic checkpoints entirely.
+ *
+ * The callback registered by this function replaces any existing callback egistered using
+ * [sqlite3_wal_hook]. Likewise, registering a callback using [sqlite3_wal_hook] disables the
+ * automatic checkpoint mechanism configured by this function.
+ *
+ * [sqlite3_wal_autocheckpoint()](https://sqlite.org/c3ref/wal_autocheckpoint.html)
+ */
+public expect fun sqlite3_wal_autocheckpoint(
+    db: sqlite3,
+    nFrame: Int
+): SqliteResultCode
+
+/**
+ * Checkpoint database [database]. If [database] is NULL, or if the buffer [database] points to
+ * contains a zero-length string, all attached databases are checkpointed.
+ *
+ * [sqlite3_wal_checkpoint()](https://sqlite.org/c3ref/wal_checkpoint.html)
+ */
+public expect fun sqlite3_wal_checkpoint(
+    db: sqlite3,
+    database: String?
+): SqliteResultCode
+
+/**
+ * Checkpoint database [database]. If [database] is NULL, or if the buffer [database] points to
+ * contains a zero-length string, all attached databases are checkpointed.
+ *
+ * [sqlite3_wal_checkpoint_v2()](https://sqlite.org/c3ref/wal_checkpoint_v2.html)
+ */
+public expect fun sqlite3_wal_checkpoint_v2(
+    db: sqlite3,
+    database: String?,
+    mode: SqliteCheckpointMode,
+    outNLog: Int32OutputParam?,
+    outNCkpt: Int32OutputParam?
+): SqliteResultCode
+
+/**
+ * Register a callback to be invoked each time a transaction is written into the write-ahead-log by
+ * this database connection.
+ *
+ * [sqlite3_wal_hook()](https://sqlite.org/c3ref/wal_hook.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *                                              Ksqlite
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The previous hook is returned by SQLite but is not returned by KSQlite for now.
+ */
+public expect fun <AppData> sqlite3_wal_hook(
+    db: sqlite3,
+    appData: AppData,
+    callback: SqliteWalHookCallback<AppData>?
+)

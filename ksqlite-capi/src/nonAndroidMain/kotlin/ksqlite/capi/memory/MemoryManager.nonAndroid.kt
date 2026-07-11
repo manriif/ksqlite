@@ -2,7 +2,7 @@ package ksqlite.capi.memory
 
 import co.touchlab.stately.concurrency.close
 import co.touchlab.stately.concurrency.withLock
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -129,18 +129,29 @@ internal abstract class MemoryManagerBase : AutoCloseable {
     }
 
     /**
+     * Clears the disposable associated with [key] if any and if [key] is not `null`.
+     */
+    fun clearDisposable(key: String) {
+        val disposable = disposableLock.withLock {
+            keyedDisposables[key]?.let(disposables::get)
+        }
+
+        disposable?.dispose()
+    }
+
+    /**
      * [Disposable] which can self removes from [disposables].
      * [destroy] should be used to make the actual disposing.
      */
     protected abstract inner class AutoDisposable<AppData>(
         private val id: Long,
-        private val destructor: Sqlite3DestroyCallback<AppData>?
+        private val destructor: SqliteDestroyCallback<AppData>?
     ) : Disposable {
 
         var disposableKey: String? = null
 
         /**
-         * The associated client data.
+         * The associated application data.
          * */
         abstract val appData: AppData
 
@@ -152,15 +163,18 @@ internal abstract class MemoryManagerBase : AutoCloseable {
         /**
          * Invokes destructor and releases the resource(s).
          */
-        fun destroy() {
-            destructor?.apply(appData)
+        fun destroy(callDestructor: Boolean = true) {
             release()
+
+            if (callDestructor) {
+                destructor?.apply(appData)
+            }
         }
 
         /**
          * Removes `this` from the [disposables] and [destroy] the instance.
          */
-        final override fun dispose() {
+        final override fun dispose(callDestructor: Boolean) {
             val instance = checkNotNull(disposableLock.withLock {
                 disposables.remove(
                     when (val key = disposableKey) {
@@ -177,7 +191,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
             }
 
             check(instance === this) { "Unexpected disposable instance" }
-            destroy()
+            destroy(callDestructor)
         }
     }
 }
@@ -187,8 +201,5 @@ internal abstract class MemoryManagerBase : AutoCloseable {
  *
  * Provides helper functions to obtain native pointers to long-lived object and ensuring no object
  * leak.
- *
- * Note that this is meaningless on Android, but declaring it here reduce the source code
- * complexity.
  */
 internal expect class MemoryManager() : MemoryManagerBase

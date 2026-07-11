@@ -6,11 +6,7 @@ import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.value
-import ksqlite.capi.types.s3
-import ksqlite.capi.types.s3_api
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_api_routines
-import ksqlite.sqlite3_mprintf
+import ksqlite.foreign.sqlite3_mprintf
 
 /**
  * Static C function for [autoExtensionHandler].
@@ -26,7 +22,7 @@ private fun autoExtensionHandler(
     pApi: CPointer<s3_api>?
 ) = autoExtensionHandle(
     db = sqlite3(db!!),
-    api = sqlite3_api_routines(pApi!!),
+    api = pApi,
     errorPointer = pzErrMsg
 ) { errorPointer, message ->
     errorPointer.pointed.value = sqlite3_mprintf(message)

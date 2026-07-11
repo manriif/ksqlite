@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.DestructorCallback
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.foreign.callbacks.DestructorCallback
 
 /**
  * Handler for native callback.
@@ -29,10 +29,10 @@ internal abstract class Handler<Data : Any, AppData> {
 }
 
 /**
- * Handler for [Sqlite3DestroyCallback].
+ * Handler for [SqliteDestroyCallback].
  */
 private class DestructorHandler<AppData> :
-    Handler<Sqlite3DestroyCallback<AppData>, AppData>(),
+    Handler<SqliteDestroyCallback<AppData>, AppData>(),
     DestructorCallback {
 
     override fun apply() = handle { callback, appData ->
@@ -66,7 +66,7 @@ internal fun <Data : Any, AppData, H : Handler<Data, AppData>> callbackHandler(
  */
 internal fun <AppData> destructorHandler(
     appData: AppData,
-    destructor: Sqlite3DestroyCallback<AppData>?
+    destructor: SqliteDestroyCallback<AppData>?
 ): DestructorCallback? {
     if (destructor == null) {
         return null

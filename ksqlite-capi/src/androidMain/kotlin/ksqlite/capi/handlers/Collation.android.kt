@@ -1,19 +1,19 @@
 package ksqlite.capi.handlers
 
-import ksqlite.callbacks.CollationNeededCallback
-import ksqlite.callbacks.CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.convertTextEncoding
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.callbacks.SqliteCollationCallback
+import ksqlite.capi.callbacks.SqliteCollationNeededCallback
+import ksqlite.capi.sqlite3
+import ksqlite.foreign.callbacks.CollationCallback
+import ksqlite.foreign.callbacks.CollationNeededCallback
+import ksqlite.types.internal.convertTextEncoding
 
 /**
  * Handler for [ksqlite.capi.sqlite3_create_collation] and
  * [ksqlite.capi.sqlite3_create_collation_v2].
  */
-internal class CollationCompareHandler<AppData> :
-    Handler<Sqlite3CollationCompareCallback<AppData>, AppData>(),
-    CollationCompareCallback {
+internal class CollationHandler<AppData> :
+    Handler<SqliteCollationCallback<AppData>, AppData>(),
+    CollationCallback {
 
     override fun apply(
         lhs: ByteArray,
@@ -31,7 +31,7 @@ internal class CollationCompareHandler<AppData> :
  * Handler for [ksqlite.capi.sqlite3_collation_needed].
  */
 internal class CollationNeededHandler<AppData> :
-    Handler<Sqlite3CollationNeededCallback<AppData>, AppData>(),
+    Handler<SqliteCollationNeededCallback<AppData>, AppData>(),
     CollationNeededCallback {
 
     override fun apply(

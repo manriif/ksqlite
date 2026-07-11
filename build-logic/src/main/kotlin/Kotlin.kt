@@ -10,6 +10,11 @@ import org.jetbrains.kotlin.gradle.plugin.HasProject
  */
 val SourceSetMainNatives = listOf(
     "nativeMain",
+    "androidNativeMain",
+    "androidNativeArm32Main",
+    "androidNativeArm64Main",
+    "androidNativeX86Main",
+    "androidNativeX64Main",
     "appleMain",
     "macosMain",
     "macosX64Main",
@@ -56,13 +61,11 @@ fun <Extension> Extension.configureKotlin()
     compilerOptions {
         languageVersion = KotlinVersion.KOTLIN_2_4
         apiVersion = KotlinVersion.KOTLIN_2_4
-        //allWarningsAsErrors = true
+        allWarningsAsErrors = true
         progressiveMode = true
 
         freeCompilerArgs.run {
-            add("-Xcontext-parameters")
             add("-Xexpect-actual-classes")
-            add("-Xexplicit-backing-fields")
             add("-Xreturn-value-checker=full")
             add("-Xcontext-sensitive-resolution")
         }

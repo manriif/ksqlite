@@ -9,7 +9,7 @@ import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.cstr
 import kotlinx.cinterop.pin
 import kotlinx.cinterop.toLong
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 
 internal actual class MemoryManager : MemoryManagerBase() {
 
@@ -28,9 +28,10 @@ internal actual class MemoryManager : MemoryManagerBase() {
         key: String?,
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>?
+        destructor: SqliteDestroyCallback<AppData>?
     ): COpaquePointer? = notClosed {
         if (data == null && destructor == null) {
+            key?.let(::clearDisposable)
             null
         } else {
             registerDisposable(key) { StableRefReference(it, destructor, data, appData) }
@@ -49,7 +50,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     fun <AppData> stableRefPointer(
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>? = null,
+        destructor: SqliteDestroyCallback<AppData>? = null,
     ): COpaquePointer? = commonStableRefPointer(null, data, appData, destructor)
 
     /**
@@ -65,7 +66,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         key: String,
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>? = null
+        destructor: SqliteDestroyCallback<AppData>? = null
     ): COpaquePointer? = commonStableRefPointer(key, data, appData, destructor)
 
     /**
@@ -75,7 +76,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     internal fun byteArrayPointer(
         value: ByteArray,
-        destructor: Sqlite3DestroyCallback<ByteArray>? = null
+        destructor: SqliteDestroyCallback<ByteArray>? = null
     ): CPointer<ByteVar> = notClosed {
         registerDisposable { ByteArrayDisposable(it, destructor, value) }.pointer
     }
@@ -99,7 +100,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class StableRefReference<AppData>(
         id: Long,
-        destructor: Sqlite3DestroyCallback<AppData>?,
+        destructor: SqliteDestroyCallback<AppData>?,
         override val data: Any?,
         override val appData: AppData
     ) : AutoDisposable<AppData>(id, destructor),
@@ -117,7 +118,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class ByteArrayDisposable(
         id: Long,
-        destructor: Sqlite3DestroyCallback<ByteArray>?,
+        destructor: SqliteDestroyCallback<ByteArray>?,
         override val appData: ByteArray
     ) : AutoDisposable<ByteArray>(id, destructor) {
 

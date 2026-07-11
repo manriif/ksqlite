@@ -1,7 +1,7 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
-import ksqlite.`sqlite3_busy_handler$x0`
+import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
+import ksqlite.foreign.`sqlite3_busy_handler$x0`
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 
@@ -18,7 +18,7 @@ internal class BusyHandlerHandler :
     override fun apply(
         refPointer: MemorySegment,
         count: Int,
-    ): Int = handle(refPointer) { callback: Sqlite3BusyHandlerCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteBusyHandlerCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             count = count

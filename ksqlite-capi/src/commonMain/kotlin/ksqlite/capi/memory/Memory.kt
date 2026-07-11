@@ -9,11 +9,10 @@ internal typealias Lock = co.touchlab.stately.concurrency.Lock
 public interface MemoryScope
 
 /**
- * Clears all the resources owned by ksqlite.
- * It is recommended to close all opened sqlite database connections before calling that function.
- *
- * If all the resources have been correctly cleaned up before that method call, `true` is returned.
- * If `false` is returned then either some resource(s) have not been cleaned up correctly or
- * something escaped its owner (or both).
+ * Hex format for native address printing.
  */
-public expect fun ksqliteCleanup(): Boolean
+internal val NativeAddressHexFormat = HexFormat {
+    number {
+        removeLeadingZeros = true
+    }
+}

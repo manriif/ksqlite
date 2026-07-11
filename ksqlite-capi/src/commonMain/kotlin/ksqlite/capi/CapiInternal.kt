@@ -1,10 +1,9 @@
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
+import ksqlite.capi.memory.Int64OutputParam
+import ksqlite.types.SqliteSerializeFlag
 
 ///////////////////////////////////////////////////////////////////////////
 // Buffer
@@ -24,7 +23,7 @@ internal expect fun columnBufferInternal(
 internal expect fun valueBufferInternal(value: sqlite3_value): Buffer?
 
 ///////////////////////////////////////////////////////////////////////////
-// Non-canonical behaviour
+// Custom handling
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -56,7 +55,7 @@ internal expect fun getAuxdataInternal(
 internal expect fun setAuxdataInternal(
     context: sqlite3_context,
     index: Int,
-    destroy: Sqlite3DestroyCallback<Nothing?>
+    destroy: SqliteDestroyCallback<Nothing?>
 ): Long?
 
 /**
@@ -64,6 +63,16 @@ internal expect fun setAuxdataInternal(
  */
 @PublishedApi
 internal expect fun userDataInternal(context: sqlite3_context): ApplicationDefinedFunction<*>?
+
+/**
+ * Returns a buffer to the serialized database.
+ */
+internal expect fun serializeInternal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer?
 
 /**
  * Returns the pointer value.
@@ -89,7 +98,8 @@ internal inline fun <reified Data> castOrThrows(instance: Any?): Data? {
 
     if (instance !is Data) {
         throw ClassCastException(
-            "Expected type (${Data::class}) differs from actual type (${instance::class})"
+            "Expected type (${Data::class.simpleName}) differs from actual type " +
+                    "(${instance::class.simpleName})"
         )
     }
 

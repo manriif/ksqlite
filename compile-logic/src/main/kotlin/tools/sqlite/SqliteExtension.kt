@@ -7,7 +7,7 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 
 /**
- * Extension for Sqlite.
+ * Extension for SQLite.
  */
 interface SqliteExtension :
     KompleToolExtension,

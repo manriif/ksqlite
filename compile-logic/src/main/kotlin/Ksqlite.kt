@@ -1,11 +1,8 @@
 import komple.gradle.task.configureWithContext
-import komple.task.TaskContext
+import komple.task.TaskStateTracker
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskContainer
-import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithAction
-import org.gradle.kotlin.dsl.RegisteringDomainObjectDelegateProviderWithTypeAndAction
-import org.gradle.kotlin.dsl.registering
-import kotlin.reflect.KClass
+import org.gradle.kotlin.dsl.register
 
 ///////////////////////////////////////////////////////////////////////////
 // Constants
@@ -33,7 +30,7 @@ fun Iterable<String>.ksqlitePrefixed(joint: Char = '_'): List<String> {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * List of typedefs exposed in ksqlite.h
+ * List of typedefs exposed by `ksqlite.h`.
  */
 val KsqliteTypedefs = listOf(
     "xLog",
@@ -59,38 +56,26 @@ val KsqliteFunctions = listOf(
 // Tasks
 ///////////////////////////////////////////////////////////////////////////
 
-private const val KSQLITE_TASK_GROUP = "ksqlite"
+const val KSQLITE_TASK_GROUP = "ksqlite"
 
-fun Task.configureKsqliteTask(cacheable: Boolean) {
+/**
+ * Registers a Ksqlite task.
+ */
+inline fun <reified T : Task> TaskContainer.registerKsqlite(
+    name: String,
+    noinline action: T.() -> Unit
+) = register<T>(name) {
     group = KSQLITE_TASK_GROUP
-
-    if (cacheable) {
-        outputs.upToDateWhen { true }
-    }
+    action()
 }
 
 /**
- * Property delegate for registering new elements in the container.
+ * Registers a Ksqlite task.
  */
-fun TaskContainer.registeringKsqlite(
-    cacheable: Boolean = true,
-    action: Task.(context: TaskContext) -> Unit
-): RegisteringDomainObjectDelegateProviderWithAction<out TaskContainer, Task> {
-    return registering {
-        configureKsqliteTask(cacheable)
-        configureWithContext(action)
-    }
-}
-
-/**
- * Property delegate for registering new elements in the container.
- */
-inline fun <reified T : Task> TaskContainer.registeringKsqlite(
-    cacheable: Boolean = true,
-    noinline action: T.(context: TaskContext) -> Unit
-): RegisteringDomainObjectDelegateProviderWithTypeAndAction<out TaskContainer, T> {
-    return registering(T::class) {
-        configureKsqliteTask(cacheable)
-        configureWithContext(action)
-    }
+inline fun <reified T : Task> TaskContainer.registerKsqliteTracked(
+    name: String,
+    noinline action: T.(tracker: TaskStateTracker) -> Unit
+) = register<T>(name) {
+    group = KSQLITE_TASK_GROUP
+    configureWithContext(action)
 }

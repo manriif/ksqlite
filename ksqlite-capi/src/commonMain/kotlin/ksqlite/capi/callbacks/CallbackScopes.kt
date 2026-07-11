@@ -1,31 +1,31 @@
 package ksqlite.capi.callbacks
 
-import ksqlite.capi.types.Sqlite3Result
+import ksqlite.types.SqliteResultCode
 
 ///////////////////////////////////////////////////////////////////////////
 // Auto extension
 ///////////////////////////////////////////////////////////////////////////
 
-internal data object AutoExtensionSuccessResult: Sqlite3AutoExtensionCallback.Result
+internal data object AutoExtensionSuccessResult : SqliteAutoExtensionCallback.Result
 
 internal data class AutoExtensionFailureResult(
-    val result: Sqlite3Result.Failure,
+    val result: SqliteResultCode.Failure,
     val message: String
-): Sqlite3AutoExtensionCallback.Result
+) : SqliteAutoExtensionCallback.Result
 
 /**
- * Implementation of [Sqlite3AutoExtensionCallback.Scope].
+ * Implementation of [SqliteAutoExtensionCallback.Scope].
  */
-internal object AutoExtensionCallbackScope: Sqlite3AutoExtensionCallback.Scope {
+internal object AutoExtensionCallbackScope : SqliteAutoExtensionCallback.Scope {
 
-    override fun success(): Sqlite3AutoExtensionCallback.Result {
+    override fun success(): SqliteAutoExtensionCallback.Result {
         return AutoExtensionSuccessResult
     }
 
     override fun failure(
-        result: Sqlite3Result.Failure,
+        result: SqliteResultCode.Failure,
         message: String
-    ): Sqlite3AutoExtensionCallback.Result {
+    ): SqliteAutoExtensionCallback.Result {
         return AutoExtensionFailureResult(result, message)
     }
 }

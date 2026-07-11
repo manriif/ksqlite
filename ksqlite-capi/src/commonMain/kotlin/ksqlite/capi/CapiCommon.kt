@@ -1,46 +1,23 @@
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3ConfigLogCallback
-import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
+import ksqlite.capi.callbacks.SqliteConfigLogCallback
+import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.types.Sqlite3ConfigOption
-import ksqlite.capi.types.Sqlite3DbConfigOption
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
-import kotlin.jvm.JvmInline
-
-/**
- * Value of a variadic function call.
- */
-internal sealed interface VariadicValue<out Pointer : Any> {
-
-    val value: Any
-
-    @JvmInline
-    value class OfPointer<P : Any>(override val value: P) : VariadicValue<P>
-
-    @JvmInline
-    value class OfInt(override val value: Int) : VariadicValue<Nothing>
-
-    @JvmInline
-    value class OfUInt(override val value: UInt) : VariadicValue<Nothing>
-
-    @JvmInline
-    value class OfLong(override val value: Long) : VariadicValue<Nothing>
-
-    /**
-     * Strings are given a key because it is possible that the application must manage it as SQLite
-     * won't make a copy of it.
-     *
-     * For now, [Sqlite3DbConfigOption.MAINDBNAME] is the only string that must stay alive until the
-     * database connection is closed.
-     */
-    @JvmInline
-    data class OfString(override val value: String, val key: String) : VariadicValue<Nothing>
-}
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
+import ksqlite.capi.memory.OpaqueBuffer
+import ksqlite.capi.memory.Utf8OutputParam
+import ksqlite.capi.memory.VariadicValue
+import ksqlite.capi.types.SqliteConfigOption
+import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteFileControlOpcode
+import ksqlite.capi.vfs.sqlite3_vfs
+import ksqlite.capi.vtab.SqliteVtabConfigOption
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.internal.convertResultCode
 
 ///////////////////////////////////////////////////////////////////////////
-// Configuration
+// Config
 ///////////////////////////////////////////////////////////////////////////
 
 /**
@@ -49,31 +26,22 @@ internal sealed interface VariadicValue<out Pointer : Any> {
  */
 @Suppress("UNCHECKED_CAST")
 internal fun <Pointer : Any> commonConfig(
-    option: Sqlite3ConfigOption,
-    bufferPointer: (Buffer) -> Pointer?,
-    logFunctionPointer: (callback: Sqlite3ConfigLogCallback<Any?>?, appData: Any?) -> Pointer?,
-    sqllogFunctionPointer: (callback: Sqlite3ConfigSqlLogCallback<Any?>?, appData: Any?) -> Pointer?,
+    option: SqliteConfigOption,
+    bufferPointer: (OpaqueBuffer) -> Pointer?,
+    logFunctionPointer: (callback: SqliteConfigLogCallback<Any?>?, appData: Any?) -> Pointer?,
+    sqllogFunctionPointer: (callback: SqliteConfigSqlLogCallback<Any?>?, appData: Any?) -> Pointer?,
     keyedStableRefPointer: ((String, Any?, Any?) -> Pointer?)?,
-    rowidInView: Sqlite3ConfigOption.ROWID_IN_VIEW.() -> Int,
+    outputParamConfig: SqliteConfigOption.IntOutput.() -> Int,
     nativeConfig: (id: Int, args: Array<out VariadicValue<Pointer>?>) -> Int,
-): Sqlite3Result {
+): SqliteResultCode {
     val args = with(option) {
-        if (this is ROWID_IN_VIEW) {
-            return convertResult(rowidInView())
-        }
-
         when (this) {
+            is IntOutput -> return convertResultCode(outputParamConfig())
             SERIALIZED, MULTITHREAD, SINGLETHREAD -> emptyArray<VariadicValue<Pointer>>()
             is COVERING_INDEX_SCAN -> arrayOf(VariadicValue.OfInt(enabled))
 
-            is HEAP -> arrayOf(
-                pMem?.let(bufferPointer)?.let(VariadicValue<Pointer>::OfPointer),
-                VariadicValue.OfInt(nBytes),
-                VariadicValue.OfInt(min)
-            )
-
             is LOG<*> -> arrayOf(
-                logFunctionPointer(callback as Sqlite3ConfigLogCallback<Any?>?, appData)
+                logFunctionPointer(callback as SqliteConfigLogCallback<Any?>?, appData)
                     ?.let(VariadicValue<Pointer>::OfPointer),
                 keyedStableRefPointer
                     ?.invoke(KEY_CONFIG_LOG, callback, appData)
@@ -101,10 +69,9 @@ internal fun <Pointer : Any> commonConfig(
 
             is PMASZ -> arrayOf(VariadicValue.OfUInt(szPma))
             is SMALL_MALLOC -> arrayOf(VariadicValue.OfInt(enabled))
-            is SORTERREF_SIZE -> arrayOf(VariadicValue.OfInt(nByte))
 
             is SQLLOG<*> -> arrayOf(
-                sqllogFunctionPointer(callback as Sqlite3ConfigSqlLogCallback<Any?>?, appData)
+                sqllogFunctionPointer(callback as SqliteConfigSqlLogCallback<Any?>?, appData)
                     ?.let(VariadicValue<Pointer>::OfPointer),
                 keyedStableRefPointer
                     ?.invoke(KEY_CONFIG_SQLLOG, callback, appData)
@@ -113,11 +80,10 @@ internal fun <Pointer : Any> commonConfig(
 
             is STMTJRNL_SPILL -> arrayOf(VariadicValue.OfInt(nByte))
             is URI -> arrayOf(VariadicValue.OfInt(value))
-            is WIN32_HEAPSIZE -> arrayOf(VariadicValue.OfUInt(nByte))
         }
     }
 
-    return convertResult(nativeConfig(option.id, args))
+    return convertResultCode(nativeConfig(option.id, args))
 }
 
 /**
@@ -125,16 +91,16 @@ internal fun <Pointer : Any> commonConfig(
  * The array passed to [nativeConfig] contains at most 3 values.
  */
 internal fun <Pointer : Any> commonDbConfig(
-    option: Sqlite3DbConfigOption,
-    bufferPointer: (Buffer) -> Pointer?,
-    outParamConfig: Sqlite3DbConfigOption.IntOutput.() -> Int,
+    option: SqliteDbConfigOption,
+    bufferPointer: (OpaqueBuffer) -> Pointer?,
+    outParamConfig: SqliteDbConfigOption.IntOutput.() -> Int,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
-): Sqlite3Result {
+): SqliteResultCode {
     val args = with(option) {
         when (this) {
             is IntOutput -> {
                 if (state != null) {
-                    return convertResult(outParamConfig())
+                    return convertResultCode(outParamConfig())
                 }
 
                 arrayOf(VariadicValue.OfInt(value), null)
@@ -147,10 +113,15 @@ internal fun <Pointer : Any> commonDbConfig(
             )
 
             is MAINDBNAME -> arrayOf(VariadicValue.OfString(name, KEY_DB_CONFIG_MAINDBNAME))
+
+            is RESET_DATABASE -> arrayOf(
+                VariadicValue.OfInt(value),
+                null
+            )
         }
     }
 
-    return convertResult(nativeConfig(option.id, args))
+    return convertResultCode(nativeConfig(option.id, args))
 }
 
 /**
@@ -158,9 +129,9 @@ internal fun <Pointer : Any> commonDbConfig(
  * The array passed to [nativeConfig] contains at most 1 value.
  */
 internal fun <Pointer : Any> commonVtabConfig(
-    option: Sqlite3VTabConfigOption,
+    option: SqliteVtabConfigOption,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
-): Sqlite3Result {
+): SqliteResultCode {
     val args = with(option) {
         when (this) {
             is CONSTRAINT_SUPPORT -> arrayOf(VariadicValue.OfInt(enabled))
@@ -168,5 +139,31 @@ internal fun <Pointer : Any> commonVtabConfig(
         }
     }
 
-    return convertResult(nativeConfig(option.id, args))
+    return convertResultCode(nativeConfig(option.id, args))
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Control
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Handles the [ksqlite.capi.sqlite3_file_control].
+ */
+internal fun commonFileControl(
+    opcode: SqliteFileControlOpcode,
+    control: () -> Int,
+    controlBuffer: (Buffer?) -> Int,
+    controlVfs: (sqlite3_vfs.OutputParam) -> Int,
+    controlInt32: (Int32OutputParam) -> Int,
+    controlInt64: (Int64OutputParam) -> Int,
+    controlString: (param: Utf8OutputParam, freeOnRead: Boolean) -> Int
+): SqliteResultCode = convertResultCode(
+    when (opcode) {
+        is IntParam -> controlInt32(opcode.param)
+        is LongParam -> controlInt64(opcode.param)
+        is Custom -> controlBuffer(opcode.buffer)
+        is RESET_CACHE -> control()
+        is TEMPFILENAME, is VFSNAME -> controlString(opcode.param, true)
+        is VFS_POINTER -> controlVfs(opcode.param)
+    }
+)

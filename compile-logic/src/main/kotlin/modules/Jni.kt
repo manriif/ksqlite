@@ -1,5 +1,6 @@
 package modules
 
+import SqliteAndroidLinkerOptions
 import komple.project.c.CProject
 import java.io.File
 
@@ -20,11 +21,15 @@ fun CProject.cmakeArguments(): List<String> {
     val compileDefinitions = definitions.get().entries
         .joinToString(";") { "${it.key}=${it.value}" }
 
+    val linkerOptions = SqliteAndroidLinkerOptions
+        .joinToString(";")
+
     return listOf(
         "-DKSQLITE_LIB_NAME=${libraryName.get()}",
         "-DKSQLITE_INCLUDES=$includeDirectoriesPaths",
         "-DKSQLITE_SOURCES=$sourceFilesPaths",
-        "-DKSQLITE_DEFINITIONS=$compileDefinitions"
+        "-DKSQLITE_DEFINITIONS=$compileDefinitions",
+        "-DKSQLITE_LINKER_OPTIONS=$linkerOptions"
     )
 }
 
@@ -35,13 +40,14 @@ fun CProject.cmakeArguments(): List<String> {
 /**
  * Returns the content of the JNI runtime metadata.
  */
-fun createSqliteJniRuntimeMetadataContent(cProject: CProject): String {
-    return """
-        |package ${cProject.packageName.get()}
-        |
-        |/**
-        | * Name of the Ksqlite native library.
-        | */
-        |public const val KSQLITE_NATIVE_LIB_NAME: String = "${cProject.libraryName.get()}"
-    """.trimMargin()
-}
+fun createSqliteJniRuntimeMetadataContent(
+    packageName: String,
+    libraryName: String
+): String = """
+    |package $packageName
+    |
+    |/**
+    | * Name of the Ksqlite native library.
+    | */
+    |public const val KSQLITE_NATIVE_LIB_NAME: String = "$libraryName"
+""".trimMargin()

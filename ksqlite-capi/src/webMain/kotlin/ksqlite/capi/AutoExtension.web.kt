@@ -1,15 +1,23 @@
 package ksqlite.capi
 
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.installFunction
 import ksqlite.capi.memory.isNull
 import ksqlite.capi.memory.setPointerValue
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_api_routines
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.JsFunction
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.installFunction
+
+@JsFun("(handler) => (p0, p1, p2) => handler(p0, p1, p2)")
+private external fun autoExtension(
+    handler: (
+        db: WasmPointer,
+        pzErrMsg: WasmPointer,
+        pApi: WasmPointer
+    ) -> Int
+): JsFunction
 
 /**
- * Singleton handler for auto extensions.
+ * Handler for [sqlite3_auto_extension].
  */
 internal val SharedAutoExtensionHandler = wasm.installFunction(
     signature = FunctionSignature.Int32(
@@ -17,20 +25,13 @@ internal val SharedAutoExtensionHandler = wasm.installFunction(
         FunctionSignature.Pointer,
         FunctionSignature.Pointer,
     ),
-    function = ::autoExtensionHandler
+    function = autoExtension { db, pzErrMsg, pApi ->
+        autoExtensionHandle(
+            db = sqlite3(db),
+            api = pApi,
+            errorPointer = pzErrMsg.takeUnless(WasmPointer::isNull)
+        ) { errorPointer, message ->
+            errorPointer.setPointerValue(sqlite3_mprintf(message))
+        }
+    }
 )
-
-/**
- * Handler for [sqlite3_auto_extension].
- */
-private fun autoExtensionHandler(
-    db: WasmPointer,
-    pzErrMsg: WasmPointer,
-    pApi: WasmPointer
-): Int = autoExtensionHandle(
-    db = sqlite3(db),
-    api = sqlite3_api_routines(pApi),
-    errorPointer = pzErrMsg.takeUnless(WasmPointer::isNull)
-) { errorPointer, message ->
-    errorPointer.setPointerValue(sqlite3_mprintf(message))
-}

@@ -1,23 +1,21 @@
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3ConfigSqlLogCallback
-import ksqlite.capi.callbacks.Sqlite3TraceCallback
-import ksqlite.capi.types.Sqlite3SqlLogEvent
-import ksqlite.capi.types.Sqlite3TraceCode
-import ksqlite.capi.types.Sqlite3TraceEvent
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3TraceConstants
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
+import ksqlite.capi.callbacks.SqliteTraceCallback
+import ksqlite.capi.types.SqliteTraceEvent
+import ksqlite.types.SqliteSqlLogEvent
+import ksqlite.types.SqliteTraceEventCode
+import ksqlite.types.internal.convertTraceCode
 
 ///////////////////////////////////////////////////////////////////////////
 // SqlLog
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Dispatches [Sqlite3SqlLogEvent] to [callback].
+ * Dispatches [SqliteSqlLogEvent] to [callback].
  */
 internal fun <AppData> dispatchSqlLogEvent(
-    callback: Sqlite3ConfigSqlLogCallback<AppData>,
+    callback: SqliteConfigSqlLogCallback<AppData>,
     appData: AppData,
     type: Int,
     db: sqlite3,
@@ -26,9 +24,9 @@ internal fun <AppData> dispatchSqlLogEvent(
     appData = appData,
     db = db,
     event = when (type) {
-        0 -> Sqlite3SqlLogEvent.DatabaseOpened(name!!)
-        1 -> Sqlite3SqlLogEvent.StatementExecuted(name!!)
-        2 -> Sqlite3SqlLogEvent.DatabaseClosed
+        0 -> SqliteSqlLogEvent.DatabaseOpened(name!!)
+        1 -> SqliteSqlLogEvent.StatementExecuted(name!!)
+        2 -> SqliteSqlLogEvent.DatabaseClosed
         else -> error("Unknown sql log event type: $type")
     }
 )
@@ -38,15 +36,10 @@ internal fun <AppData> dispatchSqlLogEvent(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * [Sqlite3TraceCode.Constant]s associated by their code value.
- */
-private val TraceConstantMap = sqlite3TraceConstants().associateBy(Sqlite3TraceCode::value)
-
-/**
- * Dispatches [Sqlite3TraceEvent] to [callback].
+ * Dispatches [SqliteTraceEvent] to [callback].
  */
 internal fun <P, X, AppData> dispatchTraceEvent(
-    callback: Sqlite3TraceCallback<AppData>,
+    callback: SqliteTraceCallback<AppData>,
     appData: AppData,
     code: Int,
     pPointer: P?,
@@ -57,19 +50,18 @@ internal fun <P, X, AppData> dispatchTraceEvent(
     toLong: (X) -> Long
 ): Int = callback.apply(
     appData = appData,
-    event = when (TraceConstantMap[code]) {
-        Sqlite3TraceCode.STMT -> Sqlite3TraceEvent.Stmt(
+    event = when (convertTraceCode(code)) {
+        SqliteTraceEventCode.STMT -> SqliteTraceEvent.Stmt(
             stmt = toStatement(pPointer!!),
             sql = toString(xPointer!!)
         )
 
-        Sqlite3TraceCode.PROFILE -> Sqlite3TraceEvent.Profile(
+        SqliteTraceEventCode.PROFILE -> SqliteTraceEvent.Profile(
             stmt = toStatement(pPointer!!),
             nanos = toLong(xPointer!!)
         )
 
-        Sqlite3TraceCode.ROW -> Sqlite3TraceEvent.Row(toStatement(pPointer!!))
-        Sqlite3TraceCode.CLOSE -> Sqlite3TraceEvent.Close(toDb(pPointer!!))
-        null -> error("Unknown trace event type: $code")
+        SqliteTraceEventCode.ROW -> SqliteTraceEvent.Row(toStatement(pPointer!!))
+        SqliteTraceEventCode.CLOSE -> SqliteTraceEvent.Close(toDb(pPointer!!))
     }
 )

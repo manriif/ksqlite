@@ -2,9 +2,9 @@
 .idea/
 .komple/
 .kotlin/
-.ksqlite/
 .cxx/
 .run/
 
 build
+docs
 local.properties

@@ -1,16 +1,16 @@
-@file:Suppress("MISSING_DEPENDENCY_SUPERCLASS_IN_TYPE_ARGUMENT")
+@file:Suppress("MISSING_DEPENDENCY_SUPERCLASS_IN_TYPE_ARGUMENT", "REDUNDANT_CALL_OF_CONVERSION_METHOD")
 
 package ksqlite.capi.memory
 
-import ksqlite.Sqlite3Wasm
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.handlers.Handler
 import ksqlite.capi.wasm
-import ksqlite.js.toInt8Array
-import ksqlite.wasm.IR
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.allocCString
-import ksqlite.wasm.sizeofIR
+import ksqlite.foreign.Sqlite3Wasm
+import ksqlite.foreign.js.asInt8Array
+import ksqlite.foreign.wasm.IR
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.allocCString
+import ksqlite.foreign.wasm.sizeofIR
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 import kotlin.reflect.KClass
@@ -18,7 +18,7 @@ import kotlin.reflect.KClass
 internal actual class MemoryManager : MemoryManagerBase() {
 
     private val functionPointers = mutableMapOf<KClass<*>, WasmPointer>()
-    val stableRefDisposer = functionPointer(::StableRefDisposerHandler)
+    val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
 
     val memory: Sqlite3Wasm
         inline get() = wasm
@@ -35,6 +35,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      * @throws NullPointerException if there is no object associated with [pointer].
      */
     fun <AppData> getStableRef(pointer: WasmPointer): Reference<AppData> = notClosed {
+        check(!pointer.isNull) { "Pointer must not point to null" }
         val refId = wasm.peek64(pointer).toLong()
         val reference = getDisposable<AppData, StableRefReference<AppData>>(refId)
         return reference
@@ -51,9 +52,10 @@ internal actual class MemoryManager : MemoryManagerBase() {
         key: String?,
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>?
+        destructor: SqliteDestroyCallback<AppData>?
     ): WasmPointer = notClosed {
         if (data == null && destructor == null) {
+            key?.let(::clearDisposable)
             NullPtr
         } else {
             registerDisposable(key) { StableRefReference(it, destructor, data, appData) }.pointer
@@ -70,7 +72,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     fun <AppData> stableRefPointer(
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>? = null,
+        destructor: SqliteDestroyCallback<AppData>? = null,
         key: String? = null
     ): WasmPointer = commonStableRefPointer(null, data, appData, destructor)
 
@@ -87,7 +89,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
         key: String,
         data: Any?,
         appData: AppData,
-        destructor: Sqlite3DestroyCallback<AppData>? = null
+        destructor: SqliteDestroyCallback<AppData>? = null
     ): WasmPointer = commonStableRefPointer(key, data, appData, destructor)
 
     /**
@@ -145,7 +147,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     fun byteArrayPointer(
         value: ByteArray,
-        destructor: Sqlite3DestroyCallback<ByteArray>?
+        destructor: SqliteDestroyCallback<ByteArray>?
     ): WasmPointer = notClosed {
         registerDisposable { ByteArrayDisposable(it, destructor, value) }.pointer
     }
@@ -165,11 +167,26 @@ internal actual class MemoryManager : MemoryManagerBase() {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
+     * Reference to [Handler].
+     */
+    private inner class FunctionDisposable(
+        id: Long,
+        override val appData: Handler
+    ) : AutoDisposable<Handler>(id, null) {
+
+        val pointer = appData.install(this@MemoryManager.memory)
+
+        override fun release() {
+            val _ = memory.uninstallFunction(pointer)
+        }
+    }
+
+    /**
      * Disposable allocating a [WasmPointer].
      */
     private abstract inner class PointerDisposable<AppData>(
         id: Long,
-        destructor: Sqlite3DestroyCallback<AppData>?,
+        destructor: SqliteDestroyCallback<AppData>?,
     ) : AutoDisposable<AppData>(id, destructor) {
 
         abstract val pointer: WasmPointer
@@ -184,7 +201,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
      */
     private inner class StableRefReference<AppData>(
         id: Long,
-        destructor: Sqlite3DestroyCallback<AppData>?,
+        destructor: SqliteDestroyCallback<AppData>?,
         override val data: Any?,
         override val appData: AppData
     ) : PointerDisposable<AppData>(id, destructor),
@@ -198,26 +215,15 @@ internal actual class MemoryManager : MemoryManagerBase() {
     }
 
     /**
-     * Reference to [Handler].
-     */
-    private inner class FunctionDisposable(
-        id: Long,
-        override val appData: Handler
-    ) : PointerDisposable<Handler>(id, null) {
-
-        override val pointer = appData.install(this@MemoryManager.memory)
-    }
-
-    /**
      * Reference to [ByteArray].
      */
     private inner class ByteArrayDisposable(
         id: Long,
-        destructor: Sqlite3DestroyCallback<ByteArray>?,
+        destructor: SqliteDestroyCallback<ByteArray>?,
         override val appData: ByteArray,
     ) : PointerDisposable<ByteArray>(id, destructor) {
 
-        override val pointer = memory.allocFromTypedArray(toInt8Array(appData))
+        override val pointer = memory.allocFromTypedArray(asInt8Array(appData))
 
         init {
             registerGlobalDisposable(pointer.toLong(), this)

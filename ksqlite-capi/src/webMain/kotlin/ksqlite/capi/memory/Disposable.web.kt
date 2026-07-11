@@ -1,8 +1,10 @@
+@file:Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
+
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.wasm
-import ksqlite.wasm.WasmPointer
+import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toLong
 
 /**
@@ -23,7 +25,7 @@ internal fun globalDisposer(data: Any?): WasmPointer =
  */
 internal fun bufferDisposer(
     buffer: Buffer,
-    destructor: Sqlite3DestroyCallback<Buffer>?
+    destructor: SqliteDestroyCallback<Buffer>?
 ) = instanceDisposer(
     disposer = GlobalDisposer,
     instance = buffer,

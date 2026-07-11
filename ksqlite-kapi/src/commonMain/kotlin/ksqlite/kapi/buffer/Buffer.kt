@@ -1,0 +1,169 @@
+@file:OptIn(ExperimentalAtomicApi::class)
+
+package ksqlite.kapi.buffer
+
+import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.capi.sqlite3_free
+import ksqlite.capi.sqlite3_malloc
+import ksqlite.capi.sqlite3_malloc64
+import ksqlite.capi.sqlite3_realloc
+import ksqlite.capi.sqlite3_realloc64
+import ksqlite.kapi.helpers.DelegatingCloseableScope
+import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.decrementAndFetch
+import kotlin.concurrent.atomics.incrementAndFetch
+import ksqlite.capi.memory.Buffer as CapiBuffer
+
+/**
+ * Region of native memory that can be read and written.
+ *
+ * [Buffer] does not provide any kind of thread-safety and external synchronization is required if
+ * concurrent access is needed.
+ *
+ * Attempting to alter the buffer while it is in use by SQLite will throw an
+ * [IllegalStateException].
+ *
+ * The [Buffer] must be closed once no longer needed to release allocated resources.
+ */
+public class Buffer internal constructor(buffer: CapiBuffer) :
+    ReadableBuffer(buffer),
+    AutoCloseable {
+
+    private val refCount = AtomicInt(0)
+
+    override var buffer: CapiBuffer = buffer
+        private set
+
+    override val scope = DelegatingCloseableScope {
+        ensureNotReferenced()
+        sqlite3_free(buffer)
+    }
+
+    /**
+     * Ensures that the buffer is not referenced by SQLite.
+     */
+    private fun ensureNotReferenced() {
+        if (refCount.load() != 0) {
+            throw BufferInUseException("The buffer is currently in use by SQLite")
+        }
+    }
+
+    /**
+     * Increments a counter that tracks the number of active buffer referencer and returns an
+     * [SqliteDestroyCallback] that will decrement the counter after the owner ended using it.
+     *
+     * The returned [SqliteDestroyCallback] must be invoked exactly once.
+     */
+    internal fun reference(
+        notify: ((Buffer) -> Unit)?
+    ): SqliteDestroyCallback<CapiBuffer> = scope.notClosed {
+        val _ = refCount.incrementAndFetch()
+
+        SqliteDestroyCallback { capiBuffer ->
+            check(capiBuffer === buffer)
+            val _ = refCount.decrementAndFetch()
+            notify?.invoke(this)
+        }
+    }
+
+    /**
+     * Writes [size] bytes from [source] into the native memory block.
+     *
+     * Reading starts at [sourceOffset] in [source], and writing starts at [destinationOffset] in
+     * the native memory region.
+     *
+     * @throws IllegalArgumentException if [size], [sourceOffset], or [destinationOffset] is
+     * negative.
+     * @throws IndexOutOfBoundsException if the requested range is out of bounds in either [source]
+     * or the native memory block.
+     */
+    public fun write(
+        source: ByteArray,
+        size: Int,
+        sourceOffset: Int = 0,
+        destinationOffset: Long = 0
+    ): Unit = scope.notClosed {
+        ensureNotReferenced()
+
+        buffer.write(
+            source = source,
+            size = size,
+            sourceOffset = sourceOffset,
+            destinationOffset = destinationOffset
+        )
+    }
+
+    /**
+     * Updates the [buffer] with [buffer] if resizing succeeded.
+     */
+    private inline fun resize(
+        newSize: Long,
+        block: () -> CapiBuffer?
+    ) {
+        require(newSize > 0) { "Size must be greater than 0 ($newSize requested)" }
+
+        scope.notClosed {
+            ensureNotReferenced()
+
+            buffer = sqliteOutOfMemoryCheck(block()) {
+                "Failed to allocate request amount of memory"
+            }
+        }
+    }
+
+    /**
+     * Resizes this buffer to [newSize].
+     * If allocation fails, this buffer stays untouched.
+     *
+     * @throws ksqlite.kapi.SQLiteException if memory allocation failed.
+     */
+    public fun resize(newSize: Int): Unit =
+        resize(newSize.toLong()) { sqlite3_realloc(buffer, newSize) }
+
+    /**
+     * Resizes this buffer to [newSize].
+     * If allocation fails, this buffer stays untouched.
+     *
+     * @throws ksqlite.kapi.SQLiteException if memory allocation failed.
+     */
+    public fun resize(newSize: Long): Unit =
+        resize(newSize) { sqlite3_realloc64(buffer, newSize) }
+
+    /**
+     * Releases allocated resources.
+     *
+     * @throws IllegalStateException if the buffer is referenced by SQLite as a bind parameter value
+     * for example.
+     */
+    override fun close(): Unit = scope.close()
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Companion
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Provides factory functions for allocating a [Buffer].
+     */
+    public companion object {
+
+        /**
+         * Allocates a native memory region of [size] bytes and returns a [Buffer] that allows read
+         * and write operations on that region.
+         */
+        public fun allocate(size: Int): Buffer =
+            Buffer(sqliteOutOfMemoryCheck(sqlite3_malloc(size)) {
+                "Not enough memory to allocate $size bytes"
+            })
+
+        /**
+         * Allocates a native memory region of [size] bytes and returns a [Buffer] that allows read
+         * and write operations on that region.
+         */
+        public fun allocate(size: Long): Buffer =
+            Buffer(sqliteOutOfMemoryCheck(sqlite3_malloc64(size)) {
+                "Not enough memory to allocate $size bytes"
+            })
+    }
+}

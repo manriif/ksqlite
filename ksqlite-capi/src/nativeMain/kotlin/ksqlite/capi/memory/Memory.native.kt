@@ -5,6 +5,8 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.CPointerVarOf
+import kotlinx.cinterop.CValues
+import kotlinx.cinterop.UnsafeNumber
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.get
@@ -79,12 +81,13 @@ internal fun CPointer<CPointerVar<ByteVar>>?.toStringArrayOrEmpty(count: Int): A
 /**
  * Copies [ByteArray.size] bytes into [destination] and returns [destination].
  */
+@OptIn(UnsafeNumber::class)
 internal fun COpaquePointer.copyBytes(destination: ByteArray): ByteArray {
     destination.usePinned { pinned ->
         val _ = memcpy(
-            __dst = pinned.addressOf(0),
-            __src = this,
-            __n = destination.size.convert()
+            pinned.addressOf(0),
+            this,
+            destination.size.convert()
         )
     }
 
@@ -100,6 +103,13 @@ internal fun COpaquePointer.copyBytes(count: Int): ByteArray =
 ///////////////////////////////////////////////////////////////////////////
 // Strings
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the size of the null terminated string behind by this [CValues], without the null
+ * character.
+ */
+internal val CValues<ByteVar>.contentSize: Int
+    inline get() = size - 1
 
 /**
  * Reads [size] bytes from this pointer as [ByteArray] and then convert to string.

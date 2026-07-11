@@ -1,30 +1,33 @@
-@file:Suppress("MISSING_DEPENDENCY_SUPERCLASS_WARNING")
+@file:Suppress("MISSING_DEPENDENCY_SUPERCLASS_WARNING", "REDUNDANT_CALL_OF_CONVERSION_METHOD")
 
 package ksqlite.capi.memory
 
+import js.string.JsStrings.toKotlinString
 import js.typedarrays.Int8Array
-import ksqlite.capi.sqlite3
 import ksqlite.capi.wasm
-import ksqlite.js.arrayForEachIndexed
-import ksqlite.js.arraySize
-import ksqlite.js.plus
-import ksqlite.js.toByteArray
-import ksqlite.js.toInt8Array
-import ksqlite.wasm.CString
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.IR
-import ksqlite.wasm.WasmFunctions
-import ksqlite.wasm.WasmMemory
-import ksqlite.wasm.WasmPStack
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.alloc
-import ksqlite.wasm.allocPtr
-import ksqlite.wasm.installFunction
-import ksqlite.wasm.scopedAllocCStringStruct
-import ksqlite.wasm.scopedAllocPtr
-import ksqlite.wasm.sizeofIR
+import ksqlite.foreign.js.asInt8Array
+import ksqlite.foreign.js.plus
+import ksqlite.foreign.js.toByteArray
+import ksqlite.foreign.js.toInt8Array
+import ksqlite.foreign.wasm.CString
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.IR
+import ksqlite.foreign.wasm.JsFunction
+import ksqlite.foreign.wasm.WasmFunctions
+import ksqlite.foreign.wasm.WasmMemory
+import ksqlite.foreign.wasm.WasmPStack
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.alloc
+import ksqlite.foreign.wasm.allocPtr
+import ksqlite.foreign.wasm.installFunction
+import ksqlite.foreign.wasm.scopedAllocCStringStruct
+import ksqlite.foreign.wasm.scopedAllocPtr
+import ksqlite.foreign.wasm.sizeofIR
 import kotlin.js.JsAny
+import kotlin.js.JsReference
+import kotlin.js.get
 import kotlin.js.toJsBigInt
+import kotlin.js.toJsReference
 import kotlin.js.toLong
 
 ///////////////////////////////////////////////////////////////////////////
@@ -35,7 +38,7 @@ import kotlin.js.toLong
  * Wasm null pointer.
  */
 public val NullPtr: WasmPointer
-    get() = sqlite3.wasm.ptr.`null`
+    get() = wasm.ptr.`null`
 
 /**
  * Whether `this` [WasmPointer] points to a null pointer.
@@ -84,6 +87,12 @@ internal fun WasmPointer.setValue(
 ) {
     memory.poke32(this, value)
 }
+
+/**
+ * Returns [Pointer] instantiated after [factory] which is passed `this` non-null pointing [Long].
+ */
+internal fun <Pointer : Struct> WasmPointer.wrapOrNull(factory: (WasmPointer) -> Pointer): Pointer? =
+    orNull?.let(factory)
 
 ///////////////////////////////////////////////////////////////////////////
 // Allocators
@@ -187,26 +196,23 @@ internal fun String?.allocateUtf8Pointer(): WasmPointer =
     if (this == null) NullPtr else scope.allocateUtf8(this).pointer
 
 /**
- * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
- * the result into a memory segment.
+ * Converts this list of Kotlin strings to C array of C strings, allocating memory for the array
+ * and C strings with given [HeapAllocatorScope].
  */
 context(scope: HeapAllocatorScope)
-internal fun allocateUtf8Array(array: Array<String>?): WasmPointer {
-    if (array == null) {
-        return NullPtr
-    }
-
+internal fun List<String?>.toCStringArray(): WasmPointer {
     val pointerSize = scope.memory.sizeofIR(IR.Ptr)
-    val baseArrayPointer = scope.allocate(pointerSize * arraySize(array))
+    val regionSize = pointerSize * size
+    val startAddress = scope.allocate(regionSize)
 
-    arrayForEachIndexed(array) { index, string ->
+    forEachIndexed { index, string ->
         scope.memory.pokePtr(
-            address = baseArrayPointer + (index * pointerSize),
+            address = startAddress + (index * pointerSize),
             value = string.allocateUtf8Pointer()
         )
     }
 
-    return baseArrayPointer
+    return startAddress
 }
 
 /**
@@ -271,14 +277,44 @@ internal fun interface ReferenceFunction {
     fun apply(refPointer: WasmPointer)
 }
 
+@JsFun("(jsRef, handler) => (p0) => handler(jsRef, p0)")
+private external fun refFunction(
+    jsRef: JsReference<ReferenceFunction>,
+    handler: (
+        jsRef: JsReference<ReferenceFunction>,
+        refPointer: WasmPointer
+    ) -> Unit
+): JsFunction
+
 /**
  * Allocates a new upcall stub, that invokes [ReferenceFunction.apply] on [function].
  */
 internal fun WasmFunctions.installReferenceFunction(function: ReferenceFunction): WasmPointer =
     installFunction(
         signature = FunctionSignature.Void(FunctionSignature.Pointer),
-        function = function::apply
+        function = refFunction(function.toJsReference()) { jsRef, refPointer ->
+            jsRef.get().apply(refPointer)
+        }
     )
+
+/**
+ * Runs and returns [block]'s result, passing it the [JsFunction] associated with this
+ * [WasmPointer].
+ */
+internal fun <R> WasmPointer.usingJsFunction(
+    functions: WasmFunctions = wasm,
+    block: (function: JsFunction) -> R
+): R {
+    check(!isNull) {
+        "Can't obtain a JsFunction from a null pointer"
+    }
+
+    val function = checkNotNull(functions.functionEntry(this)) {
+        "Failed to obtain a JsFunction from address $this"
+    }
+
+    return block(function)
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Arrays
@@ -299,7 +335,7 @@ internal inline fun <reified T> WasmPointer.toArray(
     val ptrSize = memory.sizeofIR(IR.Ptr)
 
     return Array(count) { index ->
-        transform(memory, plus(ptrSize * index))
+        transform(memory, memory.peekPtr(plus(ptrSize * index)))
     }
 }
 
@@ -361,7 +397,7 @@ internal inline fun <R> bufferScoped(
     size: Int? = null,
     block: Int8Array<*>.(buffer: WasmPointer) -> R
 ): R {
-    val typedArray = size?.let { toInt8Array(buffer, it) } ?: toInt8Array(buffer)
+    val typedArray = size?.let { toInt8Array(buffer, it) } ?: asInt8Array(buffer)
     val pointer = memory.allocFromTypedArray(typedArray)
 
     return try {
@@ -393,9 +429,7 @@ internal fun WasmPointer.readByteArray(
  * Reads bytes from this pointer until NULL and then convert to string.
  */
 internal fun WasmPointer.toKStringFromUtf8OrNull(memory: WasmMemory = wasm): String? =
-    memory
-        .cstrToJs(this)
-        ?.toString()
+    memory.cstrToJs(this)?.toKotlinString()
 
 /**
  * Reads bytes from this pointer until NULL and then convert to string.

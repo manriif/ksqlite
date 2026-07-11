@@ -1,6 +1,6 @@
 package ksqlite.capi.memory
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import java.lang.foreign.MemorySegment
 
 /**
@@ -21,7 +21,7 @@ internal fun globalDisposer(data: Any?) =
  */
 internal fun bufferDisposer(
     buffer: Buffer,
-    destructor: Sqlite3DestroyCallback<Buffer>?
+    destructor: SqliteDestroyCallback<Buffer>?
 ) = instanceDisposer(
     disposer = GlobalDisposer,
     instance = buffer,

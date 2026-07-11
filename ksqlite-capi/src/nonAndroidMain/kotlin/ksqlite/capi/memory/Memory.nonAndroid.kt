@@ -48,16 +48,26 @@ internal fun <S> S.destroyMemory() where S : Struct, S : MemoryScope {
 internal inline fun <R> useMemoryManager(block: MemoryManager.() -> R): R =
     MemoryManager().use { block(it) }
 
-public actual fun ksqliteCleanup(): Boolean {
-    val keys = ScopedMemoryManagers.keys
 
-    for (key in keys) {
-        ScopedMemoryManagers.remove(key)?.close()
+/**
+ * Returns `true` if all the memory managers are empty, `false` otherwise.
+ */
+internal fun isMemoryEmpty(strict: Boolean = true): Boolean {
+    if (!globalMemory.isEmpty) {
+        return false
     }
 
-    // May contain top level callbacks registered with sqlite3_config() (log/sqllog) and function
-    // pointers on some platforms
-    GlobalMemoryManager.clear()
+    val keys = ScopedMemoryManagers.keys
 
-    return keys.isEmpty()
+    if (keys.isNotEmpty() && strict) {
+        return false
+    }
+
+    for (key in keys) {
+        if (ScopedMemoryManagers[key]?.isEmpty != true) {
+            return false
+        }
+    }
+
+    return true
 }

@@ -1,21 +1,19 @@
 package ksqlite.capi
 
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.Disposable
+import ksqlite.capi.memory.MemoryManager
+import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.memoryOrNull
-import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
+import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.internal.convertResultCode
 
 /**
  * Returns the [sqlite3] associated with `this` [sqlite3_context].
  */
 internal val sqlite3_context.db: sqlite3
-    get() = checkNotNull(sqlite3_context_db_handle(this)) {
-        "Database pointer not retrieved from context"
-    }
+    get() = sqlite3_context_db_handle(this)
 
 ///////////////////////////////////////////////////////////////////////////
 // Memory
@@ -24,14 +22,39 @@ internal val sqlite3_context.db: sqlite3
 /**
  * Handles the [ksqlite.capi.sqlite3_clear_bindings].
  */
-internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): Sqlite3Result {
-    if (result == Sqlite3Result.OK.code) {
+internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): SqliteResultCode {
+    if (result == SqliteResultCode.OK.code) {
         stmt.memoryOrNull?.let { manager ->
             check(manager.isEmpty) { "Statement disposables has not been disposed all" }
         }
     }
 
-    return convertResult(result)
+    return convertResultCode(result)
+}
+
+/**
+ * Handles the [sqlite3_create_collation_v2].
+ *
+ * If the function fails, [getDisposable] is invoked to obtains a [Disposable] that is then is
+ * disposed to release allocated memory.
+ */
+internal inline fun <Pointer: Any> commonCreateCollation(
+    db: sqlite3,
+    getDisposable: MemoryManager.(Pointer) -> Disposable,
+    execute: MemoryManager.(setPointer: (Pointer?) -> Pointer?) -> Int
+): SqliteResultCode {
+    var pointer: Pointer? = null
+    val memory = db.memory
+    val result = convertResultCode(memory.execute { it.also { pointer = it } })
+
+    if (result != SqliteResultCode.OK) {
+        // SQLite does not call the destructor in that specific case so we keep the behavior
+        pointer
+            ?.let { getDisposable(memory, it) }
+            ?.dispose(callDestructor = false)
+    }
+
+    return result
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -48,7 +71,7 @@ private inline fun <Pointer : Any, Blob : Any> commonGetBlob(
     emptyBlob: Blob,
     toBlob: (pointer: Pointer, size: Int) -> Blob?,
     getSize: () -> Int,
-    getType: () -> Sqlite3DataType
+    getType: () -> SqliteDataType
 ): Blob? {
     if (pointer == null) {
         return null
@@ -62,7 +85,7 @@ private inline fun <Pointer : Any, Blob : Any> commonGetBlob(
             BLOB -> emptyBlob
             NULL -> null
             else -> error(
-                "Expected a value of type ${Sqlite3DataType.BLOB} but actual value is of type $type"
+                "Expected a value of type ${SqliteDataType.BLOB} but actual value is of type $type"
             )
         }
     } else {
@@ -77,7 +100,7 @@ private inline fun <Pointer : Any> commonGetBuffer(
     pointer: Pointer?,
     toBuffer: (pointer: Pointer, size: Long) -> Buffer?,
     getSize: () -> Int,
-    getType: () -> Sqlite3DataType
+    getType: () -> SqliteDataType
 ): Buffer? = commonGetBlob(
     pointer = pointer,
     emptyBlob = Buffer.Empty,
@@ -93,7 +116,7 @@ private inline fun <Pointer : Any> commonGetByteArray(
     pointer: Pointer?,
     toByteArray: (pointer: Pointer, size: Int) -> ByteArray,
     getSize: () -> Int,
-    getType: () -> Sqlite3DataType
+    getType: () -> SqliteDataType
 ): ByteArray? = commonGetBlob(
     pointer = pointer,
     emptyBlob = EmptyByteArray,

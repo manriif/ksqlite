@@ -3,7 +3,7 @@ package modules
 import KSQLITE
 import KsqliteFunctions
 import SQLITE3
-import SQLITE3MC_AMALGAMATION
+import SQLITE_VERSION_FILE
 import cHeaderFile
 import cSourceFile
 import copyToTempDirectory
@@ -11,6 +11,7 @@ import komple.exec.Command
 import komple.exec.CommandExecutor
 import org.gradle.api.file.FileSystemOperations
 import replaceFiles
+import replacePrefix
 import sqlitePrefixed
 import java.io.File
 
@@ -27,24 +28,24 @@ private const val EXT_WASM_PATH = "ext/wasm"
 private const val GNU_MAKEFILE = "${EXT_WASM_PATH}/GNUmakefile"
 private const val EXT_WASM_API_PATH = "$EXT_WASM_PATH/api"
 private const val PRE_JS_CPP_JS = "$EXT_WASM_API_PATH/pre-js.c-pp.js"
+private const val POST_JS_FOOTER_JS = "$EXT_WASM_API_PATH/post-js-footer.js"
 private const val EXPORTED_FUNCTIONS = "$EXT_WASM_API_PATH/EXPORTED_FUNCTIONS.c-pp"
 
-private const val ASSIGN_WASM_EXPORT_GLUE = "function assignWasmExports(wasmExports) {"
+private const val SQLITE3_64BIT = "$SQLITE3-64bit"
 
 /**
  * Extra resources files that can be embedded in the library.
  */
 private val WasmExtraResourceFileNames = listOf(
-    "opfs-async-proxy.js",
-    "worker1.mjs",
-    "worker1-promiser.mjs"
+    "opfs-async-proxy.js"
 ).sqlitePrefixed('-')
 
 /**
  * Extra functions which aren't exported by default in the wasm build.
- * Exports with care are theses aren't tested by the official wasm team.
+ * Exports with care as theses aren't tested by the official wasm team.
+ *
  * Some aren't that meaningful to use in web platforms but are exported to align at maximum with
- * other platforms.
+ * other platforms and avoid plenty of expect/actual.
  */
 private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "autovacuum_pages",
@@ -68,6 +69,10 @@ private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "db_cacheflush",
     "db_config",
     "db_release_memory",
+    "filename_database",
+    "filename_journal",
+    "filename_wal",
+    "hard_heap_limit64",
     "log",
     "memory_used",
     "memory_highwater",
@@ -76,9 +81,20 @@ private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
     "result_blob64",
     "result_text64",
     "result_value",
+    "snapshot_cmp",
+    "snapshot_free",
+    "snapshot_get",
+    "snapshot_open",
+    "snapshot_recover",
+    "soft_heap_limit64",
     "system_errno",
+    "threadsafe",
     "value_encoding",
-    "vtab_config"
+    "vtab_config",
+    "wal_autocheckpoint",
+    "wal_checkpoint",
+    "wal_checkpoint_v2",
+    "wal_hook"
 ).sqlitePrefixed()
 
 /**
@@ -91,8 +107,9 @@ fun configureSqliteWasmTrunk(
     replaceFiles(
         sourceDirectory = ksqliteDirectory,
         destinationDirectory = sqliteDirectory,
-        GNU_MAKEFILE,
-        PRE_JS_CPP_JS
+        POST_JS_FOOTER_JS,
+        PRE_JS_CPP_JS,
+        GNU_MAKEFILE
     )
 
     val exportedFunctionFile = sqliteDirectory.resolve(EXPORTED_FUNCTIONS)
@@ -104,56 +121,6 @@ fun configureSqliteWasmTrunk(
         }
 
         output.write(defaultExportedFunctions)
-    }
-}
-
-/**
- * Patches sqlite generated file [inputFile] and writes the patched content to [outputFile].
- * TODO seems no longer required as of 3.53.0
- */
-private fun patchGeneratedSqliteForWasm(
-    inputFile: File,
-    outputFile: File
-) {
-    outputFile.outputStream().writer().use { writer ->
-        inputFile.useLines { lines ->
-            val lineIterator = lines.iterator()
-            var assignWasmExportsFound = false
-            var inAssignWasmExports = false
-
-            while (lineIterator.hasNext() && !assignWasmExportsFound) {
-                val line = lineIterator.next()
-
-                when {
-                    inAssignWasmExports -> when {
-                        line.startsWith("  _$SQLITE3") -> {
-                            writer.append(' ')
-                            writer.appendLine(line.substringAfter('='))
-                        }
-
-                        line == "}" -> {
-                            writer.appendLine(line)
-                            assignWasmExportsFound = true
-                        }
-
-                        else -> writer.appendLine(line)
-                    }
-
-                    line == ASSIGN_WASM_EXPORT_GLUE -> {
-                        writer.appendLine(line)
-                        inAssignWasmExports = true
-                    }
-
-                    else -> writer.appendLine(line)
-                }
-            }
-
-            check(assignWasmExportsFound) {
-                "assignWasmExports() function not found in ${inputFile.name}"
-            }
-
-            lineIterator.forEachRemaining(writer::appendLine)
-        }
     }
 }
 
@@ -177,22 +144,18 @@ private fun generateKsqliteAmalgamation(
     ksqliteAmalgamationHeaderFile: File,
     ksqliteAmalgamationSourceFile: File,
 ) {
-    val sqliteMcAmalgamationHeaderFile =
-        sqliteDirectory.resolve(cHeaderFile(SQLITE3MC_AMALGAMATION))
-
-    val sqliteMcAmalgamationSourceFile =
-        sqliteDirectory.resolve(cSourceFile(SQLITE3MC_AMALGAMATION))
-
+    val sqliteHeaderFile = sqliteDirectory.resolve(cHeaderFile(SQLITE3))
+    val sqliteSourceFile = sqliteDirectory.resolve(cSourceFile(SQLITE3))
     val ksqliteHeaderFile = ksqliteDirectory.resolve(cHeaderFile(KSQLITE))
     val ksqliteSourceFile = ksqliteDirectory.resolve(cSourceFile(KSQLITE))
 
     ksqliteAmalgamationHeaderFile.mergeFiles(
-        sqliteMcAmalgamationHeaderFile,
+        sqliteHeaderFile,
         ksqliteHeaderFile
     )
 
     ksqliteAmalgamationSourceFile.mergeFiles(
-        sqliteMcAmalgamationSourceFile,
+        sqliteSourceFile,
         ksqliteHeaderFile,
         ksqliteSourceFile
     )
@@ -208,13 +171,18 @@ private fun generateKsqliteAmalgamation(
 fun compileSqliteWasm(
     fileOperations: FileSystemOperations,
     commandExecutor: CommandExecutor,
+    sqliteVersion: String,
     ksqliteDirectory: File,
     sqliteDirectory: File,
-    outputDirectory: File,
+    outputDirectory: File
 ) {
     // A temporary directory is used to not write the original directory which will break Gradle
     // caching
     val sqliteDirectory = fileOperations.copyToTempDirectory(sqliteDirectory)
+    val versionFile = sqliteDirectory.resolve(SQLITE_VERSION_FILE)
+
+    // Restore the deleted version file as it is required for wasm build
+    versionFile.writeText("${sqliteVersion}\n")
 
     commandExecutor.execute(
         command = Command("./configure"),
@@ -245,12 +213,23 @@ fun compileSqliteWasm(
     )
 
     val generatedWasmArtifactsDirectory = wasmDirectory.resolve("jswasm")
+    val esm64Directory = generatedWasmArtifactsDirectory.resolve("esm64")
+    val sqlite64BitMjs = esm64Directory.resolve("$SQLITE3_64BIT.mjs")
+
+    // Replace hard-coded-generated 'sqlite3-64bit.wasm' to 'ksqlite.wasm'
+    // TODO: make the GNUmakefile generate the ksqlite.wasm when it has been mastered
+    val patchedContent = sqlite64BitMjs
+        .readText()
+        .replace("'$SQLITE3_64BIT.wasm'", "'$KSQLITE.wasm'")
+
+    sqlite64BitMjs.writeText(patchedContent)
 
     fileOperations.copy {
         from(generatedWasmArtifactsDirectory)
         into(outputDirectory.resolve(GENERATED_ARTIFACTS))
     }
 
+    // Just to visualize what have been used to compile wasm
     fileOperations.copy {
         from(ksqliteAmalgamationHeaderFile, ksqliteAmalgamationSourceFile)
         into(outputDirectory.resolve(GENERATED_SOURCES))
@@ -267,16 +246,11 @@ fun copySqliteWasmGeneratedResources(
 ) {
     val artifactsDirectory = inputDirectory.resolve(GENERATED_ARTIFACTS)
     val esm64Directory = artifactsDirectory.resolve("esm64")
-    val sqliteFile = esm64Directory.resolve("$SQLITE3-64bit.mjs")
-
-    patchGeneratedSqliteForWasm(
-        inputFile = sqliteFile,
-        outputFile = outputDirectory.resolve(sqliteFile.name)
-    )
 
     fileOperations.copy {
         from(esm64Directory) {
-            include { it.name != sqliteFile.name }
+            include { it.name.startsWith(SQLITE3_64BIT) }
+            replacePrefix(SQLITE3_64BIT, KSQLITE)
         }
 
         from(artifactsDirectory) {

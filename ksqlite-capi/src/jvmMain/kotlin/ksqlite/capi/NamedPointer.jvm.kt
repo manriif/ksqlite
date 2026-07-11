@@ -1,6 +1,6 @@
 package ksqlite.capi
 
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.notNull
 import java.lang.foreign.Arena
@@ -12,7 +12,7 @@ import java.lang.foreign.MemorySegment
 internal class NamedPointer<Data>(
     val name: MemorySegment,
     private val arena: Arena?,
-    private val destroy: Sqlite3DestroyCallback<Data>?
+    private val destroy: SqliteDestroyCallback<Data>?
 ) {
 
     /**
@@ -32,10 +32,10 @@ internal class NamedPointer<Data>(
  */
 internal inline fun <Data, R> allocateNamedPointer(
     name: String?,
-    destroy: Sqlite3DestroyCallback<Data>?,
+    destroy: SqliteDestroyCallback<Data>?,
     block: (
         ptr: NamedPointer<Data>,
-        ptrDestroy: Sqlite3DestroyCallback<Data>
+        ptrDestroy: SqliteDestroyCallback<Data>
     ) -> R
 ): R {
     val arena = name?.let { Arena.ofShared() }

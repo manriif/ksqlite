@@ -1,9 +1,7 @@
 package ksqlite.capi
 
-import ksqlite.OutputPointer
-import ksqlite.callbacks.AutoExtensionCallback
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_api_routines
+import ksqlite.foreign.OutputPointer
+import ksqlite.foreign.callbacks.AutoExtensionCallback
 
 /**
  * Singleton handler for auto extensions.
@@ -22,7 +20,7 @@ private fun autoExtensionHandler(
     outErrMsg: OutputPointer.OfString
 ): Int = autoExtensionHandle(
     db = sqlite3(dbPtr),
-    api = sqlite3_api_routines(apiPtr),
+    api = apiPtr,
     errorPointer = outErrMsg,
     setError = OutputPointer.OfString::value::set
 )

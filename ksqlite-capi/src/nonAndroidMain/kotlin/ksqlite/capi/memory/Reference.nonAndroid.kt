@@ -29,7 +29,7 @@ internal interface Reference<AppData> :
     /**
      * Disposes the reference, making referenced object(s) eligible to GC.
      */
-    override fun dispose()
+    override fun dispose(callDestructor: Boolean)
 }
 
 ///////////////////////////////////////////////////////////////////////////

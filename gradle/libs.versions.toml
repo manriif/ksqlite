@@ -21,26 +21,21 @@ apple-watchos-min = "5.0"
 
 # Jvm versions
 jvm-target-android = "17"
-#jvm-target-jvm = "22"
-#jvm-toolchain = "22"
-jvm-target-jvm = "25"
-jvm-toolchain = "25"
+jvm-target-jvm = "22"
+jvm-toolchain = "22"
 
 androidx-testRunner = "1.7.0"
 cmake = "3.22.1"
-copyWebpackPlugin = "13.0.1"
 dokka = "2.2.0"
 gradle-pluginPublish = "2.1.1"
-#jextract = "6-47"
-jextract = "2-4"
-kotlin = "2.4.0"
+kotlin = "2.4.20-Beta1"
 kotlinx-coroutines = "1.11.0"
-kotlin-wrappers = "2026.6.0"
-sqlite = "3.53.0"
-sqliteMultipleCiphers = "2.3.3"
+kotlin-wrappers = "2026.7.1"
+sqlite = "3.53.3"
+sqliteMultipleCiphers = "2.3.6"
 sqliteReleaseYear = "2026"
 stately = "2.1.0"
-vanniktech-mavenPublish = "0.36.0"
+vanniktech-mavenPublish = "0.37.0"
 
 [plugins]
 
@@ -59,7 +54,6 @@ vanniktech-mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "
 
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "android-gradlePlugin" }
 androidx-testRunner = { module = "androidx.test:runner", version.ref = "androidx-testRunner" }
-copyWebpackPlugin = { module = "npm:copy-webpack-plugin", version.ref = "copyWebpackPlugin" }
 dokka-gradlePlugin = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-wrappers-js = { module = "org.jetbrains.kotlin-wrappers:kotlin-js", version.ref = "kotlin-wrappers" }

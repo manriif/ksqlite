@@ -1,24 +1,28 @@
 package ksqlite.capi
 
 import kotlinx.cinterop.CPointerVarOf
+import kotlinx.cinterop.convert
+import kotlinx.cinterop.cstr
+import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.toLong
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.memory.Buffer
+import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.stableRefAppData
 import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposer
+import ksqlite.capi.memory.useParam
 import ksqlite.capi.memory.withMemoryManager
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
-import ksqlite.sqlite3_aggregate_context as native_sqlite3_aggregate_context
-import ksqlite.sqlite3_column_blob as native_sqlite3_column_blob
-import ksqlite.sqlite3_get_auxdata as native_sqlite3_get_auxdata
-import ksqlite.sqlite3_set_auxdata as native_sqlite3_set_auxdata
-import ksqlite.sqlite3_user_data as native_sqlite3_user_data
-import ksqlite.sqlite3_value_blob as native_sqlite3_value_blob
-import ksqlite.sqlite3_value_pointer as native_sqlite3_value_pointer
+import ksqlite.types.SqliteSerializeFlag
+import ksqlite.foreign.sqlite3_aggregate_context as native_sqlite3_aggregate_context
+import ksqlite.foreign.sqlite3_column_blob as native_sqlite3_column_blob
+import ksqlite.foreign.sqlite3_get_auxdata as native_sqlite3_get_auxdata
+import ksqlite.foreign.sqlite3_serialize as native_sqlite3_serialize
+import ksqlite.foreign.sqlite3_set_auxdata as native_sqlite3_set_auxdata
+import ksqlite.foreign.sqlite3_user_data as native_sqlite3_user_data
+import ksqlite.foreign.sqlite3_value_blob as native_sqlite3_value_blob
+import ksqlite.foreign.sqlite3_value_pointer as native_sqlite3_value_pointer
 
 private val pointerSize = sizeOf<CPointerVarOf<*>>().toInt()
 
@@ -58,7 +62,7 @@ internal actual fun getAuxdataInternal(context: sqlite3_context, index: Int): Lo
 internal actual fun setAuxdataInternal(
     context: sqlite3_context,
     index: Int,
-    destroy: Sqlite3DestroyCallback<Nothing?>
+    destroy: SqliteDestroyCallback<Nothing?>
 ): Long? = context.db.withMemoryManager {
     val pointer = stableRefPointer(null, null, destroy)
     val disposer = stableRefDisposer(null, destroy)
@@ -71,6 +75,22 @@ internal actual fun userDataInternal(context: sqlite3_context): ApplicationDefin
     val pointer = native_sqlite3_user_data(context.pointer) ?: return null
     return stableRefData<ApplicationDefinedFunction<*>>(pointer)
 }
+
+public actual fun serializeInternal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer? = Buffer.from(
+    pointer = memScoped {
+        useParam(outSize) { sizePtr ->
+            val mFlags = flags?.value?.convert() ?: 0u
+            native_sqlite3_serialize(db.pointer, database?.cstr?.ptr, sizePtr, mFlags)
+        }
+    },
+    size = outSize.value
+)
+
 
 @PublishedApi
 internal actual fun valuePointerInternal(

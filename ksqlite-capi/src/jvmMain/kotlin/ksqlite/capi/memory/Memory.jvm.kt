@@ -57,6 +57,12 @@ internal fun MemorySegment.setValue(value: Int) {
     set(ValueLayout.JAVA_INT, 0, value)
 }
 
+/**
+ * Returns [Pointer] instantiated after [factory] which is passed `this` non-null pointing [Long].
+ */
+internal fun <Pointer : Struct> MemorySegment.wrapOrNull(factory: (MemorySegment) -> Pointer): Pointer? =
+    orNull?.let(factory)
+
 ///////////////////////////////////////////////////////////////////////////
 // Allocator
 ///////////////////////////////////////////////////////////////////////////
@@ -135,7 +141,7 @@ internal inline fun <reified T> MemorySegment.toArrayOrEmpty(
  * Reads and returns an array of [count] String.
  */
 internal fun MemorySegment.toNullableStringArray(count: Int): Array<String?> =
-    toArray(count) { it.toKStringFromUtf8OrNull() }
+    toArray(count, MemorySegment::toKStringFromUtf8OrNull)
 
 /**
  * Reads and returns an array of [count] String.
@@ -148,7 +154,7 @@ internal fun MemorySegment.toNullableStringArrayOrEmpty(count: Int): Array<Strin
  * Reads and returns an array of [count] String.
  */
 internal fun MemorySegment.toStringArray(count: Int): Array<String> =
-    this.toArray(count) { it.toKStringFromUtf8() }
+    this.toArray(count, MemorySegment::toKStringFromUtf8)
 
 /**
  * Reads and returns an array of [count] String.
@@ -162,14 +168,69 @@ internal fun MemorySegment.toStringArrayOrEmpty(count: Int): Array<String> =
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns a heap [MemorySegment] backed by the on-heap region of memory that holds the given byte
- * array.
+ * Returns a [MemorySegment], allocated using [allocator], containing the first [size] bytes of this
+ * [ByteArray]. The returned [MemorySegment] can be passed to native.
  */
-internal fun ByteArray.backing(): MemorySegment = MemorySegment.ofArray(this)
+internal fun ByteArray.allocate(
+    allocator: SegmentAllocator,
+    size: Int = this.size
+): MemorySegment {
+    val maxSize = size.toLong()
+    val destination = allocator.allocate(maxSize)
+    val source = MemorySegment.ofArray(this)
+
+    MemorySegment.copy(source, 0, destination, 0, maxSize)
+    return destination
+}
+
+/**
+ * Returns a [MemorySegment], allocated using [allocator], containing the first [size] bytes of this
+ * [ByteArray]. The returned [MemorySegment] can be passed to native.
+ */
+context(allocator: SegmentAllocator)
+internal fun ByteArray.allocate(size: Int = this.size): MemorySegment = allocate(allocator, size)
+
+/**
+ * Allocates a [MemorySegment], using [allocator], with a capacity of [size] bytes then invokes
+ * [block] with that [MemorySegment]. The bytes of the allocated [MemorySegment] are written to this
+ * [ByteArray] after [block] returns.
+ */
+internal inline fun <R> ByteArray.reading(
+    allocator: SegmentAllocator,
+    size: Int = this.size,
+    block: (MemorySegment) -> R
+): R {
+    val pointer = allocator.allocate(size.toLong())
+    val result = block(pointer)
+
+    MemorySegment
+        .ofArray(this)
+        .copyFrom(pointer)
+
+    return result
+}
+
+/**
+ * Allocates a [MemorySegment], using [allocator], with a capacity of [size] bytes then invokes
+ * [block] with that [MemorySegment]. The bytes of the allocated [MemorySegment] are written to this
+ * [ByteArray] after [block] returns.
+ */
+context(allocator: SegmentAllocator)
+internal inline fun <R> ByteArray.reading(
+    size: Int = this.size,
+    block: (MemorySegment) -> R
+): R = reading(allocator, size, block)
 
 ///////////////////////////////////////////////////////////////////////////
 // Strings
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the size of the null terminated string behind by this [MemorySegment], without the null
+ * character.
+ */
+internal val MemorySegment.contentSize: Int
+    get() = byteSize().toInt() - 1
 
 /**
  * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
@@ -178,7 +239,7 @@ internal fun ByteArray.backing(): MemorySegment = MemorySegment.ofArray(this)
  * Returns [NullPtr] if `this` is `null`.
  */
 internal fun String?.allocateUtf8(allocator: SegmentAllocator): MemorySegment =
-    allocator.allocateFrom(this, Charsets.UTF_8)
+    this?.let { allocator.allocateFrom(it, Charsets.UTF_8) } ?: NullPtr
 
 /**
  * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
@@ -190,33 +251,45 @@ context(allocator: SegmentAllocator)
 internal fun String?.allocateUtf8(): MemorySegment = allocateUtf8(allocator)
 
 /**
- * Converts a Java string into a null-terminated C string using the UTF-8 charset, and storing
- * the result into a memory segment.
+ * Converts this list of Kotlin strings to C array of C strings, allocating memory for the array
+ * and C strings with given [SegmentAllocator].
  */
 context(allocator: SegmentAllocator)
-internal fun Array<String>?.allocateUtf8Array(): MemorySegment {
-    if (this == null) {
-        return NullPtr
-    }
-
-    val pointers = allocator.allocate(ValueLayout.ADDRESS, size.toLong())
+internal fun List<String?>.toCStringArray(): MemorySegment {
+    val startAddress = allocator.allocate(ValueLayout.ADDRESS, size.toLong())
 
     forEachIndexed { index, string ->
-        pointers.setAtIndex(ValueLayout.ADDRESS, index.toLong(), string.allocateUtf8())
+        startAddress.setAtIndex(
+            ValueLayout.ADDRESS,
+            index.toLong(),
+            string.allocateUtf8()
+        )
     }
 
-    return pointers
+    return startAddress
 }
 
 /**
- * Reads and returns a null terminated String starting from [offset].
+ * Reads and returns a String.
+ *
+ * If [isNullTerminated] is `false` then the string is considered non-null terminated and
+ * [MemorySegment.byteSize] is used as the string length.
  */
-internal fun MemorySegment.toKStringFromUtf8(offset: Long = 0): String =
-    checkNotNull(getString(offset, Charsets.UTF_8))
+internal fun MemorySegment.toKStringFromUtf8(isNullTerminated: Boolean = true): String {
+    return try {
+        when {
+            !isNullTerminated -> toArray(ValueLayout.JAVA_BYTE).toString(Charsets.UTF_8)
+            byteSize() == 0L -> reinterpret(Long.MAX_VALUE).getString(0, Charsets.UTF_8)
+            else -> getString(0, Charsets.UTF_8)
+        }
+    } catch (cause: Throwable) {
+        throw RuntimeException("Failed to read string from native memory", cause)
+    }
+}
 
 /**
- * Reads and returns a null terminated String starting from [offset] or returns `null` if `this`
- * [MemorySegment] is [NullPtr].
+ * Reads and returns a String or returns `null` if `this` [MemorySegment] is [NullPtr].
+ * If [MemorySegment.byteSize] is equals to 0 then the string is considered null terminated.
  */
-internal fun MemorySegment.toKStringFromUtf8OrNull(offset: Long = 0): String? =
-    orNull?.toKStringFromUtf8(offset)
+internal fun MemorySegment.toKStringFromUtf8OrNull(isNullTerminated: Boolean = true): String? =
+    orNull?.toKStringFromUtf8(isNullTerminated)

@@ -51,9 +51,19 @@ dependencyResolutionManagement {
     }
 }
 
+fun includeNested(vararg paths: String) {
+    val projectPath = ":${paths.joinToString(":")}"
+    include(projectPath)
+    project(projectPath).name = paths.joinToString("-")
+}
+
+include(":ksqlite-gradle-plugin")
 include(":ksqlite-capi")
-include(":ksqlite-ffm")
-include(":ksqlite-jni")
-//include(":ksqlite-kapi")
-include(":ksqlite-native")
-include(":ksqlite-web")
+include(":ksqlite-kapi")
+include(":ksqlite-wasm-resources")
+includeNested("ksqlite-foreign", "cinterop")
+includeNested("ksqlite-foreign", "ffm")
+includeNested("ksqlite-foreign", "jni")
+includeNested("ksqlite-foreign", "wasm")
+includeNested("ksqlite-types", "core")
+includeNested("ksqlite-types", "internal")

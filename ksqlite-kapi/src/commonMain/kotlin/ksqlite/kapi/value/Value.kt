@@ -1,0 +1,198 @@
+package ksqlite.kapi.value
+
+import ksqlite.capi.sqlite3_value_blob
+import ksqlite.capi.sqlite3_value_buffer
+import ksqlite.capi.sqlite3_value_bytes
+import ksqlite.capi.sqlite3_value_double
+import ksqlite.capi.sqlite3_value_dup
+import ksqlite.capi.sqlite3_value_encoding
+import ksqlite.capi.sqlite3_value_free
+import ksqlite.capi.sqlite3_value_frombind
+import ksqlite.capi.sqlite3_value_int
+import ksqlite.capi.sqlite3_value_int64
+import ksqlite.capi.sqlite3_value_numeric_type
+import ksqlite.capi.sqlite3_value_pointer
+import ksqlite.capi.sqlite3_value_subtype
+import ksqlite.capi.sqlite3_value_text
+import ksqlite.capi.sqlite3_value_type
+import ksqlite.capi.sqlite3_value
+import ksqlite.kapi.buffer.ReadableBuffer
+import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.kapi.helpers.DelegatingCloseableScope
+import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
+import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteTextEncoding
+
+/**
+ * Represents an `sqlite3_value` opaque type.
+ */
+public sealed class Value(
+    @PublishedApi
+    internal val value: sqlite3_value,
+
+    /**
+     * Scope the value is associated with, determining its lifecycle.
+     */
+    @PublishedApi
+    internal val scope: ClosableScope,
+) {
+
+    /**
+     * Duplicates the value, returning a [DuplicatedValue].
+     */
+    public fun duplicate(): DuplicatedValue {
+        return DuplicatedValue(sqliteOutOfMemoryCheck(sqlite3_value_dup(value)) {
+            "There is not enough memory available to duplicate the value"
+        })
+    }
+}
+
+/**
+ * Represents a protected [Value].
+ *
+ * SQLite may perform an implicit type conversion to match the requested value type. If conversion
+ * is not feasible then `null` is returned.
+ */
+public open class ProtectedValue internal constructor(
+    value: sqlite3_value,
+    scope: ClosableScope,
+) : Value(value, scope) {
+
+    /**
+     * Data type of the value.
+     */
+    public val type: SqliteDataType
+        get() = scope.notClosed { sqlite3_value_type(value) }
+
+    /**
+     * Returns the type of the value after a numeric conversion as been done. The conversion is only
+     * made if the value can be converted.
+     */
+    public val numericType: SqliteDataType
+        get() = scope.notClosed { sqlite3_value_numeric_type(value) }
+
+    /**
+     * Returns the subtype of the value.
+     */
+    public val subtype: UInt
+        get() = scope.notClosed { sqlite3_value_subtype(value) }
+
+    /**
+     * Whether the value originated from a bound parameter.
+     */
+    public val isFromBind: Boolean
+        get() = scope.notClosed { sqlite3_value_frombind(value) != 0 }
+
+    /**
+     * Returns the length of the value in bytes.
+     *
+     * This is only relevant when [type] returns [ksqlite.types.SqliteDataType.BLOB] or
+     * [ksqlite.types.SqliteDataType.TEXT].
+     */
+    public val bytes: Int
+        get() = scope.notClosed { sqlite3_value_bytes(value) }
+
+    /**
+     * Returns the current text encoding of the value, assuming that [type] returns
+     * [ksqlite.types.SqliteDataType.TEXT].
+     */
+    public val encoding: SqliteTextEncoding.ValueEncoding
+        get() = scope.notClosed { sqlite3_value_encoding(value) }
+
+    /**
+     * Returns the value as [ByteArray].
+     */
+    public fun getAsByteArray(): ByteArray? =
+        scope.notClosed { sqlite3_value_blob(value) }
+
+    /**
+     * Returns the value as a [ksqlite.capi.memory.ReadableBuffer].
+     */
+    public fun getAsBuffer(): ReadableBuffer? = scope.notClosed {
+        sqlite3_value_buffer(value)
+            ?.let { ReadableBuffer(it, scope) }
+    }
+
+    /**
+     * Returns the value as [Int].
+     */
+    public fun getAsInt(): Int =
+        scope.notClosed { sqlite3_value_int(value) }
+
+    /**
+     * Returns the value as [Long].
+     */
+    public fun getAsLong(): Long =
+        scope.notClosed { sqlite3_value_int64(value) }
+
+    /**
+     * Returns the value as [Double].
+     */
+    public fun getAsDouble(): Double =
+        scope.notClosed { sqlite3_value_double(value) }
+
+    /**
+     * Returns the value as [String].
+     */
+    public fun getAsString(): String? =
+        scope.notClosed { sqlite3_value_text(value) }
+
+    /**
+     * Returns the value as [Data] or `null` if no data is associated with [type].
+     */
+    public inline fun <reified Data : Any> getAs(type: String? = null): Data? =
+        scope.notClosed { sqlite3_value_pointer(value, type) }
+}
+
+/**
+ * Represents an unprotected [Value].
+ */
+public class UnprotectedValue internal constructor(
+    value: sqlite3_value,
+    scope: ClosableScope
+) : Value(value, scope)
+
+/**
+ * [Value] obtained from [Value.duplicate] and for which the caller take ownership.
+ */
+public class DuplicatedValue internal constructor(value: sqlite3_value) : ProtectedValue(
+    value = value,
+    scope = DelegatingCloseableScope { sqlite3_value_free(value) }
+) {
+
+    /**
+     * Frees the value previously obtained using [duplicate].
+     * This value can no longer be used after that call.
+     */
+    public fun free(): Unit = scope.close()
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Factories
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Creates a new [UnprotectedValue] wrapping `this` [sqlite3_value] or returns `null` if the type
+ * of `this` value is [ksqlite.types.SqliteDataType.NULL].
+ */
+internal fun sqlite3_value.toUnprotectedValue(scope: ClosableScope): UnprotectedValue =
+    UnprotectedValue(this, scope)
+
+/**
+ * Creates a new [ProtectedValue] wrapping `this` [sqlite3_value].
+ */
+internal fun sqlite3_value.toProtectedValue(scope: ClosableScope): ProtectedValue =
+    ProtectedValue(this, scope)
+
+/**
+ * Map `this` array of [sqlite3_value] to an array of [ProtectedValue].
+ */
+internal fun Array<sqlite3_value>.toProtectedValues(scope: ClosableScope): Array<ProtectedValue> {
+    return if (isEmpty()) {
+        emptyArray()
+    } else {
+        Array(size) { index ->
+            this[index].toProtectedValue(scope)
+        }
+    }
+}

@@ -1,12 +1,12 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
-import ksqlite.capi.convertTextEncoding
+import ksqlite.capi.callbacks.SqliteCollationCallback
+import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
-import ksqlite.`sqlite3_collation_needed$x0`
-import ksqlite.`sqlite3_create_collation_v2$xCompare`
+import ksqlite.capi.sqlite3
+import ksqlite.foreign.`sqlite3_collation_needed$x0`
+import ksqlite.foreign.`sqlite3_create_collation_v2$xCompare`
+import ksqlite.types.internal.convertTextEncoding
 import java.lang.foreign.Arena
 import java.lang.foreign.MemorySegment
 import java.lang.foreign.ValueLayout
@@ -15,10 +15,9 @@ import java.lang.foreign.ValueLayout
  * Handler for [ksqlite.capi.sqlite3_create_collation] and
  * [ksqlite.capi.sqlite3_create_collation_v2].
  */
-internal class CollationCompareHandler :
+internal class CollationHandler :
     Handler(),
     `sqlite3_create_collation_v2$xCompare`.Function {
-
 
     override fun allocate(arena: Arena): MemorySegment =
         `sqlite3_create_collation_v2$xCompare`.allocate(this, arena)
@@ -29,7 +28,7 @@ internal class CollationCompareHandler :
         text1: MemorySegment,
         size2: Int,
         text2: MemorySegment
-    ): Int = handle(refPointer) { callback: Sqlite3CollationCompareCallback<Any?>, appData ->
+    ): Int = handle(refPointer) { callback: SqliteCollationCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             lhs = text1.asSlice(0, size1.toLong()).toArray(ValueLayout.JAVA_BYTE),
@@ -53,7 +52,7 @@ internal class CollationNeededHandler :
         db: MemorySegment,
         eTextRep: Int,
         name: MemorySegment
-    ): Unit = handle(refPointer) { callback: Sqlite3CollationNeededCallback<Any?>, appData ->
+    ): Unit = handle(refPointer) { callback: SqliteCollationNeededCallback<Any?>, appData ->
         callback.apply(
             appData = appData,
             db = sqlite3(db),

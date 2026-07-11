@@ -3,7 +3,7 @@ package ksqlite.capi.memory
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toLong
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
 
 /**
  * C-static function disposing a [Disposable] registered with [registerGlobalDisposable].
@@ -25,7 +25,7 @@ internal fun globalDisposer(data: Any?) = GlobalDisposer.takeIf { data != null }
  */
 internal fun bufferDisposer(
     buffer: Buffer,
-    destructor: Sqlite3DestroyCallback<Buffer>?
+    destructor: SqliteDestroyCallback<Buffer>?
 ) = instanceDisposer(
     disposer = GlobalDisposer,
     instance = buffer,

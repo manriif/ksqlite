@@ -1,5 +1,8 @@
 package ksqlite.capi.memory
 
+import ksqlite.capi.memory.OpaqueBuffer.Companion.allocate
+
+
 /**
  * Region of native memory that can be read.
  */
@@ -83,7 +86,7 @@ public abstract class WritableBuffer internal constructor(byteSize: Long) :
      */
     public fun write(
         source: ByteArray,
-        size: Int,
+        size: Int = source.size,
         sourceOffset: Int = 0,
         destinationOffset: Long = 0
     ) {
@@ -123,6 +126,8 @@ private class ReadOnlyBuffer(private val source: ReadableBuffer) :
             destinationOffset = destinationOffset
         )
     }
+
+    override fun toString(): String = source.toString()
 }
 
 /**
@@ -136,7 +141,7 @@ public abstract class BufferBase internal constructor(byteSize: Long) : Writable
     internal abstract val address: Long
 
     override fun toString(): String =
-        "Buffer(address=0x${address.toHexString()}, size=$byteSize)"
+        "Buffer(address=0x${address.toHexString(NativeAddressHexFormat)}, size=$byteSize)"
 
     /**
      * Returns a readonly view of this [Buffer].
@@ -145,13 +150,14 @@ public abstract class BufferBase internal constructor(byteSize: Long) : Writable
 }
 
 /**
- * Native memory region that can be read and written.
+ * SQLite managed memory region that can be read and written.
  *
  * The memory region can theoretically carry up to [Long.MAX_VALUE] bytes on JVM (+ Android) and
  * Native, but it can be limited to [Int.MAX_VALUE] on web targets.
  *
- * The memory is managed by SQLite and must be freed when no longer required by passing
- * `this` buffer to [ksqlite.capi.sqlite3_free].
+ * The memory is allocated using [ksqlite.capi.sqlite3_malloc], [ksqlite.capi.sqlite3_malloc64],
+ * [ksqlite.capi.sqlite3_realloc] or [ksqlite.capi.sqlite3_realloc64] and must be freed when no
+ * longer required by passing `this` buffer to [ksqlite.capi.sqlite3_free].
  *
  * [Buffer] does not provide any kind of thread-safety and external synchronization is required if
  * concurrent access is needed.
@@ -180,6 +186,40 @@ public expect class Buffer : BufferBase {
          * Empty buffer ([byteSize] == 0).
          */
         val Empty: Buffer
+    }
+}
+
+/**
+ * Platform managed memory region that is not intended to be read nor written by the application.
+ *
+ * The memory region can theoretically carry up to [Long.MAX_VALUE] bytes on JVM (+ Android) and
+ * Native, but it can be limited to [Int.MAX_VALUE] on web targets.
+ *
+ * The memory is allocated using [allocate] and must be freed when no longer required using [close].
+ *
+ * [OpaqueBuffer] does not provide any kind of thread-safety and external synchronization is
+ * required if concurrent access is needed.
+ */
+public expect class OpaqueBuffer : AutoCloseable {
+
+    /**
+     * Size of the buffer in bytes.
+     */
+    public val byteSize: Long
+
+    /**
+     * Frees this buffer memory.
+     * Does nothing is the buffer is already freed.
+     */
+    override fun close()
+
+    public companion object {
+
+        /**
+         * Allocates an [OpaqueBuffer] holding [size] bytes of native memory. If the allocation
+         * fails then `null` is returned.
+         */
+        public fun allocate(@Suppress("unused") size: Long): OpaqueBuffer?
     }
 }
 

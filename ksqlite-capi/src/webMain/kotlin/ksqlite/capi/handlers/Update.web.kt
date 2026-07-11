@@ -1,14 +1,36 @@
 package ksqlite.capi.handlers
 
-import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
-import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
-import ksqlite.capi.convertActionCode
-import ksqlite.wasm.FunctionSignature
-import ksqlite.wasm.WasmFunctions
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.installFunction
+import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
+import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.memory.toKStringFromUtf8
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.sqlite3
+import ksqlite.foreign.wasm.FunctionSignature
+import ksqlite.foreign.wasm.JsFunction
+import ksqlite.foreign.wasm.WasmFunctions
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.installFunction
+import ksqlite.types.internal.convertActionCode
+import kotlin.js.JsReference
+import kotlin.js.toJsReference
+
+///////////////////////////////////////////////////////////////////////////
+// Preupdate
+///////////////////////////////////////////////////////////////////////////
+
+@JsFun("(jsRef, handler) => (p0, p1, p2, p3, p4, p5, p6) => handler(jsRef, p0, p1, p2, p3, p4, p5, p6)")
+private external fun preupdateHook(
+    jsRef: JsReference<PreupdateHookHandler>,
+    handler: (
+        jsRef: JsReference<PreupdateHookHandler>,
+        refPointer: WasmPointer,
+        db: WasmPointer,
+        action: Int,
+        dbName: WasmPointer,
+        tableName: WasmPointer,
+        iKey1: Long,
+        iKey2: Long
+    ) -> Unit
+): JsFunction
 
 /**
  * Handler for [ksqlite.capi.sqlite3_preupdate_hook].
@@ -25,29 +47,38 @@ internal class PreupdateHookHandler : Handler() {
             FunctionSignature.Int64,
             FunctionSignature.Int64,
         ),
-        function = this::apply
+        function = preupdateHook(toJsReference()) { jsRef, refPointer, db, action, dbName, tableName, iKey1, iKey2 ->
+            jsRef.handle(refPointer) { callback: SqlitePreupdateHookCallback<Any?>, appData ->
+                callback.apply(
+                    appData = appData,
+                    db = sqlite3(db),
+                    action = convertActionCode(action),
+                    dbName = dbName.toKStringFromUtf8(),
+                    tableName = tableName.toKStringFromUtf8(),
+                    oldRowid = iKey1,
+                    newRowid = iKey2
+                )
+            }
+        }
     )
+}
 
-    fun apply(
+///////////////////////////////////////////////////////////////////////////
+// Update
+///////////////////////////////////////////////////////////////////////////
+
+@JsFun("(jsRef, handler) => (p0, p1, p2, p3, p4) => handler(jsRef, p0, p1, p2, p3, p4)")
+private external fun updateHook(
+    jsRef: JsReference<UpdateHookHandler>,
+    handler: (
+        jsRef: JsReference<UpdateHookHandler>,
         refPointer: WasmPointer,
-        db: WasmPointer,
         action: Int,
         dbName: WasmPointer,
         tableName: WasmPointer,
-        iKey1: Long,
-        iKey2: Long
-    ): Unit = handle(refPointer) { callback: Sqlite3PreupdateHookCallback<Any?>, appData ->
-        callback.apply(
-            appData = appData,
-            db = sqlite3(db),
-            action = convertActionCode(action),
-            dbName = dbName.toKStringFromUtf8(),
-            tableName = tableName.toKStringFromUtf8(),
-            preRowId = iKey1,
-            postRowId = iKey2
-        )
-    }
-}
+        rowId: Long
+    ) -> Unit
+): JsFunction
 
 /**
  * Handler for [ksqlite.capi.sqlite3_update_hook].
@@ -62,22 +93,16 @@ internal class UpdateHookHandler : Handler() {
             FunctionSignature.Pointer,
             FunctionSignature.Int64,
         ),
-        function = this::apply
+        function = updateHook(toJsReference()) { jsRef, refPointer, action, dbName, tableName, rowId ->
+            jsRef.handle(refPointer) { callback: SqliteUpdateHookCallback<Any?>, appData ->
+                callback.apply(
+                    appData = appData,
+                    action = convertActionCode(action),
+                    dbName = dbName.toKStringFromUtf8(),
+                    tableName = tableName.toKStringFromUtf8(),
+                    rowid = rowId
+                )
+            }
+        }
     )
-
-    fun apply(
-        refPointer: WasmPointer,
-        action: Int,
-        dbName: WasmPointer,
-        tableName: WasmPointer,
-        rowId: Long
-    ): Unit = handle(refPointer) { callback: Sqlite3UpdateHookCallback<Any?>, appData ->
-        callback.apply(
-            appData = appData,
-            action = convertActionCode(action),
-            dbName = dbName.toKStringFromUtf8(),
-            tableName = tableName.toKStringFromUtf8(),
-            rowId = rowId
-        )
-    }
 }

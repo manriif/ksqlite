@@ -5,9 +5,9 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.capi.callbacks.Sqlite3WalHookCallback
-import ksqlite.capi.types.s3
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.callbacks.SqliteWalHookCallback
+import ksqlite.capi.sqlite3
+import ksqlite.capi.s3
 
 /**
  * Static C function for [walHookHandler].
@@ -22,11 +22,11 @@ private fun walHookHandler(
     db: CPointer<s3>?,
     dbName: CPointer<ByteVar>?,
     nPage: Int,
-) = handle(refPointer) { callback: Sqlite3WalHookCallback<Any?>, appData ->
+) = handle(refPointer) { callback: SqliteWalHookCallback<Any?>, appData ->
     callback.apply(
         appData = appData,
         db = sqlite3(db!!),
-        dbName = dbName!!.toKStringFromUtf8(),
-        nPage = nPage
+        databaseName = dbName!!.toKStringFromUtf8(),
+        pageCount = nPage
     ).code
 }

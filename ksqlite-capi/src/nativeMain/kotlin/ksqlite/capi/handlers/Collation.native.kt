@@ -6,32 +6,32 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.convertTextEncoding
-import ksqlite.capi.types.s3
-import ksqlite.capi.types.sqlite3
+import ksqlite.capi.callbacks.SqliteCollationCallback
+import ksqlite.capi.callbacks.SqliteCollationNeededCallback
+import ksqlite.capi.s3
+import ksqlite.capi.sqlite3
+import ksqlite.types.internal.convertTextEncoding
 
 ///////////////////////////////////////////////////////////////////////////
-// Compare
+// Collation
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Static C function for [collationCompareHandler].
+ * Static C function for [collationHandler].
  */
-internal val CollationCompareHandler = staticCFunction(::collationCompareHandler)
+internal val CollationHandler = staticCFunction(::collationHandler)
 
 /**
  * Handler for [ksqlite.capi.sqlite3_create_collation] and
  * [ksqlite.capi.sqlite3_create_collation_v2].
  */
-private fun collationCompareHandler(
+private fun collationHandler(
     refPointer: COpaquePointer?,
     size1: Int,
     text1: COpaquePointer?,
     size2: Int,
     text2: COpaquePointer?
-) = handle(refPointer) { callback: Sqlite3CollationCompareCallback<Any?>, appData ->
+) = handle(refPointer) { callback: SqliteCollationCallback<Any?>, appData ->
     callback.apply(
         appData = appData,
         lhs = text1!!.readBytes(size1),
@@ -56,7 +56,7 @@ private fun collationNeededHandler(
     db: CPointer<s3>?,
     eTextRep: Int,
     name: CPointer<ByteVar>?
-) = handle(refPointer) { callback: Sqlite3CollationNeededCallback<Any?>, appData ->
+) = handle(refPointer) { callback: SqliteCollationNeededCallback<Any?>, appData ->
     callback.apply(
         appData = appData,
         db = sqlite3(db!!),

@@ -1,31 +1,31 @@
-@file:Suppress("FunctionName", "SpellCheckingInspection")
+@file:Suppress("FunctionName", "SpellCheckingInspection", "REDUNDANT_CALL_OF_CONVERSION_METHOD")
 
 package ksqlite.capi
 
-import ksqlite.capi.VariadicValue.OfPointer
-import ksqlite.capi.callbacks.Sqlite3AuthorizerCallback
-import ksqlite.capi.callbacks.Sqlite3AutoExtensionCallback
-import ksqlite.capi.callbacks.Sqlite3AutoVacuumPagesCallback
-import ksqlite.capi.callbacks.Sqlite3BusyHandlerCallback
-import ksqlite.capi.callbacks.Sqlite3CollationCompareCallback
-import ksqlite.capi.callbacks.Sqlite3CollationNeededCallback
-import ksqlite.capi.callbacks.Sqlite3CommitHookCallback
-import ksqlite.capi.callbacks.Sqlite3DestroyCallback
-import ksqlite.capi.callbacks.Sqlite3ExecCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFinalCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionFuncCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionInverseCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionStepCallback
-import ksqlite.capi.callbacks.Sqlite3FunctionValueCallback
-import ksqlite.capi.callbacks.Sqlite3PreupdateHookCallback
-import ksqlite.capi.callbacks.Sqlite3ProgressHandlerCallback
-import ksqlite.capi.callbacks.Sqlite3RollbackHookCallback
-import ksqlite.capi.callbacks.Sqlite3TraceCallback
-import ksqlite.capi.callbacks.Sqlite3UpdateHookCallback
+import ksqlite.capi.callbacks.SqliteAuthorizerCallback
+import ksqlite.capi.callbacks.SqliteAutoExtensionCallback
+import ksqlite.capi.callbacks.SqliteAutovacuumPagesCallback
+import ksqlite.capi.callbacks.SqliteBusyHandlerCallback
+import ksqlite.capi.callbacks.SqliteCollationCallback
+import ksqlite.capi.callbacks.SqliteCollationNeededCallback
+import ksqlite.capi.callbacks.SqliteCommitHookCallback
+import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.capi.callbacks.SqliteExecCallback
+import ksqlite.capi.callbacks.SqliteFunctionFinalCallback
+import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
+import ksqlite.capi.callbacks.SqliteFunctionInverseCallback
+import ksqlite.capi.callbacks.SqliteFunctionStepCallback
+import ksqlite.capi.callbacks.SqliteFunctionValueCallback
+import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
+import ksqlite.capi.callbacks.SqliteProgressHandlerCallback
+import ksqlite.capi.callbacks.SqliteRollbackHookCallback
+import ksqlite.capi.callbacks.SqliteTraceCallback
+import ksqlite.capi.callbacks.SqliteUpdateHookCallback
+import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.handlers.AuthorizerHandler
-import ksqlite.capi.handlers.AutoVacuumPagesHandler
+import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
-import ksqlite.capi.handlers.CollationCompareHandler
+import ksqlite.capi.handlers.CollationHandler
 import ksqlite.capi.handlers.CollationNeededHandler
 import ksqlite.capi.handlers.CommitHookHandler
 import ksqlite.capi.handlers.ConfigLogHandler
@@ -41,167 +41,104 @@ import ksqlite.capi.handlers.ProgressHandlerHandler
 import ksqlite.capi.handlers.RollbackHookHandler
 import ksqlite.capi.handlers.TraceHandler
 import ksqlite.capi.handlers.UpdateHookHandler
+import ksqlite.capi.handlers.WalHookHandler
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.memory.HeapAllocatorScope
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.NullPtr
+import ksqlite.capi.memory.OpaqueBuffer
+import ksqlite.capi.memory.OutputParamBase
+import ksqlite.capi.memory.Utf8OutputParam
+import ksqlite.capi.memory.VariadicValue
 import ksqlite.capi.memory.allocateUtf8
-import ksqlite.capi.memory.allocateUtf8Array
+import ksqlite.capi.memory.toCStringArray
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.bufferScoped
 import ksqlite.capi.memory.globalDisposer
 import ksqlite.capi.memory.globalMemory
 import ksqlite.capi.memory.heapScoped
+import ksqlite.capi.memory.invokeVariadic
 import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
+import ksqlite.capi.memory.overriding
 import ksqlite.capi.memory.readByteArray
+import ksqlite.capi.memory.stableRefDisposable
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.stackScoped
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.memory.useMemoryManager
+import ksqlite.capi.memory.useParam
+import ksqlite.capi.memory.useParamStackScoped
+import ksqlite.capi.memory.useParams
+import ksqlite.capi.memory.useParamsStackScoped
 import ksqlite.capi.memory.withMemoryManager
-import ksqlite.capi.types.Int32OutputParam
-import ksqlite.capi.types.Int64OutputParam
-import ksqlite.capi.types.Sqlite3BlobOpenFlag
-import ksqlite.capi.types.Sqlite3BlobOutputParam
-import ksqlite.capi.types.Sqlite3CompleteResult
-import ksqlite.capi.types.Sqlite3ConfigOption
-import ksqlite.capi.types.Sqlite3DataType
-import ksqlite.capi.types.Sqlite3DbConfigOption
-import ksqlite.capi.types.Sqlite3DbStatusOption
-import ksqlite.capi.types.Sqlite3DeserializeFlag
-import ksqlite.capi.types.Sqlite3ExplainMode
-import ksqlite.capi.types.Sqlite3FileControlOpcode
-import ksqlite.capi.types.Sqlite3Limit
-import ksqlite.capi.types.Sqlite3OpenFlag
-import ksqlite.capi.types.Sqlite3OutputParam
-import ksqlite.capi.types.Sqlite3PrepareFlag
-import ksqlite.capi.types.Sqlite3Result
-import ksqlite.capi.types.Sqlite3SerializeFlag
-import ksqlite.capi.types.Sqlite3StatementStatusCounter
-import ksqlite.capi.types.Sqlite3StatusOption
-import ksqlite.capi.types.Sqlite3StmtOutputParam
-import ksqlite.capi.types.Sqlite3TextEncoding
-import ksqlite.capi.types.Sqlite3TraceCode
-import ksqlite.capi.types.Sqlite3TransactionState
-import ksqlite.capi.types.Sqlite3ValueOutputParam
-import ksqlite.capi.types.Utf8OutputParam
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_backup
-import ksqlite.capi.types.sqlite3_blob
-import ksqlite.capi.types.sqlite3_context
-import ksqlite.capi.types.sqlite3_filename
-import ksqlite.capi.types.sqlite3_stmt
-import ksqlite.capi.types.sqlite3_value
-import ksqlite.capi.types.sqlite3_vfs
-import ksqlite.capi.types.useParam
-import ksqlite.capi.types.useParamStackScoped
-import ksqlite.capi.types.useParamsStackScoped
-import ksqlite.capi.vtab.Sqlite3VTabConfigOption
-import ksqlite.capi.vtab.createVTabModule
+import ksqlite.capi.memory.wrapOrNull
+import ksqlite.capi.types.SqliteConfigOption
+import ksqlite.capi.types.SqliteDbConfigOption
+import ksqlite.capi.types.SqliteFileControlOpcode
+import ksqlite.capi.vfs.sqlite3_vfs
+import ksqlite.capi.vtab.SqliteVtabConfigOption
+import ksqlite.capi.vtab.createVtabModule
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
-import ksqlite.js.arrayForEachIndexed
-import ksqlite.js.arraySize
-import ksqlite.js.copyTo
-import ksqlite.js.plus
-import ksqlite.wasm.IR
-import ksqlite.wasm.WasmPointer
-import ksqlite.wasm.size
-import ksqlite.wasm.sizeofIR
+import ksqlite.foreign.js.copyTo
+import ksqlite.foreign.wasm.WasmPointer
+import ksqlite.foreign.wasm.contentSize
+import ksqlite.types.SqliteBlobOpenFlag
+import ksqlite.types.SqliteCheckpointMode
+import ksqlite.types.SqliteCompleteResult
+import ksqlite.types.SqliteConflictResolutionMode
+import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteDbReadonlyResult
+import ksqlite.types.SqliteDbStatusOption
+import ksqlite.types.SqliteDeserializeFlag
+import ksqlite.types.SqliteExplainMode
+import ksqlite.types.SqliteFunctionTextEncoding
+import ksqlite.types.SqliteOpenFlag
+import ksqlite.types.SqlitePrepareFlag
+import ksqlite.types.SqliteResultCode
+import ksqlite.types.SqliteRuntimeLimit
+import ksqlite.types.SqliteStatementStatusCounter
+import ksqlite.types.SqliteStatusOption
+import ksqlite.types.SqliteTextEncoding
+import ksqlite.types.SqliteTraceEventCode
+import ksqlite.types.SqliteTransactionState
+import ksqlite.types.internal.convertCompleteResult
+import ksqlite.types.internal.convertConflictResolutionMode
+import ksqlite.types.internal.convertDataType
+import ksqlite.types.internal.convertDbReadonlyResult
+import ksqlite.types.internal.convertExplainMode
+import ksqlite.types.internal.convertResultCode
+import ksqlite.types.internal.convertTextEncoding
+import ksqlite.types.internal.convertTransactionState
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
 
-///////////////////////////////////////////////////////////////////////////
-// Helpers
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Invokes a function accepting a variadic parameter.
- */
-private inline fun <Result> HeapAllocatorScope.invokeVariadic(
-    values: Array<out VariadicValue<WasmPointer>?>,
-    noinline manager: () -> MemoryManager,
-    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
-): Result {
-    val pointerSize = memory.sizeofIR(IR.Ptr)
-    val argCount = arraySize(values)
-    val vaArgsSize = pointerSize * argCount
-    val vaArgsPointer = allocate(vaArgsSize)
-
-    arrayForEachIndexed(values) { index, value ->
-        val vaArgPointer = vaArgsPointer + (index * pointerSize)
-
-        when (value) {
-            null -> memory.pokePtr(vaArgPointer, NullPtr)
-            is OfInt -> memory.poke32(vaArgPointer, value.value)
-            is OfUInt -> memory.poke32(vaArgPointer, value.value.toInt())
-            is OfLong -> memory.poke64(vaArgPointer, value.value.toJsBigInt())
-            is OfPointer -> memory.pokePtr(vaArgPointer, value.value)
-
-            // String value is allocated on MemoryManager rather than current scope as the String is
-            // tied to the lifecycle of the caller MemoryScope
-            is OfString -> memory.pokePtr(
-                address = vaArgPointer,
-                value = manager().keyedStringPointer(
-                    key = value.key,
-                    value = value.value
-                )
-            )
-        }
-    }
-
-    return invoke(vaArgsPointer)
-}
-
-/**
- * Invokes a function accepting a variadic parameter.
- */
-private inline fun <Result> invokeVariadic(
-    values: Array<out VariadicValue<WasmPointer>?>,
-    noinline manager: () -> MemoryManager,
-    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
-): Result = heapScoped {
-    invokeVariadic(values, manager, invoke)
-}
-
-/**
- * Invokes a function accepting a variadic parameter.
- */
-context(scope: HeapAllocatorScope)
-private inline fun <Result> invokeVariadic(
-    noinline manager: () -> MemoryManager,
-    vararg values: VariadicValue<WasmPointer>?,
-    invoke: HeapAllocatorScope.(vaList: WasmPointer) -> Result
-): Result = scope.invokeVariadic(values, manager, invoke)
-
-///////////////////////////////////////////////////////////////////////////
-// Functions
-///////////////////////////////////////////////////////////////////////////
-
-public actual fun sqlite3_auto_extension(callback: Sqlite3AutoExtensionCallback): Sqlite3Result =
+public actual fun sqlite3_auto_extension(callback: SqliteAutoExtensionCallback): SqliteResultCode =
     autoExtensionRegister(callback) { exports.ksqlite_auto_extension(SharedAutoExtensionHandler) }
 
 public actual fun <AppData> sqlite3_autovacuum_pages(
     db: sqlite3,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?,
-    callback: Sqlite3AutoVacuumPagesCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    destroy: SqliteDestroyCallback<in AppData>?,
+    callback: SqliteAutovacuumPagesCallback<in AppData>?
+): SqliteResultCode = convertResultCode(db.withMemoryManager {
     exports.sqlite3_autovacuum_pages(
         db.pointer,
-        functionPointer(callback, ::AutoVacuumPagesHandler),
-        keyedStableRefPointer(KEY_AUTOVACUUM_PAGES, callback, appData, destroy),
+        functionPointer(callback, ::AutovacuumPagesHandler),
+        stableRefPointer(callback, appData, destroy),
         stableRefDisposer(callback, destroy)
     )
 })
 
-public actual fun sqlite3_backup_finish(backup: sqlite3_backup): Sqlite3Result = convertResult(
-    exports.sqlite3_backup_finish(backup.pointer)
-)
+public actual fun sqlite3_backup_finish(backup: sqlite3_backup): SqliteResultCode =
+    convertResultCode(
+        exports.sqlite3_backup_finish(backup.pointer)
+    )
 
 public actual fun sqlite3_backup_init(
     destDb: sqlite3,
@@ -214,8 +151,8 @@ public actual fun sqlite3_backup_init(
         destDbName.allocateUtf8Pointer(),
         srcDb.pointer,
         srcDbName.allocateUtf8Pointer()
-    ).orNull?.let(::sqlite3_backup)
-}
+    )
+}.wrapOrNull(::sqlite3_backup)
 
 public actual fun sqlite3_backup_pagecount(backup: sqlite3_backup): Int =
     exports.sqlite3_backup_pagecount(backup.pointer)
@@ -226,15 +163,15 @@ public actual fun sqlite3_backup_remaining(backup: sqlite3_backup): Int =
 public actual fun sqlite3_backup_step(
     backup: sqlite3_backup,
     nPage: Int
-): Sqlite3Result = convertResult(exports.sqlite3_backup_step(backup.pointer, nPage))
+): SqliteResultCode = convertResultCode(exports.sqlite3_backup_step(backup.pointer, nPage))
 
 public actual fun sqlite3_bind_blob(
     stmt: sqlite3_stmt,
     index: Int,
     bytes: ByteArray,
     size: Int,
-    destroy: Sqlite3DestroyCallback<ByteArray>?
-): Sqlite3Result = convertResult(
+    destroy: SqliteDestroyCallback<ByteArray>?
+): SqliteResultCode = convertResultCode(
     exports.sqlite3_bind_blob(
         stmt.pointer,
         index,
@@ -249,8 +186,8 @@ public actual fun sqlite3_bind_blob64(
     index: Int,
     buffer: Buffer,
     size: Long,
-    destroy: Sqlite3DestroyCallback<Buffer>?
-): Sqlite3Result = convertResult(
+    destroy: SqliteDestroyCallback<Buffer>?
+): SqliteResultCode = convertResultCode(
     exports.sqlite3_bind_blob64(
         stmt.pointer,
         index,
@@ -264,25 +201,25 @@ public actual fun sqlite3_bind_double(
     stmt: sqlite3_stmt,
     index: Int,
     value: Double
-): Sqlite3Result = convertResult(exports.sqlite3_bind_double(stmt.pointer, index, value))
+): SqliteResultCode = convertResultCode(exports.sqlite3_bind_double(stmt.pointer, index, value))
 
 public actual fun sqlite3_bind_int(
     stmt: sqlite3_stmt,
     index: Int,
     value: Int
-): Sqlite3Result = convertResult(exports.sqlite3_bind_int(stmt.pointer, index, value))
+): SqliteResultCode = convertResultCode(exports.sqlite3_bind_int(stmt.pointer, index, value))
 
 public actual fun sqlite3_bind_int64(
     stmt: sqlite3_stmt,
     index: Int,
     value: Long
-): Sqlite3Result =
-    convertResult(exports.sqlite3_bind_int64(stmt.pointer, index, value.toJsBigInt()))
+): SqliteResultCode =
+    convertResultCode(exports.sqlite3_bind_int64(stmt.pointer, index, value.toJsBigInt()))
 
 public actual fun sqlite3_bind_null(
     stmt: sqlite3_stmt,
     index: Int
-): Sqlite3Result = convertResult(exports.sqlite3_bind_null(stmt.pointer, index))
+): SqliteResultCode = convertResultCode(exports.sqlite3_bind_null(stmt.pointer, index))
 
 public actual fun sqlite3_bind_parameter_count(stmt: sqlite3_stmt): Int =
     exports.sqlite3_bind_parameter_count(stmt.pointer)
@@ -305,8 +242,8 @@ public actual fun <Data> sqlite3_bind_pointer(
     index: Int,
     data: Data,
     type: String?,
-    destroy: Sqlite3DestroyCallback<Data>?
-): Sqlite3Result = convertResult(with(globalMemory) {
+    destroy: SqliteDestroyCallback<Data>?
+): SqliteResultCode = convertResultCode(with(globalMemory) {
     // Use globalMemory because of lack of information within sqlite3_value_pointer()
     allocateNamedPointer(type, destroy) { ptr, ptrDestroy ->
         exports.sqlite3_bind_pointer(
@@ -323,9 +260,16 @@ public actual fun sqlite3_bind_text(
     stmt: sqlite3_stmt,
     index: Int,
     value: String
-): Sqlite3Result = convertResult(heapScoped {
+): SqliteResultCode = convertResultCode(heapScoped {
     val cText = value.allocateUtf8()
-    exports.sqlite3_bind_text(stmt.pointer, index, cText.pointer, cText.size, SqliteTransient)
+
+    exports.sqlite3_bind_text(
+        stmt.pointer,
+        index,
+        cText.pointer,
+        cText.contentSize,
+        sqliteTransient
+    )
 })
 
 public actual fun sqlite3_bind_text64(
@@ -333,16 +277,16 @@ public actual fun sqlite3_bind_text64(
     index: Int,
     buffer: Buffer,
     size: Long,
-    encoding: Sqlite3TextEncoding.Set1,
-    destroy: Sqlite3DestroyCallback<Buffer>?
-): Sqlite3Result = convertResult(
+    encoding: SqliteTextEncoding.BindText,
+    destroy: SqliteDestroyCallback<Buffer>?
+): SqliteResultCode = convertResultCode(
     exports.sqlite3_bind_text64(
         stmt.pointer,
         index,
         buffer.pointer,
         size.toJsBigInt(),
         bufferDisposer(buffer, destroy),
-        encoding.utf8OrThrow().value
+        encoding.value
     )
 )
 
@@ -350,43 +294,50 @@ public actual fun sqlite3_bind_value(
     stmt: sqlite3_stmt,
     index: Int,
     value: sqlite3_value
-): Sqlite3Result = convertResult(exports.sqlite3_bind_value(stmt.pointer, index, value.pointer))
+): SqliteResultCode =
+    convertResultCode(exports.sqlite3_bind_value(stmt.pointer, index, value.pointer))
 
 public actual fun sqlite3_bind_zeroblob(
     stmt: sqlite3_stmt,
     index: Int,
     size: Int
-): Sqlite3Result = convertResult(exports.sqlite3_bind_zeroblob(stmt.pointer, index, size))
+): SqliteResultCode = convertResultCode(exports.sqlite3_bind_zeroblob(stmt.pointer, index, size))
 
 public actual fun sqlite3_bind_zeroblob64(
     stmt: sqlite3_stmt,
     index: Int,
     size: ULong
-): Sqlite3Result =
-    convertResult(exports.sqlite3_bind_zeroblob64(stmt.pointer, index, size.toLong().toJsBigInt()))
+): SqliteResultCode =
+    convertResultCode(
+        exports.sqlite3_bind_zeroblob64(
+            stmt.pointer,
+            index,
+            size.toLong().toJsBigInt()
+        )
+    )
 
 public actual fun sqlite3_blob_bytes(blob: sqlite3_blob): Int =
     exports.sqlite3_blob_bytes(blob.pointer)
 
-public actual fun sqlite3_blob_close(blob: sqlite3_blob): Sqlite3Result =
-    convertResult(exports.sqlite3_blob_close(blob.pointer))
+public actual fun sqlite3_blob_close(blob: sqlite3_blob): SqliteResultCode =
+    convertResultCode(exports.sqlite3_blob_close(blob.pointer))
 
 public actual fun sqlite3_blob_open(
     db: sqlite3,
-    databaseName: String,
+    database: String,
     tableName: String,
     columnName: String,
-    rowIndex: Long,
-    flags: Sqlite3BlobOpenFlag,
-    outBlob: Sqlite3BlobOutputParam
-): Sqlite3Result = convertResult(heapScoped {
+    rowid: Long,
+    flags: SqliteBlobOpenFlag,
+    outBlob: sqlite3_blob.OutputParam
+): SqliteResultCode = convertResultCode(heapScoped {
     useParam(outBlob) { blobPtr ->
         exports.sqlite3_blob_open(
             db.pointer,
-            databaseName.allocateUtf8Pointer(),
+            database.allocateUtf8Pointer(),
             tableName.allocateUtf8Pointer(),
             columnName.allocateUtf8Pointer(),
-            rowIndex.toJsBigInt(),
+            rowid.toJsBigInt(),
             flags.value,
             blobPtr
         )
@@ -395,22 +346,22 @@ public actual fun sqlite3_blob_open(
 
 public actual fun sqlite3_blob_read(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    output: ByteArray,
     size: Int,
     offset: Int
-): Sqlite3Result {
+): SqliteResultCode {
     val memory = wasm
-    val pointer = memory.alloc(size)
-    val result = convertResult(exports.sqlite3_blob_read(blob.pointer, pointer, size, offset))
+    val pointer = memory.alloc.impl(size)
+    val result = convertResultCode(exports.sqlite3_blob_read(blob.pointer, pointer, size, offset))
 
     try {
-        if (result == Sqlite3Result.OK) {
+        if (result == SqliteResultCode.OK) {
             val start = pointer.toLong().toInt()
             val end = start + size
 
             memory.heap8()
                 .subarray(start, end)
-                .copyTo(bytes, 0)
+                .copyTo(output, 0)
         }
     } finally {
         memory.dealloc(pointer)
@@ -421,23 +372,24 @@ public actual fun sqlite3_blob_read(
 
 public actual fun sqlite3_blob_reopen(
     blob: sqlite3_blob,
-    rowIndex: Long
-): Sqlite3Result = convertResult(exports.sqlite3_blob_reopen(blob.pointer, rowIndex.toJsBigInt()))
+    rowid: Long
+): SqliteResultCode =
+    convertResultCode(exports.sqlite3_blob_reopen(blob.pointer, rowid.toJsBigInt()))
 
 public actual fun sqlite3_blob_write(
     blob: sqlite3_blob,
-    bytes: ByteArray,
+    input: ByteArray,
     size: Int,
     offset: Int
-): Sqlite3Result = convertResult(bufferScoped(bytes) { bufferPtr ->
+): SqliteResultCode = convertResultCode(bufferScoped(input) { bufferPtr ->
     exports.sqlite3_blob_write(blob.pointer, bufferPtr, size, offset)
 })
 
 public actual fun <AppData> sqlite3_busy_handler(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3BusyHandlerCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    callback: SqliteBusyHandlerCallback<AppData>?
+): SqliteResultCode = convertResultCode(db.withMemoryManager {
     exports.sqlite3_busy_handler(
         db.pointer,
         functionPointer(callback, ::BusyHandlerHandler),
@@ -448,9 +400,9 @@ public actual fun <AppData> sqlite3_busy_handler(
 public actual fun sqlite3_busy_timeout(
     db: sqlite3,
     millis: Int
-): Sqlite3Result = convertResult(exports.sqlite3_busy_timeout(db.pointer, millis))
+): SqliteResultCode = convertResultCode(exports.sqlite3_busy_timeout(db.pointer, millis))
 
-public actual fun sqlite3_cancel_auto_extension(callback: Sqlite3AutoExtensionCallback): Int =
+public actual fun sqlite3_cancel_auto_extension(callback: SqliteAutoExtensionCallback): Int =
     autoExtensionUnregister(callback) {
         exports.ksqlite_cancel_auto_extension(SharedAutoExtensionHandler)
     }
@@ -461,20 +413,20 @@ public actual fun sqlite3_changes(db: sqlite3): Int =
 public actual fun sqlite3_changes64(db: sqlite3): Long =
     exports.sqlite3_changes64(db.pointer).toLong()
 
-public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): Sqlite3Result =
+public actual fun sqlite3_clear_bindings(stmt: sqlite3_stmt): SqliteResultCode =
     commonClearBindings(stmt, exports.sqlite3_clear_bindings(stmt.pointer))
 
-public actual fun sqlite3_close(db: sqlite3): Sqlite3Result =
+public actual fun sqlite3_close(db: sqlite3): SqliteResultCode =
     db.deallocate { exports.sqlite3_close(it.pointer) }
 
-public actual fun sqlite3_close_v2(db: sqlite3): Sqlite3Result =
+public actual fun sqlite3_close_v2(db: sqlite3): SqliteResultCode =
     db.deallocate { exports.sqlite3_close_v2(it.pointer) }
 
 public actual fun <AppData> sqlite3_collation_needed(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3CollationNeededCallback<AppData>?,
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    callback: SqliteCollationNeededCallback<AppData>?,
+): SqliteResultCode = convertResultCode(db.withMemoryManager {
     exports.sqlite3_collation_needed(
         db.pointer,
         keyedStableRefPointer(KEY_COLLATION_NEEDED, callback, appData),
@@ -554,18 +506,18 @@ public actual fun sqlite3_column_text(
 public actual fun sqlite3_column_type(
     stmt: sqlite3_stmt,
     index: Int
-): Sqlite3DataType = convertDataType(exports.sqlite3_column_type(stmt.pointer, index))
+): SqliteDataType = convertDataType(exports.sqlite3_column_type(stmt.pointer, index))
 
 public actual fun sqlite3_column_value(
     stmt: sqlite3_stmt,
     index: Int
 ): sqlite3_value? = exports.sqlite3_column_value(stmt.pointer, index)
-    .orNull?.let(::sqlite3_value)
+    .wrapOrNull(::sqlite3_value)
 
 public actual fun <AppData> sqlite3_commit_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3CommitHookCallback<AppData>?
+    callback: SqliteCommitHookCallback<AppData>?
 ): Unit = db.withMemoryManager {
     val _ = exports.sqlite3_commit_hook(
         db.pointer,
@@ -581,19 +533,19 @@ public actual fun sqlite3_compileoption_used(optName: String): Int = heapScoped 
     exports.sqlite3_compileoption_used(optName.allocateUtf8Pointer())
 }
 
-public actual fun sqlite3_complete(sql: String): Sqlite3CompleteResult =
+public actual fun sqlite3_complete(sql: String): SqliteCompleteResult =
     convertCompleteResult(heapScoped { exports.sqlite3_complete(sql.allocateUtf8Pointer()) })
 
-public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = commonConfig(
+public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode = commonConfig(
     option = option,
     logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
-    bufferPointer = Buffer::pointer,
+    bufferPointer = OpaqueBuffer::pointer,
     keyedStableRefPointer = globalMemory::keyedStableRefPointer,
-    rowidInView = {
+    outputParamConfig = {
         heapScoped {
-            useParam(param) { paramPtr ->
-                invokeVariadic(::globalMemory, VariadicValue.OfPointer(paramPtr)) { vaListPtr ->
+            useParam(state) { statePtr ->
+                invokeVariadic(::globalMemory, VariadicValue.OfPointer(statePtr)) { vaListPtr ->
                     exports.sqlite3_config(id, vaListPtr)
                 }
             }
@@ -606,53 +558,52 @@ public actual fun sqlite3_config(option: Sqlite3ConfigOption): Sqlite3Result = c
     }
 )
 
-public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3? =
-    exports.sqlite3_context_db_handle(context.pointer).orNull?.let(::sqlite3)
+public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3 =
+    sqlite3(exports.sqlite3_context_db_handle(context.pointer))
 
 public actual fun <AppData> sqlite3_create_collation_v2(
     db: sqlite3,
     name: String,
-    encoding: Sqlite3TextEncoding.Set0,
+    encoding: SqliteTextEncoding.CreateCollation,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?,
-    callback: Sqlite3CollationCompareCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
-    heapScoped {
-        exports.sqlite3_create_collation_v2(
-            db.pointer,
-            name.allocateUtf8Pointer(),
-            encoding.utf8OrThrow().value,
-            keyedStableRefPointer(collationKey(name, encoding), callback, appData, destroy),
-            functionPointer(callback, ::CollationCompareHandler),
-            stableRefDisposer(callback, destroy)
-        )
-    }
-})
+    destroy: SqliteDestroyCallback<in AppData>?,
+    callback: SqliteCollationCallback<in AppData>?
+): SqliteResultCode = heapScoped {
+    commonCreateCollation(
+        db = db,
+        getDisposable = MemoryManager::stableRefDisposable,
+        execute = { setPointer ->
+            exports.sqlite3_create_collation_v2(
+                db.pointer,
+                name.allocateUtf8Pointer(),
+                encoding.value,
+                setPointer(stableRefPointer(callback, appData, destroy).orNull).notNull,
+                functionPointer(callback, ::CollationHandler),
+                stableRefDisposer(callback, destroy)
+            )
+        }
+    )
+}
 
 public actual fun <AppData> sqlite3_create_function_v2(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: Sqlite3TextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
-    func: Sqlite3FunctionFuncCallback<AppData>?,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    func: SqliteFunctionFuncCallback<in AppData>?,
+    step: SqliteFunctionStepCallback<in AppData>?,
+    final: SqliteFunctionFinalCallback<in AppData>?,
+    destroy: SqliteDestroyCallback<in AppData>?
+): SqliteResultCode = convertResultCode(db.withMemoryManager {
     heapScoped {
         createFunction(appData, func, step, final, destroy) { fn, fnDestroy ->
             exports.sqlite3_create_function_v2(
                 db.pointer,
                 name.allocateUtf8Pointer(),
                 nArg,
-                encoding.utf8OrThrow().value,
-                keyedStableRefPointer(
-                    key = functionKey(name, nArg, encoding),
-                    data = fn,
-                    appData = appData,
-                    destructor = fnDestroy
-                ),
+                encoding.value,
+                stableRefPointer(fn, appData, fnDestroy),
                 functionPointer(func, ::FunctionFuncHandler),
                 functionPointer(step, ::FunctionStepHandler),
                 functionPointer(final, ::FunctionFinalHandler),
@@ -667,15 +618,15 @@ public actual fun <AppData> sqlite3_create_module_v2(
     name: String,
     module: sqlite3_module<AppData>?,
     appData: AppData,
-    destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    destroy: SqliteDestroyCallback<in AppData>?
+): SqliteResultCode = convertResultCode(db.withMemoryManager {
     heapScoped {
-        createVTabModule(module?.callbacks, appData) { vTabModule ->
+        createVtabModule(module?.callbacks, appData) { vTabModule ->
             exports.sqlite3_create_module_v2(
                 db.pointer,
                 name.allocateUtf8Pointer(),
                 module?.pointer.notNull,
-                keyedStableRefPointer(moduleKey(name), vTabModule, appData, destroy),
+                stableRefPointer(vTabModule, appData, destroy),
                 stableRefDisposer(vTabModule, destroy)
             )
         }
@@ -686,27 +637,22 @@ public actual fun <AppData> sqlite3_create_window_function(
     db: sqlite3,
     name: String,
     nArg: Int,
-    encoding: Sqlite3TextEncoding,
+    encoding: SqliteFunctionTextEncoding,
     appData: AppData,
-    step: Sqlite3FunctionStepCallback<AppData>?,
-    final: Sqlite3FunctionFinalCallback<AppData>?,
-    value: Sqlite3FunctionValueCallback<AppData>?,
-    inverse: Sqlite3FunctionInverseCallback<AppData>?,
-    destroy: Sqlite3DestroyCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    step: SqliteFunctionStepCallback<in AppData>?,
+    final: SqliteFunctionFinalCallback<in AppData>?,
+    value: SqliteFunctionValueCallback<in AppData>?,
+    inverse: SqliteFunctionInverseCallback<in AppData>?,
+    destroy: SqliteDestroyCallback<in AppData>?
+): SqliteResultCode = convertResultCode(db.withMemoryManager {
     heapScoped {
         createWindowFunction(appData, step, final, value, inverse, destroy) { fn, fnDestroy ->
             exports.sqlite3_create_window_function(
                 db.pointer,
                 name.allocateUtf8Pointer(),
                 nArg,
-                encoding.utf8OrThrow().value,
-                keyedStableRefPointer(
-                    key = windowFunctionKey(name, nArg, encoding),
-                    data = fn,
-                    appData = appData,
-                    destructor = fnDestroy
-                ),
+                encoding.value,
+                stableRefPointer(fn, appData, fnDestroy),
                 functionPointer(step, ::FunctionStepHandler),
                 functionPointer(final, ::FunctionFinalHandler),
                 functionPointer(value, ::FunctionValueHandler),
@@ -720,15 +666,15 @@ public actual fun <AppData> sqlite3_create_window_function(
 public actual fun sqlite3_data_count(stmt: sqlite3_stmt): Int =
     exports.sqlite3_data_count(stmt.pointer)
 
-public actual fun sqlite3_db_cacheflush(db: sqlite3): Sqlite3Result =
-    convertResult(exports.sqlite3_db_cacheflush(db.pointer))
+public actual fun sqlite3_db_cacheflush(db: sqlite3): SqliteResultCode =
+    convertResultCode(exports.sqlite3_db_cacheflush(db.pointer))
 
 public actual fun sqlite3_db_config(
     db: sqlite3,
-    option: Sqlite3DbConfigOption,
-): Sqlite3Result = commonDbConfig(
+    option: SqliteDbConfigOption,
+): SqliteResultCode = commonDbConfig(
     option = option,
-    bufferPointer = Buffer::pointer,
+    bufferPointer = OpaqueBuffer::pointer,
     outParamConfig = {
         heapScoped {
             useParam(state) { statePtr ->
@@ -751,13 +697,13 @@ public actual fun sqlite3_db_config(
 
 public actual fun sqlite3_db_filename(
     db: sqlite3,
-    name: String
+    database: String
 ): sqlite3_filename? = heapScoped {
-    exports.sqlite3_db_filename(db.pointer, name.allocateUtf8Pointer())
-}.toKStringFromUtf8OrNull()
+    exports.sqlite3_db_filename(db.pointer, database.allocateUtf8Pointer())
+}.wrapOrNull(::sqlite3_filename)
 
 public actual fun sqlite3_db_handle(stmt: sqlite3_stmt): sqlite3? =
-    exports.sqlite3_db_handle(stmt.pointer).orNull?.let(::sqlite3)
+    exports.sqlite3_db_handle(stmt.pointer).wrapOrNull(::sqlite3)
 
 public actual fun sqlite3_db_name(
     db: sqlite3,
@@ -767,52 +713,54 @@ public actual fun sqlite3_db_name(
 
 public actual fun sqlite3_db_readonly(
     db: sqlite3,
-    name: String
-): Int = heapScoped {
-    exports.sqlite3_db_readonly(db.pointer, name.allocateUtf8Pointer())
-}
+    database: String
+): SqliteDbReadonlyResult = convertDbReadonlyResult(heapScoped {
+    exports.sqlite3_db_readonly(db.pointer, database.allocateUtf8Pointer())
+})
 
-public actual fun sqlite3_db_release_memory(db: sqlite3): Sqlite3Result =
-    convertResult(exports.sqlite3_db_release_memory(db.pointer))
+public actual fun sqlite3_db_release_memory(db: sqlite3): SqliteResultCode =
+    convertResultCode(exports.sqlite3_db_release_memory(db.pointer))
 
 public actual fun sqlite3_db_status(
     db: sqlite3,
-    option: Sqlite3DbStatusOption,
+    option: SqliteDbStatusOption,
     outCurrent: Int32OutputParam?,
     outHighwater: Int32OutputParam?,
     resetFlag: Int
-): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
-    exports.sqlite3_db_status(db.pointer, option.id, curPtr, highPtr, resetFlag)
-})
+): SqliteResultCode =
+    convertResultCode(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+        exports.sqlite3_db_status(db.pointer, option.id, curPtr, highPtr, resetFlag)
+    })
 
 public actual fun sqlite3_db_status64(
     db: sqlite3,
-    option: Sqlite3DbStatusOption,
+    option: SqliteDbStatusOption,
     outCurrent: Int64OutputParam?,
     outHighwater: Int64OutputParam?,
     resetFlag: Int
-): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
-    exports.sqlite3_db_status64(db.pointer, option.id, curPtr, highPtr, resetFlag)
-})
+): SqliteResultCode =
+    convertResultCode(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+        exports.sqlite3_db_status64(db.pointer, option.id, curPtr, highPtr, resetFlag)
+    })
 
 public actual fun sqlite3_declare_vtab(
     db: sqlite3,
     sql: String
-): Sqlite3Result = convertResult(heapScoped {
+): SqliteResultCode = convertResultCode(heapScoped {
     exports.sqlite3_declare_vtab(db.pointer, sql.allocateUtf8Pointer())
 })
 
 public actual fun sqlite3_deserialize(
     db: sqlite3,
-    schema: String?,
+    database: String?,
     buffer: Buffer,
     dbSize: Long,
     bufferSize: Long,
-    flags: Sqlite3DeserializeFlag?
-): Sqlite3Result = convertResult(heapScoped {
+    flags: SqliteDeserializeFlag?
+): SqliteResultCode = convertResultCode(heapScoped {
     exports.sqlite3_deserialize(
         db.pointer,
-        schema.allocateUtf8Pointer(),
+        database.allocateUtf8Pointer(),
         buffer.pointer,
         dbSize.toJsBigInt(),
         bufferSize.toJsBigInt(),
@@ -823,12 +771,14 @@ public actual fun sqlite3_deserialize(
 public actual fun sqlite3_drop_modules(
     db: sqlite3,
     keep: Array<String>?
-): Sqlite3Result = convertResult(heapScoped {
-    exports.sqlite3_drop_modules(db.pointer, allocateUtf8Array(keep))
+): SqliteResultCode = convertResultCode(heapScoped {
+    exports.sqlite3_drop_modules(db.pointer, keep?.let { names ->
+        listOf(*names, null).toCStringArray()
+    }.notNull)
 })
 
-public actual fun sqlite3_errcode(db: sqlite3): Int =
-    exports.sqlite3_errcode(db.pointer)
+public actual fun sqlite3_errcode(db: sqlite3): SqliteResultCode =
+    convertResultCode(exports.sqlite3_errcode(db.pointer))
 
 public actual fun sqlite3_errmsg(db: sqlite3): String? =
     exports.sqlite3_errmsg(db.pointer).toKStringFromUtf8OrNull()
@@ -836,25 +786,27 @@ public actual fun sqlite3_errmsg(db: sqlite3): String? =
 public actual fun sqlite3_error_offset(db: sqlite3): Int =
     exports.sqlite3_error_offset(db.pointer)
 
-public actual fun sqlite3_errstr(resultCode: Int): String? =
-    exports.sqlite3_errstr(resultCode).toKStringFromUtf8OrNull()
+public actual fun sqlite3_errstr(resultCode: SqliteResultCode): String? =
+    exports.sqlite3_errstr(resultCode.code).toKStringFromUtf8OrNull()
 
 public actual fun <AppData> sqlite3_exec(
     db: sqlite3,
     sql: String,
     outErrorMessage: Utf8OutputParam?,
     appData: AppData,
-    callback: Sqlite3ExecCallback<AppData>?
-): Sqlite3Result = convertResult(useMemoryManager {
+    callback: SqliteExecCallback<AppData>?
+): SqliteResultCode = convertResultCode(useMemoryManager {
     heapScoped {
-        useParam(outErrorMessage) { errorMessagePtr ->
-            exports.sqlite3_exec(
-                db.pointer,
-                sql.allocateUtf8Pointer(),
-                functionPointer(callback, ::ExecHandler),
-                stableRefPointer(callback, appData),
-                errorMessagePtr
-            )
+        outErrorMessage.overriding(freeOnRead = true) {
+            useParam(outErrorMessage) { errorMessagePtr ->
+                exports.sqlite3_exec(
+                    db.pointer,
+                    sql.allocateUtf8Pointer(),
+                    functionPointer(callback, ::ExecHandler),
+                    stableRefPointer(callback, appData),
+                    errorMessagePtr
+                )
+            }
         }
     }
 })
@@ -866,28 +818,56 @@ public actual fun sqlite3_expanded_sql(stmt: sqlite3_stmt): String? {
     return expandedSql
 }
 
-public actual fun sqlite3_extended_errcode(db: sqlite3): Int =
-    exports.sqlite3_extended_errcode(db.pointer)
+public actual fun sqlite3_extended_errcode(db: sqlite3): SqliteResultCode =
+    convertResultCode(exports.sqlite3_extended_errcode(db.pointer))
 
 public actual fun sqlite3_extended_result_codes(
     db: sqlite3,
     enabled: Int
-): Sqlite3Result = convertResult(exports.sqlite3_extended_result_codes(db.pointer, enabled))
+): SqliteResultCode = convertResultCode(exports.sqlite3_extended_result_codes(db.pointer, enabled))
 
 public actual fun sqlite3_file_control(
     db: sqlite3,
-    name: String?,
-    opcode: Sqlite3FileControlOpcode
-): Sqlite3Result = convertResult(heapScoped {
-    exports.sqlite3_file_control(
-        db.pointer,
-        name.allocateUtf8Pointer(),
-        opcode.code,
-        NullPtr
-    )
-})
+    database: String?,
+    opcode: SqliteFileControlOpcode
+): SqliteResultCode = heapScoped {
+    val name = database.allocateUtf8Pointer()
 
-public actual fun sqlite3_finalize(stmt: sqlite3_stmt): Sqlite3Result =
+    fun controlParam(param: OutputParamBase<*>) = useParam(param) { paramPtr ->
+        exports.sqlite3_file_control(db.pointer, name, opcode.code, paramPtr)
+    }
+
+    commonFileControl(
+        opcode = opcode,
+        control = {
+            exports.sqlite3_file_control(db.pointer, name, opcode.code, NullPtr)
+        },
+        controlBuffer = { buffer ->
+            exports.sqlite3_file_control(db.pointer, name, opcode.code, buffer?.pointer.notNull)
+        },
+        controlVfs = ::controlParam,
+        controlInt32 = ::controlParam,
+        controlInt64 = ::controlParam,
+        controlString = { param, freeOnRead ->
+            param.overriding(freeOnRead = freeOnRead) {
+                useParam(param) { paramPtr ->
+                    exports.sqlite3_file_control(db.pointer, name, opcode.code, paramPtr)
+                }
+            }
+        }
+    )
+}
+
+public actual fun sqlite3_filename_database(fileName: sqlite3_filename): String? =
+    exports.sqlite3_filename_database(fileName.pointer).toKStringFromUtf8OrNull()
+
+public actual fun sqlite3_filename_journal(fileName: sqlite3_filename): String? =
+    exports.sqlite3_filename_journal(fileName.pointer).toKStringFromUtf8OrNull()
+
+public actual fun sqlite3_filename_wal(fileName: sqlite3_filename): String? =
+    exports.sqlite3_filename_wal(fileName.pointer).toKStringFromUtf8OrNull()
+
+public actual fun sqlite3_finalize(stmt: sqlite3_stmt): SqliteResultCode =
     stmt.deallocate { exports.sqlite3_finalize(stmt.pointer) }
 
 public actual fun sqlite3_free(buffer: Buffer): Unit =
@@ -896,8 +876,11 @@ public actual fun sqlite3_free(buffer: Buffer): Unit =
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     exports.sqlite3_get_autocommit(db.pointer)
 
-public actual fun sqlite3_initialize(): Sqlite3Result =
-    convertResult(exports.sqlite3_initialize())
+public actual fun sqlite3_hard_heap_limit64(limit: Long): Long =
+    exports.sqlite3_hard_heap_limit64(limit.toJsBigInt()).toLong()
+
+public actual fun sqlite3_initialize(): SqliteResultCode =
+    convertResultCode(exports.sqlite3_initialize())
 
 public actual fun sqlite3_interrupt(db: sqlite3): Unit =
     exports.sqlite3_interrupt(db.pointer)
@@ -909,24 +892,24 @@ public actual fun sqlite3_key(
     db: sqlite3,
     key: ByteArray,
     nKey: Int,
-): Sqlite3Result = convertResult(bufferScoped(key) { keyPtr ->
+): SqliteResultCode = convertResultCode(bufferScoped(key) { keyPtr ->
     exports.sqlite3_key(db.pointer, keyPtr, nKey)
 })
 
 public actual fun sqlite3_key_v2(
     db: sqlite3,
-    dbName: String,
+    database: String,
     key: ByteArray,
     nKey: Int,
-): Sqlite3Result = convertResult(heapScoped {
+): SqliteResultCode = convertResultCode(heapScoped {
     bufferScoped(key, memory) { keyPtr ->
-        exports.sqlite3_key_v2(db.pointer, dbName.allocateUtf8Pointer(), keyPtr, nKey)
+        exports.sqlite3_key_v2(db.pointer, database.allocateUtf8Pointer(), keyPtr, nKey)
     }
 })
 
 public actual fun sqlite3_keyword_check(word: String): Int = heapScoped {
     val cWord = word.allocateUtf8()
-    exports.sqlite3_keyword_check(cWord.pointer, cWord.size)
+    exports.sqlite3_keyword_check(cWord.pointer, cWord.contentSize)
 }
 
 public actual fun sqlite3_keyword_count(): Int =
@@ -935,14 +918,12 @@ public actual fun sqlite3_keyword_count(): Int =
 public actual fun sqlite3_keyword_name(
     index: Int,
     outName: Utf8OutputParam,
-): Sqlite3Result = convertResult(stackScoped {
-    useParam(outName) { namePtr ->
-        val size = Int32OutputParam(0)
+): SqliteResultCode = convertResultCode(stackScoped {
+    val outSize = Int32OutputParam(0)
 
-        useParam(size) { sizePtr ->
+    outName.overriding(customSize = outSize) {
+        useParams(outSize, outName) { sizePtr, namePtr ->
             exports.sqlite3_keyword_name(index, namePtr, sizePtr)
-        }.also {
-            outName.size = size.value
         }
     }
 })
@@ -953,12 +934,12 @@ public actual fun sqlite3_last_insert_rowid(db: sqlite3): Long =
 public actual fun sqlite3_libversion(): String =
     exports.sqlite3_libversion().toKStringFromUtf8()
 
-public actual fun sqlite3_libversion_number(db: sqlite3): Int =
+public actual fun sqlite3_libversion_number(): Int =
     exports.sqlite3_libversion_number()
 
 public actual fun sqlite3_limit(
     db: sqlite3,
-    id: Sqlite3Limit,
+    id: SqliteRuntimeLimit,
     newVal: Int
 ): Int = exports.sqlite3_limit(db.pointer, id.id, newVal)
 
@@ -973,9 +954,7 @@ public actual fun sqlite3_malloc(size: Int): Buffer? =
     exports.sqlite3_malloc(size).orNull?.let { Buffer.from(it, size.toLong()) }
 
 public actual fun sqlite3_malloc64(size: Long): Buffer? =
-    exports.sqlite3_malloc64(size.toJsBigInt()).orNull?.let {
-        Buffer.from(it, size)
-    }
+    exports.sqlite3_malloc64(size.toJsBigInt()).orNull?.let { Buffer.from(it, size) }
 
 public actual fun sqlite3_memory_used(): Long =
     exports.sqlite3_memory_used().toLong()
@@ -988,14 +967,14 @@ public actual fun sqlite3_msize(buffer: Buffer): ULong =
 
 public actual fun sqlite3_next_stmt(
     db: sqlite3,
-    stmt: sqlite3_stmt
-): sqlite3_stmt? = exports.sqlite3_next_stmt(db.pointer, stmt.pointer)
-    .orNull?.let(::sqlite3_stmt)
+    stmt: sqlite3_stmt?
+): sqlite3_stmt? = exports.sqlite3_next_stmt(db.pointer, stmt?.pointer.notNull)
+    .wrapOrNull(::sqlite3_stmt)
 
 public actual fun sqlite3_open(
     fileName: String,
-    outDb: Sqlite3OutputParam
-): Sqlite3Result = convertResult(heapScoped {
+    outDb: sqlite3.OutputParam
+): SqliteResultCode = convertResultCode(heapScoped {
     useParam(outDb) { dbPtr ->
         exports.sqlite3_open(fileName.allocateUtf8Pointer(), dbPtr)
     }
@@ -1003,10 +982,10 @@ public actual fun sqlite3_open(
 
 public actual fun sqlite3_open_v2(
     fileName: String,
-    outDb: Sqlite3OutputParam,
-    flags: Sqlite3OpenFlag.Db,
+    outDb: sqlite3.OutputParam,
+    flags: SqliteOpenFlag.Db,
     vfs: String?
-): Sqlite3Result = convertResult(heapScoped {
+): SqliteResultCode = convertResultCode(heapScoped {
     useParam(outDb) { dbPtr ->
         exports.sqlite3_open_v2(
             fileName.allocateUtf8Pointer(),
@@ -1021,7 +1000,7 @@ public actual fun sqlite3_overload_function(
     db: sqlite3,
     name: String,
     nArg: Int
-): Sqlite3Result = convertResult(heapScoped {
+): SqliteResultCode = convertResultCode(heapScoped {
     exports.sqlite3_overload_function(db.pointer, name.allocateUtf8Pointer(), nArg)
 })
 
@@ -1029,22 +1008,23 @@ public actual fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: ByteArray,
     maxBytes: Int,
-    outStmt: Sqlite3StmtOutputParam,
+    outStmt: sqlite3_stmt.OutputParam,
     outOffset: Int32OutputParam?
-): Sqlite3Result = convertResult(useParamsStackScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
-    bufferScoped(sql, size = maxBytes) { sqlPtr ->
-        exports.ksqlite_prepare_v2(db.pointer, sqlPtr, maxBytes, stmtPtr, offsetPtr)
-    }
-})
+): SqliteResultCode =
+    convertResultCode(useParamsStackScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
+        bufferScoped(sql, size = maxBytes) { sqlPtr ->
+            exports.ksqlite_prepare_v2(db.pointer, sqlPtr, maxBytes, stmtPtr, offsetPtr)
+        }
+    })
 
 public actual fun sqlite3_prepare_v2(
     db: sqlite3,
     sql: String,
-    outStmt: Sqlite3StmtOutputParam
-): Sqlite3Result = convertResult(heapScoped {
+    outStmt: sqlite3_stmt.OutputParam
+): SqliteResultCode = convertResultCode(heapScoped {
     useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
-        exports.sqlite3_prepare_v2(db.pointer, cSql.pointer, cSql.size, stmtPtr, NullPtr)
+        exports.sqlite3_prepare_v2(db.pointer, cSql.pointer, cSql.contentSize, stmtPtr, NullPtr)
     }
 })
 
@@ -1052,26 +1032,35 @@ public actual fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: ByteArray,
     maxBytes: Int,
-    flags: Sqlite3PrepareFlag?,
-    outStmt: Sqlite3StmtOutputParam,
+    flags: SqlitePrepareFlag?,
+    outStmt: sqlite3_stmt.OutputParam,
     outOffset: Int32OutputParam?
-): Sqlite3Result = convertResult(useParamsStackScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
-    bufferScoped(sql, size = maxBytes) { sqlPtr ->
-        val prepFlags = flags?.value ?: 0
-        exports.ksqlite_prepare_v3(db.pointer, sqlPtr, maxBytes, prepFlags, stmtPtr, offsetPtr)
-    }
-})
+): SqliteResultCode =
+    convertResultCode(useParamsStackScoped(outStmt, outOffset) { stmtPtr, offsetPtr ->
+        bufferScoped(sql, size = maxBytes) { sqlPtr ->
+            val prepFlags = flags?.value ?: 0
+            exports.ksqlite_prepare_v3(db.pointer, sqlPtr, maxBytes, prepFlags, stmtPtr, offsetPtr)
+        }
+    })
 
 public actual fun sqlite3_prepare_v3(
     db: sqlite3,
     sql: String,
-    flags: Sqlite3PrepareFlag?,
-    outStmt: Sqlite3StmtOutputParam
-): Sqlite3Result = convertResult(heapScoped {
+    flags: SqlitePrepareFlag?,
+    outStmt: sqlite3_stmt.OutputParam
+): SqliteResultCode = convertResultCode(heapScoped {
     useParam(outStmt) { stmtPtr ->
         val cSql = sql.allocateUtf8()
         val prepFlags = flags?.value ?: 0
-        exports.sqlite3_prepare_v3(db.pointer, cSql.pointer, cSql.size, prepFlags, stmtPtr, NullPtr)
+
+        exports.sqlite3_prepare_v3(
+            db.pointer,
+            cSql.pointer,
+            cSql.contentSize,
+            prepFlags,
+            stmtPtr,
+            NullPtr
+        )
     }
 })
 
@@ -1087,7 +1076,7 @@ public actual fun sqlite3_preupdate_depth(db: sqlite3): Int =
 public actual fun <AppData> sqlite3_preupdate_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3PreupdateHookCallback<AppData>?
+    callback: SqlitePreupdateHookCallback<AppData>?
 ): Unit = db.withMemoryManager {
     val _ = exports.sqlite3_preupdate_hook(
         db.pointer,
@@ -1099,16 +1088,16 @@ public actual fun <AppData> sqlite3_preupdate_hook(
 public actual fun sqlite3_preupdate_new(
     db: sqlite3,
     index: Int,
-    outValue: Sqlite3ValueOutputParam
-): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
+    outValue: sqlite3_value.OutputParam
+): SqliteResultCode = convertResultCode(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_preupdate_new(db.pointer, index, valuePtr)
 })
 
 public actual fun sqlite3_preupdate_old(
     db: sqlite3,
     index: Int,
-    outValue: Sqlite3ValueOutputParam
-): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
+    outValue: sqlite3_value.OutputParam
+): SqliteResultCode = convertResultCode(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_preupdate_old(db.pointer, index, valuePtr)
 })
 
@@ -1116,7 +1105,7 @@ public actual fun <AppData> sqlite3_progress_handler(
     db: sqlite3,
     nOps: Int,
     appData: AppData,
-    callback: Sqlite3ProgressHandlerCallback<AppData>?
+    callback: SqliteProgressHandlerCallback<AppData>?
 ): Unit = db.withMemoryManager {
     exports.sqlite3_progress_handler(
         db.pointer,
@@ -1151,7 +1140,7 @@ public actual fun sqlite3_rekey(
     db: sqlite3,
     key: ByteArray,
     nKey: Int,
-): Sqlite3Result = convertResult(bufferScoped(key) { keyPtr ->
+): SqliteResultCode = convertResultCode(bufferScoped(key) { keyPtr ->
     exports.sqlite3_rekey(db.pointer, keyPtr, nKey)
 })
 
@@ -1160,7 +1149,7 @@ public actual fun sqlite3_rekey_v2(
     dbName: String,
     key: ByteArray,
     nKey: Int,
-): Sqlite3Result = convertResult(heapScoped {
+): SqliteResultCode = convertResultCode(heapScoped {
     bufferScoped(key, memory) { keyPtr ->
         exports.sqlite3_rekey_v2(db.pointer, dbName.allocateUtf8Pointer(), keyPtr, nKey)
     }
@@ -1169,8 +1158,8 @@ public actual fun sqlite3_rekey_v2(
 public actual fun sqlite3_release_memory(size: Int): Int =
     exports.sqlite3_release_memory(size)
 
-public actual fun sqlite3_reset(stmt: sqlite3_stmt): Sqlite3Result =
-    convertResult(exports.sqlite3_reset(stmt.pointer))
+public actual fun sqlite3_reset(stmt: sqlite3_stmt): SqliteResultCode =
+    convertResultCode(exports.sqlite3_reset(stmt.pointer))
 
 public actual fun sqlite3_reset_auto_extension(): Unit =
     autoExtensionReset { exports.sqlite3_reset_auto_extension() }
@@ -1179,7 +1168,7 @@ public actual fun sqlite3_result_blob(
     context: sqlite3_context,
     bytes: ByteArray,
     size: Int,
-    destroy: Sqlite3DestroyCallback<ByteArray>?
+    destroy: SqliteDestroyCallback<ByteArray>?
 ): Unit = exports.sqlite3_result_blob(
     context.pointer,
     context.db.memory.byteArrayPointer(bytes, destroy),
@@ -1191,7 +1180,7 @@ public actual fun sqlite3_result_blob64(
     context: sqlite3_context,
     buffer: Buffer,
     size: Long,
-    destroy: Sqlite3DestroyCallback<Buffer>?
+    destroy: SqliteDestroyCallback<Buffer>?
 ): Unit = exports.sqlite3_result_blob64(
     context.pointer,
     buffer.pointer,
@@ -1209,13 +1198,13 @@ public actual fun sqlite3_result_error(
     message: String
 ): Unit = heapScoped {
     val cMessage = message.allocateUtf8()
-    exports.sqlite3_result_error(context.pointer, cMessage.pointer, cMessage.size)
+    exports.sqlite3_result_error(context.pointer, cMessage.pointer, cMessage.contentSize)
 }
 
 public actual fun sqlite3_result_error_code(
     context: sqlite3_context,
-    errorCode: Int
-): Unit = exports.sqlite3_result_error_code(context.pointer, errorCode)
+    result: SqliteResultCode.Failure
+): Unit = exports.sqlite3_result_error_code(context.pointer, result.code)
 
 public actual fun sqlite3_result_error_nomem(context: sqlite3_context): Unit =
     exports.sqlite3_result_error_nomem(context.pointer)
@@ -1240,7 +1229,7 @@ public actual fun <Data> sqlite3_result_pointer(
     context: sqlite3_context,
     data: Data,
     type: String?,
-    destroy: Sqlite3DestroyCallback<Data>?
+    destroy: SqliteDestroyCallback<Data>?
 ): Unit = with(globalMemory) {
     // Use globalMemory because of lack of information within sqlite3_value_pointer()
     allocateNamedPointer(type, destroy) { ptr, ptrDestroy ->
@@ -1263,21 +1252,21 @@ public actual fun sqlite3_result_text(
     value: String
 ): Unit = heapScoped {
     val cText = value.allocateUtf8()
-    exports.sqlite3_result_text(context.pointer, cText.pointer, cText.size, SqliteTransient)
+    exports.sqlite3_result_text(context.pointer, cText.pointer, cText.contentSize, sqliteTransient)
 }
 
 public actual fun sqlite3_result_text64(
     context: sqlite3_context,
     buffer: Buffer,
     size: Long,
-    encoding: Sqlite3TextEncoding.Set1,
-    destroy: Sqlite3DestroyCallback<Buffer>?
+    encoding: SqliteTextEncoding.ResultText,
+    destroy: SqliteDestroyCallback<Buffer>?
 ): Unit = exports.sqlite3_result_text64(
     context.pointer,
     buffer.pointer,
     size.toJsBigInt(),
     bufferDisposer(buffer, destroy),
-    encoding.utf8OrThrow().value
+    encoding.value
 )
 
 public actual fun sqlite3_result_value(
@@ -1293,13 +1282,18 @@ public actual fun sqlite3_result_zeroblob(
 public actual fun sqlite3_result_zeroblob64(
     context: sqlite3_context,
     size: ULong
-): Sqlite3Result =
-    convertResult(exports.sqlite3_result_zeroblob64(context.pointer, size.toLong().toJsBigInt()))
+): SqliteResultCode =
+    convertResultCode(
+        exports.sqlite3_result_zeroblob64(
+            context.pointer,
+            size.toLong().toJsBigInt()
+        )
+    )
 
 public actual fun <AppData> sqlite3_rollback_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3RollbackHookCallback<AppData>?
+    callback: SqliteRollbackHookCallback<AppData>?
 ): Unit = db.withMemoryManager {
     val _ = exports.sqlite3_rollback_hook(
         db.pointer,
@@ -1308,28 +1302,11 @@ public actual fun <AppData> sqlite3_rollback_hook(
     )
 }
 
-public actual fun sqlite3_serialize(
-    db: sqlite3,
-    schema: String?,
-    flags: Sqlite3SerializeFlag?
-): Buffer? {
-    val size = Int64OutputParam(0)
-
-    val pointer = heapScoped {
-        useParam(size) { sizePtr ->
-            val mFlags = flags?.value ?: 0
-            exports.sqlite3_serialize(db.pointer, schema.allocateUtf8Pointer(), sizePtr, mFlags)
-        }
-    }
-
-    return Buffer.from(pointer, size.value)
-}
-
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3AuthorizerCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    callback: SqliteAuthorizerCallback<AppData>?
+): SqliteResultCode = convertResultCode(db.withMemoryManager {
     exports.sqlite3_set_authorizer(
         db.pointer,
         functionPointer(callback, ::AuthorizerHandler),
@@ -1339,10 +1316,10 @@ public actual fun <AppData> sqlite3_set_authorizer(
 
 public actual fun sqlite3_set_errmsg(
     db: sqlite3,
-    errorCode: Sqlite3Result.Failure,
-    message: String?
-): Sqlite3Result = convertResult(heapScoped {
-    exports.sqlite3_set_errmsg(db.pointer, errorCode.code, message.allocateUtf8Pointer())
+    errorCode: SqliteResultCode,
+    errorMessage: String?
+): SqliteResultCode = convertResultCode(heapScoped {
+    exports.sqlite3_set_errmsg(db.pointer, errorCode.code, errorMessage.allocateUtf8Pointer())
 })
 
 public actual fun sqlite3_set_last_insert_rowid(
@@ -1350,8 +1327,44 @@ public actual fun sqlite3_set_last_insert_rowid(
     rowId: Long
 ): Unit = exports.sqlite3_set_last_insert_rowid(db.pointer, rowId.toJsBigInt())
 
-public actual fun sqlite3_shutdown(): Sqlite3Result =
-    convertResult(exports.sqlite3_shutdown())
+public actual fun sqlite3_shutdown(): SqliteResultCode =
+    convertResultCode(exports.sqlite3_shutdown())
+
+public actual fun sqlite3_snapshot_cmp(
+    snapshot1: sqlite3_snapshot,
+    snapshot2: sqlite3_snapshot
+): Int = exports.sqlite3_snapshot_cmp(snapshot1.pointer, snapshot2.pointer)
+
+public actual fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Unit =
+    exports.sqlite3_snapshot_free(snapshot.pointer)
+
+public actual fun sqlite3_snapshot_get(
+    db: sqlite3,
+    name: String?,
+    outSnapshot: sqlite3_snapshot.OutputParam
+): SqliteResultCode = convertResultCode(heapScoped {
+    useParam(outSnapshot) { snapshotPtr ->
+        exports.sqlite3_snapshot_get(db.pointer, name.allocateUtf8Pointer(), snapshotPtr)
+    }
+})
+
+public actual fun sqlite3_snapshot_open(
+    db: sqlite3,
+    name: String?,
+    snapshot: sqlite3_snapshot
+): SqliteResultCode = convertResultCode(heapScoped {
+    exports.sqlite3_snapshot_open(db.pointer, name.allocateUtf8Pointer(), snapshot.pointer)
+})
+
+public actual fun sqlite3_snapshot_recover(
+    db: sqlite3,
+    name: String?
+): SqliteResultCode = convertResultCode(heapScoped {
+    exports.sqlite3_snapshot_recover(db.pointer, name.allocateUtf8Pointer())
+})
+
+public actual fun sqlite3_soft_heap_limit64(limit: Long): Long =
+    exports.sqlite3_soft_heap_limit64(limit.toJsBigInt()).toLong()
 
 public actual fun sqlite3_sourceid(): String =
     exports.sqlite3_sourceid().toKStringFromUtf8()
@@ -1360,35 +1373,37 @@ public actual fun sqlite3_sql(stmt: sqlite3_stmt): String =
     exports.sqlite3_sql(stmt.pointer).toKStringFromUtf8()
 
 public actual fun sqlite3_status(
-    option: Sqlite3StatusOption,
+    option: SqliteStatusOption,
     outCurrent: Int32OutputParam,
     outHighwater: Int32OutputParam,
     resetFlag: Int
-): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
-    exports.sqlite3_status(option.id, curPtr, highPtr, resetFlag)
-})
+): SqliteResultCode =
+    convertResultCode(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+        exports.sqlite3_status(option.id, curPtr, highPtr, resetFlag)
+    })
 
 public actual fun sqlite3_status64(
-    option: Sqlite3StatusOption,
+    option: SqliteStatusOption,
     outCurrent: Int64OutputParam,
     outHighwater: Int64OutputParam,
     resetFlag: Int
-): Sqlite3Result = convertResult(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
-    exports.sqlite3_status64(option.id, curPtr, highPtr, resetFlag)
-})
+): SqliteResultCode =
+    convertResultCode(useParamsStackScoped(outCurrent, outHighwater) { curPtr, highPtr ->
+        exports.sqlite3_status64(option.id, curPtr, highPtr, resetFlag)
+    })
 
-public actual fun sqlite3_step(stmt: sqlite3_stmt): Sqlite3Result =
-    convertResult(exports.sqlite3_step(stmt.pointer))
+public actual fun sqlite3_step(stmt: sqlite3_stmt): SqliteResultCode =
+    convertResultCode(exports.sqlite3_step(stmt.pointer))
 
 public actual fun sqlite3_stmt_busy(stmt: sqlite3_stmt): Int =
     exports.sqlite3_stmt_busy(stmt.pointer)
 
 public actual fun sqlite3_stmt_explain(
     stmt: sqlite3_stmt,
-    mode: Sqlite3ExplainMode
-): Sqlite3Result = convertResult(exports.sqlite3_stmt_explain(stmt.pointer, mode.id))
+    mode: SqliteExplainMode
+): SqliteResultCode = convertResultCode(exports.sqlite3_stmt_explain(stmt.pointer, mode.id))
 
-public actual fun sqlite3_stmt_isexplain(stmt: sqlite3_stmt): Sqlite3ExplainMode =
+public actual fun sqlite3_stmt_isexplain(stmt: sqlite3_stmt): SqliteExplainMode =
     convertExplainMode(exports.sqlite3_stmt_isexplain(stmt.pointer))
 
 public actual fun sqlite3_stmt_readonly(stmt: sqlite3_stmt): Int =
@@ -1396,7 +1411,7 @@ public actual fun sqlite3_stmt_readonly(stmt: sqlite3_stmt): Int =
 
 public actual fun sqlite3_stmt_status(
     stmt: sqlite3_stmt,
-    counter: Sqlite3StatementStatusCounter,
+    counter: SqliteStatementStatusCounter,
     resetFlag: Int
 ): Int = exports.sqlite3_stmt_status(stmt.pointer, counter.id, resetFlag)
 
@@ -1429,12 +1444,12 @@ public actual fun sqlite3_strlike(
 public actual fun sqlite3_strnicmp(
     first: String,
     second: String,
-    maxCharacters: Int
+    maxBytes: Int
 ): Int = heapScoped {
     exports.sqlite3_strnicmp(
         first.allocateUtf8Pointer(),
         second.allocateUtf8Pointer(),
-        maxCharacters
+        maxBytes
     )
 }
 
@@ -1447,13 +1462,13 @@ public actual fun sqlite3_table_column_metadata(
     tableName: String,
     columnName: String,
     outDataType: Utf8OutputParam?,
-    outCollationName: Utf8OutputParam?,
+    outCollationSequence: Utf8OutputParam?,
     outNotNull: Int32OutputParam?,
     outPrimaryKey: Int32OutputParam?,
     outAutoIncrement: Int32OutputParam?
-): Sqlite3Result = convertResult(heapScoped {
+): SqliteResultCode = convertResultCode(heapScoped {
     val dataTypePtr = outDataType?.attach(this)
-    val collationNamePtr = outCollationName?.attach(this)
+    val collationNamePtr = outCollationSequence?.attach(this)
     val notNullPtr = outNotNull?.attach(this)
     val primaryKeyPtr = outPrimaryKey?.attach(this)
     val autoIncrementPtr = outAutoIncrement?.attach(this)
@@ -1472,12 +1487,14 @@ public actual fun sqlite3_table_column_metadata(
         )
     } finally {
         dataTypePtr?.let(outDataType::detach)
-        collationNamePtr?.let(outCollationName::detach)
+        collationNamePtr?.let(outCollationSequence::detach)
         notNullPtr?.let(outNotNull::detach)
         primaryKeyPtr?.let(outPrimaryKey::detach)
         autoIncrementPtr?.let(outAutoIncrement::detach)
     }
 })
+
+public actual fun sqlite3_threadsafe(): Int = exports.sqlite3_threadsafe()
 
 public actual fun sqlite3_total_changes(db: sqlite3): Int =
     exports.sqlite3_total_changes(db.pointer)
@@ -1487,10 +1504,10 @@ public actual fun sqlite3_total_changes64(db: sqlite3): Long =
 
 public actual fun <AppData> sqlite3_trace_v2(
     db: sqlite3,
-    mask: Sqlite3TraceCode?,
+    mask: SqliteTraceEventCode?,
     appData: AppData,
-    callback: Sqlite3TraceCallback<AppData>?
-): Sqlite3Result = convertResult(db.withMemoryManager {
+    callback: SqliteTraceCallback<AppData>?
+): SqliteResultCode = convertResultCode(db.withMemoryManager {
     exports.sqlite3_trace_v2(
         db.pointer,
         mask?.value ?: 0,
@@ -1501,15 +1518,15 @@ public actual fun <AppData> sqlite3_trace_v2(
 
 public actual fun sqlite3_txn_state(
     db: sqlite3,
-    schema: String?
-): Sqlite3TransactionState? = convertTransactionState(heapScoped {
-    exports.sqlite3_txn_state(db.pointer, schema.allocateUtf8Pointer())
+    database: String?
+): SqliteTransactionState? = convertTransactionState(heapScoped {
+    exports.sqlite3_txn_state(db.pointer, database.allocateUtf8Pointer())
 })
 
 public actual fun <AppData> sqlite3_update_hook(
     db: sqlite3,
     appData: AppData,
-    callback: Sqlite3UpdateHookCallback<AppData>?
+    callback: SqliteUpdateHookCallback<AppData>?
 ): Unit = db.withMemoryManager {
     val _ = exports.sqlite3_update_hook(
         db.pointer,
@@ -1524,7 +1541,7 @@ public actual fun sqlite3_uri_boolean(
     default: Int
 ): Int = heapScoped {
     exports.sqlite3_uri_boolean(
-        fileName.allocateUtf8Pointer(),
+        fileName.pointer,
         parameter.allocateUtf8Pointer(),
         default
     )
@@ -1536,7 +1553,7 @@ public actual fun sqlite3_uri_int64(
     default: Long
 ): Long = heapScoped {
     exports.sqlite3_uri_int64(
-        fileName.allocateUtf8Pointer(),
+        fileName.pointer,
         parameter.allocateUtf8Pointer(),
         default.toJsBigInt()
     )
@@ -1546,14 +1563,14 @@ public actual fun sqlite3_uri_key(
     fileName: sqlite3_filename,
     index: Int
 ): String? = heapScoped {
-    exports.sqlite3_uri_key(fileName.allocateUtf8Pointer(), index)
+    exports.sqlite3_uri_key(fileName.pointer, index)
 }.toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_uri_parameter(
     fileName: sqlite3_filename,
     parameter: String
 ): String? = heapScoped {
-    exports.sqlite3_uri_parameter(fileName.allocateUtf8Pointer(), parameter.allocateUtf8Pointer())
+    exports.sqlite3_uri_parameter(fileName.pointer, parameter.allocateUtf8Pointer())
 }.toKStringFromUtf8OrNull()
 
 public actual fun sqlite3_value_blob(value: sqlite3_value): ByteArray? = commonValueByteArray(
@@ -1569,9 +1586,9 @@ public actual fun sqlite3_value_double(value: sqlite3_value): Double =
     exports.sqlite3_value_double(value.pointer)
 
 public actual fun sqlite3_value_dup(value: sqlite3_value): sqlite3_value? =
-    exports.sqlite3_value_dup(value.pointer).orNull?.let(::sqlite3_value)
+    exports.sqlite3_value_dup(value.pointer).wrapOrNull(::sqlite3_value)
 
-public actual fun sqlite3_value_encoding(value: sqlite3_value): Sqlite3TextEncoding.Set2? =
+public actual fun sqlite3_value_encoding(value: sqlite3_value): SqliteTextEncoding.ValueEncoding =
     convertTextEncoding(exports.sqlite3_value_encoding(value.pointer))
 
 public actual fun sqlite3_value_free(value: sqlite3_value): Unit =
@@ -1589,7 +1606,7 @@ public actual fun sqlite3_value_int64(value: sqlite3_value): Long =
 public actual fun sqlite3_value_nochange(value: sqlite3_value): Int =
     exports.sqlite3_value_nochange(value.pointer)
 
-public actual fun sqlite3_value_numeric_type(value: sqlite3_value): Sqlite3DataType =
+public actual fun sqlite3_value_numeric_type(value: sqlite3_value): SqliteDataType =
     convertDataType(exports.sqlite3_value_numeric_type(value.pointer))
 
 public actual fun sqlite3_value_subtype(value: sqlite3_value): UInt =
@@ -1598,31 +1615,31 @@ public actual fun sqlite3_value_subtype(value: sqlite3_value): UInt =
 public actual fun sqlite3_value_text(value: sqlite3_value): String? =
     exports.sqlite3_value_text(value.pointer).toKStringFromUtf8OrNull()
 
-public actual fun sqlite3_value_type(value: sqlite3_value): Sqlite3DataType =
+public actual fun sqlite3_value_type(value: sqlite3_value): SqliteDataType =
     convertDataType(exports.sqlite3_value_type(value.pointer))
 
 public actual fun sqlite3_vfs_find(name: String?): sqlite3_vfs? = heapScoped {
-    exports.sqlite3_vfs_find(name.allocateUtf8Pointer()).orNull?.let(::sqlite3_vfs)
-}
+    exports.sqlite3_vfs_find(name.allocateUtf8Pointer())
+}.wrapOrNull(::sqlite3_vfs)
 
 public actual fun sqlite3_vfs_register(
     vfs: sqlite3_vfs,
     makeDefault: Int
-): Sqlite3Result = convertResult(exports.sqlite3_vfs_register(vfs.pointer, makeDefault))
+): SqliteResultCode = convertResultCode(exports.sqlite3_vfs_register(vfs.pointer, makeDefault))
 
-public actual fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): Sqlite3Result =
-    convertResult(exports.sqlite3_vfs_unregister(vfs.pointer))
+public actual fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): SqliteResultCode =
+    convertResultCode(exports.sqlite3_vfs_unregister(vfs.pointer))
 
 public actual fun sqlite3_vtab_collation(
     info: sqlite3_index_info,
     index: Int
-): String? = exports.sqlite3_vtab_collation(info.pointer, index)
-    .toKStringFromUtf8OrNull()
+): String = exports.sqlite3_vtab_collation(info.pointer, index)
+    .toKStringFromUtf8()
 
 public actual fun sqlite3_vtab_config(
     db: sqlite3,
-    option: Sqlite3VTabConfigOption
-): Sqlite3Result = commonVtabConfig(option) { id, values ->
+    option: SqliteVtabConfigOption
+): SqliteResultCode = commonVtabConfig(option) { id, values ->
     invokeVariadic(values, db::memory) { vaListPtr ->
         exports.sqlite3_vtab_config(db.pointer, id, vaListPtr)
     }
@@ -1639,28 +1656,70 @@ public actual fun sqlite3_vtab_in(
 
 public actual fun sqlite3_vtab_in_first(
     value: sqlite3_value,
-    outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
+    outValue: sqlite3_value.OutputParam?
+): SqliteResultCode = convertResultCode(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_vtab_in_first(value.pointer, valuePtr)
 })
 
 public actual fun sqlite3_vtab_in_next(
     value: sqlite3_value,
-    outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
+    outValue: sqlite3_value.OutputParam?
+): SqliteResultCode = convertResultCode(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_vtab_in_next(value.pointer, valuePtr)
 })
 
 public actual fun sqlite3_vtab_nochange(context: sqlite3_context): Int =
     exports.sqlite3_vtab_nochange(context.pointer)
 
-public actual fun sqlite3_vtab_on_conflict(db: sqlite3): Sqlite3Result =
-    convertResult(exports.sqlite3_vtab_on_conflict(db.pointer))
+public actual fun sqlite3_vtab_on_conflict(db: sqlite3): SqliteConflictResolutionMode =
+    convertConflictResolutionMode(exports.sqlite3_vtab_on_conflict(db.pointer))
 
 public actual fun sqlite3_vtab_rhs_value(
     info: sqlite3_index_info,
     index: Int,
-    outValue: Sqlite3ValueOutputParam?
-): Sqlite3Result = convertResult(useParamStackScoped(outValue) { valuePtr ->
+    outValue: sqlite3_value.OutputParam?
+): SqliteResultCode = convertResultCode(useParamStackScoped(outValue) { valuePtr ->
     exports.sqlite3_vtab_rhs_value(info.pointer, index, valuePtr)
 })
+
+public actual fun sqlite3_wal_autocheckpoint(
+    db: sqlite3,
+    nFrame: Int
+): SqliteResultCode = convertResultCode(exports.sqlite3_wal_autocheckpoint(db.pointer, nFrame))
+
+public actual fun sqlite3_wal_checkpoint(
+    db: sqlite3,
+    database: String?
+): SqliteResultCode = convertResultCode(heapScoped {
+    exports.sqlite3_wal_checkpoint(db.pointer, database.allocateUtf8Pointer())
+})
+
+public actual fun sqlite3_wal_checkpoint_v2(
+    db: sqlite3,
+    database: String?,
+    mode: SqliteCheckpointMode,
+    outNLog: Int32OutputParam?,
+    outNCkpt: Int32OutputParam?
+): SqliteResultCode = convertResultCode(heapScoped {
+    useParams(outNLog, outNCkpt) { nLogPtr, nCkptPtr ->
+        exports.sqlite3_wal_checkpoint_v2(
+            db.pointer,
+            database.allocateUtf8Pointer(),
+            mode.id,
+            nLogPtr,
+            nCkptPtr
+        )
+    }
+})
+
+public actual fun <AppData> sqlite3_wal_hook(
+    db: sqlite3,
+    appData: AppData,
+    callback: SqliteWalHookCallback<AppData>?
+): Unit = db.withMemoryManager {
+    exports.sqlite3_wal_hook(
+        db.pointer,
+        functionPointer(callback, ::WalHookHandler),
+        keyedStableRefPointer(KEY_WAL_HOOK, callback, appData)
+    )
+}

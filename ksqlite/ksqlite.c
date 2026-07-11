@@ -2,6 +2,9 @@
 #include "ksqlite.h"
 #endif
 
+__attribute__((unused))
+const sqlite3_destructor_type KSQLITE_TRANSIENT = SQLITE_TRANSIENT;
+
 int ksqlite_auto_extension(ksqlite_xEntryPoint callback) {
     return sqlite3_auto_extension((void (*)(void)) callback);
 }
@@ -44,3 +47,12 @@ int ksqlite_prepare_v3(
 
     return rc;
 }
+
+#ifdef SQLITE_ENABLE_SQLLOG
+// Requirement of SQLITE_ENABLE_SQLLOG
+__attribute__((unused))
+void sqlite3_init_sqllog(void) {
+    // No logging by default, it is up to the application to set its own logging interceptor using
+    // sqlite3_config
+}
+#endif

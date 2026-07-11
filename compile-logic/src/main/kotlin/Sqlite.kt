@@ -20,6 +20,12 @@ const val SQLITE3MC = "${SQLITE3}mc"
  */
 const val SQLITE3MC_AMALGAMATION = "${SQLITE3MC}_amalgamation"
 
+/**
+ * Name of the version file that contains the SQLite version.
+ * This file is removed from the local SQLite tree but recreated for the WASM build.
+ */
+const val SQLITE_VERSION_FILE = "VERSION"
+
 ///////////////////////////////////////////////////////////////////////////
 // Naming
 ///////////////////////////////////////////////////////////////////////////
@@ -47,25 +53,33 @@ fun <T> Map<String, T>.sqlitePrefixed(joint: Char = '_'): Map<String, T> {
  */
 val SqliteDefinitions = mapOf(
     "CODEC_TYPE" to "CODEC_TYPE_CHACHA20",
-    "SQLITE_ENABLE_FTS5" to "1",
-    "SQLITE_ENABLE_JSON1" to "1",
+    "SQLITE_DQS" to "0",
     "SQLITE_ENABLE_COLUMN_METADATA" to "1",
+    "SQLITE_ENABLE_FTS5" to "1",
     "SQLITE_ENABLE_MATH_FUNCTIONS" to "1",
+    "SQLITE_ENABLE_MEMORY_MANAGEMENT" to "1",
     "SQLITE_ENABLE_NORMALIZE" to "1",
     "SQLITE_ENABLE_OFFSET_SQL_FUNC" to "1",
     "SQLITE_ENABLE_PERCENTILE" to "1",
     "SQLITE_ENABLE_PREUPDATE_HOOK" to "1",
     "SQLITE_ENABLE_RTREE" to "1",
-    //"SQLITE_ENABLE_SESSION" to "1",
+    "SQLITE_ENABLE_SNAPSHOT" to "1",
     "SQLITE_ENABLE_SQLLOG" to "1",
     "SQLITE_ENABLE_UNKNOWN_SQL_FUNCTION" to "1",
+    "SQLITE_MAX_EXPR_DEPTH" to "0",
     "SQLITE_OMIT_AUTOINIT" to "1",
     "SQLITE_OMIT_DEPRECATED" to "1",
     "SQLITE_OMIT_LOAD_EXTENSION" to "1",
     "SQLITE_OMIT_UTF16" to "1",
     "SQLITE_OMIT_SHARED_CACHE" to "1",
     "SQLITE_TEMP_STORE" to "2",
+    "SQLITE_STRICT_SUBTYPE" to "1",
     "SQLITE_USE_URI" to "1",
+)
+
+val SqliteCompilerOptions = listOf(
+    "-g0",
+    "-DNDEBUG"
 )
 
 /**
@@ -76,6 +90,24 @@ val SqliteUnixLinkerOptions = listOf(
     "-ldl"
 )
 
+/**
+ * Linker options for Android.
+ */
+val SqliteAndroidLinkerOptions = listOf(
+    "-latomic"
+)
+
+///////////////////////////////////////////////////////////////////////////
+// Constants
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Constants that must be exported.
+ */
+val SqliteConstants = listOf(
+    "SQLITE_TRANSIENT"
+)
+
 ///////////////////////////////////////////////////////////////////////////
 // Structs
 ///////////////////////////////////////////////////////////////////////////
@@ -83,9 +115,12 @@ val SqliteUnixLinkerOptions = listOf(
 /**
  * Structs that must be exported.
  */
-val Sqlite3Structs = listOf(
+val SqliteStructs = listOf(
+    "file",
     "index_info",
+    "io_methods",
     "module",
+    "vfs",
     "vtab",
     "vtab_cursor"
 ).sqlitePrefixed()
@@ -95,9 +130,9 @@ val Sqlite3Structs = listOf(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * SQLite 3 functions with their enabled state.
+ * SQLite functions with their enabled state.
  */
-private val Sqlite3Functions = mapOf(
+private val SqliteFunctions = mapOf(
     // Database Connection Functions
     "open" to true,
     "open16" to false,  // Use UTF-8 version instead
@@ -257,7 +292,7 @@ private val Sqlite3Functions = mapOf(
     "libversion" to true,
     "libversion_number" to true,
     "sourceid" to true,
-    "threadsafe" to false,
+    "threadsafe" to true,
     "version" to true,
 
     // Compilation Options
@@ -377,9 +412,9 @@ private val Sqlite3Functions = mapOf(
     "uri_boolean" to true,
     "uri_int64" to true,
     "uri_key" to true,
-    "filename_database" to false,
-    "filename_journal" to false,
-    "filename_wal" to false,
+    "filename_database" to true,
+    "filename_journal" to true,
+    "filename_wal" to true,
     "database_file_object" to false,
     "create_filename" to false,
     "free_filename" to false,
@@ -479,7 +514,7 @@ private val Sqlite3Functions = mapOf(
  * are returned.
  */
 fun sqliteFunctions(enabled: Boolean): List<String> {
-    val functions = Sqlite3Functions
+    val functions = SqliteFunctions
         .filter { it.value == enabled }
         .keys
 

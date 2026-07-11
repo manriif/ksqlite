@@ -2,22 +2,26 @@ import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.invoke
+import org.jetbrains.kotlin.gradle.ExperimentalJsTestDsl
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithHostTests
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+import java.time.Duration
 
 /**
  * Adds Android JVM targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
 fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAndroidLibraryTarget> {
+    val libs = project.libs
+
     val android = extensions.getByName<KotlinMultiplatformAndroidLibraryTarget>("android").apply {
-        val libs = project.libs
-        namespace = project.projectNamespace
+        namespace = project.localNamespace
 
         compileSdk {
             version = release(libs.versions.android.sdk.compile.get().toInt())
@@ -29,6 +33,7 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
 
         withDeviceTest {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            execution = "HOST"
 
             targetSdk {
                 version = release(libs.versions.android.sdk.compile.get().toInt())
@@ -55,12 +60,22 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
         }
     }
 
-    // FIXME => w: Invalid Source Set Dependency Across Trees
-    //  Well instrumented tests on Android are only required to get the ksqlite-jni lib loaded.
-    //  Until the following moves from a warning to an error, or an acceptable workaround is
-    //  found, we still use it as testing should not be that complicated
-    val androidDeviceTest = sourceSets.named("androidDeviceTest")
+    val androidDeviceTest = sourceSets.named("androidDeviceTest").apply {
+        // Well this is added here to keep other build files look cleaner
+        configure {
+            dependencies {
+                implementation(libs.androidx.testRunner)
+            }
+        }
+    }
 
+    // FIXME => w: Invalid Source Set Dependency Across Trees
+    //
+    //  Well, instrumented tests on Android are only required to get the ksqlite-jni lib being
+    //  loaded. There is no dependencies on an Android specific API, apart from the native log API
+    //  which is itself unnecessary.
+    //  Until the warning upgrades to an error, or an acceptable workaround other than duplicating
+    //  the whole tests is found, we still use it as testing should not be that complicated
     sourceSets.whenObjectAdded {
         if (name == "nonWebTest") {
             androidDeviceTest.get().dependsOn(this)
@@ -73,14 +88,12 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
 /**
  * Adds Android Native targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.androidNativeTargets(): List<KotlinNativeTarget> {
-    return listOf(
-        androidNativeArm32(),
-        androidNativeArm64(),
-        androidNativeX86(),
-        androidNativeX64()
-    )
-}
+fun KotlinMultiplatformExtension.androidNativeTargets(): List<KotlinNativeTarget> = listOf(
+    androidNativeArm32(),
+    androidNativeArm64(),
+    androidNativeX86(),
+    androidNativeX64()
+)
 
 /**
  * Adds Apple targets to `this` [KotlinMultiplatformExtension] and returns them.
@@ -108,23 +121,19 @@ fun KotlinMultiplatformExtension.appleTargets(): List<KotlinNativeTarget> = buil
 /**
  * Adds Jvm targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.jvmTargets(): List<KotlinJvmTarget> {
-    return listOf(jvm {
-        compilerOptions {
-            jvmTarget = JvmTarget.fromTarget(project.libs.versions.jvm.target.jvm.get())
-        }
-    })
-}
+fun KotlinMultiplatformExtension.jvmTargets(): List<KotlinJvmTarget> = listOf(jvm {
+    compilerOptions {
+        jvmTarget = JvmTarget.fromTarget(project.libs.versions.jvm.target.jvm.get())
+    }
+})
 
 /**
  * Adds Linux targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.linuxTargets(): List<KotlinNativeTarget> {
-    return listOf(
-        linuxX64(),
-        linuxArm64()
-    )
-}
+fun KotlinMultiplatformExtension.linuxTargets(): List<KotlinNativeTarget> = listOf(
+    linuxX64(),
+    linuxArm64()
+)
 
 /**
  * Adds Windows targets to `this` [KotlinMultiplatformExtension] and returns them.
@@ -136,23 +145,27 @@ fun KotlinMultiplatformExtension.windowsTargets(): List<KotlinNativeTargetWithHo
 /**
  * Adds Js targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-fun KotlinMultiplatformExtension.jsTargets(): List<KotlinJsTargetDsl> {
-    return listOf(js {
-        useEsModules()
-        browser()
-    })
-}
+@OptIn(ExperimentalJsTestDsl::class)
+fun KotlinMultiplatformExtension.jsTargets(): List<KotlinJsTargetDsl> = listOf(js {
+    useEsModules()
+
+    browser {
+        test {
+            browserDefaults {
+                timeout = Duration.ofSeconds(30)
+                headless = true
+            }
+        }
+    }
+})
 
 /**
  * Adds WasmJs targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
 @OptIn(ExperimentalWasmDsl::class)
-fun KotlinMultiplatformExtension.wasmJsTargets(
-): List<KotlinWasmJsTargetDsl> {
-    return listOf(wasmJs {
-        browser()
-    })
-}
+fun KotlinMultiplatformExtension.wasmJsTargets(): List<KotlinWasmJsTargetDsl> = listOf(wasmJs {
+    browser()
+})
 
 /**
  * Adds Web targets to `this` [KotlinMultiplatformExtension] and returns them.
@@ -163,8 +176,7 @@ fun KotlinMultiplatformExtension.webTargets() = buildList {
 }.onEach { target ->
     target.compilerOptions {
         freeCompilerArgs.addAll(
-            "-Xes-long-as-bigint",
-            "-XXLanguage:+JsAllowLongInExportedDeclarations"
+            "-Xes-long-as-bigint"
         )
     }
 }
@@ -172,11 +184,19 @@ fun KotlinMultiplatformExtension.webTargets() = buildList {
 /**
  * Adds Native targets to `this` [KotlinMultiplatformExtension] and returns them.
  */
-@Suppress("DEPRECATION")
-fun KotlinMultiplatformExtension.nativeTargets(
-): List<KotlinNativeTarget> = buildList {
+fun KotlinMultiplatformExtension.nativeTargets(): List<KotlinNativeTarget> = buildList {
     addAll(androidNativeTargets())
     addAll(appleTargets())
     addAll(linuxTargets())
     addAll(windowsTargets())
+}
+
+/**
+ * Adds all supported targets to `this` [KotlinMultiplatformExtension] and returns them.
+ */
+fun KotlinMultiplatformExtension.allTargets(): List<KotlinTarget> = buildList {
+    addAll(androidJvmTargets())
+    addAll(jvmTargets())
+    addAll(webTargets())
+    addAll(nativeTargets())
 }

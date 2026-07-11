@@ -8,10 +8,10 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.staticCFunction
 import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.value
-import ksqlite.capi.callbacks.Sqlite3TraceCallback
+import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.dispatchTraceEvent
-import ksqlite.capi.types.sqlite3
-import ksqlite.capi.types.sqlite3_stmt
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_stmt
 
 /**
  * Static C function for [traceHandler].
@@ -26,7 +26,7 @@ private fun traceHandler(
     refPointer: COpaquePointer?,
     pPointer: COpaquePointer?,
     xPointer: COpaquePointer?
-) = handle(refPointer) { callback: Sqlite3TraceCallback<Any?>, appData ->
+) = handle(refPointer) { callback: SqliteTraceCallback<Any?>, appData ->
     dispatchTraceEvent(
         callback = callback,
         appData = appData,

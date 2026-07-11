@@ -1,17 +1,13 @@
 package ksqlite.capi.memory
 
+import ksqlite.foreign.sqlite3.sqlite3_free
+import ksqlite.foreign.sqlite3.sqlite3_malloc64
 import java.lang.foreign.Arena
+import java.lang.foreign.GroupLayout
 import java.lang.foreign.MemorySegment
 
-public actual open class Struct internal constructor(
-    internal val pointer: MemorySegment,
-    private val arena: Arena? = null
-) : StructBase() {
-
-    internal constructor(
-        arena: Arena = Arena.ofShared(),
-        allocate: Arena.() -> MemorySegment
-    ) : this(arena.allocate(), arena)
+public actual open class Struct internal constructor(internal val pointer: MemorySegment) :
+    StructBase() {
 
     actual override val address: Long
         get() = pointer.address()
@@ -26,8 +22,39 @@ public actual open class Struct internal constructor(
     override fun hashCode(): Int {
         return pointer.hashCode()
     }
+}
 
-    actual override fun free() {
-        arena?.close()
+public open class ReinterpretedStruct internal constructor(
+    protected val arena: Arena,
+    pointer: MemorySegment,
+) : Struct(pointer),
+    AutoCloseable {
+
+    internal constructor(
+        pointer: MemorySegment,
+        layout: GroupLayout,
+        arena: Arena = Arena.ofConfined()
+    ) : this(arena, pointer.reinterpret(layout.byteSize(), arena, null))
+
+    public override fun close() {
+        arena.close()
+    }
+}
+
+public actual open class AllocatedStruct internal constructor(
+    private val allocatedPointer: MemorySegment,
+    layout: GroupLayout,
+    arena: Arena
+) : ReinterpretedStruct(allocatedPointer, layout, arena) {
+
+    internal constructor(
+        layout: GroupLayout,
+        size: Long? = null,
+        arena: Arena = Arena.ofShared()
+    ) : this(sqlite3_malloc64(checkStructSize(layout.byteSize(), size)), layout, arena)
+
+    public actual override fun close() {
+        super.close()
+        sqlite3_free(allocatedPointer)
     }
 }
