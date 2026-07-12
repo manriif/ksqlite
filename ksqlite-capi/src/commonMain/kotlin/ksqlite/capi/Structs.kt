@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 @file:Suppress("ClassName")
 
 package ksqlite.capi
@@ -24,8 +39,8 @@ public expect class sqlite3 : Struct, MemoryScope {
 
 /**
  * The [sqlite3_backup] object records state information about an ongoing online backup operation.
- * The [sqlite3_backup] object is created by a call to [ksqlite.capi.sqlite3_backup_init] and is
- * destroyed by a call to [ksqlite.capi.sqlite3_backup_finish].
+ * The [sqlite3_backup] object is created by a call to [sqlite3_backup_init] and is destroyed by a
+ * call to [sqlite3_backup_finish].
  *
  * [sqlite3_backup](https://sqlite.org/c3ref/backup.html)
  */
@@ -34,11 +49,10 @@ public expect class sqlite3_backup : Struct
 /**
  * An instance of this object represents an open BLOB on which incremental BLOB I/O can be
  * performed.
- * Objects of this type are created by [ksqlite.capi.sqlite3_blob_open] and destroyed by
- * [ksqlite.capi.sqlite3_blob_close].
- * The [ksqlite.capi.sqlite3_blob_read] and [ksqlite.capi.sqlite3_blob_write] interfaces can be used
- * to read or write small subsections of the BLOB.
- * The [ksqlite.capi.sqlite3_blob_bytes] interface returns the size of the BLOB in bytes.
+ * Objects of this type are created by [sqlite3_blob_open] and destroyed by [sqlite3_blob_close].
+ * The [sqlite3_blob_read] and [sqlite3_blob_write] interfaces can be used to read or write small
+ * subsections of the BLOB.
+ * The [sqlite3_blob_bytes] interface returns the size of the BLOB in bytes.
  *
  * [sqlite3_blob](https://sqlite.org/c3ref/blob.html)
  */

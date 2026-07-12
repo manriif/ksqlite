@@ -10,5 +10,5 @@ config.client.env = config.client.env || {};
 
 config.client.env.ksqlite = {
     isTest: true,
-    prefix: "base/kotlin/ksqlite"
+    prefix: "base/kotlin/ksqlite/"
 }

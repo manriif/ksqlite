@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import komple.platform.Platform
 import komple.exec.addEnvironments
 import komple.project.c.COptimization
@@ -9,7 +24,6 @@ plugins {
     alias(libs.plugins.dokka) apply true
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.vanniktech.mavenPublish) apply false
-    alias(libs.plugins.gradle.pluginPublish) apply false
 
     alias(kompleLibs.plugins.komple)
     alias(kompleLibs.plugins.tool.androidNdk)
@@ -84,9 +98,11 @@ komple {
 
     execEnvironments {
         register("wasm") {
-            tools {
-                addEnvironments(emscripten, gnuSed, wabt)
-            }
+            addEnvironments(
+                tools.emscripten,
+                tools.gnuSed,
+                tools.wabt
+            )
         }
     }
 
@@ -139,7 +155,7 @@ dokka {
         moduleName = providers.gradleProperty("project.name")
         moduleVersion = project.version.toString()
         outputDirectory = rootDir.resolve("docs/api")
-        failOnWarning = false
+        failOnWarning = true
         suppressInheritedMembers = false
         suppressObviousFunctions = true
         offlineMode = false

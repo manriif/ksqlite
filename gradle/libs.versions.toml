@@ -1,7 +1,3 @@
-# Version catalog is a central place for you to declare and version dependencies
-# https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
-# https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
-
 [versions]
 
 # Project version
@@ -22,12 +18,11 @@ apple-watchos-min = "5.0"
 # Jvm versions
 jvm-target-android = "17"
 jvm-target-jvm = "22"
-jvm-toolchain = "22"
+jvm-toolchain = "17"
 
 androidx-testRunner = "1.7.0"
 cmake = "3.22.1"
 dokka = "2.2.0"
-gradle-pluginPublish = "2.1.1"
 kotlin = "2.4.20-Beta1"
 kotlinx-coroutines = "1.11.0"
 kotlin-wrappers = "2026.7.1"
@@ -46,7 +41,6 @@ ksqlite = { id = "ksqlite", version.ref = "ksqlite" }
 android-library = { id = "com.android.library", version.ref = "android-gradlePlugin" }
 android-multiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "android-gradlePlugin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
-gradle-pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "gradle-pluginPublish" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 vanniktech-mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech-mavenPublish" }
 

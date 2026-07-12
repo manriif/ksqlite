@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.getByName
@@ -70,9 +85,8 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
     }
 
     // FIXME => w: Invalid Source Set Dependency Across Trees
-    //
     //  Well, instrumented tests on Android are only required to get the ksqlite-jni lib being
-    //  loaded. There is no dependencies on an Android specific API, apart from the native log API
+    //  loaded. There is no dependency on an Android specific API, apart from the native log API
     //  which is itself unnecessary.
     //  Until the warning upgrades to an error, or an acceptable workaround other than duplicating
     //  the whole tests is found, we still use it as testing should not be that complicated

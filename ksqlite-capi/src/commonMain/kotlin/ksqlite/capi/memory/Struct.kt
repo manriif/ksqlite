@@ -1,7 +1,22 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ksqlite.capi.memory
 
 /**
- * Base for [Struct].
+ * Base class for all [Struct] implementations.
  */
 public abstract class StructBase internal constructor() {
 
@@ -12,10 +27,12 @@ public abstract class StructBase internal constructor() {
 }
 
 /**
- * Represents a native struct object.
- * Direct inheritor of [Struct] cannot be allocated and only holds an opaque pointer.
+ * Represents a native struct.
  *
- * Two [Struct]s representing the same native object are structurally equals (==).
+ * A `Struct` is an opaque handle to a native object identified by its native address.
+ * Instances of this class cannot be allocated directly.
+ *
+ * Two `Struct` instances that refer to the same native object are equal (`==`).
  */
 public expect open class Struct : StructBase {
 
@@ -23,22 +40,21 @@ public expect open class Struct : StructBase {
 }
 
 /**
- * [Struct] that has been allocated by the application.
+ * A [Struct] that can be closed.
  *
- * If the [AllocatedStruct] was obtained by invoking one of its constructor or factory function,
- * then it is owned by the application. Otherwise, the struct is owned by SQLite.
+ * Instances created by one of this class's constructors or factory functions are owned by
+ * the application.
  *
- * The instantiator, which is the owner of the [AllocatedStruct], is responsible for closing it.
+ * The owner of a `ClosableStruct` is responsible for calling [close].
  */
-public expect open class AllocatedStruct :
+public expect open class ClosableStruct :
     Struct,
     AutoCloseable {
 
     /**
-     * Frees the struct if it was allocated by the application.
-     * Does nothing if the struct was not allocated by the application.
+     * Releases the native resources if this struct is owned by the application.
      *
-     * /!\ If the method is overloaded, super.[close] must be called.
+     * If this method is overridden, implementations must call `super.close()`.
      */
     override fun close()
 }
