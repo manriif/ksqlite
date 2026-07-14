@@ -1,0 +1,76 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+@file:Suppress("ClassName", "SpellCheckingInspection")
+
+package ksqlite.capi.vtab
+
+/**
+ * These constants define the various options to the sqlite3_vtab_config() interface that virtual
+ * table implementations can use to customize and optimize their behavior.
+ *
+ * [Virtual Table Configuration Options](https://sqlite.org/c3ref/c_vtab_constraint_support.html)
+ */
+public sealed class SqliteVtabConfigOption(public val id: Int) {
+
+    /**
+     * Calls of the form sqlite3_vtab_config(db,SQLITE_VTAB_CONSTRAINT_SUPPORT,X) are supported,
+     * where X is an integer. If X is zero, then the virtual table whose xCreate or xConnect method
+     * invoked sqlite3_vtab_config() does not support constraints. In this configuration (which is
+     * the default) if a call to the xUpdate method returns SQLITE_CONSTRAINT, then the entire
+     * statement is rolled back as if OR ABORT had been specified as part of the user's SQL
+     * statement, regardless of the actual ON CONFLICT mode specified.
+     *
+     * If X is non-zero, then the virtual table implementation guarantees that if xUpdate returns
+     * SQLITE_CONSTRAINT, it will do so before any modifications to internal or persistent data
+     * structures have been made. If the ON CONFLICT mode is ABORT, FAIL, IGNORE or ROLLBACK, SQLite
+     * is able to roll back a statement or database transaction, and abandon or continue processing
+     * the current SQL statement as appropriate. If the ON CONFLICT mode is REPLACE and the xUpdate
+     * method returns SQLITE_CONSTRAINT, SQLite handles this as if the ON CONFLICT mode had been
+     * ABORT.
+     *
+     * Virtual table implementations that are required to handle OR REPLACE must do so within the
+     * xUpdate method. If a call to the sqlite3_vtab_on_conflict() function indicates that the
+     * current ON CONFLICT policy is REPLACE, the virtual table implementation should silently
+     * replace the appropriate rows within the xUpdate callback and return SQLITE_OK. Or, if this
+     * is not possible, it may return SQLITE_CONSTRAINT, in which case SQLite falls back to OR
+     * ABORT constraint handling.
+     */
+    public class CONSTRAINT_SUPPORT(public val enabled: Int) : SqliteVtabConfigOption(1)
+
+    /**
+     * Calls of the form sqlite3_vtab_config(db,SQLITE_VTAB_INNOCUOUS) from within the xConnect or
+     * xCreate methods of a virtual table implementation identify that virtual table as being safe
+     * to use from within triggers and views. Conceptually, the SQLITE_VTAB_INNOCUOUS tag means that
+     * the virtual table can do no serious harm even if it is controlled by a malicious hacker.
+     * Developers should avoid setting the SQLITE_VTAB_INNOCUOUS flag unless absolutely necessary.
+     */
+    public object INNOCUOUS : SqliteVtabConfigOption(2)
+
+    /**
+     * Calls of the form sqlite3_vtab_config(db,SQLITE_VTAB_DIRECTONLY) from within the the xConnect
+     * or xCreate methods of a virtual table implementation prohibits that virtual table from being
+     * used from within triggers and views.
+     */
+    public object DIRECTONLY : SqliteVtabConfigOption(3)
+
+    /**
+     * Calls of the form sqlite3_vtab_config(db,SQLITE_VTAB_USES_ALL_SCHEMA) from within the
+     * xConnect or xCreate methods of a virtual table implementation instruct the query planner to
+     * begin at least a read transaction on all schemas ("main", "temp", and any ATTACH-ed
+     * databases) whenever the virtual table is used.
+     */
+    public object USES_ALL_SCHEMAS : SqliteVtabConfigOption(4)
+}

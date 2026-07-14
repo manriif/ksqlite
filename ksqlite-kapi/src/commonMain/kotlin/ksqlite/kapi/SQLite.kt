@@ -1,0 +1,154 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package ksqlite.kapi
+
+import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.config.AnyTimeConfiguration
+import ksqlite.kapi.config.ConfigurationScope
+import ksqlite.kapi.database.AutoExtension
+import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.value.Status
+import ksqlite.types.SqliteOpenFlag
+import ksqlite.types.SqliteStatusOption
+
+/**
+ * [SQLite](https://sqlite.org/docs.html) entry point.
+ */
+public interface SQLite : AutoCloseable {
+
+    /**
+     * Configuration exposing options that can be accessed at anytime.
+     */
+    public val config: AnyTimeConfiguration
+
+    /**
+     * Hard limit on the amount of heap memory that may be allocated by SQLite.
+     *
+     * @throws SQLiteException if setting the value failed.
+     */
+    public var hardHeapLimit: Long
+
+    /**
+     * Number of bytes of memory currently outstanding.
+     */
+    public val memoryUsed: Long
+
+    /**
+     * Maximum value of [memoryUsed] since the high-water mark was last reset.
+     */
+    public val memoryHighwater: Long
+
+    /**
+     * Soft limit on the amount of heap memory that may be allocated by SQLite.
+     *
+     * @throws SQLiteException if setting the value failed.
+     */
+    public var softHeapLimit: Long
+
+    /**
+     * Registers the [autoExtension] callback.
+     * This method has no effect if the [autoExtension] is already registered.
+     */
+    public fun addAutoExtension(autoExtension: AutoExtension)
+
+    /**
+     * Unregisters the [autoExtension] callback.
+     * This method has no effect if the [autoExtension] is not registered.
+     */
+    public fun removeAutoExtension(autoExtension: AutoExtension)
+
+    /**
+     * Unregisters all the [AutoExtension] previously registered.
+     */
+    public fun clearAutoExtensions()
+
+    /**
+     * Returns the number of bytes of memory currently outstanding and the highwater mark.
+     */
+    public fun getMemoryStatus(reset: Boolean): Status
+
+    /**
+     * Opens an SQLite database file as specified by [fileName] and returns a [DatabaseConnection].
+     *
+     * @throws SQLiteException if an error happens while opening the database or if a registered
+     * [AutoExtension] fails.
+     */
+    public fun open(
+        fileName: String,
+        flags: SqliteOpenFlag.Db = SqliteOpenFlag.READONLY,
+        vfs: String? = null
+    ): DatabaseConnection
+
+    /**
+     * Stores [size] bytes of randomness into [output].
+     */
+    public fun generateRandomBytes(
+        output: Buffer,
+        size: Int
+    )
+
+    /**
+     * Attempts to free [size] bytes of heap memory by deallocating non-essential memory allocations
+     * held by the database library.
+     */
+    public fun releaseMemory(size: Int): Int
+
+    /**
+     * Returns the status for the given [option].
+     */
+    public fun getStatus(
+        option: SqliteStatusOption,
+        reset: Boolean = false
+    ): Status
+
+    /**
+     * Shutdowns SQLite and resets global SQLite state.
+     *
+     * It is recommended to terminate any active statement, transaction and opened database
+     * connection first before closing `this` [SQLite] instance.
+     *
+     * @throws SQLiteException if error happens while shutting down SQLite.
+     */
+    override fun close()
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Companion
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Provides access to SQLite APIs that do not require SQLite initialization.
+     */
+    public companion object : SQLiteStatic by SQLiteStaticImpl
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Factory
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Initializes SQLite and returns an [SQLite] instance used to initiate connections.
+ * SQLite global options can be configured by supplying a value to [configure].
+ *
+ * When the returned instance is no longer needed, then [SQLite.close] must be called and this
+ * factory method can be called again.
+ *
+ * Only a single instance of [SQLite] exists at a time.
+ *
+ * @throws IllegalStateException if a previously returned instance of [SQLite] was not closed.
+ * @throws SQLiteException if an operation fails while creating and configuring [SQLite].
+ */
+public fun SQLite(configure: (ConfigurationScope.() -> Unit)? = null): SQLite =
+    sqliteInitialize(configure)

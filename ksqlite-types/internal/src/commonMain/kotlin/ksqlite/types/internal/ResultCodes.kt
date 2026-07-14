@@ -1,0 +1,140 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package ksqlite.types.internal
+
+import ksqlite.types.SqliteResultCode
+
+/**
+ * Returns all [SqliteResultCode]s.
+ */
+private fun sqliteResultCodes(): Set<SqliteResultCode> = setOf(
+    SqliteResultCode.ABORT,
+    SqliteResultCode.ABORT.ROLLBACK,
+    SqliteResultCode.AUTH,
+    SqliteResultCode.AUTH.USER,
+    SqliteResultCode.BUSY,
+    SqliteResultCode.BUSY.RECOVERY,
+    SqliteResultCode.BUSY.SNAPSHOT,
+    SqliteResultCode.BUSY.TIMEOUT,
+    SqliteResultCode.CANTOPEN,
+    SqliteResultCode.CANTOPEN.CONVPATH,
+    SqliteResultCode.CANTOPEN.DIRTYWAL,
+    SqliteResultCode.CANTOPEN.FULLPATH,
+    SqliteResultCode.CANTOPEN.ISDIR,
+    SqliteResultCode.CANTOPEN.NOTEMPDIR,
+    SqliteResultCode.CANTOPEN.SYMLINK,
+    SqliteResultCode.CONSTRAINT,
+    SqliteResultCode.CONSTRAINT.CHECK,
+    SqliteResultCode.CONSTRAINT.COMMITHOOK,
+    SqliteResultCode.CONSTRAINT.DATATYPE,
+    SqliteResultCode.CONSTRAINT.FOREIGNKEY,
+    SqliteResultCode.CONSTRAINT.FUNCTION,
+    SqliteResultCode.CONSTRAINT.NOTNULL,
+    SqliteResultCode.CONSTRAINT.PINNED,
+    SqliteResultCode.CONSTRAINT.PRIMARYKEY,
+    SqliteResultCode.CONSTRAINT.ROWID,
+    SqliteResultCode.CONSTRAINT.TRIGGER,
+    SqliteResultCode.CONSTRAINT.UNIQUE,
+    SqliteResultCode.CONSTRAINT.VTAB,
+    SqliteResultCode.CORRUPT,
+    SqliteResultCode.CORRUPT.INDEX,
+    SqliteResultCode.CORRUPT.SEQUENCE,
+    SqliteResultCode.CORRUPT.VTAB,
+    SqliteResultCode.DONE,
+    SqliteResultCode.EMPTY,
+    SqliteResultCode.ERROR,
+    SqliteResultCode.ERROR.MISSING_COLLSEQ,
+    SqliteResultCode.ERROR.RETRY,
+    SqliteResultCode.ERROR.SNAPSHOT,
+    SqliteResultCode.FORMAT,
+    SqliteResultCode.FULL,
+    SqliteResultCode.INTERNAL,
+    SqliteResultCode.INTERRUPT,
+    SqliteResultCode.IOERR,
+    SqliteResultCode.IOERR.ACCESS,
+    SqliteResultCode.IOERR.AUTH,
+    SqliteResultCode.IOERR.BEGIN_ATOMIC,
+    SqliteResultCode.IOERR.BLOCKED,
+    SqliteResultCode.IOERR.CHECKRESERVEDLOCK,
+    SqliteResultCode.IOERR.CLOSE,
+    SqliteResultCode.IOERR.COMMIT_ATOMIC,
+    SqliteResultCode.IOERR.CONVPATH,
+    SqliteResultCode.IOERR.CORRUPTFS,
+    SqliteResultCode.IOERR.DATA,
+    SqliteResultCode.IOERR.DELETE,
+    SqliteResultCode.IOERR.DELETE_NOENT,
+    SqliteResultCode.IOERR.DIR_CLOSE,
+    SqliteResultCode.IOERR.DIR_FSYNC,
+    SqliteResultCode.IOERR.FSTAT,
+    SqliteResultCode.IOERR.FSYNC,
+    SqliteResultCode.IOERR.GETTEMPPATH,
+    SqliteResultCode.IOERR.LOCK,
+    SqliteResultCode.IOERR.MMAP,
+    SqliteResultCode.IOERR.NOMEM,
+    SqliteResultCode.IOERR.RDLOCK,
+    SqliteResultCode.IOERR.READ,
+    SqliteResultCode.IOERR.ROLLBACK_ATOMIC,
+    SqliteResultCode.IOERR.SEEK,
+    SqliteResultCode.IOERR.SHMLOCK,
+    SqliteResultCode.IOERR.SHMMAP,
+    SqliteResultCode.IOERR.SHMOPEN,
+    SqliteResultCode.IOERR.SHMSIZE,
+    SqliteResultCode.IOERR.SHORT_READ,
+    SqliteResultCode.IOERR.TRUNCATE,
+    SqliteResultCode.IOERR.UNLOCK,
+    SqliteResultCode.IOERR.VNODE,
+    SqliteResultCode.IOERR.WRITE,
+    SqliteResultCode.LOCKED,
+    SqliteResultCode.LOCKED.SHAREDCACHE,
+    SqliteResultCode.LOCKED.VTAB,
+    SqliteResultCode.MISMATCH,
+    SqliteResultCode.MISUSE,
+    SqliteResultCode.NOLFS,
+    SqliteResultCode.NOMEM,
+    SqliteResultCode.NOTADB,
+    SqliteResultCode.NOTFOUND,
+    SqliteResultCode.NOTICE,
+    SqliteResultCode.NOTICE.RECOVER_ROLLBACK,
+    SqliteResultCode.NOTICE.RECOVER_WAL,
+    SqliteResultCode.OK,
+    SqliteResultCode.OK.LOAD_PERMANENTLY,
+    SqliteResultCode.PERM,
+    SqliteResultCode.PROTOCOL,
+    SqliteResultCode.RANGE,
+    SqliteResultCode.READONLY,
+    SqliteResultCode.READONLY.CANTINIT,
+    SqliteResultCode.READONLY.CANTLOCK,
+    SqliteResultCode.READONLY.DBMOVED,
+    SqliteResultCode.READONLY.DIRECTORY,
+    SqliteResultCode.READONLY.RECOVERY,
+    SqliteResultCode.READONLY.ROLLBACK,
+    SqliteResultCode.ROW,
+    SqliteResultCode.SCHEMA,
+    SqliteResultCode.TOOBIG,
+    SqliteResultCode.WARNING,
+    SqliteResultCode.WARNING.AUTOINDEX,
+)
+
+/**
+ * [ksqlite.types.SqliteResultCode]s associated by their integer code.
+ */
+private val SqliteResultCodeMap = sqliteResultCodes().associateBy(SqliteResultCode::code)
+
+/**
+ * Converts [code] to [SqliteResultCode].
+ */
+public fun convertResultCode(code: Int): SqliteResultCode =
+    checkNotNull(SqliteResultCodeMap[code]) { "Unknown SQLite result code: $code" }

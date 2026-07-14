@@ -1,0 +1,36 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package ksqlite.kapi.snapshot
+
+import ksqlite.capi.sqlite3_snapshot_cmp
+import ksqlite.capi.sqlite3_snapshot_free
+import ksqlite.capi.sqlite3_snapshot
+import ksqlite.kapi.helpers.DelegatingCloseableScope
+
+internal class SnapshotImpl(override val snapshot: sqlite3_snapshot) : Snapshot() {
+
+    override val scope = DelegatingCloseableScope {
+        sqlite3_snapshot_free(snapshot)
+    }
+
+    override fun compareTo(other: Snapshot): Int {
+        scope.ensureNotClosed { "Snapshot is closed" }
+        other.scope.ensureNotClosed { "Snapshot to compare to is closed" }
+        return sqlite3_snapshot_cmp(snapshot, other.snapshot)
+    }
+
+    override fun close() = scope.close()
+}

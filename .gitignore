@@ -1,0 +1,10 @@
+.gradle/
+.idea/
+.komple/
+.kotlin/
+.cxx/
+.run/
+
+build
+docs
+local.properties
