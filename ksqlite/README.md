@@ -1,3 +1,3 @@
-# Kotlin SQLite
+# Ksqlite
 
 Coming soon 😎

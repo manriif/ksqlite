@@ -43,8 +43,8 @@ android {
     namespace = localNamespace
 
     compileOptions {
-        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.android.get())
-        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.target.android.get())
+        sourceCompatibility = JavaVersion.toVersion(libs.versions.jvm.toolchain.min.get())
+        targetCompatibility = JavaVersion.toVersion(libs.versions.jvm.toolchain.min.get())
     }
 
     compileSdk {

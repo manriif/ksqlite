@@ -1,3 +1,3 @@
-# Module todo
+# Module Ksqlite Foreign JNI
 
-todo
+Coming soon 😎

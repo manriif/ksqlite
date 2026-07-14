@@ -27,7 +27,6 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.assign
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getByType
-import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
@@ -92,7 +91,7 @@ private fun KotlinJsTargetDsl.configureWasmResources(
         isCanBeDeclared = true
     }
 
-    val wasmResources by project.configurations.resolvable(configName) {
+    val wasmResources = project.configurations.resolvable(configName) {
         extendsFrom(wasmResourcesBase)
 
         attributes {
@@ -112,7 +111,7 @@ private fun KotlinJsTargetDsl.configureWasmResources(
 
         val archiveOperations = project.serviceOf<ArchiveOperations>()
 
-        from(wasmResources.map(archiveOperations::zipTree))
+        from(wasmResources.map { it.map(archiveOperations::zipTree) })
         into(extractDirectory)
 
         dependsOn(shadowTestRunnerTaskProvider)

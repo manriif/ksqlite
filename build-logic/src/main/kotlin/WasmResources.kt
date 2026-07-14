@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.artifacts.ResolvableConfiguration
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.attributes.HasConfigurableAttributes
 import org.gradle.api.file.ArchiveOperations
 import org.gradle.api.tasks.Sync
 import org.gradle.kotlin.dsl.dependencies
-import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.support.serviceOf
@@ -74,7 +74,7 @@ private fun KotlinJsTargetDsl.configureWasmResources(ksqliteWeb: ProjectDependen
         isCanBeDeclared = true
     }
 
-    val wasmResources by project.configurations.resolvable(configName) {
+    val wasmResources = project.configurations.resolvable(configName) {
         extendsFrom(wasmResourcesBase)
         applyWasmResourcesAttributes(targetName)
     }
@@ -91,14 +91,14 @@ private fun KotlinJsTargetDsl.configureWasmResources(ksqliteWeb: ProjectDependen
     }
 
     val extractResourceTask = project.tasks.register<Sync>("extractWasmResources$postfix") {
-        dependsOn(wasmResources.buildDependencies)
+        dependsOn(wasmResources.map(ResolvableConfiguration::getBuildDependencies))
 
         val extractDirectory = project.layout.buildDirectory
             .dir("ksqlite/wasm/resources/${targetName.lowercase()}")
 
         val archiveOperations = project.serviceOf<ArchiveOperations>()
 
-        from(wasmResources.map(archiveOperations::zipTree))
+        from(wasmResources.map { it.map(archiveOperations::zipTree) })
         into(extractDirectory)
     }
 

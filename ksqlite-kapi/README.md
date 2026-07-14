@@ -1,3 +1,3 @@
-# Module todo
+# Module Ksqlite Kotlin API
 
-todo
+Coming soon 😎

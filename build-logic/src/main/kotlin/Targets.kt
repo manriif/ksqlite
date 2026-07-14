@@ -38,6 +38,10 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
     val android = extensions.getByName<KotlinMultiplatformAndroidLibraryTarget>("android").apply {
         namespace = project.localNamespace
 
+        compilerOptions {
+            jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.toolchain.min.get())
+        }
+
         compileSdk {
             version = release(libs.versions.android.sdk.compile.get().toInt())
         }
@@ -62,14 +66,6 @@ fun KotlinMultiplatformExtension.androidJvmTargets(): List<KotlinMultiplatformAn
                         apiLevel = 30
                         systemImageSource = "aosp"
                     }
-                }
-            }
-        }
-
-        compilations.configureEach {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget = JvmTarget.fromTarget(libs.versions.jvm.target.android.get())
                 }
             }
         }
@@ -137,7 +133,7 @@ fun KotlinMultiplatformExtension.appleTargets(): List<KotlinNativeTarget> = buil
  */
 fun KotlinMultiplatformExtension.jvmTargets(): List<KotlinJvmTarget> = listOf(jvm {
     compilerOptions {
-        jvmTarget = JvmTarget.fromTarget(project.libs.versions.jvm.target.jvm.get())
+        jvmTarget = JvmTarget.fromTarget(project.libs.versions.jvm.toolchain.ffm.get())
     }
 })
 

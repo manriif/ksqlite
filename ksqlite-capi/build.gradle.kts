@@ -19,6 +19,7 @@ plugins {
 }
 
 kotlin {
+    jvmToolchainFfm()
     configureWasmResources(projects.ksqliteWasmResources)
     allTargets()
 

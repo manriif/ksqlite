@@ -23,6 +23,16 @@ dokka {
         includes.from("README.md")
     }
 
+    dokkaSourceSets.configureEach {
+        val moduleDir = projectDir.relativeTo(rootDir).invariantSeparatorsPath
+
+        sourceLink {
+            localDirectory.set(projectDir.resolve("src"))
+            remoteUrl("$projectGitUrl/tree/main/$moduleDir/src")
+            remoteLineSuffix.set("#L")
+        }
+    }
+
     pluginsConfiguration.html {
         footerMessage = "© $projectInceptionYear $projectDevName"
     }

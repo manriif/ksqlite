@@ -1,3 +1,3 @@
-# Module todo
+# Module Ksqlite WASM Resources
 
-todo
+Coming soon 😎

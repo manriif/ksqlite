@@ -26,8 +26,6 @@ plugins {
     alias(kompleLibs.plugins.komple)
 }
 
-val generatedSourceDirectory = layout.buildDirectory.dir("generated/ksqlite/src/jvmMain")
-
 val libraries = Platform.run {
     listOf(
         linuxArm64,
@@ -51,8 +49,10 @@ val javaBindings = komple.projects.kotlinSqlite.jextract.bindingGenerators.regis
     }
 }
 
+val javaBindingsSources = javaBindings.flatMap { it.generateDirectory }
+
 val generateFfmSources = tasks.registerKsqlite<GenerateFfmSourcesTask>("generateFfmSources") {
-    outputDirectory = generatedSourceDirectory.map { it.dir("kotlin") }
+    outputDirectory = layout.buildDirectory.dir("generated/ksqlite/src/jvmMain/kotlin")
     compilations = libraries.map(CLibrary::compilation)
 
     val cProject = komple.projects.kotlinSqlite.kProject
@@ -60,32 +60,33 @@ val generateFfmSources = tasks.registerKsqlite<GenerateFfmSourcesTask>("generate
     packageName = cProject.packageName
 }
 
-val copyJavaBindings = tasks.registerKsqlite<Copy>("copyJavaBindings") {
-    from(javaBindings.map { it.generateDirectory })
-    into(generatedSourceDirectory.map { it.dir("java") })
-}
-
 val generateSources = tasks.registerKsqlite<DefaultTask>("generateSources") {
+    dependsOn(javaBindings.flatMap { it.generateTaskProvider })
     dependsOn(generateFfmSources)
-    dependsOn(copyJavaBindings)
 }
 
 registerTaskForIde(generateSources)
 
+@Suppress("OPT_IN_USAGE")
 kotlin {
+    jvmToolchainFfm()
+
     jvmTargets().forEach { target ->
         target.configureJvmTarget()
     }
 
     sourceSets.jvmMain {
-        kotlin.srcDirs(generateFfmSources, copyJavaBindings)
+        generatedKotlin.srcDirs(
+            generateFfmSources,
+            javaBindingsSources
+        )
     }
 }
 
 fun KotlinJvmTarget.configureJvmTarget() {
-    compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME) {
+    compilations.named(KotlinCompilation.MAIN_COMPILATION_NAME).configure {
         checkNotNull(compileJavaTaskProvider).configure {
-            source(copyJavaBindings)
+            source(javaBindingsSources)
         }
 
         tasks.named<ProcessResources>(processResourcesTaskName).configure {

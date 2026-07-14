@@ -1,3 +1,3 @@
-# Module todo
+# Module Ksqlite C API
 
-todo
+Coming soon 😎

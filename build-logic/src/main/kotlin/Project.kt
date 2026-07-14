@@ -72,4 +72,5 @@ private fun localProjectProperty(name: String): ReadOnlyProperty<Project, String
 
 val Project.localName: String by localProjectProperty("name")
 val Project.localNamespace: String by localProjectProperty("namespace")
+val Project.localTags: String by localProjectProperty("tags")
 val Project.localDescription: String by localProjectProperty("description")

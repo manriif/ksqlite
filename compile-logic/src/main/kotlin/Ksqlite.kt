@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import komple.gradle.task.configureWithContext
+import komple.gradle.task.track
 import komple.task.TaskStateTracker
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskContainer
@@ -92,5 +92,5 @@ inline fun <reified T : Task> TaskContainer.registerKsqliteTracked(
     noinline action: T.(tracker: TaskStateTracker) -> Unit
 ) = register<T>(name) {
     group = KSQLITE_TASK_GROUP
-    configureWithContext(action)
+    track(action)
 }

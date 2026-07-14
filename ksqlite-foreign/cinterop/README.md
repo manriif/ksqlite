@@ -1,3 +1,3 @@
-# Module todo
+# Module Ksqlite Foreign CInterop
 
-todo
+Coming soon 😎

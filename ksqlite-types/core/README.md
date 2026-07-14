@@ -1,3 +1,3 @@
-# Module todo
+# Module Ksqlite Types
 
-todo
+Coming soon 😎

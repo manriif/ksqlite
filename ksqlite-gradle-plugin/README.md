@@ -1,3 +1,3 @@
-# Module todo
+# Module Ksqlite Gradle Plugin
 
-todo
+Coming soon 😎

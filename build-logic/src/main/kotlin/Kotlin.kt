@@ -87,6 +87,18 @@ fun <Extension> Extension.configureKotlin()
     }
 
     jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(project.libs.versions.jvm.toolchain.get())
+        languageVersion = JavaLanguageVersion.of(project.libs.versions.jvm.toolchain.min.get())
+    }
+}
+
+/**
+ * Sets the jvm toolchain's java language version to a value that supports FFM.
+ */
+
+fun <Extension> Extension.jvmToolchainFfm()
+        where Extension : KotlinBaseExtension,
+              Extension : HasProject {
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(project.libs.versions.jvm.toolchain.ffm.get())
     }
 }

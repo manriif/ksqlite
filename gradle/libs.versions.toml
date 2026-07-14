@@ -15,10 +15,9 @@ apple-ios-min = "12.0"
 apple-tvos-min = "12.0"
 apple-watchos-min = "5.0"
 
-# Jvm versions
-jvm-target-android = "17"
-jvm-target-jvm = "22"
-jvm-toolchain = "17"
+# Jvm
+jvm-toolchain-min = "17"
+jvm-toolchain-ffm = "22"
 
 androidx-testRunner = "1.7.0"
 cmake = "3.22.1"
