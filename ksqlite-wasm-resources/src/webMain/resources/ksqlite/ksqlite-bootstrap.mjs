@@ -16,24 +16,6 @@
 import sqliteInitModule from "./ksqlite.mjs";
 
 /**
- * Configuration for the Ksqlite module.
- *
- * @typedef {Object} KsqliteModuleConfig
- *
- * @property {((...args: unknown) => void) | undefined} customDebugModule
- * Optional callback invoked for logging messages.
- *
- * @property {((path: string, prefix: string) => unknown) | undefined} customLocateFile
- * Optional callback used to resolve wasm file location.
- *
- * @type {KsqliteModuleConfig}
- */
-const moduleConfig = {
-    customDebugModule: undefined,
-    customLocateFile: undefined
-};
-
-/**
  * Environment variables for custom configuration.
  *
  * @typedef {Object} KsqliteEnv
@@ -48,15 +30,43 @@ const moduleConfig = {
  */
 const env = window.__karma__?.config?.env?.ksqlite ?? {
     isTest: false,
-    prefix: ""
+    prefix: "ksqlite/"
 };
 
-if (env.isTest) {
-    moduleConfig.customDebugModule = console.log
-    moduleConfig.customLocateFile = (path, _) => `${env.prefix}${path}`
+/**
+ * Configuration for the Ksqlite module.
+ *
+ * @typedef {Object} KsqliteModuleConfig
+ *
+ * @property {((...args: unknown) => void) | undefined} customDebugModule
+ * Optional callback invoked for logging messages.
+ *
+ * @property {((path: string, prefix: string) => unknown) | undefined} customLocateFile
+ * Optional callback used to resolve wasm file location.
+ *
+ * @type {KsqliteModuleConfig}
+ */
+const moduleConfig = {
+    customDebugModule: env.isTest ? console.log : undefined,
+    customLocateFile: (path, _) => `${env.prefix}${path}`
+};
+
+const sqliteInit = sqliteInitModule(moduleConfig);
+
+// Force Karma to wait for SQLite initialization, otherwise tests fails in Kotlin/JS
+if (env.isTest && window.__karma__) {
+    const karma = window.__karma__;
+    const karmaStart = karma.start.bind(karma);
+
+    karma.start = (...args) => {
+        sqliteInit.then(
+            () => karmaStart(...args),
+            (err) => karma.error("ksqlite init failed: " + (err?.stack ?? err))
+        );
+    };
 }
 
 /**
  * SQLite instance.
  */
-export const sqlite3 = await sqliteInitModule(moduleConfig);
+export const sqlite3 = await sqliteInit;

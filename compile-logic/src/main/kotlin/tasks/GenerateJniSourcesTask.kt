@@ -16,7 +16,7 @@
 package tasks
 
 import komple.task.clearAndGetAsFile
-import modules.createSqliteJniRuntimeMetadataContent
+import modules.generateSqliteJniRuntimeMetadataContent
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 
@@ -31,7 +31,7 @@ abstract class GenerateJniSourcesTask : GenerateSourcesTask() {
         val outputDirectory = fileOperations.clearAndGetAsFile(outputDirectory)
         val packageName = packageName.get()
 
-        val content = createSqliteJniRuntimeMetadataContent(
+        val content = generateSqliteJniRuntimeMetadataContent(
             packageName = packageName,
             libraryName = libraryName.get()
         )

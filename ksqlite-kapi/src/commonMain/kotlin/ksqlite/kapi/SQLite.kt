@@ -88,7 +88,7 @@ public interface SQLite : AutoCloseable {
      */
     public fun open(
         fileName: String,
-        flags: SqliteOpenFlag.Db = SqliteOpenFlag.READONLY,
+        flags: SqliteOpenFlag.Db = SqliteOpenFlag.READWRITE or SqliteOpenFlag.CREATE,
         vfs: String? = null
     ): DatabaseConnection
 
@@ -131,24 +131,21 @@ public interface SQLite : AutoCloseable {
     /**
      * Provides access to SQLite APIs that do not require SQLite initialization.
      */
-    public companion object : SQLiteStatic by SQLiteStaticImpl
+    public companion object : SQLiteStatic by SQLiteStaticImpl {
+
+        /**
+         * Initializes SQLite and returns an [SQLite] instance used to initiate connections.
+         * SQLite global options can be configured by supplying a value to [configure].
+         *
+         * When the returned instance is no longer needed, then [SQLite.close] must be called and this
+         * factory method can be called again.
+         *
+         * Only a single instance of [SQLite] exists at a time.
+         *
+         * @throws IllegalStateException if a previously returned instance of [SQLite] was not closed.
+         * @throws SQLiteException if an operation fails while creating and configuring [SQLite].
+         */
+        public fun initialize(configure: (ConfigurationScope.() -> Unit)? = null): SQLite =
+            sqliteInitialize(configure)
+    }
 }
-
-///////////////////////////////////////////////////////////////////////////
-// Factory
-///////////////////////////////////////////////////////////////////////////
-
-/**
- * Initializes SQLite and returns an [SQLite] instance used to initiate connections.
- * SQLite global options can be configured by supplying a value to [configure].
- *
- * When the returned instance is no longer needed, then [SQLite.close] must be called and this
- * factory method can be called again.
- *
- * Only a single instance of [SQLite] exists at a time.
- *
- * @throws IllegalStateException if a previously returned instance of [SQLite] was not closed.
- * @throws SQLiteException if an operation fails while creating and configuring [SQLite].
- */
-public fun SQLite(configure: (ConfigurationScope.() -> Unit)? = null): SQLite =
-    sqliteInitialize(configure)

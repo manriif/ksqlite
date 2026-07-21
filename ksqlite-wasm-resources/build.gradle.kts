@@ -87,9 +87,10 @@ kotlin {
 /**
  * A little bit ugly but it works.
  *
- * FIXME: consider another approach to bring wasm resources to consumer, Kotlin doesn't want us
- *   taking up a few bytes in the publications; what's more, they also bundle the resources into
- *   the klib. There is no reason to leave the Kotlin ecosystem just for two or three poor files.
+ * FIXME: consider another approach to bring wasm resources to consumers. Kotlin does bundle
+ *   plain source set resources straight into the published klib, but there is no supported
+ *   Gradle API for a downstream project to pull them back out of it. There is no reason to leave
+ *   the Kotlin ecosystem just for two or three poor files.
  */
 @Suppress("UNCHECKED_CAST")
 @OptIn(InternalKotlinGradlePluginApi::class) // :-)

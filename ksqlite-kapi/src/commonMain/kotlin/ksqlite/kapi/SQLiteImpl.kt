@@ -17,6 +17,8 @@ package ksqlite.kapi
 
 import co.touchlab.stately.collections.ConcurrentMutableMap
 import co.touchlab.stately.collections.ConcurrentMutableSet
+import ksqlite.capi.memory.Int64OutputParam
+import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_hard_heap_limit64
 import ksqlite.capi.sqlite3_memory_highwater
 import ksqlite.capi.sqlite3_memory_used
@@ -25,8 +27,6 @@ import ksqlite.capi.sqlite3_randomness
 import ksqlite.capi.sqlite3_release_memory
 import ksqlite.capi.sqlite3_soft_heap_limit64
 import ksqlite.capi.sqlite3_status64
-import ksqlite.capi.memory.Int64OutputParam
-import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.config.AnyTimeConfigurationImpl
@@ -35,7 +35,7 @@ import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.database.DatabaseConnectionImpl
 import ksqlite.kapi.helpers.AtomicClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
-import ksqlite.kapi.helpers.usingParam
+import ksqlite.kapi.helpers.sqliteResultThrow
 import ksqlite.kapi.helpers.usingParams
 import ksqlite.kapi.statement.PreparedStatement
 import ksqlite.kapi.value.Status
@@ -117,9 +117,12 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
         vfs: String?
     ): DatabaseConnection = notClosed {
         val extensions = autoExtensions.block { it.toSet() }
+        val outDb = sqlite3.OutputParam()
 
-        val db = usingParam(sqlite3.OutputParam()) { outDb ->
-            sqliteResultCheck(sqlite3_open_v2(fileName, outDb, flags, vfs))
+        val db = when (val openResult = sqlite3_open_v2(fileName, outDb, flags, vfs)) {
+            OK -> outDb.value!!
+            is Failure -> sqliteResultThrow(openResult, outDb.value)
+            else -> error("Unexpected result from sqlite3_open_v2: $openResult")
         }
 
         val connection = DatabaseConnectionImpl(db, listener)

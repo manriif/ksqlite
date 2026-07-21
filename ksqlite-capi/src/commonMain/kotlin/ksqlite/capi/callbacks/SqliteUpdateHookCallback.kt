@@ -27,7 +27,7 @@ public fun interface SqliteUpdateHookCallback<AppData> {
      */
     public fun apply(
         appData: AppData,
-        action: SqliteActionCode.Dml,
+        action: SqliteActionCode.RowChange,
         dbName: String,
         tableName: String,
         rowid: Long

@@ -281,30 +281,26 @@ private inline fun checkBufferRange(
 /**
  * Reads [size] bytes from the native memory block and returns a [ByteArray] holding them.
  *
- * The read starts at [sourceOffset] in the native memory region and writes into the returned
- * [ByteArray] starting at [destinationOffset].
+ * The read starts at [offset] in the native memory region and writes into the returned [ByteArray].
  *
- * @throws IllegalArgumentException if [size], [sourceOffset], or [destinationOffset] is
- * negative
+ * @throws IllegalArgumentException if [size] or [offset] is negative
  * @throws IndexOutOfBoundsException if the requested range is out of bounds in either the
  * native memory block or the returned [ByteArray]
  */
 public fun ReadableBuffer.read(
     size: Int,
-    sourceOffset: Long = 0,
-    destinationOffset: Int = 0,
+    offset: Long = 0
 ): ByteArray {
     require(size >= 0) { "size must not be negative ($size)" }
-    require(sourceOffset >= 0) { "sourceOffset must not be negative ($sourceOffset)" }
-    require(destinationOffset >= 0) { "destinationOffset must not be negative ($size)" }
+    require(offset >= 0) { "offset must not be negative ($offset)" }
 
     val destination = ByteArray(size)
 
     read(
         destination = destination,
         size = size,
-        sourceOffset = sourceOffset,
-        destinationOffset = destinationOffset
+        sourceOffset = offset,
+        destinationOffset = 0
     )
 
     return destination

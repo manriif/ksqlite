@@ -26,7 +26,7 @@ public fun interface UpdateHook {
      * Details on parameters can be found [here](https://sqlite.org/c3ref/update_hook.html).
      */
     public fun apply(
-        action: SqliteActionCode.Dml,
+        action: SqliteActionCode.RowChange,
         databaseName: String,
         tableName: String,
         rowid: Long

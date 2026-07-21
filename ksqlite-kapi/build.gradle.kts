@@ -19,6 +19,8 @@ plugins {
 }
 
 kotlin {
+    jvmToolchainFfm()
+    configureWasmResources(projects.ksqliteWasmResources)
     allTargets()
 
     sourceSets {
@@ -30,7 +32,6 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutinesTest)
         }
     }
 }

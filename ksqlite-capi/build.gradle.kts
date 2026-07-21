@@ -32,8 +32,6 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-            // This is currently required due to a suspicious issue in Kotlin/JS
-            implementation(libs.kotlinx.coroutinesTest)
         }
 
         androidMain.dependencies {

@@ -73,6 +73,7 @@ public interface PreparedStatement : AutoCloseable {
      *
      * @throws ksqlite.kapi.SQLiteException if an error occurs while executing the statement.
      */
+    @IgnorableReturnValue
     public fun step(): Row?
 
     /**

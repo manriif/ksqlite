@@ -27,7 +27,7 @@ public fun interface PreupdateHook {
      */
     public fun PreupdateHookScope.apply(
         connection: DatabaseConnection,
-        action: SqliteActionCode.Dml,
+        action: SqliteActionCode.RowChange,
         databaseName: String,
         tableName: String,
         oldRowid: Long,

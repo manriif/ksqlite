@@ -17,7 +17,6 @@
 
 package ksqlite.capi
 
-import kotlinx.coroutines.test.runTest
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.vfs.sqlite3_vfs
 import ksqlite.capi.vfs.xAccess
@@ -35,47 +34,12 @@ import kotlin.test.assertTrue
 internal expect val isWasm: Boolean
 
 /**
- * Well... It seems like the Kotlin/JS + Karma + Webpack combo does not like how ksqlite.mjs loads
- * the ksqlite.wasm module (asynchronously). But top-level await is normally a supported feature.
- * Anyway we do not want to have an asynchronous loading of the .wasm in Kotlin as it will require
- * to block the main thread (which is not possible, in non-test context) or we'll have to make all
- * the APIs suspend or force the developer to find a way to wait for ksqlite.Wasm to be
- * asynchronously loaded...
- *
- * Wrapping all tests in a [runTest] reduce the chances to have it working.
- *
- * By the past the .wasm was loaded asynchronously using coroutines and in Kotlin code. That
- * permitted to have the tests running by 100%, but it was a temporary solution.
- *
- * That being said, I suspect a timing issue.
- * Even with that there is a 20% chance test not starts.
+ * Runs [block] without initializing SQLite.
  */
-@Suppress("unused")
-val thereAreSomeDaysImAskingMySelfWhatWouldBeTheGreatTimeToRetireFromProgramming by lazy {
-    runTest {
-        error("This piece of code is what made tests working on Kotlin/JS (when it want to)...")
-    }
-}
+internal fun runTestNoInit(block: () -> Unit) = block()
 
 /**
- * Loads SQLite and runs [block] without initializing SQLite.
- */
-internal fun runTestNoInit(block: () -> Unit) = try {
-    block()
-} catch (cause: Throwable) {
-    if (isWasm) {
-        // Give time for the tester to open devtools and see what happened
-        // TODO remove this, it was useful during early development but now that hard to debug bugs
-        //  were fixed it seems no longer necessary
-        cause.printStackTrace()
-        //awaitCancellation()
-    } else {
-        throw cause
-    }
-}
-
-/**
- * Initializes SQLite inside a [runTest] scope and invokes [block].
+ * Initializes SQLite and invokes [block].
  */
 internal fun runSqliteTest(block: () -> Unit) = runTestNoInit {
     assertEquals(
@@ -222,7 +186,7 @@ internal fun findWalVfs(): sqlite3_vfs? {
 }
 
 /**
- * Initializes SQLite inside a [runTest] scope and invokes [block].
+ * Initializes SQLite and invokes [block].
  * The test is only executed if a VFS that 'supports' WAL mode is found.
  */
 internal fun runSqliteWalTest(block: (vfs: sqlite3_vfs) -> Unit) = runSqliteTest {
@@ -230,7 +194,7 @@ internal fun runSqliteWalTest(block: (vfs: sqlite3_vfs) -> Unit) = runSqliteTest
 }
 
 /**
- * Initializes SQLite inside a [runTest] scope and invokes [block].
+ * Initializes SQLite and invokes [block].
  * The test is only executed if a VFS that 'supports' WAL mode is found.
  * The path to [fileName] is passed to [block].
  */

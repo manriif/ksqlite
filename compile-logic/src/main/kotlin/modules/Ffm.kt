@@ -15,8 +15,14 @@
  */
 package modules
 
+import komple.platform.Architecture.Arm64
+import komple.platform.Architecture.X64
+import komple.platform.OperatingSystem.Linux
+import komple.platform.OperatingSystem.MacOS
+import komple.platform.OperatingSystem.Windows
 import komple.platform.Platform
 import komple.project.c.CCompilation
+import java.io.File
 
 private const val NATIVE_LIBS_RESOURCE_DIR_NAME = "native"
 private const val OS_NAME = "osName"
@@ -26,14 +32,42 @@ private const val OS_ARCH = "osArch"
  * Returns the path to the directory where the generated shared library for `this` [Platform] should
  * be placed into relatively to the jar resources root.
  */
-fun Platform.ksqliteFfmResourceLibDirectory(): String {
-    return "$NATIVE_LIBS_RESOURCE_DIR_NAME/$name"
+fun Platform.ksqliteFfmResourceLibDirectory(): String =
+    "$NATIVE_LIBS_RESOURCE_DIR_NAME/$name"
+
+/**
+ * Returns the content supplied by [block] of a when entry for the current os and arch.
+ */
+private inline fun CCompilation.whenEntry(
+    block: (
+        platform: Platform,
+        libFile: File
+    ) -> String
+): String {
+    val platform = platform.get()
+    val libFile = libraryFile.get().asFile
+
+    val runtimeOsNameTest = when (platform.operatingSystem) {
+        MacOS -> "isMacOs"
+        Linux -> "isLinux"
+        Windows -> "isWindows"
+        else -> error("Non-desktop OSs aren't supported")
+    }
+
+    val runtimeOsArchTest = when (platform.architecture) {
+        Arm64 -> "isArm64"
+        X64 -> "isAmd64"
+        else -> error("32-bit CPU architectures aren't supported")
+    }
+
+    return "$OS_NAME.$runtimeOsNameTest() && $OS_ARCH.$runtimeOsArchTest() -> " +
+            block(platform, libFile)
 }
 
 /**
  * Returns the content of the FFM runtime metadata.
  */
-fun createKsqliteFfmRuntimeMetadataContent(
+fun generateKsqliteFfmRuntimeMetadataContent(
     packageName: String,
     libraryName: String,
     compilations: List<CCompilation>
@@ -51,24 +85,9 @@ fun createKsqliteFfmRuntimeMetadataContent(
     |internal fun ksqliteLibPath($OS_NAME: String, $OS_ARCH: String) = when {
     |${
     compilations.joinToString("\n") { compilation ->
-        val platform = compilation.platform.get()
-        val libName = compilation.libraryFile.get().asFile.name
-        val libPath = "${platform.ksqliteFfmResourceLibDirectory()}/$libName"
-
-        val runtimeOsNameTest = when (platform.operatingSystem) {
-            MacOS -> "isMacOs"
-            Linux -> "isLinux"
-            Windows -> "isWindows"
-            else -> error("Non-desktop OSs aren't supported")
+        "    " + compilation.whenEntry { platform, libFile ->
+            "\"${platform.ksqliteFfmResourceLibDirectory()}/${libFile.name}\""
         }
-
-        val runtimeOsArchTest = when (platform.architecture) {
-            Arm64 -> "isArm64"
-            X64 -> "isAmd64"
-            else -> error("32-bit CPU architectures aren't supported")
-        }
-
-        """    $OS_NAME.$runtimeOsNameTest() && $OS_ARCH.$runtimeOsArchTest() -> "$libPath""""
     }
 }
     |    else -> error("Unsupported platform: $$OS_NAME $$OS_ARCH")
