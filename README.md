@@ -6,7 +6,7 @@
 ![Stability](https://img.shields.io/badge/stability-experimental-orange.svg)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.4.10-blue.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.manriif.komple/komple-gradle-plugin?label=Maven%20Central&logo=apache-maven)](https://central.sonatype.com/artifact/io.github.manriif.ksqlite/ksqlite-capi)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.manriif.ksqlite/ksqlite-capi?label=Maven%20Central&logo=apache-maven)](https://central.sonatype.com/artifact/io.github.manriif.ksqlite/ksqlite-capi)
 
 ![platform-jvm](https://img.shields.io/badge/platform-jvm-DB413D.svg?style=flat)
 ![platform-android](https://img.shields.io/badge/platform-android-6EDB8D.svg?style=flat)
