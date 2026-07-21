@@ -29,7 +29,7 @@ public fun interface SqlitePreupdateHookCallback<AppData> {
     public fun apply(
         appData: AppData,
         db: sqlite3,
-        action: SqliteActionCode.Dml,
+        action: SqliteActionCode.RowChange,
         dbName: String,
         tableName: String,
         oldRowid: Long,

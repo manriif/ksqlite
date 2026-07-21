@@ -25,7 +25,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         google()
-        mavenLocal()
     }
 }
 
@@ -40,8 +39,6 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
-        gradlePluginPortal()
-        mavenLocal()
 
         ivy {
             url = uri("https://nodejs.org/dist")

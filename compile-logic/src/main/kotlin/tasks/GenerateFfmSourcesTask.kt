@@ -17,7 +17,7 @@ package tasks
 
 import komple.project.c.CCompilation
 import komple.task.clearAndGetAsFile
-import modules.createKsqliteFfmRuntimeMetadataContent
+import modules.generateKsqliteFfmRuntimeMetadataContent
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
@@ -37,7 +37,7 @@ abstract class GenerateFfmSourcesTask : GenerateSourcesTask() {
         val outputDirectory = fileOperations.clearAndGetAsFile(outputDirectory)
         val packageName = packageName.get()
 
-        val content = createKsqliteFfmRuntimeMetadataContent(
+        val content = generateKsqliteFfmRuntimeMetadataContent(
             packageName = packageName,
             libraryName = libraryName.get(),
             compilations = compilations.get()

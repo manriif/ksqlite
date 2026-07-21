@@ -35,9 +35,9 @@ package ksqlite.types
 public sealed class SqliteActionCode(public val code: Int) {
 
     /**
-     * DML code.
+     * Action that implies change in row(s).
      */
-    public sealed class Dml(code: Int) : SqliteActionCode(code)
+    public sealed class RowChange(code: Int) : SqliteActionCode(code)
 
     /**
      * | 3rd              | 4th              |
@@ -100,7 +100,7 @@ public sealed class SqliteActionCode(public val code: Int) {
      * | ---------------- | ---------------- |
      * | Table Name       | NULL             |
      */
-    public data object DELETE : Dml(9)
+    public data object DELETE : RowChange(9)
 
     /**
      * | 3rd              | 4th              |
@@ -163,7 +163,7 @@ public sealed class SqliteActionCode(public val code: Int) {
      * | ---------------- | ---------------- |
      * | Table Name       | NULL             |
      */
-    public data object INSERT : Dml(18)
+    public data object INSERT : RowChange(18)
 
     /**
      * | 3rd              | 4th              |
@@ -198,7 +198,7 @@ public sealed class SqliteActionCode(public val code: Int) {
      * | ---------------- | ---------------- |
      * | Table Name       | Column Name      |
      */
-    public data object UPDATE : Dml(23)
+    public data object UPDATE : RowChange(23)
 
     /**
      * | 3rd              | 4th              |

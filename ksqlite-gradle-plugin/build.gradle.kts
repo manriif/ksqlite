@@ -21,7 +21,7 @@ plugins {
 
 val generateKsqliteVersion = tasks.registerKsqlite<GenerateFileTask>("generateKsqliteVersion") {
     outputFile = layout.buildDirectory.file("generated/resources/version.txt")
-    content = project.version.toString()
+    content = libs.versions.ksqlite
 }
 
 tasks.processResources.configure {
@@ -36,6 +36,10 @@ dependencies {
 
 kotlin {
     configureKotlin()
+
+    compilerOptions {
+        progressiveMode.set(false)
+    }
 }
 
 gradlePlugin {
@@ -46,9 +50,9 @@ gradlePlugin {
         create("ksqlite") {
             id = projectGroup
             implementationClass = "ksqlite.gradle.KsqlitePlugin"
-            displayName = "Ksqlite"
+            displayName = localName
             description = localDescription
-            //tags = localTags.split(',')
+            tags = localTags.split(',')
         }
     }
 }

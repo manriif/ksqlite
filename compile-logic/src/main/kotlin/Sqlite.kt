@@ -68,7 +68,6 @@ fun <T> Map<String, T>.sqlitePrefixed(joint: Char = '_'): Map<String, T> {
  * Definitions for SQLite compilation.
  */
 val SqliteDefinitions = mapOf(
-    "CODEC_TYPE" to "CODEC_TYPE_CHACHA20",
     "SQLITE_DQS" to "0",
     "SQLITE_ENABLE_COLUMN_METADATA" to "1",
     "SQLITE_ENABLE_FTS5" to "1",

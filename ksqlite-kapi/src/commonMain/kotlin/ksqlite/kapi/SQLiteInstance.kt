@@ -20,7 +20,9 @@ import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.sqlite3_initialize
 import ksqlite.capi.sqlite3_shutdown
 import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_config
 import ksqlite.capi.sqlite3_stmt
+import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.config.ConfigurationScopeImpl
 import ksqlite.kapi.database.DatabaseConnection
@@ -39,6 +41,14 @@ private val sqlite: SQLiteImpl
 private fun sqliteShutdown() = SQLiteInstanceLock.withLock {
     check(SQLiteInstance != null)
     sqliteResultCheck(sqlite3_shutdown())
+
+    listOf(
+        SqliteConfigOption.LOG(null, null),
+        SqliteConfigOption.SQLLOG(null, null)
+    ).forEach { option ->
+        sqliteResultCheck(sqlite3_config(option))
+    }
+
     SQLiteInstance = null
 }
 

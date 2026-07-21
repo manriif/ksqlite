@@ -55,7 +55,7 @@ fun CProject.cmakeArguments(): List<String> {
 /**
  * Returns the content of the JNI runtime metadata.
  */
-fun createSqliteJniRuntimeMetadataContent(
+fun generateSqliteJniRuntimeMetadataContent(
     packageName: String,
     libraryName: String
 ): String = """

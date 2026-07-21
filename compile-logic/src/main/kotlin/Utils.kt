@@ -16,6 +16,7 @@
 import org.gradle.api.file.CopySpec
 import org.gradle.api.file.FileSystemOperations
 import java.io.File
+import java.security.MessageDigest
 import kotlin.io.path.createTempDirectory
 
 ///////////////////////////////////////////////////////////////////////////
@@ -80,4 +81,27 @@ fun CopySpec.replacePrefix(prefix: String, replacer: String) = rename { fileName
     fileName.takeIf { it.startsWith(prefix) }?.let { name ->
         replacer + name.substringAfter(prefix)
     }
+}
+
+/**
+ * Returns the hex formated SHA-256 hash of this regular file.
+ */
+fun File.sha256Hex(): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+
+    inputStream().use { input ->
+        val buffer = ByteArray(8192)
+
+        while (true) {
+            val read = input.read(buffer)
+
+            if (read < 0) {
+                break
+            }
+
+            digest.update(buffer, 0, read)
+        }
+    }
+
+    return digest.digest().joinToString("") { "%02x".format(it) }
 }
