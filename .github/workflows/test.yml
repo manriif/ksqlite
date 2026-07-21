@@ -1,9 +1,12 @@
 name: Run tests
 
 on:
-  pull_request:
-    branches:
-      - main
+  # TODO: restore the pull_request trigger below once Komple is fixed regarding the running
+  # host. Until then, this only runs manually or as a reusable workflow.
+  #
+  # pull_request:
+  #   branches:
+  #     - main
   workflow_dispatch:
   workflow_call:
 
