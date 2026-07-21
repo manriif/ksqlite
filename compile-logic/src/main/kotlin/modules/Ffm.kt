@@ -82,7 +82,7 @@ fun generateKsqliteFfmRuntimeMetadataContent(
     |/**
     | * Returns the path to the native library for [$OS_NAME] and [$OS_ARCH].
     | */
-    |internal fun ksqliteLibPath($OS_NAME: String, $OS_ARCH: String) = when {
+    |internal fun ksqliteLibPath($OS_NAME: String, $OS_ARCH: String): String = when {
     |${
     compilations.joinToString("\n") { compilation ->
         "    " + compilation.whenEntry { platform, libFile ->

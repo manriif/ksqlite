@@ -15,8 +15,6 @@
  */
 package ksqlite.capi.memory
 
-import ksqlite.capi.memory.OpaqueBuffer.Companion.allocate
-
 /**
  * Region of native memory that can be read.
  */
@@ -200,40 +198,6 @@ public expect class Buffer : BufferBase {
          * Empty buffer ([byteSize] == 0).
          */
         val Empty: Buffer
-    }
-}
-
-/**
- * Platform managed memory region that is not intended to be read nor written by the application.
- *
- * The memory region can theoretically carry up to [Long.MAX_VALUE] bytes on JVM (+ Android) and
- * Native, but it can be limited to [Int.MAX_VALUE] on web targets.
- *
- * The memory is allocated using [allocate] and must be freed when no longer required using [close].
- *
- * [OpaqueBuffer] does not provide any kind of thread-safety and external synchronization is
- * required if concurrent access is needed.
- */
-public expect class OpaqueBuffer : AutoCloseable {
-
-    /**
-     * Size of the buffer in bytes.
-     */
-    public val byteSize: Long
-
-    /**
-     * Frees this buffer memory.
-     * Does nothing is the buffer is already freed.
-     */
-    override fun close()
-
-    public companion object {
-
-        /**
-         * Allocates an [OpaqueBuffer] holding [size] bytes of native memory. If the allocation
-         * fails then `null` is returned.
-         */
-        public fun allocate(@Suppress("unused") size: Long): OpaqueBuffer?
     }
 }
 

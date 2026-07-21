@@ -5,8 +5,10 @@
 
 ![Stability](https://img.shields.io/badge/stability-experimental-orange.svg)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.4.10-blue.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.manriif.ksqlite/ksqlite-capi?label=Maven%20Central&logo=apache-maven)](https://central.sonatype.com/artifact/io.github.manriif.ksqlite/ksqlite-capi)
+[![API](https://img.shields.io/badge/API-dokka-green)][ksqlite_docs]
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.manriif.ksqlite/ksqlite-capi?label=Maven%20Central&logo=apache-maven&color=teal)](https://central.sonatype.com/artifact/io.github.manriif.ksqlite/ksqlite-capi)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-purple.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![SQLite](https://img.shields.io/badge/SQLite-3.53.4-white.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
 
 ![platform-jvm](https://img.shields.io/badge/platform-jvm-DB413D.svg?style=flat)
 ![platform-android](https://img.shields.io/badge/platform-android-6EDB8D.svg?style=flat)
@@ -30,7 +32,7 @@ build across every supported target.
 - [Capabilities](#capabilities)
 - [Limitations](#limitations)
 - [Project state](#project-state)
-- [Choosing a module](#choosing-a-module)
+- [Choosing an implementation](#choosing-an-implementation)
 - [Requirements](#requirements)
 - [Getting started](#getting-started)
 - [Modules](#modules)
@@ -69,44 +71,45 @@ the interop cost in hot loops, something most apps never get close to needing.
 
 Every Kotlin target is supported, including simulators, except `wasmWasi`:
 
-| Kotlin target   | CPU architecture(s)             | Generated artifact(s)     |
-|-----------------|---------------------------------|---------------------------|
-| JVM (linux)     | aarch64, x86_64                 | libksqlite.so             |
-| JVM (macos)     | aarch64, x86_64                 | libksqlite.dylib          |
-| JVM (windows)   | aarch64, x86_64                 | ksqlite.dll               |
-| Android (JVM)   | armv7a, aarch64, i686, x86_64   | -                         |
-| Android Native  | armv7a, aarch64, i686, x86_64   | libksqlite.a              |
-| Linux           | aarch64, x86_64                 | libksqlite.a              |
-| Windows (mingw) | x86_64                          | libksqlite.a              |
-| macOS           | arm64, x86_64                   | libksqlite.a              |
-| iOS             | arm64, x86_64                   | libksqlite.a              |
-| tvOS            | arm64, x86_64                   | libksqlite.a              |
-| watchOS         | armv7k, arm64_32, arm64, x86_64 | libksqlite.a              |
-| JS              | -                               | ksqlite.mjs, ksqlite.wasm |
-| WasmJs          | -                               | ksqlite.mjs, ksqlite.wasm |
+| Kotlin target   | CPU architecture(s)             | Generated artifact(s)     | CI-tested         |
+|-----------------|---------------------------------|---------------------------|-------------------|
+| JVM (Linux)     | aarch64, x86_64                 | libksqlite.so             | x86_64            |
+| JVM (macOS)     | aarch64, x86_64                 | libksqlite.dylib          | aarch64           |
+| JVM (Windows)   | aarch64, x86_64                 | ksqlite.dll               | x86_64            |
+| Android (JVM)   | armv7a, aarch64, i686, x86_64   | -                         | x86_64            |
+| Android Native  | armv7a, aarch64, i686, x86_64   | libksqlite.a              | -                 |
+| Linux           | aarch64, x86_64                 | libksqlite.a              | x86_64            |
+| Windows (mingw) | x86_64                          | libksqlite.a              | x86_64            |
+| macOS           | arm64, x86_64                   | libksqlite.a              | arm64             |
+| iOS             | arm64, x86_64                   | libksqlite.a              | arm64 (simulator) |
+| tvOS            | arm64, x86_64                   | libksqlite.a              | arm64 (simulator) |
+| watchOS         | armv7k, arm64_32, arm64, x86_64 | libksqlite.a              | arm64 (simulator) |
+| JS              | -                               | ksqlite.mjs, ksqlite.wasm | yes               |
+| WasmJs          | -                               | ksqlite.mjs, ksqlite.wasm | yes               |
 
-On JVM, only major operating systems are currently supported, though nothing prevents adding a
-non-major one. Artifacts are embedded in the JAR and can be found at
-`<jar>/native/<linux|macos|windows>_<arch>/<artifact>`.
-
-On JS and WasmJs, only the browser sub-target is supported, no Node.js.
-
-On JS specifically, `Long` compiles down to native `BigInt`, see [The JS case](#the-js-case).
-
-Although SQLite seems to 
-[support WASI builds](https://sqlite.org/wasm/doc/trunk/building.md#wasi-sdk), there is currently no
-support for the Kotlin `wasmWasi` target. Support may be added in a future release.
+- On JVM, only major operating systems are currently supported, though nothing prevents adding a
+  non-major one. Artifacts are embedded in the JAR and can be found at
+  `<jar>/native/<linux|macos|windows>_<arch>/<artifact>`.
+- On JS and WasmJs, only the browser sub-target is supported, no Node.js. `Long` also compiles down
+  to native `BigInt` on JS specifically, see [The JS case](#the-js-case).
+- Although SQLite seems to
+  [support WASI builds](https://sqlite.org/wasm/doc/trunk/building.md#wasi-sdk), there is currently
+  no support for the Kotlin `wasmWasi` target. Support may be added in a future release.
 
 > [!NOTE]
 > Every target embeds a compiled library. Expect the final application to grow by a few megabytes, 
 > because of it. The library sizes range from 1.5MB to 2.6MB. The Wasm resources are less than 4MB.
 
+> [!IMPORTANT]
+> `macosX64`, `tvosX64`, and `watchosX64` were deprecated by Kotlin itself as of 2.3.20. Ksqlite
+> still builds and ships them for now.
+
 ## Capabilities
 
 - Same SQLite version everywhere, kept at the latest, or near-latest, release
 - Some compile options guaranteed, so a given feature's availability is consistent across targets,
-  see [Sqlite.kt](compile-logic/src/main/kotlin/Sqlite.kt) for the (open) list of common compile 
-  options
+  see [Sqlite.kt](compile-logic/src/main/kotlin/Sqlite.kt) for the (non-exhaustive) list of common 
+  compile options
 - Every build includes [SQLite3MultipleCiphers](https://github.com/utelle/SQLite3MultipleCiphers),
   full encryption support is on its way, see [Project state](#project-state)
 
@@ -195,7 +198,7 @@ UTF-16 functions need to be:
 
 - Uncommented in
   [`SqliteTextEncoding`](ksqlite-types/core/src/commonMain/kotlin/ksqlite/types/SqliteTextEncoding.kt)
-- Un-omitted in [compile-logic](compile-logic/src/main/kotlin/Sqlite.kt)
+- Un-omitted in [Sqlite.kt](compile-logic/src/main/kotlin/Sqlite.kt)
 - Un-omitted in the [WASM build](ksqlite/ext/wasm/GNUmakefile), exported in
   [Wasm.kt](compile-logic/src/main/kotlin/modules/Wasm.kt), and declared in
   [Sqlite3WasmExports.kt](ksqlite-foreign/wasm/src/webMain/kotlin/ksqlite/foreign/Sqlite3WasmExports.kt)
@@ -238,7 +241,7 @@ None of this is set in stone, but my attention has been drifting toward the bigg
 one was born from, and the pressure to find a job is real. I've heard time can be bought,
 though 😈
 
-## Choosing a module
+## Choosing an implementation
 
 Multiple implementations are available, and at least one more is coming.
 
@@ -437,6 +440,7 @@ while (row != null) {
 }
 
 select.close()
+db.close()
 sqlite.close()
 ```
 

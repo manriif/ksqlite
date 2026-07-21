@@ -16,7 +16,6 @@
 package ksqlite.kapi.config
 
 import ksqlite.capi.types.SqliteConfigOption
-import ksqlite.kapi.buffer.OpaqueBuffer
 import ksqlite.kapi.helpers.usingBooleanParam
 
 internal class ConfigurationScopeImpl :
@@ -37,9 +36,6 @@ internal class ConfigurationScopeImpl :
 
     override fun setSerialized() =
         applyOption(SqliteConfigOption.SERIALIZED)
-
-    override fun setPageCacheConfig(pMem: OpaqueBuffer?, sz: Int, n: Int) =
-        applyOption(SqliteConfigOption.PAGECACHE(pMem?.buffer, sz, n))
 
     override fun setMemStatusEnabled(enabled: Boolean) =
         applyOption(SqliteConfigOption.MEMSTATUS(if (enabled) 1 else 0))

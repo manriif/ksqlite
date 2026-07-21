@@ -3606,25 +3606,13 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
             return sqlite3_config(id);
         }
 
-            // [Long, Int, Int]
-        case SQLITE_CONFIG_PAGECACHE:
-        case SQLITE_CONFIG_HEAP: {
-            ArrayLengthEnsure(args, 3);
-            return sqlite3_config(
-                id,
-                LongToPtr(ArrayLongGet(args, 0)),
-                ArrayIntGet(args, 1),
-                ArrayIntGet(args, 2)
-            );
-        }
 
             // [Int]
         case SQLITE_CONFIG_MEMSTATUS:
         case SQLITE_CONFIG_URI:
         case SQLITE_CONFIG_COVERING_INDEX_SCAN:
         case SQLITE_CONFIG_STMTJRNL_SPILL:
-        case SQLITE_CONFIG_SMALL_MALLOC:
-        case SQLITE_CONFIG_SORTERREF_SIZE: {
+        case SQLITE_CONFIG_SMALL_MALLOC: {
             ArrayLengthEnsure(args, 1);
             return sqlite3_config(id, ArrayIntGet(args, 0));
         }
@@ -4097,18 +4085,6 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1db_1config(
 
             DbStateMutexLeave();
             return rc;
-        }
-
-            // [Long, Int, Int]
-        case SQLITE_DBCONFIG_LOOKASIDE: {
-            ArrayLengthEnsure(args, 3);
-            return sqlite3_db_config(
-                pDb,
-                option,
-                LongToPtr(ArrayLongGet(args, 0)),
-                ArrayIntGet(args, 1),
-                ArrayIntGet(args, 2)
-            );
         }
 
             // [Int, OutputPointer.OfInt32]

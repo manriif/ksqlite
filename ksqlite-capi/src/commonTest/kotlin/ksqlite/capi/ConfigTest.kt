@@ -16,7 +16,6 @@
 package ksqlite.capi
 
 import ksqlite.capi.memory.Int32OutputParam
-import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteSqlLogEvent
@@ -91,12 +90,6 @@ class ConfigTest {
         val rowidInViewResult = sqlite3_config(rowidInView)
         assertEquals(OK, rowidInViewResult)
         assertNotEquals(-1, outRowidInView.value)
-
-        val pageCacheBuffer = assertNotNull(OpaqueBuffer.allocate(128))
-        val pageCache = SqliteConfigOption.PAGECACHE(pageCacheBuffer, 128, 2)
-        val pageCacheResult = sqlite3_config(pageCache)
-        assertEquals(OK, pageCacheResult)
-        pageCacheBuffer.close()
     }
 
     @Test

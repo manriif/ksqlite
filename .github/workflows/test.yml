@@ -1,13 +1,26 @@
 name: Run tests
 
 on:
-  # TODO: restore the pull_request trigger below once Komple is fixed regarding the running
-  # host. Until then, this only runs manually or as a reusable workflow.
-  #
-  # pull_request:
-  #   branches:
-  #     - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      test_windows:
+        description: 'Run test-windows'
+        required: false
+        type: boolean
+        default: true
+      test_linux:
+        description: 'Run test-linux'
+        required: false
+        type: boolean
+        default: true
+      test_macos:
+        description: 'Run test-macos'
+        required: false
+        type: boolean
+        default: true
   workflow_call:
 
 permissions:
@@ -15,6 +28,7 @@ permissions:
 
 jobs:
   test-windows:
+    if: github.event_name != 'workflow_dispatch' || inputs.test_windows
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -33,10 +47,13 @@ jobs:
         shell: bash
         run: |
           ./gradlew \
+            jvmTest \
             mingwX64Test \
-            jvmTest
+            -Pksqlite.build.wasm.enabled=false \
+            -Pksqlite.build.platforms=mingwX64
 
   test-linux:
+    if: github.event_name != 'workflow_dispatch' || inputs.test_linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -59,11 +76,14 @@ jobs:
       - name: Run Linux native, JVM, and Android device tests
         run: |
           ./gradlew \
-            linuxX64Test \
             jvmTest \
-            pixel2api30AndroidDeviceTest
+            linuxX64Test \
+            pixel2api30AndroidDeviceTest \
+            -Pksqlite.build.wasm.enabled=false \
+            -Pksqlite.build.platforms=linuxX64
 
   test-macos:
+    if: github.event_name != 'workflow_dispatch' || inputs.test_macos
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -87,4 +107,6 @@ jobs:
             tvosSimulatorArm64Test \
             watchosSimulatorArm64Test \
             jsBrowserTest \
-            wasmJsBrowserTest
+            wasmJsBrowserTest \
+            -Pksqlite.build.wasm.enabled=true \
+            -Pksqlite.build.platforms=macosArm64,iosSimulatorArm64,tvosSimulatorArm64,watchosSimulatorArm64

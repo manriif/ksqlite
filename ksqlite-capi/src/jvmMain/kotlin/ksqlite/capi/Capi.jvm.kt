@@ -62,7 +62,6 @@ import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.NullPtr
-import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.OutputParamBase
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.allocate
@@ -534,7 +533,6 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     option = option,
     logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
-    bufferPointer = OpaqueBuffer::pointer,
     keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     outputParamConfig = {
         useParamMemScoped(state) { statePtr ->
@@ -542,15 +540,14 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
                 .makeInvoker(ValueLayout.ADDRESS)
                 .apply(id, statePtr)
         }
-    },
-    nativeConfig = { id, values ->
-        invokeVariadic(values, ::globalMemory) { layouts, arguments ->
-            native.sqlite3_config
-                .makeInvoker(*layouts)
-                .apply(id, *arguments)
-        }
     }
-)
+) { id, values ->
+    invokeVariadic(values, ::globalMemory) { layouts, arguments ->
+        native.sqlite3_config
+            .makeInvoker(*layouts)
+            .apply(id, *arguments)
+    }
+}
 
 public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3 =
     sqlite3(native.sqlite3_context_db_handle(context.pointer))
@@ -668,22 +665,20 @@ public actual fun sqlite3_db_config(
     option: SqliteDbConfigOption,
 ): SqliteResultCode = commonDbConfig(
     option = option,
-    bufferPointer = OpaqueBuffer::pointer,
     outParamConfig = {
         useParamMemScoped(state) { statePtr ->
             native.sqlite3_db_config
                 .makeInvoker(ValueLayout.JAVA_INT, ValueLayout.ADDRESS)
                 .apply(db.pointer, id, value, statePtr)
         }
-    },
-    nativeConfig = { id, values ->
-        invokeVariadic(values, db::memory) { layouts, arguments ->
-            native.sqlite3_db_config
-                .makeInvoker(*layouts)
-                .apply(db.pointer, id, *arguments)
-        }
     }
-)
+) { id, values ->
+    invokeVariadic(values, db::memory) { layouts, arguments ->
+        native.sqlite3_db_config
+            .makeInvoker(*layouts)
+            .apply(db.pointer, id, *arguments)
+    }
+}
 
 public actual fun sqlite3_db_filename(
     db: sqlite3,

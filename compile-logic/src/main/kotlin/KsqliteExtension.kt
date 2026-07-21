@@ -24,20 +24,20 @@ const val KSQLITE_EXTENSION_NAME = "ksqlite"
 /**
  * Extension for [KsqlitePlugin].
  */
-interface KsqliteExtension {
+abstract class KsqliteExtension(val build: KsqliteBuild) {
 
     /**
      * Directory where the additional ksqlite C related files are located.
      */
-    val ksqliteDirectory: DirectoryProperty
+    abstract val ksqliteDirectory: DirectoryProperty
 
     /**
      * Directory where the SQLite source tree is located.
      */
-    val sqliteDirectory: DirectoryProperty
+    abstract val sqliteDirectory: DirectoryProperty
 
     /**
      * Name of the generated library.
      */
-    val libraryName: Property<String>
+    abstract val libraryName: Property<String>
 }

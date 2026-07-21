@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import komple.gradle.kmp.toPlatform
 import komple.project.c.CLibraryType
 import modules.KsqliteNoStringConversions
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
@@ -29,9 +30,17 @@ kotlin {
 }
 
 fun KotlinNativeTarget.configureNativeTarget() {
-    komple.projects.kotlinSqlite.createLibrary(CLibraryType.Static, this) {
+    if (konanTarget.toPlatform() !in ksqlite.build.enabledPlatforms) {
+        return
+    }
+
+    val library = komple.projects.kotlinSqlite.createLibrary(CLibraryType.Static, this) {
         generateDefFileTaskProvider.configure {
             dependsOn(komple.tools.sqlite.installTaskProvider)
+
+            if (ksqlite.build.isDokka) {
+                libraryFile = null as File?
+            }
         }
 
         excludedFunctions = sqliteFunctions(false)
@@ -43,5 +52,9 @@ fun KotlinNativeTarget.configureNativeTarget() {
         // Faced during development :
         // - https://youtrack.jetbrains.com/issue/KT-82031: solved in ksqlite.h / ksqlite.c
         extraOpts("-Xccall-mode", "direct")
+    }
+
+    library.compileTaskProvider.configure {
+        enabled = !ksqlite.build.isDokka
     }
 }

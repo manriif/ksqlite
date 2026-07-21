@@ -20,7 +20,6 @@ import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
-import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.VariadicValue
 import ksqlite.capi.types.SqliteConfigOption
@@ -42,7 +41,6 @@ import ksqlite.types.internal.convertResultCode
 @Suppress("UNCHECKED_CAST")
 internal fun <Pointer : Any> commonConfig(
     option: SqliteConfigOption,
-    bufferPointer: (OpaqueBuffer) -> Pointer?,
     logFunctionPointer: (callback: SqliteConfigLogCallback<Any?>?, appData: Any?) -> Pointer?,
     sqllogFunctionPointer: (callback: SqliteConfigSqlLogCallback<Any?>?, appData: Any?) -> Pointer?,
     keyedStableRefPointer: ((String, Any?, Any?) -> Pointer?)?,
@@ -76,12 +74,6 @@ internal fun <Pointer : Any> commonConfig(
                 VariadicValue.OfLong(mx)
             )
 
-            is PAGECACHE -> arrayOf(
-                pMem?.let(bufferPointer)?.let(VariadicValue<Pointer>::OfPointer),
-                VariadicValue.OfInt(sz),
-                VariadicValue.OfInt(n)
-            )
-
             is PMASZ -> arrayOf(VariadicValue.OfUInt(szPma))
             is SMALL_MALLOC -> arrayOf(VariadicValue.OfInt(enabled))
 
@@ -107,7 +99,6 @@ internal fun <Pointer : Any> commonConfig(
  */
 internal fun <Pointer : Any> commonDbConfig(
     option: SqliteDbConfigOption,
-    bufferPointer: (OpaqueBuffer) -> Pointer?,
     outParamConfig: SqliteDbConfigOption.IntOutput.() -> Int,
     nativeConfig: (id: Int, values: Array<out VariadicValue<Pointer>?>) -> Int,
 ): SqliteResultCode {
@@ -120,12 +111,6 @@ internal fun <Pointer : Any> commonDbConfig(
 
                 arrayOf(VariadicValue.OfInt(value), null)
             }
-
-            is LOOKASIDE -> arrayOf(
-                buf?.let(bufferPointer)?.let(VariadicValue<Pointer>::OfPointer),
-                VariadicValue.OfInt(sz),
-                VariadicValue.OfInt(cnt)
-            )
 
             is MAINDBNAME -> arrayOf(VariadicValue.OfString(name, KEY_DB_CONFIG_MAINDBNAME))
 

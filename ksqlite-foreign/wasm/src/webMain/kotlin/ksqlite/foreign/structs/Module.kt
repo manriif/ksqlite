@@ -94,6 +94,9 @@ public external interface sqlite3_module : StructType {
     @JsName($$"$xRollbackTo")
 	public var xRollbackTo: WasmPointer
 
+    @JsName($$"$xShadowName")
+	public var xShadowName: WasmPointer
+
     @JsName($$"$xIntegrity")
 	public var xIntegrity: WasmPointer
 }

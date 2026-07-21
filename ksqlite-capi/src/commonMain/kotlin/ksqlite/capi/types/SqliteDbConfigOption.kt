@@ -18,7 +18,6 @@
 package ksqlite.capi.types
 
 import ksqlite.capi.memory.Int32OutputParam
-import ksqlite.capi.memory.OpaqueBuffer
 
 /**
  * These constants are the available integer configuration options that can be passed as the second
@@ -47,46 +46,6 @@ public sealed class SqliteDbConfigOption(public val id: Int) {
      * until after the database connection closes.
      */
     public class MAINDBNAME(internal val name: String) : SqliteDbConfigOption(1000)
-
-    /**
-     * The SQLITE_DBCONFIG_LOOKASIDE option is used to adjust the configuration of the lookaside
-     * memory allocator within a database connection. The arguments to the SQLITE_DBCONFIG_LOOKASIDE
-     * option are not in the usual format. The SQLITE_DBCONFIG_LOOKASIDE option takes three
-     * arguments, not two, so that a call to sqlite3_db_config() that uses SQLITE_DBCONFIG_LOOKASIDE
-     * should have a total of five parameters.
-     *
-     * 1. The first argument ("buf") is a pointer to a memory buffer to use for lookaside memory.
-     * The first argument may be NULL in which case SQLite will allocate the lookaside buffer
-     * itself using sqlite3_malloc().
-     *
-     * 2. The second argument ("sz") is the size of each lookaside buffer slot. Lookaside is
-     * disabled if "sz" is less than 8. The "sz" argument should be a multiple of 8 less than 65536.
-     * If "sz" does not meet this constraint, it is reduced in size until it does.
-     *
-     * 3. The third argument ("cnt") is the number of slots. Lookaside is disabled if "cnt"is less
-     * than 1. The "cnt" value will be reduced, if necessary, so that the product of "sz" and "cnt"
-     * does not exceed 2,147,418,112. The "cnt" parameter is usually chosen so that the product of
-     * "sz" and "cnt" is less than 1,000,000.
-     *
-     * If the "buf" argument is not NULL, then it must point to a memory buffer with a size that is
-     * greater than or equal to the product of "sz" and "cnt". The buffer must be aligned to an
-     * 8-byte boundary. The lookaside memory configuration for a database connection can only be
-     * changed when that connection is not currently using lookaside memory, or in other words when
-     * the value returned by SQLITE_DBSTATUS_LOOKASIDE_USED is zero. Any attempt to change the
-     * lookaside memory configuration when lookaside memory is in use leaves the configuration
-     * unchanged and returns SQLITE_BUSY. If the "buf" argument is NULL and an attempt to allocate
-     * memory based on "sz" and "cnt" fails, then lookaside is silently disabled.
-     *
-     * The SQLITE_CONFIG_LOOKASIDE configuration option can be used to set the default lookaside
-     * configuration at initialization. The -DSQLITE_DEFAULT_LOOKASIDE option can be used to set the
-     * default lookaside configuration at compile-time. Typical values for lookaside are 1200 for
-     * "sz" and 40 to 100 for "cnt".
-     */
-    public class LOOKASIDE(
-        internal val buf: OpaqueBuffer?,
-        internal val sz: Int,
-        internal val cnt: Int
-    ) : SqliteDbConfigOption(1001)
 
     /**
      * This option is used to enable or disable the enforcement of foreign key constraints. This is
