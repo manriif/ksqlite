@@ -1,7 +1,7 @@
 [versions]
 
 # Project version
-ksqlite = "0.0.1"
+ksqlite = "0.0.3"
 
 # Android
 android-ndk = "29.0.14206865"
