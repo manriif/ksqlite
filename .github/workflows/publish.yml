@@ -11,15 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  # TODO: restore the test gate below once Komple is fixed regarding the running host. Until
-  # then, publishing runs untested.
-  #
-  # test:
-  #   uses: ./.github/workflows/test.yml
-  #   secrets: inherit
-
   publish-maven-central:
-    # needs: test
     environment: publishing
     runs-on: macos-latest
     steps:

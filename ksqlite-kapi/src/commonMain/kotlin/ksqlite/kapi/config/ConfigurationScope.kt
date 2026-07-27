@@ -17,8 +17,6 @@
 
 package ksqlite.kapi.config
 
-import ksqlite.kapi.buffer.OpaqueBuffer
-
 /**
  * Exposes SQLite configuration API.
  *
@@ -53,18 +51,6 @@ public interface ConfigurationScope : AnyTimeConfiguration {
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
     public fun setSerialized()
-
-    /**
-     * Specifies a memory pool that SQLite can use for the database page cache with the default page
-     * cache implementation.
-     *
-     * @throws ksqlite.kapi.SQLiteException if setting the option fails.
-     */
-    public fun setPageCacheConfig(
-        pMem: OpaqueBuffer?,
-        sz: Int,
-        n: Int
-    )
 
     /**
      * Enables or disables the collection of memory allocation statistics.

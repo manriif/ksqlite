@@ -1,5 +1,3 @@
-[sqlite_docs]: https://sqlite.org/docs.html
-
 # Module Ksqlite C API
 
 Almost a one-to-one mapping of the SQLite C API, with a few type adjustments taking advantage of
@@ -48,7 +46,7 @@ real booleans.
 
 None of the `sqlite3_*` function bindings in this module supply a default value for a parameter.
 If one is found, it is a mistake and should be reported. This is deliberate. Every call forces the
-caller to read the [SQLite documentation][sqlite_docs] and understand what SQLite does with the
+caller to read the [SQLite documentation](https://sqlite.org/docs.html) and understand what SQLite does with the
 exact arguments supplied, and what side effects to expect.
 
 ## Initialization

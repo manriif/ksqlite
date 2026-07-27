@@ -15,11 +15,10 @@
  */
 package ksqlite.kapi.database
 
-import ksqlite.capi.sqlite3_db_config
 import ksqlite.capi.memory.Int32OutputParam
-import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.sqlite3
-import ksqlite.kapi.buffer.OpaqueBuffer
+import ksqlite.capi.sqlite3_db_config
+import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingBooleanParam
@@ -173,9 +172,6 @@ internal class DatabaseConnectionConfigurationImpl(
 
     override fun setMainDatabaseName(name: String) =
         applyOption(SqliteDbConfigOption.MAINDBNAME(name))
-
-    override fun setLookasideConfig(buf: OpaqueBuffer?, sz: Int, cnt: Int) =
-        applyOption(SqliteDbConfigOption.LOOKASIDE(buf?.buffer, sz, cnt))
 
     override fun setResetDatabaseEnabled(enabled: Boolean) =
         applyOption(SqliteDbConfigOption.RESET_DATABASE(if (enabled) 1 else 0))

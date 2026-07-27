@@ -70,7 +70,10 @@ val copyWasmResources = tasks.registerKsqlite<DefaultTask>("copyWasmResources") 
 }
 
 val zipWasmResources = tasks.registerKsqlite<Zip>("zipWasmResources") {
-    from(copyWasmResources)
+    if (ksqlite.build.isWasmEnabled) {
+        from(copyWasmResources)
+    }
+
     archiveClassifier = "resources"
 }
 

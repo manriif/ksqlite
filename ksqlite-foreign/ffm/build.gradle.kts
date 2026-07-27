@@ -27,15 +27,21 @@ plugins {
     alias(kompleLibs.plugins.komple)
 }
 
-val platforms = Platform.run {
-    listOf(
-        linuxArm64,
-        linuxX64,
-        macosArm64,
-        macosX64,
-        mingwArm64,
-        mingwX64
-    )
+val platforms = if (ksqlite.build.isDokka) {
+    emptyList()
+} else {
+    Platform.run {
+        listOf(
+            linuxArm64,
+            linuxX64,
+            macosArm64,
+            macosX64,
+            mingwArm64,
+            mingwX64
+        )
+    }.filter { platform ->
+        platform in ksqlite.build.enabledPlatforms
+    }
 }
 
 val libraryWithChecksums = platforms.associate { platform ->

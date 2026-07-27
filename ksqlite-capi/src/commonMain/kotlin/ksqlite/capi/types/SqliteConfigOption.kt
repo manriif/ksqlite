@@ -20,7 +20,6 @@ package ksqlite.capi.types
 import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.memory.Int32OutputParam
-import ksqlite.capi.memory.OpaqueBuffer
 
 /**
  * These constants are the available integer configuration options that can be passed as the first
@@ -71,32 +70,6 @@ public sealed class SqliteConfigOption(public val id: Int) {
      * SQLITE_CONFIG_SERIALIZED configuration option.
      */
     public object SERIALIZED : SqliteConfigOption(3)
-
-    /**
-     * The SQLITE_CONFIG_PAGECACHE option specifies a memory pool that SQLite can use for the
-     * database page cache with the default page cache implementation. This configuration option is
-     * a no-op if an application-defined page cache implementation is loaded using the
-     * SQLITE_CONFIG_PCACHE2. There are three arguments to SQLITE_CONFIG_PAGECACHE: A pointer to
-     * 8-byte aligned memory (pMem), the size of each page cache line (sz), and the number of
-     * cache lines (n). The sz argument should be the size of the largest database page (a power
-     * of two between 512 and 65536) plus some extra bytes for each page header. The number of extra
-     * bytes needed by the page header can be determined using SQLITE_CONFIG_PCACHE_HDRSZ. It is
-     * harmless, apart from the wasted memory, for the sz parameter to be larger than necessary.
-     * The pMem argument must be either a NULL pointer or a pointer to an 8-byte aligned block of
-     * memory of at least sz*n bytes, otherwise subsequent behavior is undefined. When pMem is
-     * not NULL, SQLite will strive to use the memory provided to satisfy page cache needs, falling
-     * back to sqlite3_malloc() if a page cache line is larger than sz bytes or if all of the
-     * pMem buffer is exhausted. If pMem is NULL and n is non-zero, then each database
-     * connection does an initial bulk allocation for page cache memory from sqlite3_malloc()
-     * sufficient for n cache lines if n is positive or of -1024*n bytes if n is negative.
-     * If additional page cache memory is needed beyond what is provided by the initial allocation,
-     * then SQLite goes to sqlite3_malloc() separately for each additional cache line.
-     */
-    public class PAGECACHE(
-        internal val pMem: OpaqueBuffer?,
-        internal val sz: Int,
-        internal val n: Int
-    ) : SqliteConfigOption(7)
 
     /**
      * Enables or disables the collection of memory allocation statistics. When memory allocation

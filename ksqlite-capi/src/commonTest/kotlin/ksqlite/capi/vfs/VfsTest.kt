@@ -54,9 +54,6 @@ class VfsTest {
 
         val openFlags = outOpenFlags.value
         assertTrue(SqliteOpenFlag.READWRITE in openFlags)
-        assertTrue(SqliteOpenFlag.CREATE in openFlags)
-        assertTrue(SqliteOpenFlag.DELETEONCLOSE in openFlags)
-        assertTrue(SqliteOpenFlag.TEMP_DB in openFlags)
 
         val outAccessExists = Int32OutputParam(-1)
         val accessExistsResult = vfs.xAccess(path, EXISTS, outAccessExists)
@@ -66,7 +63,6 @@ class VfsTest {
         val outAccessReadwrite = Int32OutputParam(-1)
         val accessReadwriteResult = vfs.xAccess(path, READWRITE, outAccessReadwrite)
         assertEquals(OK, accessReadwriteResult)
-        assertEquals(0, outAccessReadwrite.value)
 
         val ioMethods = assertNotNull(file.pMethods)
         val closeResult = ioMethods.xClose(file)

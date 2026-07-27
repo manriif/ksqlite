@@ -7,13 +7,17 @@ ksqlite = "0.0.1"
 android-ndk = "29.0.14206865"
 android-sdk-compile = "36"
 android-sdk-min = "21"
-android-gradlePlugin = "9.3.0"
+android-gradlePlugin = "9.3.1"
 
 # Apple
 apple-macos-min = "10.13"
 apple-ios-min = "12.0"
 apple-tvos-min = "12.0"
 apple-watchos-min = "5.0"
+
+# Zig
+linux-glibc-min = "2.17"
+windows-min = "win10"
 
 # Jvm
 jvm-toolchain-min = "17"
@@ -24,9 +28,9 @@ cmake = "3.22.1"
 dokka = "2.2.0"
 kotlin = "2.4.10"
 kotlinx-coroutines = "1.11.0"
-kotlin-wrappers = "2026.7.2"
-sqlite = "3.53.3"
-sqliteMultipleCiphers = "2.3.6"
+kotlin-wrappers = "2026.7.6"
+sqlite = "3.53.4"
+sqliteMultipleCiphers = "2.4.0"
 sqliteReleaseYear = "2026"
 stately = "2.1.0"
 vanniktech-mavenPublish = "0.37.0"

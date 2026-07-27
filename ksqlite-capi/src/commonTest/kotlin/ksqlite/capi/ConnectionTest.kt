@@ -17,7 +17,6 @@ package ksqlite.capi
 
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
-import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.types.SqliteDbConfigOption
 import ksqlite.capi.types.SqliteFileControlOpcode
@@ -472,12 +471,6 @@ class ConnectionTest {
         val fpDigitsResult = sqlite3_db_config(db, fpDigits)
         assertEquals(OK, fpDigitsResult)
         assertEquals(23, outFpDigits.value)
-
-        val lookasideBuffer = assertNotNull(OpaqueBuffer.allocate(128))
-        val lookaside = SqliteDbConfigOption.LOOKASIDE(lookasideBuffer, 128, 2)
-        val lookasideResult = sqlite3_db_config(db, lookaside)
-        assertEquals(OK, lookasideResult)
-        lookasideBuffer.close()
     }
 
     @Test

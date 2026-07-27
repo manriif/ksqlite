@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +33,11 @@ jobs:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           cache-read-only: true
       - name: Generate API docs
-        run: ./gradlew dokkaGenerateHtml
+        run: |
+          ./gradlew \
+            dokkaGenerateHtml \
+            -Pksqlite.build.wasm.enabled=false \
+            -Pksqlite.build.dokka=true
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

@@ -72,7 +72,6 @@ import ksqlite.capi.handlers.callbackHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
-import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.contentSize
@@ -724,40 +723,31 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     option = option,
     logFunctionPointer = { cb, _ -> callbackHandler(cb, ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> callbackHandler(cb, ConfigSqlLogHandler) },
-    bufferPointer = OpaqueBuffer::pointer,
     keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     outputParamConfig = {
         useParamMemScoped(state) { statePtr ->
             native_sqlite3_config(id, statePtr)
         }
-    },
-    nativeConfig = { id, values ->
-        val args = values.toVariadicArguments(::globalMemory)
-
-        when (option) {
-            SINGLETHREAD, MULTITHREAD, SERIALIZED -> native_sqlite3_config(id)
-            is LOOKASIDE -> native_sqlite3_config(id, args[0] as Int, args[1] as Int)
-            is MMAP_SIZE -> native_sqlite3_config(id, args[0] as Long, args[1] as Long)
-            is MEMDB_MAXSIZE -> native_sqlite3_config(id, args[0] as Long)
-            is PMASZ -> native_sqlite3_config(id, args[0] as UInt)
-
-            is COVERING_INDEX_SCAN, is URI, is MEMSTATUS, is SMALL_MALLOC, is STMTJRNL_SPILL ->
-                native_sqlite3_config(id, args[0] as Int)
-
-            is LOG<*>, is SQLLOG<*> ->
-                native_sqlite3_config(id, args[0] as COpaquePointer?, args[1] as COpaquePointer?)
-
-            is PAGECACHE -> native_sqlite3_config(
-                id,
-                args[0] as COpaquePointer?,
-                args[1] as Int,
-                args[2] as Int
-            )
-
-            is IntOutput -> error("Unexpected configuration option : $option")
-        }
     }
-)
+) { id, values ->
+    val args = values.toVariadicArguments(::globalMemory)
+
+    when (option) {
+        SINGLETHREAD, MULTITHREAD, SERIALIZED -> native_sqlite3_config(id)
+        is LOOKASIDE -> native_sqlite3_config(id, args[0] as Int, args[1] as Int)
+        is MMAP_SIZE -> native_sqlite3_config(id, args[0] as Long, args[1] as Long)
+        is MEMDB_MAXSIZE -> native_sqlite3_config(id, args[0] as Long)
+        is PMASZ -> native_sqlite3_config(id, args[0] as UInt)
+
+        is COVERING_INDEX_SCAN, is URI, is MEMSTATUS, is SMALL_MALLOC, is STMTJRNL_SPILL ->
+            native_sqlite3_config(id, args[0] as Int)
+
+        is LOG<*>, is SQLLOG<*> ->
+            native_sqlite3_config(id, args[0] as COpaquePointer?, args[1] as COpaquePointer?)
+
+        is IntOutput -> error("Unexpected configuration option : $option")
+    }
+}
 
 public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3 =
     sqlite3(native_sqlite3_context_db_handle(context.pointer)!!)
@@ -865,47 +855,37 @@ public actual fun sqlite3_db_config(
     option: SqliteDbConfigOption,
 ): SqliteResultCode = commonDbConfig(
     option = option,
-    bufferPointer = OpaqueBuffer::pointer,
     outParamConfig = {
         useParamMemScoped(state) { statePtr ->
             native_sqlite3_db_config(db.pointer, id, value, statePtr)
         }
-    },
-    nativeConfig = { id, values ->
-        val args = values.toVariadicArguments(db::memory)
-
-        @Suppress("UNCHECKED_CAST")
-        when (option) {
-            is IntOutput -> native_sqlite3_db_config(
-                db.pointer,
-                id,
-                args[0] as Int,
-                args[1] as CPointer<IntVar>?
-            )
-
-            is LOOKASIDE -> native_sqlite3_db_config(
-                db.pointer,
-                id,
-                args[0] as CPointer<ByteVar>?,
-                args[1] as Int,
-                args[2] as Int
-            )
-
-            is MAINDBNAME -> native_sqlite3_db_config(
-                db.pointer,
-                id,
-                args[0] as CPointer<ByteVar>?
-            )
-
-            is RESET_DATABASE -> native_sqlite3_db_config(
-                db.pointer,
-                id,
-                args[0] as Int,
-                args[1] as CPointer<IntVar>?
-            )
-        }
     }
-)
+) { id, values ->
+    val args = values.toVariadicArguments(db::memory)
+
+    @Suppress("UNCHECKED_CAST")
+    when (option) {
+        is IntOutput -> native_sqlite3_db_config(
+            db.pointer,
+            id,
+            args[0] as Int,
+            args[1] as CPointer<IntVar>?
+        )
+
+        is MAINDBNAME -> native_sqlite3_db_config(
+            db.pointer,
+            id,
+            args[0] as CPointer<ByteVar>?
+        )
+
+        is RESET_DATABASE -> native_sqlite3_db_config(
+            db.pointer,
+            id,
+            args[0] as Int,
+            args[1] as CPointer<IntVar>?
+        )
+    }
+}
 
 public actual fun sqlite3_db_filename(
     db: sqlite3,

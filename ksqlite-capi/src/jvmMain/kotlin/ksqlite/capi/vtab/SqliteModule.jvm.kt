@@ -65,6 +65,7 @@ public actual class sqlite3_module<AppData> internal actual constructor(
         s3_module.xSavepoint(pointer, callbacks.savepoint?.let { VtabSavepointHandler }.notNull)
         s3_module.xRelease(pointer, callbacks.release?.let { VtabReleaseHandler }.notNull)
         s3_module.xRollbackTo(pointer, callbacks.rollbackTo?.let { VtabRollbackToHandler }.notNull)
+        s3_module.xShadowName(pointer, NullPtr)
         s3_module.xIntegrity(pointer, callbacks.integrity?.let { VtabIntegrityHandler }.notNull)
     }
 }

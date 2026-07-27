@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import komple.platform.Platform
 import komple.exec.addEnvironments
+import komple.platform.Platform
 import komple.project.c.COptimization
 import komple.project.c.CProject
 
@@ -39,7 +39,7 @@ plugins {
 }
 
 allprojects {
-    group = property("project.group").toString()
+    group = providers.gradleProperty("project.group").get()
     version = rootProject.libs.versions.ksqlite.get()
 }
 
@@ -78,6 +78,13 @@ komple {
         }
     }
 
+    zig {
+        compilationParams {
+            linuxGlibcVersionMin = libs.versions.linux.glibc.min
+            windowsVersionMin = libs.versions.windows.min
+        }
+    }
+
     sqlite {
         version = libs.versions.sqlite
         releaseYear = libs.versions.sqliteReleaseYear
@@ -107,7 +114,7 @@ komple {
     }
 
     projects {
-        register<CProject>(property("project.name").toString()) {
+        register<CProject>(providers.gradleProperty("project.name").get()) {
             packageName = "ksqlite.foreign"
             libraryName = ksqlite.libraryName
             headerFile = ksqlite.ksqliteDirectory.file(cHeaderFile(KSQLITE))
@@ -162,6 +169,20 @@ dokka {
     }
 
     pluginsConfiguration.html {
-        footerMessage = "© ${property("project.inceptionYear")} ${property("project.dev.name")}"
+        val interceptionYear = providers.gradleProperty("project.inceptionYear")
+        val devName = providers.gradleProperty("project.dev.name")
+
+        footerMessage = interceptionYear.zip(devName) { year, name ->
+            "© $year $name"
+        }
+    }
+}
+
+if (ksqlite.build.isDokka) {
+    listOf(
+        komple.tools.androidNdk,
+        komple.tools.zig,
+    ).forEach { tool ->
+        tool.disableInstallationTasks()
     }
 }

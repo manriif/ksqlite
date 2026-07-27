@@ -62,7 +62,6 @@ import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
-import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
@@ -669,17 +668,15 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     option = option,
     logFunctionPointer = { cb, appData -> callbackHandler(cb, appData, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, appData -> callbackHandler(cb, appData, ::ConfigSqlLogHandler) },
-    bufferPointer = OpaqueBuffer::pointer,
     keyedStableRefPointer = null,
     outputParamConfig = {
         useParam(state) { statePtr ->
             jni_sqlite3_config(id, arrayOf(statePtr))
         }
-    },
-    nativeConfig = { id, values ->
-        jni_sqlite3_config(id, values.toJniJavaObjectArray())
     }
-)
+) { id, values ->
+    jni_sqlite3_config(id, values.toJniJavaObjectArray())
+}
 
 public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3 =
     sqlite3(jni_sqlite3_context_db_handle(context.pointer))
@@ -784,16 +781,14 @@ public actual fun sqlite3_db_config(
     option: SqliteDbConfigOption,
 ): SqliteResultCode = commonDbConfig(
     option = option,
-    bufferPointer = OpaqueBuffer::pointer,
     outParamConfig = {
         useParam(state) { statePtr ->
             jni_sqlite3_db_config(db.pointer, id, arrayOf(value, statePtr))
         }
-    },
-    nativeConfig = { id, values ->
-        jni_sqlite3_db_config(db.pointer, id, values.toJniJavaObjectArray())
     }
-)
+) { id, values ->
+    jni_sqlite3_db_config(db.pointer, id, values.toJniJavaObjectArray())
+}
 
 public actual fun sqlite3_db_filename(
     db: sqlite3,

@@ -17,7 +17,6 @@ package modules
 
 import SqliteAndroidLinkerOptions
 import komple.project.c.CProject
-import java.io.File
 
 ///////////////////////////////////////////////////////////////////////////
 // Build
@@ -28,10 +27,10 @@ import java.io.File
  */
 fun CProject.cmakeArguments(): List<String> {
     val sourceFilesPaths = sourceFiles
-        .joinToString(";", transform = File::getAbsolutePath)
+        .joinToString(";") { it.absoluteFile.invariantSeparatorsPath }
 
     val includeDirectoriesPaths = includeDirectories
-        .joinToString(";", transform = File::getAbsolutePath)
+        .joinToString(";") { it.absoluteFile.invariantSeparatorsPath }
 
     val compileDefinitions = definitions.get().entries
         .joinToString(";") { "${it.key}=${it.value}" }

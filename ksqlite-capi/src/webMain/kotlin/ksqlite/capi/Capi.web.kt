@@ -62,7 +62,6 @@ import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.NullPtr
-import ksqlite.capi.memory.OpaqueBuffer
 import ksqlite.capi.memory.OutputParamBase
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.VariadicValue
@@ -555,7 +554,6 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
     option = option,
     logFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigLogHandler) },
     sqllogFunctionPointer = { cb, _ -> globalMemory.functionPointer(cb, ::ConfigSqlLogHandler) },
-    bufferPointer = OpaqueBuffer::pointer,
     keyedStableRefPointer = globalMemory::keyedStableRefPointer,
     outputParamConfig = {
         heapScoped {
@@ -565,13 +563,12 @@ public actual fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode =
                 }
             }
         }
-    },
-    nativeConfig = { id, values ->
-        invokeVariadic(values, ::globalMemory) { vaListPtr ->
-            exports.sqlite3_config(id, vaListPtr)
-        }
     }
-)
+) { id, values ->
+    invokeVariadic(values, ::globalMemory) { vaListPtr ->
+        exports.sqlite3_config(id, vaListPtr)
+    }
+}
 
 public actual fun sqlite3_context_db_handle(context: sqlite3_context): sqlite3 =
     sqlite3(exports.sqlite3_context_db_handle(context.pointer))
@@ -689,7 +686,6 @@ public actual fun sqlite3_db_config(
     option: SqliteDbConfigOption,
 ): SqliteResultCode = commonDbConfig(
     option = option,
-    bufferPointer = OpaqueBuffer::pointer,
     outParamConfig = {
         heapScoped {
             useParam(state) { statePtr ->
@@ -702,13 +698,12 @@ public actual fun sqlite3_db_config(
                 }
             }
         }
-    },
-    nativeConfig = { id, values ->
-        invokeVariadic(values, db::memory) { vaListPtr ->
-            exports.sqlite3_db_config(db.pointer, id, vaListPtr)
-        }
     }
-)
+) { id, values ->
+    invokeVariadic(values, db::memory) { vaListPtr ->
+        exports.sqlite3_db_config(db.pointer, id, vaListPtr)
+    }
+}
 
 public actual fun sqlite3_db_filename(
     db: sqlite3,

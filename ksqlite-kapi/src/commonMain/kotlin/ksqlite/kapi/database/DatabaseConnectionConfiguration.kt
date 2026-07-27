@@ -17,8 +17,6 @@
 
 package ksqlite.kapi.database
 
-import ksqlite.kapi.buffer.OpaqueBuffer
-
 /**
  * Exposes the database connection configuration API.
  *
@@ -189,17 +187,6 @@ public interface DatabaseConnectionConfiguration {
      * @throws ksqlite.kapi.SQLiteException if getting or setting the option fails.
      */
     public fun setMainDatabaseName(name: String)
-
-    /**
-     * Adjusts the configuration of the lookaside memory allocator within a database connection.
-     *
-     * @throws ksqlite.kapi.SQLiteException if setting the option fails.
-     */
-    public fun setLookasideConfig(
-        buf: OpaqueBuffer?,
-        sz: Int,
-        cnt: Int
-    )
 
     /**
      * Enables of disables the database reset mode.

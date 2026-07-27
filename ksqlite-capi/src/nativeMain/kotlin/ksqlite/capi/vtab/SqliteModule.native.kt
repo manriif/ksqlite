@@ -62,6 +62,7 @@ public actual class sqlite3_module<AppData> private constructor(
         xSavepoint = callbacks.savepoint?.let { VtabSavepointHandler }
         xRelease = callbacks.release?.let { VtabReleaseHandler }
         xRollbackTo = callbacks.rollbackTo?.let { VtabRollbackToHandler }
+        xShadowName = null
         xIntegrity = callbacks.integrity?.let { VtabIntegrityHandler }
     })
 }
