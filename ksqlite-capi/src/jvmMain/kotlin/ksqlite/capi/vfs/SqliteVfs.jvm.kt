@@ -21,8 +21,10 @@ import ksqlite.capi.memory.PointerOutputParam
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.allocateUtf8
 import ksqlite.capi.memory.memScoped
+import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.useParam
+import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.vfs.callbacks.SqliteVfsAccessCallback
 import ksqlite.capi.vfs.callbacks.SqliteVfsDeleteCallback
 import ksqlite.capi.vfs.callbacks.SqliteVfsOpenCallback
@@ -45,6 +47,9 @@ public actual class sqlite3_vfs internal constructor(pointer: MemorySegment) :
 
     public actual override val mxPathname: Int
         get() = s3_vfs.mxPathname(pointer)
+
+    public actual override val pNext: sqlite3_vfs?
+        get() = s3_vfs.pNext(pointer).wrapOrNull(::sqlite3_vfs)
 
     public actual override val zName: String
         get() = s3_vfs.zName(pointer).toKStringFromUtf8()

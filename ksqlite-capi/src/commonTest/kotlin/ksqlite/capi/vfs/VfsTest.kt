@@ -35,6 +35,7 @@ class VfsTest {
     fun memberPropertiesWorks() = runSqliteTest {
         val vfs = findVfs()
 
+        println(vfs.zName)
         assertTrue(vfs.iVersion >= VERSION_1)
         assertTrue(vfs.szOsFile > 0)
         assertTrue(vfs.mxPathname > 0)

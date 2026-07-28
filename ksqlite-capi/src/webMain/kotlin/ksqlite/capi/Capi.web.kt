@@ -37,6 +37,11 @@ import ksqlite.capi.callbacks.SqliteRollbackHookCallback
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.callbacks.SqliteWalHookCallback
+import ksqlite.capi.cipher.CipherAllocateCipherHandlers
+import ksqlite.capi.cipher.CipherDescriptor
+import ksqlite.capi.cipher.CipherParams
+import ksqlite.capi.cipher.SqliteMcCodecDataParam
+import ksqlite.capi.cipher.registerCipher
 import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
@@ -63,10 +68,10 @@ import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.MemoryManager
 import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.OutputParamBase
+import ksqlite.capi.memory.StructArray
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.VariadicValue
 import ksqlite.capi.memory.allocateUtf8
-import ksqlite.capi.memory.toCStringArray
 import ksqlite.capi.memory.allocateUtf8Pointer
 import ksqlite.capi.memory.bufferDisposer
 import ksqlite.capi.memory.bufferScoped
@@ -78,10 +83,13 @@ import ksqlite.capi.memory.memory
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
 import ksqlite.capi.memory.overriding
-import ksqlite.capi.memory.readByteArray
+import ksqlite.capi.memory.readBytes
+import ksqlite.capi.memory.stableRefAppData
+import ksqlite.capi.memory.stableRefData
 import ksqlite.capi.memory.stableRefDisposable
 import ksqlite.capi.memory.stableRefDisposer
 import ksqlite.capi.memory.stackScoped
+import ksqlite.capi.memory.toCStringArray
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.memory.useMemoryManager
@@ -100,6 +108,7 @@ import ksqlite.capi.vtab.createVtabModule
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.foreign.js.copyTo
+import ksqlite.foreign.ksqliteInitLibrary
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.contentSize
 import ksqlite.types.SqliteBlobOpenFlag
@@ -116,11 +125,13 @@ import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteRuntimeLimit
+import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.SqliteTransactionState
+import ksqlite.types.cipher.SqliteMcCipher
 import ksqlite.types.internal.convertCompleteResult
 import ksqlite.types.internal.convertConflictResolutionMode
 import ksqlite.types.internal.convertDataType
@@ -131,6 +142,23 @@ import ksqlite.types.internal.convertTextEncoding
 import ksqlite.types.internal.convertTransactionState
 import kotlin.js.toJsBigInt
 import kotlin.js.toLong
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite
+///////////////////////////////////////////////////////////////////////////
+
+internal actual fun sqlite3_aggregate_context_internal(
+    context: sqlite3_context,
+    create: Boolean
+): Long? {
+    val pointer = if (create) {
+        exports.sqlite3_aggregate_context(context.pointer, pointerSize)
+    } else {
+        exports.sqlite3_aggregate_context(context.pointer, 0)
+    }
+
+    return pointer.orNull?.toLong()
+}
 
 public actual fun sqlite3_auto_extension(callback: SqliteAutoExtensionCallback): SqliteResultCode =
     autoExtensionRegister(callback) { exports.ksqlite_auto_extension(AutoExtensionHandler) }
@@ -282,7 +310,7 @@ public actual fun sqlite3_bind_text(
         index,
         cText.pointer,
         cText.contentSize,
-        sqliteTransient
+        SqliteTransient
     )
 })
 
@@ -455,7 +483,17 @@ public actual fun sqlite3_column_blob(
     stmt = stmt,
     index = index,
     pointer = exports.sqlite3_column_blob(stmt.pointer, index),
-    toByteArray = WasmPointer::readByteArray
+    toByteArray = WasmPointer::readBytes
+)
+
+internal actual fun sqlite3_column_buffer_internal(
+    stmt: sqlite3_stmt,
+    index: Int
+): Buffer? = commonColumnBuffer(
+    stmt = stmt,
+    index = index,
+    pointer = exports.sqlite3_column_blob(stmt.pointer, index),
+    toBuffer = Buffer::from
 )
 
 public actual fun sqlite3_column_bytes(
@@ -886,11 +924,17 @@ public actual fun sqlite3_free(buffer: Buffer): Unit =
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     exports.sqlite3_get_autocommit(db.pointer)
 
+internal actual fun sqlite3_get_auxdata_internal(context: sqlite3_context, index: Int): Long? {
+    return exports.sqlite3_get_auxdata(context.pointer, index).orNull?.toLong()
+}
+
 public actual fun sqlite3_hard_heap_limit64(limit: Long): Long =
     exports.sqlite3_hard_heap_limit64(limit.toJsBigInt()).toLong()
 
-public actual fun sqlite3_initialize(): SqliteResultCode =
-    convertResultCode(exports.sqlite3_initialize())
+internal actual fun sqlite3_initialize_internal(): Int {
+    ksqliteInitLibrary()
+    return exports.sqlite3_initialize()
+}
 
 public actual fun sqlite3_interrupt(db: sqlite3): Unit =
     exports.sqlite3_interrupt(db.pointer)
@@ -1262,7 +1306,7 @@ public actual fun sqlite3_result_text(
     value: String
 ): Unit = heapScoped {
     val cText = value.allocateUtf8()
-    exports.sqlite3_result_text(context.pointer, cText.pointer, cText.contentSize, sqliteTransient)
+    exports.sqlite3_result_text(context.pointer, cText.pointer, cText.contentSize, SqliteTransient)
 }
 
 public actual fun sqlite3_result_text64(
@@ -1312,6 +1356,21 @@ public actual fun <AppData> sqlite3_rollback_hook(
     )
 }
 
+public actual fun sqlite3_serialize_internal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer? = Buffer.from(
+    pointer = heapScoped {
+        useParam(outSize) { sizePtr ->
+            val mFlags = flags?.value ?: 0
+            exports.sqlite3_serialize(db.pointer, database.allocateUtf8Pointer(), sizePtr, mFlags)
+        }
+    },
+    size = outSize.value
+)
+
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
@@ -1323,6 +1382,17 @@ public actual fun <AppData> sqlite3_set_authorizer(
         keyedStableRefPointer(KEY_SET_AUTHORIZER, callback, appData)
     )
 })
+
+internal actual fun sqlite3_set_auxdata_internal(
+    context: sqlite3_context,
+    index: Int,
+    destroy: SqliteDestroyCallback<Nothing?>
+): Long? = context.db.withMemoryManager {
+    val pointer = stableRefPointer(null, null, destroy)
+    val disposer = stableRefDisposer(null, destroy)
+    exports.sqlite3_set_auxdata(context.pointer, index, pointer, disposer)
+    pointer.orNull?.toLong()
+}
 
 public actual fun sqlite3_set_errmsg(
     db: sqlite3,
@@ -1337,8 +1407,7 @@ public actual fun sqlite3_set_last_insert_rowid(
     rowId: Long
 ): Unit = exports.sqlite3_set_last_insert_rowid(db.pointer, rowId.toJsBigInt())
 
-public actual fun sqlite3_shutdown(): SqliteResultCode =
-    convertResultCode(exports.sqlite3_shutdown())
+internal actual fun sqlite3_shutdown_internal(): Int = exports.sqlite3_shutdown()
 
 public actual fun sqlite3_snapshot_cmp(
     snapshot1: sqlite3_snapshot,
@@ -1583,11 +1652,24 @@ public actual fun sqlite3_uri_parameter(
     exports.sqlite3_uri_parameter(fileName.pointer, parameter.allocateUtf8Pointer())
 }.toKStringFromUtf8OrNull()
 
+@PublishedApi
+internal actual fun sqlite3_user_data_internal(context: sqlite3_context): ApplicationDefinedFunction<*>? {
+    val pointer = exports.sqlite3_user_data(context.pointer).orNull ?: return null
+    return context.db.memory.stableRefData<ApplicationDefinedFunction<*>>(pointer)
+}
+
 public actual fun sqlite3_value_blob(value: sqlite3_value): ByteArray? = commonValueByteArray(
     value = value,
     pointer = exports.sqlite3_value_blob(value.pointer),
-    toByteArray = WasmPointer::readByteArray
+    toByteArray = WasmPointer::readBytes
 )
+
+internal actual fun sqlite3_value_buffer_internal(value: sqlite3_value): Buffer? =
+    commonValueBuffer(
+        value = value,
+        pointer = exports.sqlite3_value_blob(value.pointer),
+        toBuffer = Buffer::from
+    )
 
 public actual fun sqlite3_value_bytes(value: sqlite3_value): Int =
     exports.sqlite3_value_bytes(value.pointer)
@@ -1618,6 +1700,17 @@ public actual fun sqlite3_value_nochange(value: sqlite3_value): Int =
 
 public actual fun sqlite3_value_numeric_type(value: sqlite3_value): SqliteDataType =
     convertDataType(exports.sqlite3_value_numeric_type(value.pointer))
+
+@PublishedApi
+internal actual fun sqlite3_value_pointer_internal(
+    value: sqlite3_value,
+    type: String?
+): Any? = heapScoped {
+    val pointer = exports.sqlite3_value_pointer(value.pointer, type.allocateUtf8Pointer()).orNull
+        ?: return null
+
+    globalMemory.stableRefAppData(pointer)
+}
 
 public actual fun sqlite3_value_subtype(value: sqlite3_value): UInt =
     exports.sqlite3_value_subtype(value.pointer).toUInt()
@@ -1733,3 +1826,89 @@ public actual fun <AppData> sqlite3_wal_hook(
         keyedStableRefPointer(KEY_WAL_HOOK, callback, appData)
     )
 }
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite Multiple Ciphers
+///////////////////////////////////////////////////////////////////////////
+
+public actual fun sqlite3mc_cipher_count(): Int = exports.sqlite3mc_cipher_count()
+
+public actual fun sqlite3mc_cipher_index(cipher: SqliteMcCipher): Int = heapScoped {
+    exports.sqlite3mc_cipher_index(cipher.name.allocateUtf8Pointer())
+}
+
+public actual fun sqlite3mc_cipher_name(index: Int): String? = heapScoped {
+    commonCipherName(
+        allocate = { wasm.alloc(it) },
+        toString = { it.toKStringFromUtf8() },
+        invoke = { name, maxSize ->
+            exports.sqlite3mc_cipher_name_copy(index, name, maxSize)
+        }
+    )
+}
+
+public actual fun sqlite3mc_codec_data(
+    db: sqlite3,
+    database: String?,
+    param: SqliteMcCodecDataParam
+): Buffer? = heapScoped {
+    Buffer.from(
+        pointer = exports.sqlite3mc_codec_data(
+            db.pointer,
+            database.allocateUtf8Pointer(),
+            param.paramName.allocateUtf8Pointer()
+        ),
+        size = param.bufferSize.toLong()
+    )
+}
+
+internal actual fun sqlite3mc_config_internal(
+    db: sqlite3?,
+    paramName: String,
+    newValue: Int
+): Int = heapScoped {
+    exports.sqlite3mc_config(
+        db?.pointer.notNull,
+        paramName.allocateUtf8Pointer(),
+        newValue
+    )
+}
+
+internal actual fun sqlite3mc_config_cipher_internal(
+    db: sqlite3?,
+    cipherName: String,
+    paramName: String,
+    newValue: Int
+): Int = heapScoped {
+    exports.sqlite3mc_config_cipher(
+        db?.pointer.notNull,
+        cipherName.allocateUtf8Pointer(),
+        paramName.allocateUtf8Pointer(),
+        newValue
+    )
+}
+
+public actual fun sqlite3mc_register_cipher(
+    descriptor: CipherDescriptor,
+    params: StructArray<CipherParams>,
+    makeDefault: Int
+): SqliteResultCode = heapScoped {
+    registerCipher(descriptor.callbacks, CipherAllocateCipherHandlers, descriptor::setAllocator) {
+        exports.sqlite3mc_register_cipher(descriptor.pointer, params.pointer, makeDefault)
+    }
+}
+
+public actual fun sqlite3mc_version(): String = exports.sqlite3mc_version().toKStringFromUtf8()
+
+public actual fun sqlite3mc_vfs_create(
+    realName: String,
+    makeDefault: Int
+): SqliteResultCode = convertResultCode(heapScoped {
+    exports.sqlite3mc_vfs_create(realName.allocateUtf8Pointer(), makeDefault)
+})
+
+public actual fun sqlite3mc_vfs_destroy(name: String): Unit = heapScoped {
+    exports.sqlite3mc_vfs_destroy(name.allocateUtf8Pointer())
+}
+
+public actual fun sqlite3mc_vfs_shutdown(): Unit = exports.sqlite3mc_vfs_shutdown()

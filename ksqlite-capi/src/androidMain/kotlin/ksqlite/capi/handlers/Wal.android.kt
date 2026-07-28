@@ -17,6 +17,7 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.callbacks.SqliteWalHookCallback
 import ksqlite.capi.sqlite3
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.callbacks.WalHookCallback
 
 /**
@@ -27,7 +28,7 @@ internal class WalHookHandler<AppData> :
     WalHookCallback {
 
     override fun apply(
-        db: Long,
+        db: JniPointer,
         dbName: String,
         nPage: Int
     ): Int = handle { callback, appData ->

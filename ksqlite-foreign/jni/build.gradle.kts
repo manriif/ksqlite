@@ -83,6 +83,10 @@ android {
     }
 }
 
+dependencies {
+    api(projects.ksqliteStructs)
+}
+
 mavenPublishing {
     configure(
         AndroidSingleVariantLibrary(

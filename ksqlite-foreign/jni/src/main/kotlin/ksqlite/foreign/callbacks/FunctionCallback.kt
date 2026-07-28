@@ -15,6 +15,9 @@
  */
 package ksqlite.foreign.callbacks
 
+import ksqlite.foreign.JniPointer
+import ksqlite.foreign.JniPointerArray
+
 /**
  * Base for function related callback.
  */
@@ -28,7 +31,7 @@ public interface FunctionCallback {
         /**
          * Invoked from JNI.
          */
-        public fun apply(context: Long)
+        public fun apply(context: JniPointer)
     }
 
     /**
@@ -40,8 +43,8 @@ public interface FunctionCallback {
          * Invoked from JNI.
          */
         public fun apply(
-            context: Long,
-            values: LongArray
+            context: JniPointer,
+            values: JniPointerArray
         )
     }
 

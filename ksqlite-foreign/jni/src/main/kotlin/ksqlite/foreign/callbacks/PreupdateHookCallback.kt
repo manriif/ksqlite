@@ -15,6 +15,8 @@
  */
 package ksqlite.foreign.callbacks
 
+import ksqlite.foreign.JniPointer
+
 /**
  * Callback for use with [ksqlite.foreign.sqlite3_preupdate_hook].
  */
@@ -24,7 +26,7 @@ public fun interface PreupdateHookCallback {
      * Invoked from JNI.
      */
     public fun apply(
-        db: Long,
+        db: JniPointer,
         op: Int,
         dbName: String,
         dbTable: String,

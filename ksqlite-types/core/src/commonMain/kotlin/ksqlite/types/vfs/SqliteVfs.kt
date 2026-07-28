@@ -36,6 +36,11 @@ public interface SqliteVfs {
     public val mxPathname: Int
 
     /**
+     * Next registered VFS.
+     */
+    public val pNext: SqliteVfs?
+
+    /**
      * Name of this virtual file system.
      */
     public val zName: String

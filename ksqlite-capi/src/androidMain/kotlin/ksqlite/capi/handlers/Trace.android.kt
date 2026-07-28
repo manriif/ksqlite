@@ -19,6 +19,7 @@ import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.dispatchTraceEvent
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_stmt
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.callbacks.TraceCallback
 
 /**
@@ -30,7 +31,7 @@ internal class TraceHandler<AppData> :
 
     override fun apply(
         code: Int,
-        pPointer: Long,
+        pPointer: JniPointer,
         xPointer: Any?
     ): Int = handle { callback, appData ->
         dispatchTraceEvent(

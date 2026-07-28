@@ -15,6 +15,7 @@
  */
 package ksqlite.foreign.callbacks
 
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.OutputPointer
 
 /**
@@ -26,8 +27,8 @@ public fun interface AutoExtensionCallback {
      * Invoked from JNI.
      */
     public fun apply(
-        db: Long,
-        api: Long,
+        db: JniPointer,
+        api: JniPointer,
         outErrMsg: OutputPointer.OfString
     ): Int
 }

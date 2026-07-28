@@ -17,11 +17,9 @@
 
 package ksqlite.capi.vfs
 
-import ksqlite.capi.capi
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.usingJsFunction
 import ksqlite.capi.vfs.callbacks.SqliteIoMethodsCloseCallback
-import ksqlite.foreign.structs.invoke
 import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.types.internal.convertIoMethodsVersion
@@ -34,7 +32,7 @@ public actual class sqlite3_io_methods private constructor(private val methods: 
     Struct(methods.pointer),
     SqliteIoMethods {
 
-    internal constructor(pointer: WasmPointer) : this(capi.sqlite3_io_methods(pointer))
+    internal constructor(pointer: WasmPointer) : this(s3_io_methods(pointer))
 
     public actual override val iVersion: SqliteIoMethodsVersion
         get() = convertIoMethodsVersion(methods.iVersion)

@@ -25,7 +25,7 @@ import ksqlite.foreign.sqlite3_file as s3_file
 
 public actual class sqlite3_file
 private constructor(override val pointer: CPointer<s3_file>) :
-    ClosableStruct(pointer),
+    ClosableStruct(pointer, Application),
     SqliteFile {
 
     public actual constructor(vfs: sqlite3_vfs) : this(allocate(vfs.szOsFile.toLong()))

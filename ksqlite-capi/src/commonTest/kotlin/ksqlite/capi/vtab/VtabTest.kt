@@ -167,7 +167,7 @@ class VtabTest {
         assertEquals(1, lastConstraintCount)
 
         // sanity: one filter pass for the point lookup
-        assertEquals(1, rowidCallCount.let { filterCallCount })
+        assertEquals(1, filterCallCount)
     }
 
     @Test

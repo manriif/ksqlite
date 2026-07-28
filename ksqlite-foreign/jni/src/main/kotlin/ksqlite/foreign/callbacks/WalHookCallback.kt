@@ -15,6 +15,8 @@
  */
 package ksqlite.foreign.callbacks
 
+import ksqlite.foreign.JniPointer
+
 /**
  * Callback for use with [ksqlite.foreign.sqlite3_wal_hook].
  */
@@ -24,7 +26,7 @@ public fun interface WalHookCallback {
      * Invoked from JNI.
      */
     public fun apply(
-        db: Long,
+        db: JniPointer,
         dbName: String,
         nPage: Int
     ): Int

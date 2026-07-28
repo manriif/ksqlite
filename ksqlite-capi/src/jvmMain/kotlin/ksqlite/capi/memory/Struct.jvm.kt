@@ -39,37 +39,39 @@ public actual open class Struct internal constructor(internal val pointer: Memor
     }
 }
 
-public open class ReinterpretedStruct internal constructor(
-    protected val arena: Arena,
-    pointer: MemorySegment,
-) : Struct(pointer),
+public actual open class ClosableStruct private constructor(
+    private val originalPointer: MemorySegment,
+    reinterpretedPointer: MemorySegment,
+    private val owner: PointerOwner,
+    private val arena: Arena,
+) : Struct(reinterpretedPointer),
     AutoCloseable {
 
     internal constructor(
-        pointer: MemorySegment,
         layout: GroupLayout,
-        arena: Arena = Arena.ofConfined()
-    ) : this(arena, pointer.reinterpret(layout.byteSize(), arena, null))
-
-    public override fun close() {
-        arena.close()
-    }
-}
-
-public actual open class ClosableStruct internal constructor(
-    private val allocatedPointer: MemorySegment,
-    layout: GroupLayout,
-    arena: Arena
-) : ReinterpretedStruct(allocatedPointer, layout, arena) {
+        pointer: MemorySegment,
+        owner: PointerOwner,
+        arena: Arena = Arena.ofShared()
+    ) : this(pointer, pointer.reinterpret(layout.byteSize(), arena, null), owner, arena)
 
     internal constructor(
         layout: GroupLayout,
+        pointer: MemorySegment?, // null = allocate new, non-null = reinterpret it
+        owner: PointerOwner,
         size: Long? = null,
         arena: Arena = Arena.ofShared()
-    ) : this(sqlite3_malloc64(checkStructSize(layout.byteSize(), size)), layout, arena)
+    ) : this(
+        layout = layout,
+        pointer = pointer ?: sqlite3_malloc64(checkStructSize(layout.byteSize(), size)),
+        owner = owner.also { check(it != Application || pointer == null) },
+        arena = arena
+    )
 
     public actual override fun close() {
-        super.close()
-        sqlite3_free(allocatedPointer)
+        arena.close()
+
+        owner.handleClose {
+            sqlite3_free(originalPointer)
+        }
     }
 }

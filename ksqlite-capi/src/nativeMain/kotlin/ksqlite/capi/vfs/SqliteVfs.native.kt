@@ -48,6 +48,9 @@ public actual class sqlite3_vfs internal constructor(override val pointer: CPoin
     public actual override val mxPathname: Int
         get() = pointer.pointed.mxPathname
 
+    public actual override val pNext: sqlite3_vfs?
+        get() = pointer.pointed.pNext?.let(::sqlite3_vfs)
+
     public actual override val zName: String
         get() = pointer.pointed.zName!!.toKStringFromUtf8()
 

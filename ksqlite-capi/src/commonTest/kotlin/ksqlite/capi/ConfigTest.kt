@@ -107,8 +107,14 @@ class ConfigTest {
         val logResult = sqlite3_config(log)
         assertEquals(OK, logResult)
 
+        val initResult = sqlite3_initialize()
+        assertEquals(OK, initResult)
+
         sqlite3_log(logCode, logMessage)
         assertTrue(logCalled)
+
+        val shutdownResult = sqlite3_shutdown()
+        assertEquals(OK, shutdownResult)
 
         val resetLog = sqlite3_config(SqliteConfigOption.LOG(null, null))
         assertEquals(OK, resetLog)

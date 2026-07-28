@@ -13,41 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@file:Suppress("ClassName", "SpellCheckingInspection", "REDUNDANT_CALL_OF_CONVERSION_METHOD")
+@file:Suppress("ClassName", "SpellCheckingInspection")
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.capi
 import ksqlite.capi.exports
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
-import ksqlite.foreign.structs.invoke
-import ksqlite.foreign.structs.nthConstraint
-import ksqlite.foreign.structs.nthConstraintUsage
-import ksqlite.foreign.structs.nthOrderBy
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.types.internal.convertVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteIndexInfo
 import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteVtabScanFlag
-import kotlin.js.toJsBigInt
-import kotlin.js.toLong
 
 public actual class sqlite3_index_info private constructor(private val info: s3_index_info) :
     Struct(info.pointer),
     SqliteIndexInfo {
 
-    internal constructor(pointer: WasmPointer) : this(capi.sqlite3_index_info(pointer))
+    internal constructor(pointer: WasmPointer) : this(s3_index_info(pointer))
 
     // Lists are used instead of arrays because Array is broken in webMain sourceSet
-    private val constraints by lazy { List(nConstraint, info::nthConstraint) }
-    private val constraintUsages by lazy { List(nConstraint, info::nthConstraintUsage) }
-    private val orderBys by lazy { List(nConstraint, info::nthOrderBy) }
+    private val constraints by lazy { List(nConstraint, info::constraint) }
+    private val constraintUsages by lazy { List(nConstraint, info::constraintUsage) }
+    private val orderBys by lazy { List(nConstraint, info::orderBy) }
 
     public actual override val colUsed: ULong
-        get() = info.colUsed.toLong().toULong()
+        get() = info.colUsed
 
     public actual override val nConstraint: Int
         get() = info.nConstraint
@@ -59,16 +52,16 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
         constraints[index].iColumn
 
     public actual override fun getConstraintOp(index: Int): SqliteVtabConstraintOperatorCode =
-        convertVtabConstraintOperatorCode(constraints[index].op)
+        convertVtabConstraintOperatorCode(constraints[index].op.toInt())
 
     public actual override fun getConstraintUsable(index: Int): Int =
-        constraints[index].usable
+        constraints[index].usable.toInt()
 
     public actual override fun getOrderByColumn(index: Int): Int =
         orderBys[index].iColumn
 
     public actual override fun getOrderByDesc(index: Int): Int =
-        orderBys[index].desc
+        orderBys[index].desc.toInt()
 
     public actual override var idxNum: Int
         get() = info.idxNum
@@ -102,9 +95,9 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
         }
 
     public actual override var estimatedRows: Long
-        get() = info.estimatedRows.toLong()
+        get() = info.estimatedRows
         set(value) {
-            info.estimatedRows = value.toJsBigInt()
+            info.estimatedRows = value
         }
 
     public actual override var idxFlags: SqliteVtabScanFlag
@@ -118,6 +111,6 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
     }
 
     public actual override fun setConstraintUsageOmit(index: Int, omit: Int) {
-        constraintUsages[index].omit = omit
+        constraintUsages[index].omit = omit.toUByte()
     }
 }

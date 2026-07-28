@@ -24,7 +24,7 @@ import ksqlite.capi.sqlite3_mprintf
 import ksqlite.types.vtab.SqliteVtab
 
 public actual open class sqlite3_vtab private constructor(private val vTab: s3_vtab) :
-    ClosableStruct(vTab),
+    ClosableStruct(vTab, Application),
     MemoryScope,
     SqliteVtab {
 

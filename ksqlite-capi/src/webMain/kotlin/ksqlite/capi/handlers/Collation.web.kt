@@ -17,7 +17,7 @@ package ksqlite.capi.handlers
 
 import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
-import ksqlite.capi.memory.readByteArray
+import ksqlite.capi.memory.readBytes
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.sqlite3
 import ksqlite.foreign.wasm.FunctionSignature
@@ -64,8 +64,8 @@ internal class CollationHandler : Handler() {
             jsRef.handle(refPointer) { callback: SqliteCollationCallback<Any?>, appData ->
                 callback.apply(
                     appData = appData,
-                    lhs = text1.readByteArray(size1),
-                    rhs = text2.readByteArray(size2)
+                    lhs = text1.readBytes(size1),
+                    rhs = text2.readBytes(size2)
                 )
             }
         }

@@ -15,6 +15,7 @@
  */
 package ksqlite.capi.memory
 
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.OutputPointer
 
 /**
@@ -66,10 +67,10 @@ public abstract class PointerOutputParam<Value> :
     /**
      * Creates a new [Value] from non-null pointing [pointer].
      */
-    protected abstract fun create(pointer: Long): Value
+    protected abstract fun create(pointer: JniPointer): Value
 
     final override fun readValue(pointer: OutputPointer.OfPointer): Value? {
-        return pointer.value.takeUnless(Long::isNull)?.let(::create)
+        return pointer.value.takeUnless(JniPointer::isNull)?.let(::create)
     }
 }
 

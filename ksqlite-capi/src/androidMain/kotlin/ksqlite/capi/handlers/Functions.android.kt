@@ -19,6 +19,8 @@ import ksqlite.capi.ApplicationDefinedFunction
 import ksqlite.capi.memory.toArray
 import ksqlite.capi.sqlite3_context
 import ksqlite.capi.sqlite3_value
+import ksqlite.foreign.JniPointer
+import ksqlite.foreign.JniPointerArray
 import ksqlite.foreign.callbacks.FunctionCallback
 
 /**
@@ -54,7 +56,7 @@ internal abstract class Function1ArgHandler : FunctionHandler(), FunctionCallbac
  */
 internal class FunctionFinalHandler : Function1ArgHandler(), FunctionCallback.Final {
 
-    override fun apply(context: Long) =
+    override fun apply(context: JniPointer) =
         handleFunction(context, ApplicationDefinedFunction<*>::callFinal)
 }
 
@@ -63,7 +65,7 @@ internal class FunctionFinalHandler : Function1ArgHandler(), FunctionCallback.Fi
  */
 internal class FunctionValueHandler : Function1ArgHandler(), FunctionCallback.Value {
 
-    override fun apply(context: Long) =
+    override fun apply(context: JniPointer) =
         handleFunction(context, ApplicationDefinedFunction<*>::callValue)
 }
 
@@ -95,8 +97,8 @@ internal abstract class Function3ArgsHandler : FunctionHandler(), FunctionCallba
 internal class FunctionFuncHandler : Function3ArgsHandler(), FunctionCallback.Func {
 
     override fun apply(
-        context: Long,
-        values: LongArray
+        context: JniPointer,
+        values: JniPointerArray
     ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callFunc)
 }
 
@@ -107,8 +109,8 @@ internal class FunctionFuncHandler : Function3ArgsHandler(), FunctionCallback.Fu
 internal class FunctionStepHandler : Function3ArgsHandler(), FunctionCallback.Step {
 
     override fun apply(
-        context: Long,
-        values: LongArray
+        context: JniPointer,
+        values: JniPointerArray
     ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callStep)
 }
 
@@ -118,7 +120,7 @@ internal class FunctionStepHandler : Function3ArgsHandler(), FunctionCallback.St
 internal class FunctionInverseHandler : Function3ArgsHandler(), FunctionCallback.Inverse {
 
     override fun apply(
-        context: Long,
-        values: LongArray
+        context: JniPointer,
+        values: JniPointerArray
     ) = handleFunction(context, values, ApplicationDefinedFunction<*>::callInverse)
 }

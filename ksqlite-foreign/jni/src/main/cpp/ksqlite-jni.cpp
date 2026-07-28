@@ -359,7 +359,7 @@ struct HookDestroyable : Hook, Destroyable {
     MutexLeave(guard)
 
 #define HookLeave() LocalRefDestroy(instance)
-#define HookEnterGlobal(hook) HookEnter(KHS, KHS.hook)
+#define HookEnterGlobal(hook) HookEnter(KGH, KGH.hook)
 #define HookEnterDbState(hook) HookEnter(dbState, dbState.hooks.hook)
 
 /**
@@ -732,6 +732,28 @@ struct Vtab : sqlite3_vtab {
 static void moduleAppDataDestroyer(void*);
 
 ///////////////////////////////////////////////////////////////////////////
+// Ciphers
+///////////////////////////////////////////////////////////////////////////
+
+#define DYNAMIC_CIPHER_MAX_SLOTS 4
+
+/**
+ * Holder for a cipher instance and associated callbacks.
+ */
+struct DynamicCipher {
+    jobject instance;
+    jobject callbacks;
+};
+
+#define DynamicCipherBadRangeFatalError(index) FatalError( \
+    sqlite3_mprintf( \
+        "Index %d is not within the range [0,%d) for dynamic ciphers", \
+        index, \
+        DYNAMIC_CIPHER_MAX_SLOTS \
+    ) \
+)
+
+///////////////////////////////////////////////////////////////////////////
 // Global State
 ///////////////////////////////////////////////////////////////////////////
 
@@ -740,6 +762,19 @@ static void moduleAppDataDestroyer(void*);
  */
 static struct {
     JavaVM* jvm;
+    bool initialized;
+    jobject dynamicCiphers[DYNAMIC_CIPHER_MAX_SLOTS];
+
+    // Config hooks, no mutex
+    struct {
+        Hook log;
+        Hook sqlLog;
+    } configHooks;
+
+    // Global hooks
+    struct : MutexGuarded {
+        Hook autoExtension;
+    } globalHooks;
 
     // Holds database connection states
     struct : MutexGuarded {
@@ -750,13 +785,6 @@ static struct {
     struct : MutexGuarded {
         FreeableMap* map;
     } freeables;
-
-    // Global hooks
-    struct : MutexGuarded {
-        Hook autoExtension;
-        Hook log;
-        Hook sqlLog;
-    } hooks;
 
     // Java cache
     struct {
@@ -827,13 +855,27 @@ static struct {
             jmethodID rollbackTo;
             jmethodID integrity;
         } vTabModuleCallbacks;
+
+        struct : Class {
+            jmethodID allocateCipher;
+            jmethodID freeCipher;
+            jmethodID cloneCipher;
+            jmethodID getLegacy;
+            jmethodID getPageSize;
+            jmethodID getReserved;
+            jmethodID getSalt;
+            jmethodID generateKey;
+            jmethodID encryptPage;
+            jmethodID decryptPage;
+        } cipherDescriptorCallbacks;
     } ksqlite;
 } KsqliteJniGlobalState;
 
 #define K KsqliteJniGlobalState
+#define KCH K.configHooks
+#define KGH K.globalHooks
 #define KDS K.dbs
 #define KFS K.freeables
-#define KHS K.hooks
 
 #define KJV K.java
 #define KJVC K.java.jClass
@@ -846,6 +888,7 @@ static struct {
 #define KKOP K.ksqlite.outputPointer
 #define KKOP K.ksqlite.outputPointer
 #define KKVC K.ksqlite.vTabModuleCallbacks
+#define KKCC K.ksqlite.cipherDescriptorCallbacks
 
 ///////////////////////////////////////////////////////////////////////////
 // JNI Environment
@@ -940,6 +983,7 @@ static void deinitializeJavaJniCache(JNIEnv* env) {
 #define DESTRUCTOR_CALLBACK "callbacks/DestructorCallback"
 #define EXEC_CALLBACK "callbacks/ExecCallback"
 #define VTAB_MODULE_CALLBACKS "callbacks/VtabModuleCallbacks"
+#define CIPHER_DESCRIPTOR_CALLBACKS "callbacks/CipherDescriptorCallbacks"
 #define OUTPUT_POINTER "OutputPointer"
 
 #define OutputPointerSubclassInit(S, name) \
@@ -954,7 +998,7 @@ static void deinitializeJavaJniCache(JNIEnv* env) {
  * Initializes and caches the Ksqlite related classes and objects.
  */
 static void initializeKsqliteJniCache(JNIEnv* env) {
-    KK.emptyBufferPointer = sqlite3_malloc(sizeof(void*));
+    KK.emptyBufferPointer = malloc(sizeof(void*));
     OutOfMemoryCheck(KK.emptyBufferPointer);
 
     // Classes only
@@ -983,7 +1027,7 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
     OutputPointerSubclassInit(ofString, "OfString");
     OutputPointerSubclassInit(ofObject, "OfObject");
 
-    // VtabCallbacks
+    // VtabModuleCallbacks
     KKVC.klass = RequireKsqliteClass(VTAB_MODULE_CALLBACKS);
 
     KKVC.create = RequireKsqliteMethod(
@@ -1067,12 +1111,96 @@ static void initializeKsqliteJniCache(JNIEnv* env) {
         "(JLjava/lang/String;Ljava/lang/String;ILksqlite/foreign/OutputPointer$OfString;)I",
         VTAB_MODULE_CALLBACKS
     );
+
+    // CipherDescriptorCallbacks
+    KKCC.klass = RequireKsqliteClass(CIPHER_DESCRIPTOR_CALLBACKS);
+
+    KKCC.allocateCipher = RequireKsqliteMethod(
+        KKCC,
+        "allocateCipher",
+        "(JI)Ljava/lang/Object;",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.freeCipher = RequireKsqliteMethod(
+        KKCC,
+        "freeCipher",
+        "(Ljava/lang/Object;)V",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.cloneCipher = RequireKsqliteMethod(
+        KKCC,
+        "cloneCipher",
+        "(Ljava/lang/Object;Ljava/lang/Object;)V",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.getLegacy = RequireKsqliteMethod(
+        KKCC,
+        "getLegacy",
+        "(Ljava/lang/Object;)I",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.getPageSize = RequireKsqliteMethod(
+        KKCC,
+        "getPageSize",
+        "(Ljava/lang/Object;)I",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.getReserved = RequireKsqliteMethod(
+        KKCC,
+        "getReserved",
+        "(Ljava/lang/Object;)I",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.getSalt = RequireKsqliteMethod(
+        KKCC,
+        "getSalt",
+        "(Ljava/lang/Object;)J",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.generateKey = RequireKsqliteMethod(
+        KKCC,
+        "generateKey",
+        "(Ljava/lang/Object;[BIJ)V",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.encryptPage = RequireKsqliteMethod(
+        KKCC,
+        "encryptPage",
+        "(Ljava/lang/Object;IJII)I",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
+
+    KKCC.decryptPage = RequireKsqliteMethod(KKCC,
+        "decryptPage",
+        "(Ljava/lang/Object;IJIII)I",
+        CIPHER_DESCRIPTOR_CALLBACKS
+    );
 }
 
 /**
  * Deinitializes cached Ksqlite related classes and objects.
  */
 static void deinitializeKsqliteJniCache(JNIEnv* env) {
+    KKCC.decryptPage = nullptr;
+    KKCC.encryptPage = nullptr;
+    KKCC.generateKey = nullptr;
+    KKCC.getSalt = nullptr;
+    KKCC.getReserved = nullptr;
+    KKCC.getPageSize = nullptr;
+    KKCC.getLegacy = nullptr;
+    KKCC.cloneCipher = nullptr;
+    KKCC.freeCipher = nullptr;
+    KKCC.allocateCipher = nullptr;
+    ClassClear(KKCC);
+
     KKVC.integrity = nullptr;
     KKVC.rollbackTo = nullptr;
     KKVC.release = nullptr;
@@ -1115,7 +1243,7 @@ static void deinitializeKsqliteJniCache(JNIEnv* env) {
     GlobalRefDestroy(KK.configLogCallback);
     GlobalRefDestroy(KK.configSqlLogCallback);
 
-    sqlite3_free(KK.emptyBufferPointer);
+    free(KK.emptyBufferPointer);
 }
 
 /**
@@ -1124,14 +1252,14 @@ static void deinitializeKsqliteJniCache(JNIEnv* env) {
 static void initializeMutexes(JNIEnv* env) {
     MutexAllocate(KDS);
     MutexAllocate(KFS);
-    MutexAllocate(KHS);
+    MutexAllocate(KGH);
 }
 
 /**
  * Deinitializes cached global mutexes.
  */
 static void deinitializeMutexes(JNIEnv* env) {
-    MutexDestroy(KHS);
+    MutexDestroy(KGH);
     MutexDestroy(KFS);
     MutexDestroy(KDS);
 }
@@ -1155,11 +1283,8 @@ JNI_OnLoad(
     KDS.map = new DbStateMap();
     KFS.map = new FreeableMap();
 
-    sqlite3_initialize();
     initializeJavaJniCache(env);
     initializeKsqliteJniCache(env);
-    initializeMutexes(env);
-    sqlite3_shutdown();
 
     return JNI_VERSION;
 }
@@ -1179,7 +1304,6 @@ JNI_OnUnload(
         fprintf(stderr, "Statements were not cleaned up correctly.\n");
     }
 
-    deinitializeMutexes(env);
     deinitializeKsqliteJniCache(env);
     deinitializeJavaJniCache(env);
 
@@ -1211,45 +1335,39 @@ JNI_OnUnload(
 #define LongTo_s3_vtab(L) LongCast(Vtab*, (L))
 #define LongTo_s3_vfs(L) LongCast(sqlite3_vfs*, (L))
 
+#define LongToCipherDescriptor(L) LongCast(CipherDescriptor*, (L))
+#define LongToCipherParams(L) LongCast(CipherParams*, (L))
+
 ///////////////////////////////////////////////////////////////////////////
 // Hook operations
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Declares the code needed to replace a global hook.
+ * Declares the code needed to replace a config hook.
  */
-#define GlobalHookReplace(H, initValue, configure, install, uninstall, result) \
-    auto R = initValue;                                                        \
-                                                                               \
-    MutexEnter(K.hooks);                                                       \
-    const auto pHook = &K.hooks.H;                                             \
-    auto& hook = *pHook;                                                       \
-                                                                               \
-    if (hook.instance != nullptr) {                                            \
-        HookClear(hook);                                                       \
-        uninstall                                                              \
-    }                                                                          \
-                                                                               \
-    if (callback != nullptr) {                                                 \
-        R = install                                                            \
-        configure                                                              \
-    }                                                                          \
-                                                                               \
-    MutexLeave(K.hooks);                                                       \
-    return result
-
-/**
- * Declares the code needed to replace a database connection hook without destructor.
- * The function is expected to return an sqlite result code.
- */
-#define GlobalHookReplaceRC(H, signature, className, install, uninstall) GlobalHookReplace( \
-    H,                                                                                      \
-    SQLITE_OK,                                                                              \
-    if (R == SQLITE_OK) { HookConfigure(hook, callback, signature, className); },           \
-    install;,                                                                               \
-    uninstall;,                                                                             \
-    R                                                                                       \
-)
+#define ConfigHookReplace(H, signature, className, install, uninstall) \
+    auto rc = SQLITE_OK;                                               \
+                                                                       \
+    const auto pHook = &KCH.H;                                         \
+    auto& hook = *pHook;                                               \
+                                                                       \
+    if (hook.instance != nullptr) {                                    \
+        rc = uninstall;                                                \
+                                                                       \
+        if (rc == SQLITE_OK) {                                         \
+            HookClear(hook);                                           \
+        }                                                              \
+    }                                                                  \
+                                                                       \
+    if (callback != nullptr) {                                         \
+        rc = install;                                                  \
+                                                                       \
+        if (rc == SQLITE_OK) {                                         \
+            HookConfigure(hook, callback, signature, className);       \
+        }                                                              \
+    }                                                                  \
+                                                                       \
+    return rc
 
 /**
  * Calls the Java destructor for the given Hook pointer and releases associated resources.
@@ -1844,8 +1962,14 @@ static char* jstringToUtf8(
     );
 
     if (utf8Length <= 0) {
+        // Empty string case, sensitive
         env->ReleaseStringChars(string, chars);
-        return nullptr;
+
+        const auto empty = static_cast<char*>(sqlite3_malloc(1));
+        empty[0] = '\0';
+        *outLength = 1;
+
+        return empty;
     }
 
     const auto utf8 = static_cast<char*>(sqlite3_malloc(utf8Length + 1));
@@ -2302,211 +2426,6 @@ static inline void outputPointerSetInt64Value(
 // Structs
 ///////////////////////////////////////////////////////////////////////////
 
-/**
- * Recognized struct types.
- * To be synchronized with ksqlite.structs.StructType.
- */
-enum StructType : u_char {
-    Sqlite3IndexInfo = 0,
-    Sqlite3IndexConstraint = 1,
-    Sqlite3IndexConstraintUsage = 2,
-    Sqlite3IndexOrderby = 3,
-    Sqlite3Module = 4,
-    Sqlite3Vtab = 5,
-    Sqlite3VtabCursor = 6,
-    Sqlite3File = 7,
-    Sqlite3IoMethods = 8,
-    Sqlite3Vfs = 9
-};
-
-#define StructLayoutBegin(memberCount) \
-    constexpr auto arraySize = memberCount * 2 + 1; \
-    const auto layout = env->NewIntArray(arraySize); \
-    OutOfMemoryCheck(layout);\
-    jint buffer[arraySize]; \
-    auto position = 0
-
-#define StructLayoutAppend(type, member) \
-    buffer[position++] = offsetof(type, member); \
-    buffer[position++] = sizeof(decltype(type::member))
-
-#define StructLayoutEnd(type) \
-    buffer[position] = sizeof(type); \
-    env->SetIntArrayRegion(layout, 0, arraySize, buffer); \
-    return layout
-
-/**
- * Returns the layout for `sqlite3_index_info`.
- */
-static jintArray structLayoutSqlite3IndexInfo(JNIEnv* env) {
-    StructLayoutBegin(13);
-    StructLayoutAppend(sqlite3_index_info, nConstraint);
-    StructLayoutAppend(sqlite3_index_info, aConstraint);
-    StructLayoutAppend(sqlite3_index_info, nOrderBy);
-    StructLayoutAppend(sqlite3_index_info, aOrderBy);
-    StructLayoutAppend(sqlite3_index_info, aConstraintUsage);
-    StructLayoutAppend(sqlite3_index_info, idxNum);
-    StructLayoutAppend(sqlite3_index_info, idxStr);
-    StructLayoutAppend(sqlite3_index_info, needToFreeIdxStr);
-    StructLayoutAppend(sqlite3_index_info, orderByConsumed);
-    StructLayoutAppend(sqlite3_index_info, estimatedCost);
-    StructLayoutAppend(sqlite3_index_info, estimatedRows);
-    StructLayoutAppend(sqlite3_index_info, idxFlags);
-    StructLayoutAppend(sqlite3_index_info, colUsed);
-    StructLayoutEnd(sqlite3_index_info);
-}
-
-/**
- * Returns the layout for `sqlite3_index_info`.
- */
-static jintArray structLayoutSqlite3IndexConstraint(JNIEnv* env) {
-    StructLayoutBegin(4);
-    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint, iColumn);
-    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint, op);
-    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint, usable);
-    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint, iTermOffset);
-    StructLayoutEnd(sqlite3_index_info::sqlite3_index_constraint);
-}
-
-/**
- * Returns the layout for `sqlite3_index_info`.
- */
-static jintArray structLayoutSqlite3IndexConstraintUsage(JNIEnv* env) {
-    StructLayoutBegin(2);
-    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint_usage, argvIndex);
-    StructLayoutAppend(sqlite3_index_info::sqlite3_index_constraint_usage, omit);
-    StructLayoutEnd(sqlite3_index_info::sqlite3_index_constraint_usage);
-}
-
-/**
- * Returns the layout for `sqlite3_index_info`.
- */
-static jintArray structLayoutSqlite3IndexOrderby(JNIEnv* env) {
-    StructLayoutBegin(2);
-    StructLayoutAppend(sqlite3_index_info::sqlite3_index_orderby, iColumn);
-    StructLayoutAppend(sqlite3_index_info::sqlite3_index_orderby, desc);
-    StructLayoutEnd(sqlite3_index_info::sqlite3_index_orderby);
-}
-
-/**
- * Returns the layout for `sqlite3_index_info`.
- */
-static jintArray structLayoutSqlite3Module(JNIEnv* env) {
-    StructLayoutBegin(25);
-    StructLayoutAppend(sqlite3_module, iVersion);
-    StructLayoutAppend(sqlite3_module, xCreate);
-    StructLayoutAppend(sqlite3_module, xConnect);
-    StructLayoutAppend(sqlite3_module, xBestIndex);
-    StructLayoutAppend(sqlite3_module, xDisconnect);
-    StructLayoutAppend(sqlite3_module, xDestroy);
-    StructLayoutAppend(sqlite3_module, xOpen);
-    StructLayoutAppend(sqlite3_module, xClose);
-    StructLayoutAppend(sqlite3_module, xFilter);
-    StructLayoutAppend(sqlite3_module, xNext);
-    StructLayoutAppend(sqlite3_module, xEof);
-    StructLayoutAppend(sqlite3_module, xColumn);
-    StructLayoutAppend(sqlite3_module, xRowid);
-    StructLayoutAppend(sqlite3_module, xUpdate);
-    StructLayoutAppend(sqlite3_module, xBegin);
-    StructLayoutAppend(sqlite3_module, xSync);
-    StructLayoutAppend(sqlite3_module, xCommit);
-    StructLayoutAppend(sqlite3_module, xRollback);
-    StructLayoutAppend(sqlite3_module, xFindFunction);
-    StructLayoutAppend(sqlite3_module, xRename);
-    StructLayoutAppend(sqlite3_module, xSavepoint);
-    StructLayoutAppend(sqlite3_module, xRelease);
-    StructLayoutAppend(sqlite3_module, xRollbackTo);
-    StructLayoutAppend(sqlite3_module, xShadowName);
-    StructLayoutAppend(sqlite3_module, xIntegrity);
-    StructLayoutEnd(Module);
-}
-
-/**
- * Returns the layout for `sqlite3_index_info`.
- */
-static jintArray structLayoutSqlite3Vtab(JNIEnv* env) {
-    StructLayoutBegin(3);
-    StructLayoutAppend(sqlite3_vtab, pModule);
-    StructLayoutAppend(sqlite3_vtab, nRef);
-    StructLayoutAppend(sqlite3_vtab, zErrMsg);
-    StructLayoutEnd(Vtab);
-}
-
-/**
- * Returns the layout for `sqlite3_index_info`.
- */
-static jintArray structLayoutSqlite3VtabCursor(JNIEnv* env) {
-    StructLayoutBegin(1);
-    StructLayoutAppend(sqlite3_vtab_cursor, pVtab);
-    StructLayoutEnd(sqlite3_vtab_cursor);
-}
-
-/**
- * Returns the layout for `sqlite3_file`.
- */
-static jintArray structLayoutSqlite3File(JNIEnv* env) {
-    StructLayoutBegin(1);
-    StructLayoutAppend(sqlite3_file, pMethods);
-    StructLayoutEnd(sqlite3_file);
-}
-
-/**
- * Returns the layout for `sqlite3_io_methods`.
- */
-static jintArray structLayoutSqlite3IoMethods(JNIEnv* env) {
-    StructLayoutBegin(19);
-    StructLayoutAppend(sqlite3_io_methods, iVersion);
-    StructLayoutAppend(sqlite3_io_methods, xClose);
-    StructLayoutAppend(sqlite3_io_methods, xRead);
-    StructLayoutAppend(sqlite3_io_methods, xWrite);
-    StructLayoutAppend(sqlite3_io_methods, xTruncate);
-    StructLayoutAppend(sqlite3_io_methods, xSync);
-    StructLayoutAppend(sqlite3_io_methods, xFileSize);
-    StructLayoutAppend(sqlite3_io_methods, xLock);
-    StructLayoutAppend(sqlite3_io_methods, xUnlock);
-    StructLayoutAppend(sqlite3_io_methods, xCheckReservedLock);
-    StructLayoutAppend(sqlite3_io_methods, xFileControl);
-    StructLayoutAppend(sqlite3_io_methods, xSectorSize);
-    StructLayoutAppend(sqlite3_io_methods, xDeviceCharacteristics);
-    StructLayoutAppend(sqlite3_io_methods, xShmMap);
-    StructLayoutAppend(sqlite3_io_methods, xShmLock);
-    StructLayoutAppend(sqlite3_io_methods, xShmBarrier);
-    StructLayoutAppend(sqlite3_io_methods, xShmUnmap);
-    StructLayoutAppend(sqlite3_io_methods, xFetch);
-    StructLayoutAppend(sqlite3_io_methods, xUnfetch);
-    StructLayoutEnd(sqlite3_io_methods);
-}
-
-/**
- * Returns the layout for `sqlite3_vfs`.
- */
-static jintArray structLayoutSqlite3Vfs(JNIEnv* env) {
-    StructLayoutBegin(22);
-    StructLayoutAppend(sqlite3_vfs, iVersion);
-    StructLayoutAppend(sqlite3_vfs, szOsFile);
-    StructLayoutAppend(sqlite3_vfs, mxPathname);
-    StructLayoutAppend(sqlite3_vfs, pNext);
-    StructLayoutAppend(sqlite3_vfs, zName);
-    StructLayoutAppend(sqlite3_vfs, pAppData);
-    StructLayoutAppend(sqlite3_vfs, xOpen);
-    StructLayoutAppend(sqlite3_vfs, xDelete);
-    StructLayoutAppend(sqlite3_vfs, xAccess);
-    StructLayoutAppend(sqlite3_vfs, xFullPathname);
-    StructLayoutAppend(sqlite3_vfs, xDlOpen);
-    StructLayoutAppend(sqlite3_vfs, xDlError);
-    StructLayoutAppend(sqlite3_vfs, xDlSym);
-    StructLayoutAppend(sqlite3_vfs, xDlClose);
-    StructLayoutAppend(sqlite3_vfs, xRandomness);
-    StructLayoutAppend(sqlite3_vfs, xSleep);
-    StructLayoutAppend(sqlite3_vfs, xCurrentTime);
-    StructLayoutAppend(sqlite3_vfs, xGetLastError);
-    StructLayoutAppend(sqlite3_vfs, xCurrentTimeInt64);
-    StructLayoutAppend(sqlite3_vfs, xSetSystemCall);
-    StructLayoutAppend(sqlite3_vfs, xGetSystemCall);
-    StructLayoutAppend(sqlite3_vfs, xNextSystemCall);
-    StructLayoutEnd(sqlite3_vfs);
-}
-
 extern "C"
 JNIEXPORT jintArray JNICALL
 Java_ksqlite_foreign_KsqliteJni_nativeStructLayout(
@@ -2514,31 +2433,28 @@ Java_ksqlite_foreign_KsqliteJni_nativeStructLayout(
     jclass clazz,
     jint type
 ) {
-    switch (type) {
-        case Sqlite3IndexInfo:
-            return structLayoutSqlite3IndexInfo(env);
-        case Sqlite3IndexConstraint:
-            return structLayoutSqlite3IndexConstraint(env);
-        case Sqlite3IndexConstraintUsage:
-            return structLayoutSqlite3IndexConstraintUsage(env);
-        case Sqlite3IndexOrderby:
-            return structLayoutSqlite3IndexOrderby(env);
-        case Sqlite3Module:
-            return structLayoutSqlite3Module(env);
-        case Sqlite3Vtab:
-            return structLayoutSqlite3Vtab(env);
-        case Sqlite3VtabCursor:
-            return structLayoutSqlite3VtabCursor(env);
-        case Sqlite3File:
-            return structLayoutSqlite3File(env);
-        case Sqlite3IoMethods:
-            return structLayoutSqlite3IoMethods(env);
-        case Sqlite3Vfs:
-            return structLayoutSqlite3Vfs(env);
-        default:
-            FatalError(sqlite3_mprintf("Unknown struct type %d", type));
-            return nullptr;
+    auto layoutSize = 0;
+
+    auto layout =
+        ksqlite_struct_layout_allocate(static_cast<ksqlite_struct_type>(type), &layoutSize);
+
+    if (layout == nullptr) {
+        FatalError(sqlite3_mprintf("Memory error or unknown struct type %d", type));
     }
+
+    // Ensure enough memory is allocated for subclassed types
+    if (type == Sqlite3Module) {
+        layout[layoutSize - 1] = sizeof(Module);
+    } else if (type == Sqlite3Vtab) {
+        layout[layoutSize - 1] = sizeof(Vtab);
+    }
+
+    const auto jLayout = env->NewIntArray(layoutSize);
+
+    env->SetIntArrayRegion(jLayout, 0, layoutSize, layout);
+    ksqlite_struct_layout_free(layout);
+
+    return jLayout;
 }
 
 extern "C"
@@ -2622,8 +2538,8 @@ Java_ksqlite_foreign_KsqliteJni_ksqlite_1auto_1extension(
 
     auto rc = SQLITE_OK;
 
-    MutexEnter(KHS);
-    auto& hook = KHS.autoExtension;
+    MutexEnter(KGH);
+    auto& hook = KGH.autoExtension;
 
     if (hook.instance != nullptr) {
         if (!env->IsSameObject(callback, hook.instance)) {
@@ -2642,7 +2558,7 @@ Java_ksqlite_foreign_KsqliteJni_ksqlite_1auto_1extension(
         }
     }
 
-    MutexLeave(KHS);
+    MutexLeave(KGH);
     return rc;
 }
 
@@ -2655,8 +2571,8 @@ Java_ksqlite_foreign_KsqliteJni_ksqlite_1cancel_1auto_1extension(
 ) {
     auto rc = SQLITE_OK;
 
-    MutexEnter(KHS);
-    auto& hook = KHS.autoExtension;
+    MutexEnter(KGH);
+    auto& hook = KGH.autoExtension;
 
     if (hook.instance != nullptr && env->IsSameObject(callback, hook.instance)) {
         rc = ksqlite_cancel_auto_extension(autoExtensionCaller);
@@ -2666,7 +2582,7 @@ Java_ksqlite_foreign_KsqliteJni_ksqlite_1cancel_1auto_1extension(
         }
     }
 
-    MutexLeave(KHS);
+    MutexLeave(KGH);
     return rc;
 }
 
@@ -3093,7 +3009,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1blob_1open(
     jstring databaseName,
     jstring tableName,
     jstring columnName,
-    jlong rowIndex,
+    jlong rowid,
     jint flags,
     jobject outBlob
 ) {
@@ -3103,7 +3019,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1blob_1open(
     const auto zColumn = JstringToUtf8(columnName);
 
     OutputPointerEnterPointer(sqlite3_blob*, outBlob);
-    const auto rc = sqlite3_blob_open(pDb, zDb, zTable, zColumn, rowIndex, flags, outBlob_);
+    const auto rc = sqlite3_blob_open(pDb, zDb, zTable, zColumn, rowid, flags, outBlob_);
     OutputPointerLeavePointer(outBlob);
 
     sqlite3_free(zDb);
@@ -3144,9 +3060,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1blob_1reopen(
     JNIEnv* env,
     jclass clazz,
     jlong blob,
-    jlong rowIndex
+    jlong rowid
 ) {
-    return sqlite3_blob_reopen(LongTo_s3_blob(blob), rowIndex);
+    return sqlite3_blob_reopen(LongTo_s3_blob(blob), rowid);
 }
 
 extern "C"
@@ -3576,10 +3492,7 @@ static void configLogCaller(
     JniEnvDeclare();
     const auto message = Utf8ToJstring(z);
 
-    HookEnter(K.hooks, K.hooks.log);
-    env->CallVoidMethod(instance, apply, errCode, message);
-    HookLeave();
-
+    env->CallVoidMethod(KCH.log.instance, KCH.log.apply, errCode, message);
     LocalRefDestroy(message);
 }
 
@@ -3593,13 +3506,11 @@ static void configSqlLogCaller(
     int op
 ) {
     JniEnvDeclare();
+
     const auto db = PtrToLong(pDb);
     const auto message = Utf8ToJstring(z);
 
-    HookEnter(K.hooks, K.hooks.sqlLog);
-    env->CallVoidMethod(instance, apply, db, message, op);
-    HookLeave();
-
+    env->CallVoidMethod(KCH.sqlLog.instance, KCH.sqlLog.apply, db, message, op);
     LocalRefDestroy(message);
 }
 
@@ -3671,7 +3582,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
             ArrayLengthEnsure(args, 2);
             const auto callback = ArrayObjectGet(args, 0, KK.configLogCallback);
 
-            GlobalHookReplaceRC(
+            ConfigHookReplace(
                 log,
                 "(ILjava/lang/String;)V",
                 "ConfigLogCallback",
@@ -3685,7 +3596,7 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1config(
             ArrayLengthEnsure(args, 2);
             const auto callback = ArrayObjectGet(args, 0, KK.configSqlLogCallback);
 
-            GlobalHookReplaceRC(
+            ConfigHookReplace(
                 sqlLog,
                 "(JLjava/lang/String;I)V",
                 "ConfigSqlLogCallback",
@@ -4617,7 +4528,14 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1initialize(
     JNIEnv* env,
     jclass clazz
 ) {
-    return sqlite3_initialize();
+    const auto result = sqlite3_initialize();
+
+    if (result == SQLITE_OK) {
+        initializeMutexes(env);
+        K.initialized = true;
+    }
+
+    return result;
 }
 
 extern "C"
@@ -5165,15 +5083,15 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1reset_1auto_1extension(
     JNIEnv* env,
     jclass clazz
 ) {
-    MutexEnter(KHS);
-    auto& hook = KHS.autoExtension;
+    MutexEnter(KGH);
+    auto& hook = KGH.autoExtension;
 
     if (hook.instance != nullptr) {
         sqlite3_reset_auto_extension();
         HookClear(hook);
     }
 
-    MutexLeave(KHS);
+    MutexLeave(KGH);
 }
 
 extern "C"
@@ -5528,9 +5446,9 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1set_1last_1insert_1rowid(
     JNIEnv* env,
     jclass clazz,
     jlong db,
-    jlong rowId
+    jlong rowid
 ) {
-    sqlite3_set_last_insert_rowid(LongTo_s3(db), rowId);
+    sqlite3_set_last_insert_rowid(LongTo_s3(db), rowid);
 }
 
 extern "C"
@@ -5539,6 +5457,11 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1shutdown(
     JNIEnv* env,
     jclass clazz
 ) {
+    if (K.initialized) {
+        deinitializeMutexes(env);
+        K.initialized = false;
+    }
+
     return sqlite3_shutdown();
 }
 
@@ -5949,7 +5872,7 @@ static void updateHookCaller(
     int op,
     char const* zDb,
     char const* zName,
-    sqlite3_int64 rowId
+    sqlite3_int64 rowid
 ) {
     JniEnvDeclare();
     DbStateDeclareDirect(pDbStateHook);
@@ -5958,7 +5881,7 @@ static void updateHookCaller(
     const auto dbTable = Utf8ToJstring(zName);
 
     HookEnterDbState(updateHook);
-    env->CallVoidMethod(instance, apply, op, dbName, dbTable, rowId);
+    env->CallVoidMethod(instance, apply, op, dbName, dbTable, rowid);
     HookLeave();
 
     LocalRefDestroy(dbName);
@@ -6480,6 +6403,428 @@ Java_ksqlite_foreign_KsqliteJni_sqlite3_1wal_1hook(
         sqlite3_wal_hook(pDb, walHookCaller, pDbState),
         sqlite3_wal_hook(pDb, nullptr, nullptr)
     );
+}
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite Multiple Ciphers 1 to 1 mapping
+///////////////////////////////////////////////////////////////////////////
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1cipher_1count(
+    JNIEnv* env,
+    jclass clazz
+) {
+    return sqlite3mc_cipher_count();
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1cipher_1index(
+    JNIEnv* env,
+    jclass clazz,
+    jstring cipherName
+) {
+    ReturnWithString(cipherName, sqlite3mc_cipher_index(cipherName_));
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1cipher_1name(
+    JNIEnv* env,
+    jclass clazz,
+    jint index
+) {
+    constexpr auto cipherNameMaxLength = 32;
+    const auto zName = reinterpret_cast<char*>(sqlite3_malloc(cipherNameMaxLength));
+    const auto rc = sqlite3mc_cipher_name_copy(index, zName, cipherNameMaxLength);
+    jstring name = nullptr;
+
+    if (rc == 1) {
+        name = Utf8ToJstring(zName);
+    }
+
+    sqlite3_free(zName);
+    return name;
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1codec_1data(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring schemaName,
+    jstring paramName
+) {
+    ReturnWithStrings(
+        schemaName,
+        paramName,
+        PtrToLong(sqlite3mc_codec_data(LongTo_s3(db), schemaName_, paramName_))
+    );
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1config(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring paramName,
+    jint newValue
+) {
+    ReturnWithString(paramName, sqlite3mc_config(LongTo_s3(db), paramName_, newValue));
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1config_1cipher(
+    JNIEnv* env,
+    jclass clazz,
+    jlong db,
+    jstring cipherName,
+    jstring paramName,
+    jint newValue
+) {
+    ReturnWithStrings(
+        cipherName,
+        paramName,
+        sqlite3mc_config_cipher(LongTo_s3(db), cipherName_, paramName_, newValue)
+    );
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1register_1cipher(
+    JNIEnv* env,
+    jclass clazz,
+    jlong descriptor,
+    jlong params,
+    jint makeDefault
+) {
+    const auto pDescriptor = LongToCipherDescriptor(descriptor);
+    const auto pParams = LongToCipherParams(params);
+
+    return sqlite3mc_register_cipher(pDescriptor, pParams, makeDefault);
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1version(
+    JNIEnv* env,
+    jclass clazz
+) {
+    return Utf8ToJstring(sqlite3mc_version());
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1vfs_1create(
+    JNIEnv* env,
+    jclass clazz,
+    jstring realName,
+    jint makeDefault
+) {
+    ReturnWithString(realName, sqlite3mc_vfs_create(realName_, makeDefault));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1vfs_1destroy(
+    JNIEnv* env,
+    jclass clazz,
+    jstring name
+) {
+    WithString(name, sqlite3mc_vfs_destroy(name_));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_foreign_KsqliteJni_sqlite3mc_1vfs_1shutdown(
+    JNIEnv* env,
+    jclass clazz
+) {
+    sqlite3mc_vfs_shutdown();
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.allocateCipher` hook with the given index.
+ */
+static void* callCipherDescriptorAllocateCipher(
+    sqlite3* pDb,
+    int index
+) {
+    JniEnvDeclare();
+
+    const auto callbacks = RequireNonNullJobject(K.dynamicCiphers[index]);
+    const auto db = PtrToLong(pDb);
+    const auto instance = env->CallObjectMethod(callbacks, KKCC.allocateCipher, db, index);
+
+    if (instance == nullptr) {
+        return nullptr;
+    }
+
+    const auto dynamicCipher = new DynamicCipher {
+        .instance = GlobalRefCreate(instance),
+        .callbacks = callbacks
+    };
+
+    env->DeleteLocalRef(instance);
+    return dynamicCipher;
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.allocateCipher` hook with the index `0`.
+ */
+static void* cipherDescriptorAllocateCipherCaller0(sqlite3* pDb) {
+    return callCipherDescriptorAllocateCipher(pDb, 0);
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.allocateCipher` hook with the index `1`.
+ */
+static void* cipherDescriptorAllocateCipherCaller1(sqlite3* pDb) {
+    return callCipherDescriptorAllocateCipher(pDb, 1);
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.allocateCipher` hook with the index `2`.
+ */
+static void* cipherDescriptorAllocateCipherCaller2(sqlite3* pDb) {
+    return callCipherDescriptorAllocateCipher(pDb, 2);
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.allocateCipher` hook with the index `3`.
+ */
+static void* cipherDescriptorAllocateCipherCaller3(sqlite3* pDb) {
+    return callCipherDescriptorAllocateCipher(pDb, 3);
+}
+
+#define CipherDeclare(P) const auto CONCAT(j, P) = reinterpret_cast<DynamicCipher*>(P)
+
+/**
+ * Calls the `CipherDescriptorCallbacks.freeCipher` hook.
+ */
+static void cipherDescriptorFreeCipherCaller(void* cipher) {
+    JniEnvDeclare();
+    CipherDeclare(cipher);
+
+    env->CallVoidMethod(jcipher->callbacks, KKCC.freeCipher, jcipher->instance);
+    GlobalRefDestroy(jcipher->instance);
+    delete jcipher;
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.cloneCipher` hook.
+ */
+static void cipherDescriptorCloneCipherCaller(
+    void* cipherTo,
+    void* cipherFrom
+) {
+    JniEnvDeclare();
+    CipherDeclare(cipherTo);
+    CipherDeclare(cipherFrom);
+
+    env->CallVoidMethod(
+        jcipherTo->callbacks,
+        KKCC.cloneCipher,
+        jcipherTo->instance,
+        jcipherFrom->instance
+    );
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.getLegacy` hook.
+ */
+static int cipherDescriptorGetLegacyCaller(void* cipher) {
+    JniEnvDeclare();
+    CipherDeclare(cipher);
+
+    return env->CallIntMethod(jcipher->callbacks, KKCC.getLegacy, jcipher->instance);
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.getPageSize` hook.
+ */
+static int cipherDescriptorGetPageSizeCaller(void* cipher) {
+    JniEnvDeclare();
+    CipherDeclare(cipher);
+
+    return env->CallIntMethod(jcipher->callbacks, KKCC.getPageSize, jcipher->instance);
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.getReserved` hook.
+ */
+static int cipherDescriptorGetReservedCaller(void* cipher) {
+    JniEnvDeclare();
+    CipherDeclare(cipher);
+
+    return env->CallIntMethod(jcipher->callbacks, KKCC.getReserved, jcipher->instance);
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.getSalt` hook.
+ */
+static unsigned char* cipherDescriptorGetSaltCaller(void* cipher) {
+    JniEnvDeclare();
+    CipherDeclare(cipher);
+
+    const auto salt = env->CallLongMethod(jcipher->callbacks, KKCC.getSalt, jcipher->instance);
+    const auto pSalt = reinterpret_cast<unsigned char*>(LongToPtr(salt));
+
+    return pSalt;
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.generateKey` hook.
+ */
+static void cipherDescriptorGenerateKeyCaller(
+    void* cipher,
+    char* userPassword,
+    int passwordLength,
+    int rekey,
+    unsigned char* cipherSalt // NOLINT(*-non-const-parameter)
+) {
+    JniEnvDeclare();
+    CipherDeclare(cipher);
+
+    const auto jUserPassword = BufferToByteArray(userPassword, passwordLength);
+    const auto jCipherSalt = PtrToLong(cipherSalt);
+
+    env->CallVoidMethod(
+        jcipher->callbacks,
+        KKCC.generateKey,
+        jcipher->instance,
+        jUserPassword,
+        rekey,
+        jCipherSalt
+    );
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.encryptPage` hook.
+ */
+static int cipherDescriptorEncryptPageCaller(
+    void* cipher,
+    int page,
+    unsigned char* data, // NOLINT(*-non-const-parameter)
+    int len,
+    int reserved
+) {
+    JniEnvDeclare();
+    CipherDeclare(cipher);
+
+    const auto jData = PtrToLong(data);
+
+    return env->CallIntMethod(
+        jcipher->callbacks,
+        KKCC.encryptPage,
+        jcipher->instance,
+        page,
+        jData,
+        len,
+        reserved
+    );
+}
+
+/**
+ * Calls the `CipherDescriptorCallbacks.decryptPage` hook.
+ */
+static int cipherDescriptorDecryptPageCaller(
+    void* cipher,
+    int page,
+    unsigned char* data, // NOLINT(*-non-const-parameter)
+    int len,
+    int reserved,
+    int hmacCheck
+) {
+    JniEnvDeclare();
+    CipherDeclare(cipher);
+
+    const auto jData = PtrToLong(data);
+
+    return env->CallIntMethod(
+        jcipher->callbacks,
+        KKCC.decryptPage,
+        jcipher->instance,
+        page,
+        jData,
+        len,
+        reserved,
+        hmacCheck
+    );
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_foreign_KsqliteJni_nativeCipherDescriptorInstall(
+    JNIEnv* env,
+    jclass clazz,
+    jlong descriptor,
+    jint index,
+    jobject callbacks
+) {
+    const auto pDescriptor = LongToCipherDescriptor(descriptor);
+
+    switch (index) {
+        case 0:
+            pDescriptor->m_allocateCipher = cipherDescriptorAllocateCipherCaller0;
+            break;
+        case 1:
+            pDescriptor->m_allocateCipher = cipherDescriptorAllocateCipherCaller1;
+            break;
+        case 2:
+            pDescriptor->m_allocateCipher = cipherDescriptorAllocateCipherCaller2;
+            break;
+        case 3:
+            pDescriptor->m_allocateCipher = cipherDescriptorAllocateCipherCaller3;
+            break;
+        default:
+            return DynamicCipherBadRangeFatalError(index);
+    }
+
+    pDescriptor->m_freeCipher = cipherDescriptorFreeCipherCaller;
+    pDescriptor->m_cloneCipher = cipherDescriptorCloneCipherCaller;
+    pDescriptor->m_getLegacy = cipherDescriptorGetLegacyCaller;
+    pDescriptor->m_getPageSize = cipherDescriptorGetPageSizeCaller;
+    pDescriptor->m_getReserved = cipherDescriptorGetReservedCaller;
+    pDescriptor->m_getSalt = cipherDescriptorGetSaltCaller;
+    pDescriptor->m_generateKey = cipherDescriptorGenerateKeyCaller;
+    pDescriptor->m_encryptPage = cipherDescriptorEncryptPageCaller;
+    pDescriptor->m_decryptPage = cipherDescriptorDecryptPageCaller;
+
+    auto& slot = K.dynamicCiphers[index];
+    RequireNull(slot);
+    slot = GlobalRefCreate(callbacks);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_ksqlite_foreign_KsqliteJni_nativeCipherDescriptorUninstall(
+    JNIEnv* env,
+    jclass clazz,
+    jlong descriptor,
+    jint index
+) {
+    auto& slot = K.dynamicCiphers[index];
+    RequireNonNull(slot);
+    GlobalRefDestroy(slot);
+    slot = nullptr;
+
+    const auto pDescriptor = LongToCipherDescriptor(descriptor);
+
+    pDescriptor->m_allocateCipher = nullptr;
+    pDescriptor->m_freeCipher = nullptr;
+    pDescriptor->m_cloneCipher = nullptr;
+    pDescriptor->m_getLegacy = nullptr;
+    pDescriptor->m_getPageSize = nullptr;
+    pDescriptor->m_getReserved = nullptr;
+    pDescriptor->m_getSalt = nullptr;
+    pDescriptor->m_generateKey = nullptr;
+    pDescriptor->m_encryptPage = nullptr;
+    pDescriptor->m_decryptPage = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////

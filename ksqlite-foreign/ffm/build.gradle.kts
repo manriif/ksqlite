@@ -67,9 +67,9 @@ val javaBindings = komple.projects.kotlinSqlite.jextract.bindingGenerators.regis
     options {
         headerClassName = SQLITE3
         includeConstants = SqliteConstants
-        includeFunctions = KsqliteFunctions + sqliteFunctions(true)
-        includeStructs = SqliteStructs
-        includeTypedefs = KsqliteTypedefs
+        includeFunctions = KsqliteFunctions + sqliteFunctions(true) + sqliteMcFunctions(true)
+        includeStructs = SqliteStructs + SqliteMcStructs
+        includeTypedefs = KsqliteTypedefs + SqliteMcTypedefs
     }
 }
 

@@ -15,6 +15,8 @@
  */
 package ksqlite.foreign.callbacks
 
+import ksqlite.foreign.JniPointer
+
 /**
  * Callback for use with [ksqlite.foreign.sqlite3_trace_v2].
  */
@@ -28,7 +30,7 @@ public fun interface TraceCallback {
      */
     public fun apply(
         code: Int,
-        pPointer: Long,
+        pPointer: JniPointer,
         xPointer: Any?
     ): Int
 }

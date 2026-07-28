@@ -24,8 +24,7 @@ import ksqlite.capi.memory.notNull
 public actual class sqlite3_module<AppData> internal actual constructor(
     version: Int,
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>
-) : ClosableStruct(s3_module.layout()),
-    AutoCloseable {
+) : ClosableStruct(s3_module.layout(), null, Application) {
 
     init {
         s3_module.iVersion(pointer, version)

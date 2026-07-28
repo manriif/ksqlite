@@ -29,7 +29,7 @@ import ksqlite.types.vtab.SqliteVtab
 
 public actual open class sqlite3_vtab
 private constructor(override val pointer: CPointer<s3_vtab>) :
-    ClosableStruct(pointer),
+    ClosableStruct(pointer, Application),
     MemoryScope,
     SqliteVtab {
 

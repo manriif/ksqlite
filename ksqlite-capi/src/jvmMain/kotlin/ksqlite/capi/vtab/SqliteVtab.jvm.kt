@@ -26,7 +26,7 @@ import ksqlite.foreign.sqlite3
 import ksqlite.types.vtab.SqliteVtab
 
 public actual open class sqlite3_vtab public actual constructor() :
-    ClosableStruct(s3_vtab.layout()),
+    ClosableStruct(s3_vtab.layout(), null, Application),
     MemoryScope,
     SqliteVtab {
 

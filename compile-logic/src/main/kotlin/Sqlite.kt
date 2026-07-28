@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-///////////////////////////////////////////////////////////////////////////
-// Constants
-///////////////////////////////////////////////////////////////////////////
-
 /**
  * Name of the SQLite product.
  * It is the name of the SQLite C header file, C source file and code source function prefix.
@@ -47,18 +43,44 @@ const val SQLITE_VERSION_FILE = "VERSION"
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns a new list with all items prefixed with [SQLITE3] and [joint].
+ * Returns a new list with all items prefixed with [prefix] and [separator].
  */
-fun Iterable<String>.sqlitePrefixed(joint: Char = '_'): List<String> {
-    return map { "${SQLITE3}${joint}${it}" }
-}
+private fun Iterable<String>.prefixed(
+    prefix: String,
+    separator: Char = '_'
+): List<String> = map { "${prefix}${separator}${it}" }
 
 /**
- * Returns a new map with all keys prefixed with [SQLITE3] and [joint].
+ * Returns a new list with all items prefixed with [SQLITE3] and [separator].
  */
-fun <T> Map<String, T>.sqlitePrefixed(joint: Char = '_'): Map<String, T> {
-    return mapKeys { "${SQLITE3}${joint}${it.key}" }
-}
+fun Iterable<String>.sqlitePrefixed(separator: Char = '_'): List<String> =
+    prefixed(SQLITE3, separator)
+
+/**
+ * Returns a new list with all items prefixed with [SQLITE3MC] and [separator].
+ */
+fun Iterable<String>.sqliteMcPrefixed(separator: Char = '_'): List<String> =
+    prefixed(SQLITE3MC, separator)
+
+/**
+ * Returns a new map with all keys prefixed with [prefix] and [separator].
+ */
+private fun <T> Map<String, T>.prefixed(
+    prefix: String,
+    separator: Char = '_'
+): Map<String, T> = mapKeys { "${prefix}${separator}${it.key}" }
+
+/**
+ * Returns a new map with all keys prefixed with [SQLITE3] and [separator].
+ */
+fun <T> Map<String, T>.sqlitePrefixed(separator: Char = '_'): Map<String, T> =
+    prefixed(SQLITE3, separator)
+
+/**
+ * Returns a new map with all keys prefixed with [SQLITE3MC] and [separator].
+ */
+fun <T> Map<String, T>.sqliteMcPrefixed(separator: Char = '_'): Map<String, T> =
+    prefixed(SQLITE3MC, separator)
 
 ///////////////////////////////////////////////////////////////////////////
 // Compilation
@@ -128,7 +150,7 @@ val SqliteConstants = listOf(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Structs that must be exported.
+ * SQLite structs that must be exported.
  */
 val SqliteStructs = listOf(
     "file",
@@ -139,6 +161,34 @@ val SqliteStructs = listOf(
     "vtab",
     "vtab_cursor"
 ).sqlitePrefixed()
+
+/**
+ * SQLite Multiple Ciphers structs that must be exported.
+ */
+val SqliteMcStructs = listOf(
+    "_CipherDescriptor",
+    "_CipherParams",
+)
+
+///////////////////////////////////////////////////////////////////////////
+// Typedefs
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * List of typedefs exposed by SQLite3 Multiple Ciphers.
+ */
+val SqliteMcTypedefs = listOf(
+    "AllocateCipher_t",
+    "FreeCipher_t",
+    "CloneCipher_t",
+    "GetLegacy_t",
+    "GetPageSize_t",
+    "GetReserved_t",
+    "GetSalt_t",
+    "GenerateKey_t",
+    "EncryptPage_t",
+    "DecryptPage_t"
+)
 
 ///////////////////////////////////////////////////////////////////////////
 // Functions
@@ -529,6 +579,35 @@ private val SqliteFunctions = mapOf(
  * are returned.
  */
 fun sqliteFunctions(enabled: Boolean): List<String> = SqliteFunctions
+    .filter { it.value == enabled }
+    .keys
+    .toList()
+
+/**
+ * SQLite3 Multiple Ciphers functions with their enabled state.
+ */
+private val SqliteMcFunctions = mapOf(
+    "version" to true,
+    "config" to true,
+    "config_cipher" to true,
+    "codec_data" to true,
+    "cipher_count" to true,
+    "cipher_index" to true,
+    "cipher_name" to false,
+    "cipher_name_copy" to true,
+    "register_cipher" to true,
+    "vfs_create" to true,
+    "vfs_destroy" to true,
+    "vfs_shutdown" to true,
+    "checkVfs" to false,
+).sqliteMcPrefixed()
+
+/**
+ * Returns a list of SQLite Multiple Ciphers functions. If [enabled] is `true` then only the
+ * functions which are enabled (available in the public Ksqlite C-API) are returned, otherwise those
+ * who are excluded are returned.
+ */
+fun sqliteMcFunctions(enabled: Boolean): List<String> = SqliteMcFunctions
     .filter { it.value == enabled }
     .keys
     .toList()

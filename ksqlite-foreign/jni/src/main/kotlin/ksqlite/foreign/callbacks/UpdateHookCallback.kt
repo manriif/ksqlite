@@ -27,6 +27,6 @@ public fun interface UpdateHookCallback {
         opId: Int,
         dbName: String,
         tableName: String,
-        rowId: Long
+        rowid: Long
     )
 }

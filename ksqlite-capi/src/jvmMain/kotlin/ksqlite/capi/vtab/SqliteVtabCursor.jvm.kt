@@ -21,5 +21,5 @@ import ksqlite.capi.memory.ClosableStruct
 import ksqlite.types.vtab.SqliteVtabCursor
 
 public actual open class sqlite3_vtab_cursor public actual constructor() :
-    ClosableStruct(s3_vtab_cursor.layout()),
+    ClosableStruct(s3_vtab_cursor.layout(), null, Application),
     SqliteVtabCursor

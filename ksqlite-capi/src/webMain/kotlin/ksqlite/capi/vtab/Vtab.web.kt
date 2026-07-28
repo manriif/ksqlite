@@ -17,7 +17,6 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.capi
 import ksqlite.capi.createFunction
 import ksqlite.capi.handlers.FunctionFuncHandler
 import ksqlite.capi.memory.memory
@@ -34,11 +33,12 @@ import ksqlite.capi.sqlite3_mprintf
 import ksqlite.capi.sqlite3_value
 import ksqlite.capi.wasm
 import ksqlite.foreign.js.plus
-import ksqlite.foreign.structs.member
 import ksqlite.foreign.wasm.FunctionSignature
 import ksqlite.foreign.wasm.JsFunction
 import ksqlite.foreign.wasm.WasmPointer
 import ksqlite.foreign.wasm.installFunction
+import ksqlite.structs.StructType
+import ksqlite.structs.offsetOf
 import kotlin.js.toLong
 import ksqlite.foreign.wasm.FunctionSignature.Int32 as I32
 import ksqlite.foreign.wasm.FunctionSignature.Pointer as Ptr
@@ -59,15 +59,15 @@ internal typealias s3_vtab_cursor = ksqlite.foreign.structs.sqlite3_vtab_cursor
 /**
  * Offset of the pVtab member of [s3_vtab_cursor].
  */
-private val vTabCursorPVtabMemberCursor = capi.sqlite3_vtab_cursor.structInfo
-    .member(s3_vtab_cursor::pVtab)
-    .offset
+private val vTabCursorPVtabMemberCursorOffset by lazy {
+    StructType.Sqlite3VtabCursor.offsetOf(PVTAB)
+}
 
 /**
  * Returns the address of the pVtab member of [s3_vtab_cursor] in [cursor].
  */
 private fun vTabPointerAddressFromCursor(cursor: WasmPointer): Long =
-    wasm.peekPtr(cursor + vTabCursorPVtabMemberCursor).toLong()
+    wasm.peekPtr(cursor + vTabCursorPVtabMemberCursorOffset).toLong()
 
 ///////////////////////////////////////////////////////////////////////////
 // Handlers

@@ -15,16 +15,18 @@
  */
 package ksqlite.foreign.callbacks
 
+import ksqlite.foreign.JniPointer
+import ksqlite.foreign.JniPointerArray
 import ksqlite.foreign.OutputPointer
 
 /**
- * Regroups all the callback of the Virtual Table module interface.
+ * Regroups all the callbacks of the `sqlite3_module` interface.
  * All the functions are invoked from JNI.
  */
 public interface VtabModuleCallbacks {
 
     public fun create(
-        db: Long,
+        db: JniPointer,
         appData: Any?,
         arguments: Array<String>,
         outVtab: OutputPointer.OfPointer,
@@ -32,7 +34,7 @@ public interface VtabModuleCallbacks {
     ): Int
 
     public fun connect(
-        db: Long,
+        db: JniPointer,
         appData: Any?,
         arguments: Array<String>,
         outVtab: OutputPointer.OfPointer,
@@ -40,71 +42,71 @@ public interface VtabModuleCallbacks {
     ): Int
 
     public fun bestIndex(
-        vTab: Long,
-        info: Long
+        vTab: JniPointer,
+        info: JniPointer
     ): Int
 
-    public fun disconnect(vTab: Long): Int
+    public fun disconnect(vTab: JniPointer): Int
 
-    public fun destroy(vTab: Long): Int
+    public fun destroy(vTab: JniPointer): Int
 
     public fun open(
-        vTab: Long,
+        vTab: JniPointer,
         outCursor: OutputPointer.OfPointer
     ): Int
 
     public fun close(
-        vTab: Long,
-        cursor: Long
+        vTab: JniPointer,
+        cursor: JniPointer
     ): Int
 
     public fun filter(
-        vTab: Long,
-        cursor: Long,
+        vTab: JniPointer,
+        cursor: JniPointer,
         idxNum: Int,
         idxStr: String?,
-        argv: LongArray // [sqlite3_value]
+        argv: JniPointerArray // [sqlite3_value]
     ): Int
 
     public fun next(
-        vTab: Long,
-        cursor: Long
+        vTab: JniPointer,
+        cursor: JniPointer
     ): Int
 
     public fun eof(
-        vTab: Long,
-        cursor: Long
+        vTab: JniPointer,
+        cursor: JniPointer
     ): Int
 
     public fun column(
-        vTab: Long,
-        cursor: Long,
-        context: Long,
+        vTab: JniPointer,
+        cursor: JniPointer,
+        context: JniPointer,
         columnIndex: Int
     ): Int
 
     public fun rowid(
-        vTab: Long,
-        cursor: Long,
+        vTab: JniPointer,
+        cursor: JniPointer,
         outRowid: OutputPointer.OfInt64
     ): Int
 
     public fun update(
-        vTab: Long,
-        argv: LongArray, // [sqlite3_value]
+        vTab: JniPointer,
+        argv: JniPointerArray, // [sqlite3_value]
         outRowid: OutputPointer.OfInt64
     ): Int
 
-    public fun begin(vTab: Long): Int
+    public fun begin(vTab: JniPointer): Int
 
-    public fun sync(vTab: Long): Int
+    public fun sync(vTab: JniPointer): Int
 
-    public fun commit(vTab: Long): Int
+    public fun commit(vTab: JniPointer): Int
 
-    public fun rollback(vTab: Long): Int
+    public fun rollback(vTab: JniPointer): Int
 
     public fun findFunction(
-        vTab: Long,
+        vTab: JniPointer,
         argc: Int,
         name: String,
         outAppData: OutputPointer.OfObject<Any>,
@@ -113,27 +115,27 @@ public interface VtabModuleCallbacks {
     ): Int
 
     public fun rename(
-        vTab: Long,
+        vTab: JniPointer,
         newName: String
     ): Int
 
     public fun savepoint(
-        vTab: Long,
+        vTab: JniPointer,
         savepoint: Int
     ): Int
 
     public fun release(
-        vTab: Long,
+        vTab: JniPointer,
         savepoint: Int
     ): Int
 
     public fun rollbackTo(
-        vTab: Long,
+        vTab: JniPointer,
         savepoint: Int
     ): Int
 
     public fun integrity(
-        vTab: Long,
+        vTab: JniPointer,
         schema: String,
         tableName: String,
         flags: Int,

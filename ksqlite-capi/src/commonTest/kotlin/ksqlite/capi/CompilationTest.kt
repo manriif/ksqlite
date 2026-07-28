@@ -75,7 +75,7 @@ class CompilationTest {
         assertContains(options, "TEMP_STORE=2")
         assertContains(options, "USE_URI")
 
-        val omitAutoInitUsed = sqlite3_compileoption_used("OMIT_AUTOINIT")
-        assertEquals(1, omitAutoInitUsed)
+        val enabledColumnMetadata = sqlite3_compileoption_used("ENABLE_COLUMN_METADATA")
+        assertEquals(1, enabledColumnMetadata)
     }
 }

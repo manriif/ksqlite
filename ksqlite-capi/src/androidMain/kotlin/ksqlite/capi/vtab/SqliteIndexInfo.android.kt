@@ -17,10 +17,10 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.JniPointer
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
+import ksqlite.foreign.JniPointer
 import ksqlite.types.internal.convertVtabConstraintOperatorCode
 import ksqlite.types.vtab.SqliteIndexInfo
 import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
@@ -37,7 +37,7 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
     private val orderBys by lazy { Array(nConstraint, info::orderBy) }
 
     public actual override val colUsed: ULong
-        get() = info.colUsed.toULong()
+        get() = info.colUsed
 
     public actual override val nConstraint: Int
         get() = info.nConstraint
@@ -105,6 +105,6 @@ public actual class sqlite3_index_info private constructor(private val info: s3_
     }
 
     public actual override fun setConstraintUsageOmit(index: Int, omit: Int) {
-        constraintUsages[index].omit = omit.toByte()
+        constraintUsages[index].omit = omit.toUByte()
     }
 }

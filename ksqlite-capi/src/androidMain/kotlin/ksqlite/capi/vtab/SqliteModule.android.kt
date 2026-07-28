@@ -18,11 +18,12 @@
 package ksqlite.capi.vtab
 
 import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.PointerOwner.Application
 
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
     module: s3_module
-) : ClosableStruct(module),
+) : ClosableStruct(module, Application),
     AutoCloseable {
 
     internal actual constructor(
@@ -32,32 +33,25 @@ public actual class sqlite3_module<AppData> private constructor(
         callbacks,
         s3_module(
             callbacks = VtabModuleHandler,
-            callbackMask = callbacks.computeCallbackMask(),
-            eponymous = callbacks.moduleKind == SqliteModuleKind.Eponymous
+            eponymous = callbacks.moduleKind == SqliteModuleKind.Eponymous,
+            optionalCallbacks = buildSet {
+                callbacks.run {
+                    create?.let { add(XCREATE) }
+                    update?.let { add(XUPDATE) }
+                    begin?.let { add(XBEGIN) }
+                    sync?.let { add(XSYNC) }
+                    commit?.let { add(XCOMMIT) }
+                    rollback?.let { add(XROLLBACK) }
+                    findFunction?.let { add(XFINDFUNCTION) }
+                    rename?.let { add(XRENAME) }
+                    savepoint?.let { add(XSAVEPOINT) }
+                    release?.let { add(XRELEASE) }
+                    rollbackTo?.let { add(XROLLBACKTO) }
+                    integrity?.let { add(XINTEGRITY) }
+                }
+            }
         ).apply {
             iVersion = version
         }
     )
-}
-
-/**
- * Computes and returns a mask of optional callbacks that are enabled.
- */
-private fun VtabModuleCallbacks<*, *, *>.computeCallbackMask(): Int {
-    var mask = 0
-
-    create?.let { mask = 1.shl(s3_module.STRUCT_MEMBER_INDEX_XCREATE) }
-    update?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XUPDATE) }
-    begin?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XBEGIN) }
-    sync?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XSYNC) }
-    commit?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XCOMMIT) }
-    rollback?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XROLLBACK) }
-    findFunction?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XFINDFUNCTION) }
-    rename?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XRENAME) }
-    savepoint?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XSAVEPOINT) }
-    release?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XRELEASE) }
-    rollbackTo?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XROLLBACKTO) }
-    integrity?.let { mask = mask or 1.shl(s3_module.STRUCT_MEMBER_INDEX_XINTEGRITY) }
-
-    return mask
 }

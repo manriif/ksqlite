@@ -23,11 +23,6 @@ import kotlin.js.JsAny
 public external interface Sqlite3 : JsAny {
 
     /**
-     * The namespace for the C-style APIs.
-     */
-    public val capi: Sqlite3Capi
-
-    /**
      * WASM-specific utilities, abstracted to be independent of and configurable for use with,
      * arbitrary WASM runtime environments.
      */

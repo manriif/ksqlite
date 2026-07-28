@@ -211,26 +211,6 @@ internal fun String?.allocateUtf8Pointer(): WasmPointer =
     if (this == null) NullPtr else scope.allocateUtf8(this).pointer
 
 /**
- * Converts this list of Kotlin strings to C array of C strings, allocating memory for the array
- * and C strings with given [HeapAllocatorScope].
- */
-context(scope: HeapAllocatorScope)
-internal fun List<String?>.toCStringArray(): WasmPointer {
-    val pointerSize = scope.memory.sizeofIR(IR.Ptr)
-    val regionSize = pointerSize * size
-    val startAddress = scope.allocate(regionSize)
-
-    forEachIndexed { index, string ->
-        scope.memory.pokePtr(
-            address = startAddress + (index * pointerSize),
-            value = string.allocateUtf8Pointer()
-        )
-    }
-
-    return startAddress
-}
-
-/**
  * Runs given [block] providing allocation of memory which will be automatically disposed at the end
  * of this scope.
  */
@@ -398,6 +378,28 @@ internal fun WasmPointer.toStringArrayOrEmpty(
     memory: WasmMemory = wasm
 ): Array<String> = orNull?.toStringArray(count, memory) ?: emptyArray()
 
+/**
+ * Converts this list to an array of pointers to individually allocated structs (`const T**`),
+ * allocated using [scope]. Each element pointer is obtained through [transform].
+ */
+context(scope: HeapAllocatorScope)
+internal inline fun <T> List<T>.toCArray(
+    transform: HeapAllocatorScope.(T) -> WasmPointer
+): WasmPointer {
+    val pointerSize = scope.memory.sizeofIR(IR.Ptr)
+    val regionSize = pointerSize * size
+    val startAddress = scope.allocate(regionSize)
+
+    forEachIndexed { index, value ->
+        scope.memory.pokePtr(
+            address = startAddress + index * pointerSize,
+            value = scope.transform(value)
+        )
+    }
+
+    return startAddress
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Buffer
 ///////////////////////////////////////////////////////////////////////////
@@ -425,7 +427,7 @@ internal inline fun <R> bufferScoped(
 /**
  * Reads [size] bytes starting from this pointer and returns them as [ByteArray].
  */
-internal fun WasmPointer.readByteArray(
+internal fun WasmPointer.readBytes(
     size: Int,
     memory: WasmMemory = wasm
 ): ByteArray {
@@ -439,6 +441,13 @@ internal fun WasmPointer.readByteArray(
 ///////////////////////////////////////////////////////////////////////////
 // Strings
 ///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Converts this list of Kotlin strings to C array of C strings, allocating memory for the array
+ * and C strings with given [HeapAllocatorScope].
+ */
+context(scope: HeapAllocatorScope)
+internal fun List<String?>.toCStringArray(): WasmPointer = toCArray { it.allocateUtf8Pointer() }
 
 /**
  * Reads bytes from this pointer until NULL and then convert to string.

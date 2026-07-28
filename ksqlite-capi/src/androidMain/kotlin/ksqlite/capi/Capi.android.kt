@@ -37,6 +37,11 @@ import ksqlite.capi.callbacks.SqliteRollbackHookCallback
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.callbacks.SqliteWalHookCallback
+import ksqlite.capi.cipher.CipherAllocateCipherHandlers
+import ksqlite.capi.cipher.CipherDescriptor
+import ksqlite.capi.cipher.CipherParams
+import ksqlite.capi.cipher.SqliteMcCodecDataParam
+import ksqlite.capi.cipher.registerCipher
 import ksqlite.capi.handlers.AuthorizerHandler
 import ksqlite.capi.handlers.AutovacuumPagesHandler
 import ksqlite.capi.handlers.BusyHandlerHandler
@@ -62,6 +67,7 @@ import ksqlite.capi.handlers.destructorHandler
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
+import ksqlite.capi.memory.StructArray
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.orNull
@@ -95,11 +101,13 @@ import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqlitePrepareFlag
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteRuntimeLimit
+import ksqlite.types.SqliteSerializeFlag
 import ksqlite.types.SqliteStatementStatusCounter
 import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.SqliteTransactionState
+import ksqlite.types.cipher.SqliteMcCipher
 import ksqlite.types.internal.convertCompleteResult
 import ksqlite.types.internal.convertConflictResolutionMode
 import ksqlite.types.internal.convertDataType
@@ -197,7 +205,6 @@ import ksqlite.foreign.sqlite3_finalize as jni_sqlite3_finalize
 import ksqlite.foreign.sqlite3_free as jni_sqlite3_free
 import ksqlite.foreign.sqlite3_get_autocommit as jni_sqlite3_get_autocommit
 import ksqlite.foreign.sqlite3_hard_heap_limit64 as jni_sqlite3_hard_heap_limit64
-import ksqlite.foreign.sqlite3_initialize as jni_sqlite3_initialize
 import ksqlite.foreign.sqlite3_interrupt as jni_sqlite3_interrupt
 import ksqlite.foreign.sqlite3_is_interrupted as jni_sqlite3_is_interrupted
 import ksqlite.foreign.sqlite3_key as jni_sqlite3_key
@@ -257,7 +264,6 @@ import ksqlite.foreign.sqlite3_rollback_hook as jni_sqlite3_rollback_hook
 import ksqlite.foreign.sqlite3_set_authorizer as jni_sqlite3_set_authorizer
 import ksqlite.foreign.sqlite3_set_errmsg as jni_sqlite3_set_errmsg
 import ksqlite.foreign.sqlite3_set_last_insert_rowid as jni_sqlite3_set_last_insert_rowid
-import ksqlite.foreign.sqlite3_shutdown as jni_sqlite3_shutdown
 import ksqlite.foreign.sqlite3_snapshot_cmp as jni_sqlite3_snapshot_cmp
 import ksqlite.foreign.sqlite3_snapshot_free as jni_sqlite3_snapshot_free
 import ksqlite.foreign.sqlite3_snapshot_get as jni_sqlite3_snapshot_get
@@ -320,12 +326,42 @@ import ksqlite.foreign.sqlite3_wal_autocheckpoint as jni_sqlite3_wal_autocheckpo
 import ksqlite.foreign.sqlite3_wal_checkpoint as jni_sqlite3_wal_checkpoint
 import ksqlite.foreign.sqlite3_wal_checkpoint_v2 as jni_sqlite3_wal_checkpoint_v2
 import ksqlite.foreign.sqlite3_wal_hook as jni_sqlite3_wal_hook
+import ksqlite.foreign.sqlite3mc_cipher_count as jni_sqlite3mc_cipher_count
+import ksqlite.foreign.sqlite3mc_cipher_index as jni_sqlite3mc_cipher_index
+import ksqlite.foreign.sqlite3mc_cipher_name as jni_sqlite3mc_cipher_name
+import ksqlite.foreign.sqlite3mc_codec_data as jni_sqlite3mc_codec_data
+import ksqlite.foreign.sqlite3mc_register_cipher as jni_sqlite3mc_register_cipher
+import ksqlite.foreign.sqlite3mc_version as jni_sqlite3mc_version
+import ksqlite.foreign.sqlite3mc_vfs_create as jni_sqlite3mc_vfs_create
+import ksqlite.foreign.sqlite3mc_vfs_destroy as jni_sqlite3mc_vfs_destroy
+import ksqlite.foreign.sqlite3mc_vfs_shutdown as jni_sqlite3mc_vfs_shutdown
+import ksqlite.foreign.sqlite3_initialize as jni_sqlite3_initialize
+import ksqlite.foreign.sqlite3_shutdown as jni_sqlite3_shutdown
+import ksqlite.foreign.sqlite3_aggregate_context as jni_sqlite3_aggregate_context
+import ksqlite.foreign.sqlite3_column_buffer as jni_sqlite3_column_buffer
+import ksqlite.foreign.sqlite3_get_auxdata as jni_sqlite3_get_auxdata
+import ksqlite.foreign.sqlite3_serialize as jni_sqlite3_serialize
+import ksqlite.foreign.sqlite3_set_auxdata as jni_sqlite3_set_auxdata
+import ksqlite.foreign.sqlite3_user_data as jni_sqlite3_user_data
+import ksqlite.foreign.sqlite3_value_buffer as jni_sqlite3_value_buffer
+import ksqlite.foreign.sqlite3_value_pointer as jni_sqlite3_value_pointer
+import ksqlite.foreign.sqlite3mc_config as jni_sqlite3mc_config
+import ksqlite.foreign.sqlite3mc_config_cipher as jni_sqlite3mc_config_cipher
 
 /**
  * Loads the native library.
  */
 @Suppress("unused")
 private val nativeInit = run(::ksqliteLoadLibrary)
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite
+///////////////////////////////////////////////////////////////////////////
+
+internal actual fun sqlite3_aggregate_context_internal(
+    context: sqlite3_context,
+    create: Boolean
+): Long? = jni_sqlite3_aggregate_context(context.pointer, create).orNull
 
 public actual fun sqlite3_auto_extension(callback: SqliteAutoExtensionCallback): SqliteResultCode =
     autoExtensionRegister(callback) { jni_ksqlite_auto_extension(AutoExtensionHandler) }
@@ -581,6 +617,11 @@ public actual fun sqlite3_column_blob(
     stmt: sqlite3_stmt,
     index: Int
 ): ByteArray? = jni_sqlite3_column_blob(stmt.pointer, index)
+
+internal actual fun sqlite3_column_buffer_internal(
+    stmt: sqlite3_stmt,
+    index: Int
+): Buffer? = toBuffer { jni_sqlite3_column_buffer(stmt.pointer, index, it) }
 
 public actual fun sqlite3_column_bytes(
     stmt: sqlite3_stmt,
@@ -950,11 +991,13 @@ public actual fun sqlite3_free(buffer: Buffer): Unit =
 public actual fun sqlite3_get_autocommit(db: sqlite3): Int =
     jni_sqlite3_get_autocommit(db.pointer)
 
+internal actual fun sqlite3_get_auxdata_internal(context: sqlite3_context, index: Int): Long? =
+    jni_sqlite3_get_auxdata(context.pointer, index).orNull
+
 public actual fun sqlite3_hard_heap_limit64(limit: Long): Long =
     jni_sqlite3_hard_heap_limit64(limit)
 
-public actual fun sqlite3_initialize(): SqliteResultCode =
-    convertResultCode(jni_sqlite3_initialize())
+public actual fun sqlite3_initialize_internal(): Int = jni_sqlite3_initialize()
 
 public actual fun sqlite3_interrupt(db: sqlite3): Unit =
     jni_sqlite3_interrupt(db.pointer)
@@ -1298,6 +1341,18 @@ public actual fun <AppData> sqlite3_rollback_hook(
     )
 }
 
+public actual fun sqlite3_serialize_internal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer? = Buffer.from(
+    pointer = useParam(outSize) { sizePtr ->
+        jni_sqlite3_serialize(db.pointer, database, sizePtr!!, flags?.value ?: 0)
+    },
+    size = outSize.value
+)
+
 public actual fun <AppData> sqlite3_set_authorizer(
     db: sqlite3,
     appData: AppData,
@@ -1308,6 +1363,12 @@ public actual fun <AppData> sqlite3_set_authorizer(
         callbackHandler(callback, appData, ::AuthorizerHandler)
     )
 )
+
+internal actual fun sqlite3_set_auxdata_internal(
+    context: sqlite3_context,
+    index: Int,
+    destroy: SqliteDestroyCallback<Nothing?>
+): Long? = jni_sqlite3_set_auxdata(context.pointer, index, destructorHandler(null, destroy)).orNull
 
 public actual fun sqlite3_set_errmsg(
     db: sqlite3,
@@ -1321,8 +1382,7 @@ public actual fun sqlite3_set_last_insert_rowid(
     rowId: Long
 ): Unit = jni_sqlite3_set_last_insert_rowid(db.pointer, rowId)
 
-public actual fun sqlite3_shutdown(): SqliteResultCode =
-    convertResultCode(jni_sqlite3_shutdown())
+public actual fun sqlite3_shutdown_internal(): Int = jni_sqlite3_shutdown()
 
 public actual fun sqlite3_snapshot_cmp(
     snapshot1: sqlite3_snapshot,
@@ -1524,8 +1584,15 @@ public actual fun sqlite3_uri_parameter(
     parameter: String
 ): String? = jni_sqlite3_uri_parameter(fileName.pointer, parameter)
 
+@PublishedApi
+internal actual fun sqlite3_user_data_internal(context: sqlite3_context): ApplicationDefinedFunction<*>? =
+    jni_sqlite3_user_data(context.pointer) as? ApplicationDefinedFunction<*>
+
 public actual fun sqlite3_value_blob(value: sqlite3_value): ByteArray? =
     jni_sqlite3_value_blob(value.pointer)
+
+internal actual fun sqlite3_value_buffer_internal(value: sqlite3_value): Buffer? =
+    toBuffer { jni_sqlite3_value_buffer(value.pointer, it) }
 
 public actual fun sqlite3_value_bytes(value: sqlite3_value): Int =
     jni_sqlite3_value_bytes(value.pointer)
@@ -1556,6 +1623,12 @@ public actual fun sqlite3_value_nochange(value: sqlite3_value): Int =
 
 public actual fun sqlite3_value_numeric_type(value: sqlite3_value): SqliteDataType =
     convertDataType(jni_sqlite3_value_numeric_type(value.pointer))
+
+@PublishedApi
+internal actual fun sqlite3_value_pointer_internal(
+    value: sqlite3_value,
+    type: String?
+): Any? = jni_sqlite3_value_pointer(value.pointer, type)
 
 public actual fun sqlite3_value_subtype(value: sqlite3_value): UInt =
     jni_sqlite3_value_subtype(value.pointer).toUInt()
@@ -1653,3 +1726,72 @@ public actual fun <AppData> sqlite3_wal_hook(
 ) {
     val _ = jni_sqlite3_wal_hook(db.pointer, callbackHandler(callback, appData, ::WalHookHandler))
 }
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite Multiple Ciphers
+///////////////////////////////////////////////////////////////////////////
+
+public actual fun sqlite3mc_cipher_count(): Int = jni_sqlite3mc_cipher_count()
+
+public actual fun sqlite3mc_cipher_index(cipher: SqliteMcCipher): Int =
+    jni_sqlite3mc_cipher_index(cipher.name)
+
+public actual fun sqlite3mc_cipher_name(index: Int): String? = jni_sqlite3mc_cipher_name(index)
+
+public actual fun sqlite3mc_codec_data(
+    db: sqlite3,
+    database: String?,
+    param: SqliteMcCodecDataParam
+): Buffer? = Buffer.from(
+    pointer = jni_sqlite3mc_codec_data(
+        db.pointer,
+        database,
+        param.paramName
+    ),
+    size = param.bufferSize.toLong()
+)
+
+internal actual fun sqlite3mc_config_internal(
+    db: sqlite3?,
+    paramName: String,
+    newValue: Int
+): Int = jni_sqlite3mc_config(
+    db?.pointer.notNull,
+    paramName,
+    newValue
+)
+
+internal actual fun sqlite3mc_config_cipher_internal(
+    db: sqlite3?,
+    cipherName: String,
+    paramName: String,
+    newValue: Int
+): Int = jni_sqlite3mc_config_cipher(
+    db?.pointer.notNull,
+    cipherName,
+    paramName,
+    newValue
+)
+
+public actual fun sqlite3mc_register_cipher(
+    descriptor: CipherDescriptor,
+    params: StructArray<CipherParams>,
+    makeDefault: Int
+): SqliteResultCode = registerCipher(
+    callbacks = descriptor.callbacks,
+    allocators = CipherAllocateCipherHandlers,
+    setAllocator = descriptor::install
+) {
+    jni_sqlite3mc_register_cipher(descriptor.pointer, params.pointer, makeDefault)
+}
+
+public actual fun sqlite3mc_version(): String = jni_sqlite3mc_version()
+
+public actual fun sqlite3mc_vfs_create(
+    realName: String,
+    makeDefault: Int
+): SqliteResultCode = convertResultCode(jni_sqlite3mc_vfs_create(realName, makeDefault))
+
+public actual fun sqlite3mc_vfs_destroy(name: String): Unit = jni_sqlite3mc_vfs_destroy(name)
+
+public actual fun sqlite3mc_vfs_shutdown(): Unit = jni_sqlite3mc_vfs_shutdown()
