@@ -23,6 +23,7 @@ kotlin {
 
     sourceSets.webMain {
         dependencies {
+            api(projects.ksqliteStructs)
             api(libs.kotlin.wrappers.js)
         }
     }

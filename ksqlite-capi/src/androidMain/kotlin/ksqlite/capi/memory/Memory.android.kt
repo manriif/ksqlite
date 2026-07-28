@@ -15,16 +15,12 @@
  */
 package ksqlite.capi.memory
 
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.nativeReadString
 
 ///////////////////////////////////////////////////////////////////////////
 // Pointer
 ///////////////////////////////////////////////////////////////////////////
-
-/**
- * Alias to hte pointer type returned by JNI.
- */
-internal typealias JniPointer = Long
 
 /**
  * Alias to hte pointer type returned by JNI.

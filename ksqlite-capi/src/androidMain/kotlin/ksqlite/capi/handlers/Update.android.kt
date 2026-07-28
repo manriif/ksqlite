@@ -18,6 +18,7 @@ package ksqlite.capi.handlers
 import ksqlite.capi.callbacks.SqlitePreupdateHookCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.sqlite3
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.callbacks.PreupdateHookCallback
 import ksqlite.foreign.callbacks.UpdateHookCallback
 import ksqlite.types.internal.convertActionCode
@@ -30,7 +31,7 @@ internal class PreupdateHookHandler<AppData> :
     PreupdateHookCallback {
 
     override fun apply(
-        db: Long,
+        db: JniPointer,
         op: Int,
         dbName: String,
         dbTable: String,
@@ -60,14 +61,14 @@ internal class UpdateHookHandler<AppData> :
         opId: Int,
         dbName: String,
         tableName: String,
-        rowId: Long
+        rowid: Long
     ) = handle { callback, appData ->
         callback.apply(
             appData = appData,
             action = convertActionCode(opId),
             dbName = dbName,
             tableName = tableName,
-            rowid = rowId
+            rowid = rowid
         )
     }
 }

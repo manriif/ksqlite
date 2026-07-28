@@ -69,9 +69,10 @@ fun includeNested(vararg paths: String) {
     project(projectPath).name = paths.joinToString("-")
 }
 
-include(":ksqlite-gradle-plugin")
 include(":ksqlite-capi")
+include(":ksqlite-gradle-plugin")
 include(":ksqlite-kapi")
+include(":ksqlite-structs")
 include(":ksqlite-wasm-resources")
 includeNested("ksqlite-foreign", "cinterop")
 includeNested("ksqlite-foreign", "ffm")

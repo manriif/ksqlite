@@ -18,6 +18,7 @@ package ksqlite.capi.handlers
 import ksqlite.capi.callbacks.SqliteCollationCallback
 import ksqlite.capi.callbacks.SqliteCollationNeededCallback
 import ksqlite.capi.sqlite3
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.callbacks.CollationCallback
 import ksqlite.foreign.callbacks.CollationNeededCallback
 import ksqlite.types.internal.convertTextEncoding
@@ -50,7 +51,7 @@ internal class CollationNeededHandler<AppData> :
     CollationNeededCallback {
 
     override fun apply(
-        db: Long,
+        db: JniPointer,
         eTextRep: Int,
         name: String
     ) = handle { callback, appData ->

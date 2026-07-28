@@ -15,6 +15,7 @@
  */
 package ksqlite.capi.memory
 
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.nativeBufferRead
 import ksqlite.foreign.nativeBufferWrite
 
@@ -63,7 +64,7 @@ public actual class Buffer private constructor(
         /**
          * Returns a [Buffer] from [pointer] or `null` if [pointer] is `null`.
          */
-        fun from(pointer: Long, size: Long): Buffer? =
+        fun from(pointer: JniPointer, size: Long): Buffer? =
             pointer.orNull?.let { Buffer(pointer, size) }
     }
 }

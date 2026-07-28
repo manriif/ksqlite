@@ -92,10 +92,12 @@ internal val VtabConnectHandler = xConnect.allocate({ db, refPointer, argc, argv
 }, StaticMemoryAllocator)
 
 internal val VtabBestIndexHandler = xBestIndex.allocate({ vTab, info ->
-    vTabBestIndex(
-        vTab = vTab.address(),
-        info = sqlite3_index_info(info)
-    )
+    sqlite3_index_info(info).use { info ->
+        vTabBestIndex(
+            vTab = vTab.address(),
+            info = info
+        )
+    }
 }, StaticMemoryAllocator)
 
 internal val VtabDisconnectHandler = xDisconnect.allocate({ vTab ->

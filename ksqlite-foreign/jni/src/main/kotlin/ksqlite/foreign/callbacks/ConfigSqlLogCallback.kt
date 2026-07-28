@@ -15,6 +15,8 @@
  */
 package ksqlite.foreign.callbacks
 
+import ksqlite.foreign.JniPointer
+
 /**
  * Callback for use with the CONFIG_SQLLOG option of [ksqlite.foreign.sqlite3_config].
  */
@@ -24,7 +26,7 @@ public fun interface ConfigSqlLogCallback {
      * Invoked from JNI.
      */
     public fun apply(
-        db: Long,
+        db: JniPointer,
         message: String?,
         messageType: Int
     )

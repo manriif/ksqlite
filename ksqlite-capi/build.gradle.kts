@@ -32,6 +32,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(projects.ksqliteInternal.ksqliteInternalTest)
         }
 
         androidMain.dependencies {

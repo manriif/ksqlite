@@ -40,8 +40,8 @@ public sealed class OutputPointer<Value>(initialValue: Value) {
     /**
      * 64 bits pointer output parameter.
      */
-    public class OfPointer @JvmOverloads constructor(initialValue: Long = 0L) :
-        OutputPointer<Long>(initialValue)
+    public class OfPointer @JvmOverloads constructor(initialValue: JniPointer = 0L) :
+        OutputPointer<JniPointer>(initialValue)
 
     /**
      * String output parameter.

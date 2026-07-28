@@ -19,10 +19,6 @@ import org.gradle.api.Task
 import org.gradle.api.tasks.TaskContainer
 import org.gradle.kotlin.dsl.register
 
-///////////////////////////////////////////////////////////////////////////
-// Constants
-///////////////////////////////////////////////////////////////////////////
-
 /**
  * Name of the Kotlin SQLite library
  * It is the name of the library and ksqlite function prefix.
@@ -50,7 +46,9 @@ fun Iterable<String>.ksqlitePrefixed(joint: Char = '_'): List<String> {
 val KsqliteTypedefs = listOf(
     "xLog",
     "xSqllog",
-    "xEntryPoint"
+    "xEntryPoint",
+    "cipher_descriptor",
+    "cipher_params"
 ).ksqlitePrefixed()
 
 ///////////////////////////////////////////////////////////////////////////
@@ -65,6 +63,8 @@ val KsqliteFunctions = listOf(
     "cancel_auto_extension",
     "prepare_v2",
     "prepare_v3",
+    "struct_layout_allocate",
+    "struct_layout_free"
 ).ksqlitePrefixed()
 
 ///////////////////////////////////////////////////////////////////////////

@@ -26,13 +26,13 @@ import ksqlite.capi.vtab.SqliteModuleKind.Regular
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
     override val pointer: CPointer<s3_module>
-) : ClosableStruct(pointer),
+) : ClosableStruct(pointer, Application),
     AutoCloseable {
 
     internal actual constructor(
         version: Int,
         callbacks: VtabModuleCallbacks<AppData, *, *>
-    ) : this(callbacks, allocate<s3_module> {
+    ) : this(callbacks, allocate {
         iVersion = version
 
         xCreate = when (callbacks.moduleKind) {

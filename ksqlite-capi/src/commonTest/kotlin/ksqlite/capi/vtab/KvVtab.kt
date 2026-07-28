@@ -61,14 +61,8 @@ private const val IDX_POINT_LOOKUP = 1
  */
 internal class KvModuleRecorder {
     var createOrConnectCallCount = 0
-    var bestIndexCallCount = 0
     var lastConstraintCount = 0
-    var openCallCount = 0
-    var closeCallCount = 0
     var filterCallCount = 0
-    var nextCallCount = 0
-    var columnCallCount = 0
-    var rowidCallCount = 0
     var updateCallCount = 0
     var nochangeSeenCount = 0
     var lastConflictMode: SqliteConflictResolutionMode? = null
@@ -83,7 +77,6 @@ internal class KvModuleRecorder {
     val releaseCalls = mutableListOf<Int>()
     val rollbackToCalls = mutableListOf<Int>()
     var integrityCallCount = 0
-    var findFunctionCallCount = 0
     var findFunctionOfferedCount = 0
     var overloadCallCount = 0
     var overloadDestroyCalled = false
@@ -125,7 +118,6 @@ internal fun createKvTabModule(recorder: KvModuleRecorder): sqlite3_module<Int> 
         create = createOrConnect,
         connect = createOrConnect,
         bestIndex = { vTab, info ->
-            recorder.bestIndexCallCount++
             recorder.lastConstraintCount = info.nConstraint
 
             var pointLookupArgIndex = -1
@@ -165,12 +157,10 @@ internal fun createKvTabModule(recorder: KvModuleRecorder): sqlite3_module<Int> 
             OK
         },
         open = { vTab ->
-            recorder.openCallCount++
             success(KvCursor(vTab))
         },
         close = { cursor ->
             cursor.close()
-            recorder.closeCallCount++
             OK
         },
         filter = { cursor, idxNum, _, arguments ->
@@ -192,7 +182,6 @@ internal fun createKvTabModule(recorder: KvModuleRecorder): sqlite3_module<Int> 
             OK
         },
         next = { cursor ->
-            recorder.nextCallCount++
             cursor.position++
             OK
         },
@@ -200,7 +189,6 @@ internal fun createKvTabModule(recorder: KvModuleRecorder): sqlite3_module<Int> 
             if (cursor.position >= cursor.rowids.size) 1 else 0
         },
         column = { cursor, context, columnIndex ->
-            recorder.columnCallCount++
             val rowid = cursor.rowids[cursor.position]
 
             when (columnIndex) {
@@ -222,7 +210,6 @@ internal fun createKvTabModule(recorder: KvModuleRecorder): sqlite3_module<Int> 
             OK
         },
         rowid = { cursor ->
-            recorder.rowidCallCount++
             success(cursor.rowids[cursor.position])
         },
         update = { vTab, arguments ->
@@ -280,8 +267,6 @@ internal fun createKvTabModule(recorder: KvModuleRecorder): sqlite3_module<Int> 
             }
         },
         findFunction = { _, argumentCount, functionName ->
-            recorder.findFunctionCallCount++
-
             if (functionName == "tag" && argumentCount == 1) {
                 recorder.findFunctionOfferedCount++
 

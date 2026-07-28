@@ -27,6 +27,7 @@ import komple.exec.CommandExecutor
 import org.gradle.api.file.FileSystemOperations
 import replaceFiles
 import replacePrefix
+import sqliteMcFunctions
 import sqlitePrefixed
 import java.io.File
 
@@ -42,8 +43,8 @@ private const val KSQLITE_AMALGAMATION = "${KSQLITE}_amalgamation"
 private const val EXT_WASM_PATH = "ext/wasm"
 private const val GNU_MAKEFILE = "${EXT_WASM_PATH}/GNUmakefile"
 private const val EXT_WASM_API_PATH = "$EXT_WASM_PATH/api"
-private const val PRE_JS_CPP_JS = "$EXT_WASM_API_PATH/pre-js.c-pp.js"
 private const val POST_JS_FOOTER_JS = "$EXT_WASM_API_PATH/post-js-footer.js"
+private const val PRE_JS_CPP_JS = "$EXT_WASM_API_PATH/pre-js.c-pp.js"
 private const val EXPORTED_FUNCTIONS = "$EXT_WASM_API_PATH/EXPORTED_FUNCTIONS.c-pp"
 
 private const val SQLITE3_64BIT = "$SQLITE3-64bit"
@@ -62,7 +63,7 @@ private val WasmExtraResourceFileNames = listOf<String>(
  * Some aren't that meaningful to use in web platforms but are exported to align at maximum with
  * other platforms and avoid plenty of expect/actual.
  */
-private val WasmExtraExportedFunctions = KsqliteFunctions + listOf(
+private val WasmExtraExportedFunctions = KsqliteFunctions + sqliteMcFunctions(true) + listOf(
     "autovacuum_pages",
     "backup_finish",
     "backup_init",

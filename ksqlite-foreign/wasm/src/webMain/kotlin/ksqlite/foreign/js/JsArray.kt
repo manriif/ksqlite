@@ -67,6 +67,11 @@ public inline fun arraySize(array: Array<*>): Int = array.size
 public inline fun arraySize(array: ByteArray): Int = array.size
 
 /**
+ * [Array.iterator].
+ */
+public inline fun <T> arrayIterator(array: Array<T>): Iterator<T> = array.iterator()
+
+/**
  * [Array.forEachIndexed].
  */
 public inline fun <T> arrayForEachIndexed(

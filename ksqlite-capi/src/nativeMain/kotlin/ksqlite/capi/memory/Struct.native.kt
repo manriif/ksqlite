@@ -44,12 +44,16 @@ public actual open class Struct internal constructor(internal open val pointer: 
     }
 }
 
-public actual open class ClosableStruct internal constructor(pointer: COpaquePointer) :
-    Struct(pointer),
+public actual open class ClosableStruct internal constructor(
+    pointer: COpaquePointer,
+    private val owner: PointerOwner,
+) : Struct(pointer),
     AutoCloseable {
 
     public actual override fun close() {
-        sqlite3_free(pointer)
+        owner.handleClose {
+            sqlite3_free(pointer)
+        }
     }
 
     internal companion object {

@@ -35,7 +35,7 @@ internal val sqlite3_context.db: sqlite3
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Handles the [ksqlite.capi.sqlite3_clear_bindings].
+ * Handles the [sqlite3_clear_bindings].
  */
 internal fun commonClearBindings(stmt: sqlite3_stmt, result: Int): SqliteResultCode {
     if (result == SqliteResultCode.OK.code) {
@@ -141,7 +141,7 @@ private inline fun <Pointer : Any> commonGetByteArray(
 )
 
 /**
- * Handles the [ksqlite.capi.columnBufferInternal].
+ * Handles the [sqlite3_column_buffer_internal].
  */
 internal inline fun <Pointer : Any> commonColumnBuffer(
     stmt: sqlite3_stmt,
@@ -156,7 +156,7 @@ internal inline fun <Pointer : Any> commonColumnBuffer(
 )
 
 /**
- * Handles the [ksqlite.capi.sqlite3_column_blob].
+ * Handles the [sqlite3_column_blob].
  */
 internal inline fun <Pointer : Any> commonColumnByteArray(
     stmt: sqlite3_stmt,
@@ -171,7 +171,7 @@ internal inline fun <Pointer : Any> commonColumnByteArray(
 )
 
 /**
- * Handles the [ksqlite.capi.valueBufferInternal].
+ * Handles the [sqlite3_value_buffer_internal].
  */
 internal inline fun <Pointer : Any> commonValueBuffer(
     value: sqlite3_value,
@@ -185,7 +185,7 @@ internal inline fun <Pointer : Any> commonValueBuffer(
 )
 
 /**
- * Handles the [ksqlite.capi.sqlite3_value_blob].
+ * Handles the [sqlite3_value_blob].
  */
 internal inline fun <Pointer : Any> commonValueByteArray(
     value: sqlite3_value,
@@ -197,3 +197,34 @@ internal inline fun <Pointer : Any> commonValueByteArray(
     getSize = { sqlite3_value_bytes(value) },
     getType = { sqlite3_value_type(value) }
 )
+
+///////////////////////////////////////////////////////////////////////////
+// Cipher
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Maximum length, in bytes, of a cipher name (from `CIPHER_NAME_MAXLEN` in `sqlite3.c`).
+ */
+private const val CIPHER_NAME_MAX_LENGTH = 32
+
+/**
+ * Handles the [sqlite3mc_cipher_name].
+ */
+internal inline fun <Pointer: Any> commonCipherName(
+    allocate: (size: Int) -> Pointer?,
+    toString: (pointer: Pointer) -> String,
+    invoke: (name: Pointer, maxSize: Int) -> Int
+): String? {
+    val name = allocate(CIPHER_NAME_MAX_LENGTH) ?: return null
+    val result = invoke(name, CIPHER_NAME_MAX_LENGTH)
+
+    if (result == 1) {
+        return toString(name)
+    }
+
+    if (result < 0) {
+        error("Buffer too small to hold the cipher name: $result")
+    }
+
+    return null
+}

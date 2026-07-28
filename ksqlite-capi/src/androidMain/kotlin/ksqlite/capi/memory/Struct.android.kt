@@ -15,7 +15,9 @@
  */
 package ksqlite.capi.memory
 
-import ksqlite.foreign.structs.JniStruct
+import ksqlite.foreign.JniPointer
+
+private typealias JniStruct = ksqlite.structs.Struct<*, *, Long>
 
 public actual open class Struct internal constructor(internal val pointer: JniPointer) :
     StructBase() {
@@ -36,14 +38,12 @@ public actual open class Struct internal constructor(internal val pointer: JniPo
 }
 
 public actual open class ClosableStruct internal constructor(
-    pointer: JniPointer,
-    private val jniStruct: JniStruct?
-) : Struct(pointer),
+    private val jniStruct: JniStruct,
+    private val owner: PointerOwner
+) : Struct(jniStruct.pointer),
     AutoCloseable {
 
-    internal constructor(jniStruct: JniStruct) : this(jniStruct.pointer, jniStruct)
-
     public actual override fun close() {
-        jniStruct?.free()
+        owner.handleClose(jniStruct::free)
     }
 }

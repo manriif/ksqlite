@@ -17,12 +17,18 @@
 #define KSQLITE_H
 
 #ifndef __WASM__
+
 #include "sqlite3.h"
+
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+///////////////////////////////////////////////////////////////////////////
+// Constants
+///////////////////////////////////////////////////////////////////////////
 
 /**
  * Exposes the SQLITE_TRANSIENT macro as a constant so it can be referenced
@@ -31,17 +37,38 @@ extern "C" {
 __attribute__((unused))
 extern const sqlite3_destructor_type KSQLITE_TRANSIENT;
 
+///////////////////////////////////////////////////////////////////////////
+// Typedefs
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Holds the layout of a structure.
+ */
+typedef int* ksqlite_layout;
+
+/**
+ * Exposes the `CipherDescriptor` in a way some generator can handle it.
+ */
+__attribute__((unused))
+typedef struct _CipherDescriptor ksqlite_cipher_descriptor;
+
+/**
+ * Exposes the `CipherParams` in a way some generator can handle it.
+ */
+__attribute__((unused))
+typedef struct _CipherParams ksqlite_cipher_params;
+
 /**
  * Callback for SQLITE_CONFIG_LOG, exposed for binding generation.
  */
 __attribute__((unused))
-typedef void(*ksqlite_xLog)(void*,int,const char*);
+typedef void(* ksqlite_xLog)(void*, int, const char*);
 
 /**
  * Callback for SQLITE_CONFIG_SQLLOG, exposed for binding generation.
  */
 __attribute__((unused))
-typedef void(*ksqlite_xSqllog)(void*, sqlite3*, const char*, int);
+typedef void(* ksqlite_xSqllog)(void*, sqlite3*, const char*, int);
 
 /**
  * Callback expected by sqlite3_auto_extension() and sqlite3_cancel_auto_extension() with the
@@ -52,6 +79,57 @@ typedef int (* ksqlite_xEntryPoint)(
     char** pzErrMsg,
     const struct sqlite3_api_routines* pThunk
 );
+
+///////////////////////////////////////////////////////////////////////////
+// Layout
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Recognized struct types.
+ */
+enum ksqlite_struct_type : int {
+    Sqlite3IndexInfo = 0,
+    Sqlite3IndexConstraint = 1,
+    Sqlite3IndexConstraintUsage = 2,
+    Sqlite3IndexOrderby = 3,
+    Sqlite3Module = 4,
+    Sqlite3Vtab = 5,
+    Sqlite3VtabCursor = 6,
+    Sqlite3File = 7,
+    Sqlite3IoMethods = 8,
+    Sqlite3Vfs = 9,
+    KsqliteCipherDescriptor = 10,
+    KsqliteCipherParams = 11
+};
+
+/**
+ * Allocates and returns the layout of the struct identified by `structType`.
+ *
+ * For a struct member index M:
+ *
+ * - array[M*2] = offset
+ * - array[M*2+1] = length
+ *
+ * The struct's total size can be obtained by reading the last element of the returned array.
+ * The offset and length are written in the order they're declared in the C struct.
+ *
+ * The returned `ksqlite_layout` must be freed when no longer required by passing it to
+ * `ksqlite_struct_layout_free`.
+ */
+ksqlite_layout ksqlite_struct_layout_allocate(
+    enum ksqlite_struct_type structType,
+    int* layoutSize
+);
+
+/**
+ * Frees a `ksqlite_layout` instance previously obtained via `ksqlite_struct_layout_allocate`
+ * @param layout
+ */
+void ksqlite_struct_layout_free(ksqlite_layout layout);
+
+///////////////////////////////////////////////////////////////////////////
+// Functions
+///////////////////////////////////////////////////////////////////////////
 
 /**
  * Wrappers function around sqlite3_auto_extension() with accept the xEntryPoint parameter with the

@@ -98,7 +98,7 @@ internal class ApplicationDefinedFunction<AppData>(
      * was created yet.
      */
     fun getAggregateContextOrNull(context: sqlite3_context): Any? = getCachedInstance {
-        aggregateContextInternal(context, false)
+        sqlite3_aggregate_context_internal(context, false)
     }
 
     /**
@@ -111,7 +111,7 @@ internal class ApplicationDefinedFunction<AppData>(
         context: sqlite3_context,
         factory: () -> Any
     ): Any? {
-        val key = aggregateContextInternal(context, true) ?: return null // Out of memory
+        val key = sqlite3_aggregate_context_internal(context, true) ?: return null // Out of memory
 
         return identifiedInstances.computeIfAbsent(key) {
             factory()
@@ -129,7 +129,7 @@ internal class ApplicationDefinedFunction<AppData>(
         context: sqlite3_context,
         index: Int
     ): Any? = getCachedInstance {
-        getAuxdataInternal(context, index)
+        sqlite3_get_auxdata_internal(context, index)
     }
 
     /**
@@ -148,7 +148,7 @@ internal class ApplicationDefinedFunction<AppData>(
             key?.let(::uncacheInstance)
         }
 
-        key = setAuxdataInternal(context, index, destroyAndRemove) ?: return // Out of memory
+        key = sqlite3_set_auxdata_internal(context, index, destroyAndRemove) ?: return // Out of memory
         identifiedInstances[key] = instance
     }
 
@@ -190,7 +190,7 @@ internal class ApplicationDefinedFunction<AppData>(
     fun callFinal(context: sqlite3_context) {
         final!!.apply(appData, context)
 
-        aggregateContextInternal(context, false)
+        sqlite3_aggregate_context_internal(context, false)
             ?.let(::uncacheInstance)
     }
 }

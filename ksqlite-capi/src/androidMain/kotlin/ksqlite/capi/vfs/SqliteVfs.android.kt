@@ -21,9 +21,11 @@ import ksqlite.capi.memory.PointerOutputParam
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.memory.useParam
+import ksqlite.capi.memory.wrapOrNull
 import ksqlite.capi.vfs.callbacks.SqliteVfsAccessCallback
 import ksqlite.capi.vfs.callbacks.SqliteVfsDeleteCallback
 import ksqlite.capi.vfs.callbacks.SqliteVfsOpenCallback
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.vfsAccess
 import ksqlite.foreign.vfsDelete
 import ksqlite.foreign.vfsOpen
@@ -37,7 +39,7 @@ public actual class sqlite3_vfs private constructor(private val vfs: s3_vfs) :
     Struct(vfs.pointer),
     SqliteVfs {
 
-    internal constructor(pointer: Long) : this(s3_vfs(pointer))
+    internal constructor(pointer: JniPointer) : this(s3_vfs(pointer))
 
     public actual override val iVersion: SqliteVfsVersion
         get() = convertVfsVersion(vfs.iVersion)
@@ -47,6 +49,9 @@ public actual class sqlite3_vfs private constructor(private val vfs: s3_vfs) :
 
     public actual override val mxPathname: Int
         get() = vfs.mxPathname
+
+    public actual override val pNext: sqlite3_vfs?
+        get() = vfs.pNext.wrapOrNull(::sqlite3_vfs)
 
     public actual override val zName: String
         get() = vfs.zName.toKStringFromUtf8()
@@ -75,6 +80,6 @@ public actual class sqlite3_vfs private constructor(private val vfs: s3_vfs) :
 
     public actual class OutputParam actual constructor() : PointerOutputParam<sqlite3_vfs>() {
 
-        override fun create(pointer: Long): sqlite3_vfs = sqlite3_vfs(pointer)
+        override fun create(pointer: JniPointer): sqlite3_vfs = sqlite3_vfs(pointer)
     }
 }

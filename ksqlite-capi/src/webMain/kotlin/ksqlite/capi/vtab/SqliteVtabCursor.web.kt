@@ -17,11 +17,9 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.capi
 import ksqlite.capi.memory.ClosableStruct
-import ksqlite.foreign.structs.invoke
 import ksqlite.types.vtab.SqliteVtabCursor
 
 public actual open class sqlite3_vtab_cursor public actual constructor() :
-    ClosableStruct(capi.sqlite3_vtab_cursor()),
+    ClosableStruct(s3_vtab_cursor(), Application),
     SqliteVtabCursor

@@ -34,6 +34,10 @@ import kotlin.js.JsBigInt
  */
 public external interface Sqlite3WasmExports : JsAny {
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Ksqlite
+    ///////////////////////////////////////////////////////////////////////////
+
     public fun ksqlite_auto_extension(
         p0: JsBigInt,
     ): Int
@@ -58,6 +62,17 @@ public external interface Sqlite3WasmExports : JsAny {
         p4: JsBigInt,
         p5: JsBigInt,
     ): Int
+
+    public fun ksqlite_struct_layout_allocate(
+        p0: Int,
+        p1: JsBigInt
+    ): JsBigInt
+
+    public fun ksqlite_struct_layout_free(p0: JsBigInt)
+
+    ///////////////////////////////////////////////////////////////////////////
+    // SQLite
+    ///////////////////////////////////////////////////////////////////////////
 
     public fun sqlite3_aggregate_context(
         p0: JsBigInt,
@@ -1227,66 +1242,56 @@ public external interface Sqlite3WasmExports : JsAny {
     )
 
     ///////////////////////////////////////////////////////////////////////////
-    // Extras
-    //
-    // Functions extracted from the sqlite3_64bit.wasm file but not yet used.
-    //
-    // Usefull regexes to transform from webassembly to kotlin (to be applied in the same order):
-    // 
-    // \(export "(.*)"\) (.*)               -> fun $1($2)
-    // \(param \$var(\d) ((i|f)(32|64))\)   -> \n\t\tp$1: $2,
-    // \(result ((i|f)(32|64))\)\)          -> \n\t): $1
-    // i32                                  -> Int
-    // i64                                  -> JsBigInt
+    // SQLite Multiple Ciphers
     ///////////////////////////////////////////////////////////////////////////
 
-    /**
-     * (export "sqlite3_activate_see") (param $var0 i64)
-     *
-     * (export "sqlite3session_diff") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (result i32)
-     * (export "sqlite3session_attach") (param $var0 i64) (param $var1 i64) (result i32)
-     * (export "sqlite3session_create") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3session_delete") (param $var0 i64)
-     * (export "sqlite3session_table_filter") (param $var0 i64) (param $var1 i64) (param $var2 i64)
-     * (export "sqlite3session_changeset") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3session_changeset_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3session_patchset_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3session_patchset") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3session_enable") (param $var0 i64) (param $var1 i32) (result i32)
-     * (export "sqlite3session_indirect") (param $var0 i64) (param $var1 i32) (result i32)
-     * (export "sqlite3session_isempty") (param $var0 i64) (result i32)
-     * (export "sqlite3session_memory_used") (param $var0 i64) (result i64)
-     * (export "sqlite3session_object_config") (param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32)
-     * (export "sqlite3session_changeset_size") (param $var0 i64) (result i64)
-     * (export "sqlite3session_config") (param $var0 i32) (param $var1 i64) (result i32)
-     *
-     * (export "sqlite3changeset_start") (param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32)
-     * (export "sqlite3changeset_start_v2") (param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i32) (result i32)
-     * (export "sqlite3changeset_start_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3changeset_start_v2_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i32) (result i32)
-     * (export "sqlite3changeset_next") (param $var0 i64) (result i32)
-     * (export "sqlite3changeset_op") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (result i32)
-     * (export "sqlite3changeset_pk") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3changeset_old") (param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32)
-     * (export "sqlite3changeset_new") (param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32)
-     * (export "sqlite3changeset_conflict") (param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32)
-     * (export "sqlite3changeset_fk_conflicts") (param $var0 i64) (param $var1 i64) (result i32)
-     * (export "sqlite3changeset_finalize") (param $var0 i64) (result i32)
-     * (export "sqlite3changeset_invert") (param $var0 i32) (param $var1 i64) (param $var2 i64) (param $var3 i64) (result i32)
-     * (export "sqlite3changeset_apply_v2") (param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i64) (param $var6 i64) (param $var7 i64) (param $var8 i32) (result i32)
-     * (export "sqlite3changeset_apply_v3") (param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i64) (param $var6 i64) (param $var7 i64) (param $var8 i32) (result i32)
-     * (export "sqlite3changeset_apply") (param $var0 i64) (param $var1 i32) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i64) (result i32)
-     * (export "sqlite3changeset_apply_v3_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i64) (param $var6 i64) (param $var7 i64) (param $var8 i32) (result i32)
-     * (export "sqlite3changeset_apply_v2_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i64) (param $var6 i64) (param $var7 i64) (param $var8 i32) (result i32)
-     * (export "sqlite3changeset_apply_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i64) (result i32)
-     * (export "sqlite3changeset_concat") (param $var0 i32) (param $var1 i64) (param $var2 i32) (param $var3 i64) (param $var4 i64) (param $var5 i64) (result i32)
-     * (export "sqlite3changeset_concat_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (param $var3 i64) (param $var4 i64) (param $var5 i64) (result i32)
-     *
-     * (export "sqlite3changegroup_new") (param $var0 i64) (result i32)
-     * (export "sqlite3changegroup_add") (param $var0 i64) (param $var1 i32) (param $var2 i64) (result i32)
-     * (export "sqlite3changegroup_output") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3changegroup_add_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3changegroup_output_strm") (param $var0 i64) (param $var1 i64) (param $var2 i64) (result i32)
-     * (export "sqlite3changegroup_delete") (param $var0 i64)
-     */
+    public fun sqlite3mc_cipher_count(): Int
+
+    public fun sqlite3mc_cipher_index(
+        p0: JsBigInt
+    ): Int
+
+    public fun sqlite3mc_cipher_name_copy(
+        p0: Int,
+        p1: JsBigInt,
+        p2: Int
+    ): Int
+
+    public fun sqlite3mc_codec_data(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+    ): JsBigInt
+
+    public fun sqlite3mc_config(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int,
+    ): Int
+
+    public fun sqlite3mc_config_cipher(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: JsBigInt,
+        p3: Int
+    ): Int
+
+    public fun sqlite3mc_register_cipher(
+        p0: JsBigInt,
+        p1: JsBigInt,
+        p2: Int
+    ): Int
+
+    public fun sqlite3mc_version(): JsBigInt
+
+    public fun sqlite3mc_vfs_create(
+        p0: JsBigInt,
+        p1: Int
+    ): Int
+
+    public fun sqlite3mc_vfs_destroy(
+        p0: JsBigInt
+    )
+
+    public fun sqlite3mc_vfs_shutdown()
 }

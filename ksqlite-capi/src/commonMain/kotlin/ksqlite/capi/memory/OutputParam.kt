@@ -93,6 +93,6 @@ public abstract class Int32TransformOutputParam<T : Any> internal constructor() 
  */
 internal fun ensurePointerInitialValueIsNull(value: Any?) {
     check(value == null) {
-        "Pointer based OutputParam cannot be reused"
+        "Pointer based OutputParam cannot be recycled"
     }
 }

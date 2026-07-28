@@ -17,10 +17,10 @@
 
 package ksqlite.capi.memory
 
-import ksqlite.capi.wasm
-import ksqlite.foreign.structs.StructType
 import ksqlite.foreign.wasm.WasmPointer
 import kotlin.js.toLong
+
+private typealias WasmStruct = ksqlite.structs.Struct<*, *, WasmPointer>
 
 public actual open class Struct internal constructor(internal val pointer: WasmPointer) :
     StructBase() {
@@ -40,23 +40,15 @@ public actual open class Struct internal constructor(internal val pointer: WasmP
     }
 }
 
-public actual open class ClosableStruct(private val struct: StructType) :
-    Struct(struct.pointer),
+public actual open class ClosableStruct internal constructor(
+    private val wasmStruct: WasmStruct,
+    private val owner: PointerOwner
+) : Struct(wasmStruct.pointer),
     AutoCloseable {
 
     public actual override fun close() {
-        struct.dispose()
-    }
-}
-
-/**
- * For [StructType] that does not own its pointer and thus is not responsible for freeing it in
- * [StructType.dispose].
- */
-public open class PointerOwnedStruct(struct: StructType) : ClosableStruct(struct) {
-
-    public override fun close() {
-        super.close()
-        wasm.dealloc(pointer)
+        owner.handleClose {
+            wasmStruct.free()
+        }
     }
 }

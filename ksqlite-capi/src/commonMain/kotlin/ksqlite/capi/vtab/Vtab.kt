@@ -109,7 +109,7 @@ internal class VtabModuleCallbacks<AppData, Vtab : sqlite3_vtab, VtabCursor : sq
 /**
  * Holds virtual table callbacks and application data.
  */
-internal data class VtabModule<AppData, Vtab : sqlite3_vtab, VtabCursor : sqlite3_vtab_cursor>(
+internal class VtabModule<AppData, Vtab : sqlite3_vtab, VtabCursor : sqlite3_vtab_cursor>(
     val callbacks: VtabModuleCallbacks<AppData, Vtab, VtabCursor>,
     val appData: AppData
 )

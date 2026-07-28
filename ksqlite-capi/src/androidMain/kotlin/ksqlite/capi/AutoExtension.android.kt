@@ -15,6 +15,7 @@
  */
 package ksqlite.capi
 
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.OutputPointer
 import ksqlite.foreign.callbacks.AutoExtensionCallback
 
@@ -30,8 +31,8 @@ internal val AutoExtensionHandler by lazy {
  * Dispatches sqlite3_auto_extension call to all registered extensions.
  */
 private fun autoExtensionHandler(
-    dbPtr: Long,
-    apiPtr: Long,
+    dbPtr: JniPointer,
+    apiPtr: JniPointer,
     outErrMsg: OutputPointer.OfString
 ): Int = autoExtensionHandle(
     db = sqlite3(dbPtr),

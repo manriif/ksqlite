@@ -23,7 +23,7 @@ import ksqlite.types.vtab.SqliteVtabCursor
 
 public actual open class sqlite3_vtab_cursor
 private constructor(override val pointer: CPointer<s3_vtab_cursor>) :
-    ClosableStruct(pointer),
+    ClosableStruct(pointer, Application),
     SqliteVtabCursor {
 
     public actual constructor() : this(allocate())

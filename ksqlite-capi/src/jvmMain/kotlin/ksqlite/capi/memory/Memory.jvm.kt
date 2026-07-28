@@ -178,6 +178,27 @@ internal fun MemorySegment.toStringArray(count: Int): Array<String> =
 internal fun MemorySegment.toStringArrayOrEmpty(count: Int): Array<String> =
     orNull?.toStringArray(count) ?: emptyArray()
 
+/**
+ * Converts this list to an array of pointers to individually allocated structs (`const T**`),
+ * allocated using [allocator]. Each element pointer is obtained through [transform].
+ */
+context(allocator: SegmentAllocator)
+internal inline fun <T> List<T>.toCArray(
+    transform: SegmentAllocator.(T) -> MemorySegment
+): MemorySegment {
+    val startAddress = allocator.allocate(ValueLayout.ADDRESS, size.toLong())
+
+    forEachIndexed { index, value ->
+        startAddress.setAtIndex(
+            ValueLayout.ADDRESS,
+            index.toLong(),
+            transform(allocator, value)
+        )
+    }
+
+    return startAddress
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Buffer
 ///////////////////////////////////////////////////////////////////////////
@@ -236,6 +257,12 @@ internal inline fun <R> ByteArray.reading(
     block: (MemorySegment) -> R
 ): R = reading(allocator, size, block)
 
+/**
+ * Reads [count] bytes from this [MemorySegment].
+ */
+internal fun MemorySegment.readBytes(count: Int): ByteArray =
+    asSlice(0, count.toLong()).toArray(ValueLayout.JAVA_BYTE)
+
 ///////////////////////////////////////////////////////////////////////////
 // Strings
 ///////////////////////////////////////////////////////////////////////////
@@ -270,19 +297,7 @@ internal fun String?.allocateUtf8(): MemorySegment = allocateUtf8(allocator)
  * and C strings with given [SegmentAllocator].
  */
 context(allocator: SegmentAllocator)
-internal fun List<String?>.toCStringArray(): MemorySegment {
-    val startAddress = allocator.allocate(ValueLayout.ADDRESS, size.toLong())
-
-    forEachIndexed { index, string ->
-        startAddress.setAtIndex(
-            ValueLayout.ADDRESS,
-            index.toLong(),
-            string.allocateUtf8()
-        )
-    }
-
-    return startAddress
-}
+internal fun List<String?>.toCStringArray(): MemorySegment = toCArray { it.allocateUtf8() }
 
 /**
  * Reads and returns a String.

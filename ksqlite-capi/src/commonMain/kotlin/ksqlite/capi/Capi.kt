@@ -37,10 +37,16 @@ import ksqlite.capi.callbacks.SqliteRollbackHookCallback
 import ksqlite.capi.callbacks.SqliteTraceCallback
 import ksqlite.capi.callbacks.SqliteUpdateHookCallback
 import ksqlite.capi.callbacks.SqliteWalHookCallback
+import ksqlite.capi.cipher.CipherDescriptor
+import ksqlite.capi.cipher.CipherParams
+import ksqlite.capi.cipher.SqliteMcCodecDataParam
+import ksqlite.capi.cipher.SqliteMcConfig
+import ksqlite.capi.cipher.unregisterCiphers
 import ksqlite.capi.memory.Buffer
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.ReadableBuffer
+import ksqlite.capi.memory.StructArray
 import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.capi.types.SqliteDbConfigOption
@@ -70,7 +76,27 @@ import ksqlite.types.SqliteStatusOption
 import ksqlite.types.SqliteTextEncoding
 import ksqlite.types.SqliteTraceEventCode
 import ksqlite.types.SqliteTransactionState
+import ksqlite.types.cipher.SqliteMcCipher
+import ksqlite.types.cipher.SqliteMcConfigCipherParam
+import ksqlite.types.cipher.SqliteMcConfigParamPrefix
+import ksqlite.types.internal.convertResultCode
 import kotlin.time.Duration
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns an identifier used as identifier for [context]. The same identifier must always be
+ * returned for the same [context].
+ *
+ * If [create] is `false` and no identifier was created before or if [create] is `true` and creating
+ * a new identifier fails then `null` must be returned.
+ */
+internal expect fun sqlite3_aggregate_context_internal(
+    context: sqlite3_context,
+    create: Boolean
+): Long?
 
 /**
  * Allocate or return the aggregate context for a user function.  A new  context is allocated on the
@@ -94,7 +120,7 @@ public inline fun <reified Data : Any> sqlite3_aggregate_context(
     context: sqlite3_context,
     noinline factory: (() -> Data)?
 ): Data? {
-    val function = userDataInternal(context) ?: return null
+    val function = sqlite3_user_data_internal(context) ?: return null
 
     val instance = if (factory == null) {
         function.getAggregateContextOrNull(context)
@@ -535,12 +561,20 @@ public expect fun sqlite3_column_blob(
 ): ByteArray?
 
 /**
+ * Returns the value blob content as a [Buffer].
+ */
+internal expect fun sqlite3_column_buffer_internal(
+    stmt: sqlite3_stmt,
+    index: Int
+): Buffer?
+
+/**
  * Variant of [sqlite3_column_blob] that returns a [ReadableBuffer] instead.
  */
 public fun sqlite3_column_buffer(
     stmt: sqlite3_stmt,
     index: Int
-): ReadableBuffer? = columnBufferInternal(stmt, index)?.readOnly()
+): ReadableBuffer? = sqlite3_column_buffer_internal(stmt, index)?.readOnly()
 
 /**
  * The following routines are used to access elements of the current row in the result set.
@@ -1172,6 +1206,14 @@ public expect fun sqlite3_free(buffer: Buffer)
 public expect fun sqlite3_get_autocommit(db: sqlite3): Int
 
 /**
+ * Returns the identifier previously created with [sqlite3_set_auxdata_internal] with the given parameters.
+ */
+internal expect fun sqlite3_get_auxdata_internal(
+    context: sqlite3_context,
+    index: Int
+): Long?
+
+/**
  * Return the auxiliary data pointer, if any, for the [index]-th argument to the user-function
  * defined by [context].
  *
@@ -1186,7 +1228,7 @@ public expect fun sqlite3_get_autocommit(db: sqlite3): Int
 public inline fun <reified Data : Any> sqlite3_get_auxdata(
     context: sqlite3_context,
     index: Int
-): Data? = castOrThrows(userDataInternal(context)?.getAuxiliaryDataOrNull(context, index))
+): Data? = castOrThrows(sqlite3_user_data_internal(context)?.getAuxiliaryDataOrNull(context, index))
 
 /**
  * Set the hard heap-size limit for the library. An argument of zero disables the hard heap limit.
@@ -1201,6 +1243,11 @@ public inline fun <reified Data : Any> sqlite3_get_auxdata(
  * [sqlite3_hard_heap_limit64()](https://sqlite.org/c3ref/hard_heap_limit64.html)
  */
 public expect fun sqlite3_hard_heap_limit64(limit: Long): Long
+
+/**
+ * Invokes the `sqlite3_initiliaze()`.
+ */
+internal expect fun sqlite3_initialize_internal(): Int
 
 /**
  * Initialize SQLite.
@@ -1228,8 +1275,23 @@ public expect fun sqlite3_hard_heap_limit64(limit: Long): Long
  * Recursive calls to this routine from thread X return immediately without blocking.
  *
  * [sqlite3_initialize()](https://sqlite.org/c3ref/initialize.html)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * Ksqlite disables cipher VFS, which are automatically enabled by SQLite3 Multiple Ciphers. If
+ * encryption is required, the VFS must be explicitelly configured. See [sqlite3mc_vfs_create].
  */
-public expect fun sqlite3_initialize(): SqliteResultCode
+public fun sqlite3_initialize(): SqliteResultCode {
+    val result = convertResultCode(sqlite3_initialize_internal())
+
+    if (result == OK) {
+        sqlite3mc_vfs_shutdown()
+    }
+
+    return result
+}
 
 /**
  * Cause any pending operation to stop at its earliest opportunity.
@@ -1873,6 +1935,16 @@ public expect fun <AppData> sqlite3_rollback_hook(
 )
 
 /**
+ * Returns a buffer to the serialized database.
+ */
+internal expect fun sqlite3_serialize_internal(
+    db: sqlite3,
+    database: String?,
+    outSize: Int64OutputParam,
+    flags: SqliteSerializeFlag?
+): Buffer?
+
+/**
  * Return the serialization of a database.
  *
  * [serializeInternal()](https://sqlite.org/c3ref/serialize.html)
@@ -1884,7 +1956,7 @@ public fun sqlite3_serialize(
 ): SqliteSerializeResult {
     val outSize = Int64OutputParam(0L)
 
-    val buffer = serializeInternal(db, database, outSize, flags)
+    val buffer = sqlite3_serialize_internal(db, database, outSize, flags)
         ?: return SqliteSerializeResult.Failure(outSize.value)
 
     if (flags != null && SqliteSerializeFlag.NOCOPY in flags) {
@@ -1906,6 +1978,18 @@ public expect fun <AppData> sqlite3_set_authorizer(
 ): SqliteResultCode
 
 /**
+ * Returns an identifier used as identifier for [context] and [index]. The same identifier must
+ * always be returned for the same [context] and [index].
+ *
+ * If creating a new identifier fails then `null` must be returned.
+ */
+internal expect fun sqlite3_set_auxdata_internal(
+    context: sqlite3_context,
+    index: Int,
+    destroy: SqliteDestroyCallback<Nothing?>
+): Long?
+
+/**
  * Set the auxiliary data pointer and delete function, for the [index]-th argument to the
  * user-function defined by [context]. Any previous value is deleted by calling the delete function
  * specified when it was set.
@@ -1923,7 +2007,7 @@ public inline fun <reified Data : Any> sqlite3_set_auxdata(
     data: Data,
     destroy: SqliteDestroyCallback<Data>?
 ) {
-    userDataInternal(context)?.setAuxiliaryData(context, index, data, destroy)
+    sqlite3_user_data_internal(context)?.setAuxiliaryData(context, index, data, destroy)
 }
 
 /**
@@ -1948,6 +2032,11 @@ public expect fun sqlite3_set_last_insert_rowid(
 )
 
 /**
+ * Invokes the `sqlite3_shutdown()`.
+ */
+internal expect fun sqlite3_shutdown_internal(): Int
+
+/**
  * Undo the effects of sqlite3_initialize(). Must not be called while there are outstanding database
  * connections or memory allocations or while any part of SQLite is otherwise in use in any thread.
  * This  routine is not threadsafe. But it is safe to invoke this routine on when SQLite is already
@@ -1956,7 +2045,15 @@ public expect fun sqlite3_set_last_insert_rowid(
  *
  * [sqlite3_shutdown()](https://sqlite.org/c3ref/initialize.html)
  */
-public expect fun sqlite3_shutdown(): SqliteResultCode
+public fun sqlite3_shutdown(): SqliteResultCode {
+    val result = convertResultCode(sqlite3_shutdown_internal())
+
+    if (result == OK) {
+        unregisterCiphers()
+    }
+
+    return result
+}
 
 /**
  * Return a +ve value if snapshot [snapshot1] is newer than [snapshot2]. A -ve value if [snapshot1]
@@ -2293,12 +2390,18 @@ public expect fun sqlite3_uri_parameter(
 ): String?
 
 /**
+ * Returns the [ApplicationDefinedFunction] instance from [context] user data.
+ */
+@PublishedApi
+internal expect fun sqlite3_user_data_internal(context: sqlite3_context): ApplicationDefinedFunction<*>?
+
+/**
  * Extract the user data from a sqlite3_context structure and return a pointer to it.
  *
  * [sqlite3_user_data()](https://sqlite.org/c3ref/user_data.html)
  */
 public inline fun <reified AppData : Any> sqlite3_user_data(context: sqlite3_context): AppData? {
-    return castOrThrows(userDataInternal(context)?.appData)
+    return castOrThrows(sqlite3_user_data_internal(context)?.appData)
 }
 
 /**
@@ -2309,10 +2412,15 @@ public inline fun <reified AppData : Any> sqlite3_user_data(context: sqlite3_con
 public expect fun sqlite3_value_blob(value: sqlite3_value): ByteArray?
 
 /**
+ * Returns the value blob content as a [Buffer].
+ */
+internal expect fun sqlite3_value_buffer_internal(value: sqlite3_value): Buffer?
+
+/**
  * Variant of [sqlite3_value_blob] that returns a [ReadableBuffer] instead.
  */
 public fun sqlite3_value_buffer(value: sqlite3_value): ReadableBuffer? =
-    valueBufferInternal(value)?.readOnly()
+    sqlite3_value_buffer_internal(value)?.readOnly()
 
 /**
  * Extract information from sqlite3_value structure.
@@ -2387,6 +2495,15 @@ public expect fun sqlite3_value_nochange(value: sqlite3_value): Int
 public expect fun sqlite3_value_numeric_type(value: sqlite3_value): SqliteDataType
 
 /**
+ * Returns the pointer value.
+ */
+@PublishedApi
+internal expect fun sqlite3_value_pointer_internal(
+    value: sqlite3_value,
+    type: String?
+): Any?
+
+/**
  * Extract information from sqlite3_value structure.
  *
  * [sqlite3_value_pointer()](https://sqlite.org/c3ref/value_blob.html)
@@ -2394,7 +2511,7 @@ public expect fun sqlite3_value_numeric_type(value: sqlite3_value): SqliteDataTy
 public inline fun <reified Data : Any> sqlite3_value_pointer(
     value: sqlite3_value,
     type: String?
-): Data? = castOrThrows(valuePointerInternal(value, type))
+): Data? = castOrThrows(sqlite3_value_pointer_internal(value, type))
 
 /**
  * Return the subtype for an application-defined SQL function argument [value].
@@ -2603,3 +2720,229 @@ public expect fun <AppData> sqlite3_wal_hook(
     appData: AppData,
     callback: SqliteWalHookCallback<AppData>?
 )
+
+///////////////////////////////////////////////////////////////////////////
+// SQLite Multiple Ciphers
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Retrieves the number of currently registered cipher schemes.
+ *
+ * [sqlite3mc_cipher_count()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_cipher_count)
+ */
+public expect fun sqlite3mc_cipher_count(): Int
+
+/**
+ * Retrieves the relative 1-based index of the named cipher scheme in the list of registered cipher
+ * schemes. This index can be used in function sqlite3mc_config_cipher().
+ *
+ * [sqlite3mc_cipher_index()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_cipher_index)
+ */
+public expect fun sqlite3mc_cipher_index(cipher: SqliteMcCipher): Int
+
+/**
+ * Retrieves the name of the cipher scheme for the given relative 1-based index in the list of
+ * registered cipher schemes. This index can be used in function sqlite3mc_config().
+ *
+ * [sqlite3mc_cipher_name()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_cipher_name)
+ */
+public expect fun sqlite3mc_cipher_name(index: Int): String?
+
+/**
+ * Retrieves the value of encryption parameters after an encrypted database has been opened. db is
+ * the database instance to operate on. schemaName optionally specifies the schema name of an
+ * attached database; for the main database the parameter can be specified as NULL. paramName
+ * specifies the parameter to be queried.
+ *
+ * [sqlite3mc_codec_data()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_codec_data)
+ */
+public expect fun sqlite3mc_codec_data(
+    db: sqlite3,
+    database: String?,
+    param: SqliteMcCodecDataParam
+): Buffer?
+
+/**
+ * Returns the `sqlitemc_config` function result.
+ */
+internal expect fun sqlite3mc_config_internal(
+    db: sqlite3?,
+    paramName: String,
+    newValue: Int
+): Int
+
+/**
+ * sqlite3mc_config() gets or sets encryption parameters which are relevant for the entire database
+ * instance. db is the database instance to operate on, or NULL to query the compile-time default
+ * value of the parameter. paramName is the name of the requested parameter. To set a parameter,
+ * pass the new parameter value as newValue. To get the current parameter value, pass -1 as
+ * newValue.
+ *
+ * [sqlite3mc_config()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_config)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * This overload is for reading the value of [param].
+ * A [prefix] parameter has been added to reduce the risk of misuse.
+ *
+ * If an error occurs while querying or updating the value, then `null` is returned.
+ */
+public fun <V : Any> sqlite3mc_config(
+    db: sqlite3?,
+    param: SqliteMcConfig<V>,
+    prefix: SqliteMcConfigParamPrefix
+): V? = param.toValue(
+    sqlite3mc_config_internal(
+        db = db,
+        paramName = prefix.value + param.name,
+        newValue = param.toInt(null)
+    )
+)
+
+/**
+ * sqlite3mc_config() gets or sets encryption parameters which are relevant for the entire database
+ * instance. db is the database instance to operate on, or NULL to query the compile-time default
+ * value of the parameter. paramName is the name of the requested parameter. To set a parameter,
+ * pass the new parameter value as newValue. To get the current parameter value, pass -1 as
+ * newValue.
+ *
+ * [sqlite3mc_config()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_config)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * This overload is for writing the value of [param].
+ * A [prefix] parameter has been added to reduce the risk of misuse.
+ *
+ * If an error occurs while querying or updating the value, then `null` is returned.
+ */
+public fun <V : Any> sqlite3mc_config(
+    db: sqlite3?,
+    param: SqliteMcConfig<V>,
+    prefix: SqliteMcConfigParamPrefix.ReadWrite,
+    newValue: V
+): V? = param.toValue(
+    sqlite3mc_config_internal(
+        db = db,
+        paramName = prefix.value + param.name,
+        newValue = param.toInt(newValue)
+    )
+)
+
+/**
+ * Returns the `sqlitemc_config_cipher` function result.
+ */
+internal expect fun sqlite3mc_config_cipher_internal(
+    db: sqlite3?,
+    cipherName: String,
+    paramName: String,
+    newValue: Int
+): Int
+
+/**
+ * sqlite3mc_config_cipher() gets or sets encryption parameters which are relevant for a specific
+ * encryption cipher only. See the sqlite3mc_config() function for details about the db, paramName
+ * and newValue parameters. See the related cipher descriptions for the parameter names supported
+ * for paramName.
+ *
+ * [sqlite3mc_config_cipher()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_config_cipher)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * This overload is for writing the value of [param].
+ * A [prefix] parameter has been added to reduce the risk of misuse.
+ *
+ * If an error occurs while querying or updating the value, then `null` is returned.
+ */
+public fun <V : Any, C : SqliteMcCipher, P : SqliteMcConfigCipherParam<C, V>> sqlite3mc_config_cipher(
+    db: sqlite3?,
+    cipher: C,
+    param: P,
+    prefix: SqliteMcConfigParamPrefix
+): V? = param.toValue(
+    sqlite3mc_config_cipher_internal(
+        db = db,
+        cipherName = cipher.name,
+        paramName = prefix.value + param.name,
+        newValue = param.toInt(null)
+    )
+)
+
+/**
+ * sqlite3mc_config_cipher() gets or sets encryption parameters which are relevant for a specific
+ * encryption cipher only. See the sqlite3mc_config() function for details about the db, paramName
+ * and newValue parameters. See the related cipher descriptions for the parameter names supported
+ * for paramName.
+ *
+ * [sqlite3mc_config_cipher()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_config_cipher)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * This overload is for writing the value of [param].
+ * A [prefix] parameter has been added to reduce the risk of misuse.
+ *
+ * If an error occurs while querying or updating the value, then `null` is returned.
+ */
+public fun <V : Any, C : SqliteMcCipher, P : SqliteMcConfigCipherParam<C, V>> sqlite3mc_config_cipher(
+    db: sqlite3?,
+    cipher: C,
+    param: P,
+    prefix: SqliteMcConfigParamPrefix.ReadWrite,
+    newValue: V
+): V? = param.toValue(
+    sqlite3mc_config_cipher_internal(
+        db = db,
+        cipherName = cipher.name,
+        paramName = prefix.value + param.name,
+        newValue = param.toInt(newValue)
+    )
+)
+
+/**
+ * Allows to register cipher schemes dynamically. Further information can be found in the section
+ * about [Dynamic cipher schemes](https://utelle.github.io/SQLite3MultipleCiphers/docs/ciphers/cipher_dynamic/).
+ *
+ * [sqlite3mc_register_cipher()](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_register_cipher)
+ *
+ * -------------------------------------------------------------------------------------------------
+ *
+ * # Ksqlite
+ *
+ * The caller is responsible for completing [params] with a sentinel entry.
+ */
+public expect fun sqlite3mc_register_cipher(
+    descriptor: CipherDescriptor,
+    params: StructArray<CipherParams>,
+    makeDefault: Int
+): SqliteResultCode
+
+/**
+ * Returns the version of SQLite3 Multiple Ciphers.
+ */
+public expect fun sqlite3mc_version(): String
+
+/**
+ * Create a Multiple Ciphers VFS based on the underlying VFS with name given by zVfsReal. If
+ * makeDefault is true, the VFS is set as the default VFS.
+ */
+public expect fun sqlite3mc_vfs_create(
+    realName: String,
+    makeDefault: Int
+): SqliteResultCode
+
+/**
+ * Unregister and destroy a Multiple Ciphers VFS created by an earlier call to sqlite3mc_vfs_create().
+ */
+public expect fun sqlite3mc_vfs_destroy(name: String)
+
+/**
+ * Shutdown all registered SQLite3 Multiple Ciphers VFSs.
+ */
+public expect fun sqlite3mc_vfs_shutdown()

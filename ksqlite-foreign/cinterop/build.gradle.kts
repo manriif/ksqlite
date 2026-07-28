@@ -43,7 +43,7 @@ fun KotlinNativeTarget.configureNativeTarget() {
             }
         }
 
-        excludedFunctions = sqliteFunctions(false)
+        excludedFunctions = sqliteFunctions(false) + sqliteMcFunctions(false)
         noStringConversion = KsqliteNoStringConversions
 
         // TODO: Direct ccall mode seems not problematic for this library as we conntrol the C side

@@ -48,13 +48,6 @@ import ksqlite.types.vtab.SqliteModuleVersion
  * virtual table. This structure consists mostly of methods for the module.
  *
  * [sqlite3_module](https://sqlite.org/c3ref/module.html)
- *
- * -------------------------------------------------------------------------------------------------
- *
- * # Ksqlite
- *
- * The module must be [close]d by the owner when no longer required to release the associated
- * resource(s).
  */
 public expect class sqlite3_module<AppData> internal constructor(
     version: Int,
@@ -68,9 +61,6 @@ public expect class sqlite3_module<AppData> internal constructor(
 /**
  * Returns an instance of [sqlite3_module].
  * For an eponymous virtual table, [create] and [connect] must be referentially equals (===).
- *
- * See [ksqlite.types.vtab.SqliteModuleVersion.VERSION_3] for explanation about why xShadowName is
- * not supported.
  *
  * The caller take the ownership of the returned [sqlite3_module] and is responsible to release it
  * by invoking [sqlite3_module.close].

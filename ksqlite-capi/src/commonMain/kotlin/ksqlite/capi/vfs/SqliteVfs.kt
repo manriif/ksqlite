@@ -41,6 +41,7 @@ public expect class sqlite3_vfs : Struct, SqliteVfs {
     override val iVersion: SqliteVfsVersion
     override val szOsFile: Int
     override val mxPathname: Int
+    override val pNext: sqlite3_vfs?
     override val zName: String
 
     public val xOpen: SqliteVfsOpenCallback

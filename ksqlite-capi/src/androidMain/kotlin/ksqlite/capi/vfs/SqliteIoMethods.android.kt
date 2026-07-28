@@ -19,6 +19,7 @@ package ksqlite.capi.vfs
 
 import ksqlite.capi.memory.Struct
 import ksqlite.capi.vfs.callbacks.SqliteIoMethodsCloseCallback
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.ioMethodsClose
 import ksqlite.types.internal.convertIoMethodsVersion
 import ksqlite.types.internal.convertResultCode
@@ -30,7 +31,7 @@ public actual class sqlite3_io_methods private constructor(private val methods: 
     Struct(methods.pointer),
     SqliteIoMethods {
 
-    internal constructor(pointer: Long) : this(s3_io_methods(pointer))
+    internal constructor(pointer: JniPointer) : this(s3_io_methods(pointer))
 
     public actual override val iVersion: SqliteIoMethodsVersion
         get() = convertIoMethodsVersion(methods.iVersion)

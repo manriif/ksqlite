@@ -19,6 +19,7 @@ import ksqlite.capi.callbacks.SqliteConfigLogCallback
 import ksqlite.capi.callbacks.SqliteConfigSqlLogCallback
 import ksqlite.capi.dispatchSqlLogEvent
 import ksqlite.capi.sqlite3
+import ksqlite.foreign.JniPointer
 import ksqlite.foreign.callbacks.ConfigLogCallback
 import ksqlite.foreign.callbacks.ConfigSqlLogCallback
 
@@ -49,7 +50,7 @@ internal class ConfigSqlLogHandler<AppData> :
     ConfigSqlLogCallback {
 
     override fun apply(
-        db: Long,
+        db: JniPointer,
         message: String?,
         messageType: Int
     ): Unit = handle { callback, appData ->

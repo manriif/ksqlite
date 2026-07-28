@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import sqliteInitModule from "./ksqlite.mjs";
+import sqlite3InitModule from "./ksqlite.mjs";
 
 /**
  * Environment variables for custom configuration.
@@ -51,7 +51,7 @@ const moduleConfig = {
     customLocateFile: (path, _) => `${env.prefix}${path}`
 };
 
-const sqliteInit = sqliteInitModule(moduleConfig);
+const sqlite3Init = sqlite3InitModule(moduleConfig);
 
 // Force Karma to wait for SQLite initialization, otherwise tests fails in Kotlin/JS
 if (env.isTest && window.__karma__) {
@@ -59,7 +59,7 @@ if (env.isTest && window.__karma__) {
     const karmaStart = karma.start.bind(karma);
 
     karma.start = (...args) => {
-        sqliteInit.then(
+        sqlite3Init.then(
             () => karmaStart(...args),
             (err) => karma.error("ksqlite init failed: " + (err?.stack ?? err))
         );
@@ -69,4 +69,4 @@ if (env.isTest && window.__karma__) {
 /**
  * SQLite instance.
  */
-export const sqlite3 = await sqliteInit;
+export const sqlite3 = await sqlite3Init;
