@@ -17,15 +17,16 @@ package ksqlite.kapi
 
 import co.touchlab.stately.concurrency.Lock
 import co.touchlab.stately.concurrency.withLock
-import ksqlite.capi.sqlite3_initialize
-import ksqlite.capi.sqlite3_shutdown
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_config
+import ksqlite.capi.sqlite3_initialize
+import ksqlite.capi.sqlite3_shutdown
 import ksqlite.capi.sqlite3_stmt
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.config.ConfigurationScopeImpl
 import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.statement.PreparedStatement
 
@@ -62,7 +63,12 @@ internal fun sqliteInitialize(configure: (ConfigurationScope.() -> Unit)? = null
                     "be shutdown first"
         }
 
-        configure?.let { ConfigurationScopeImpl().use(it) }
+        if (configure != null) {
+            UnsafeClosableScope().use { scope ->
+                configure(ConfigurationScopeImpl(scope))
+            }
+        }
+
         sqliteResultCheck(sqlite3_initialize())
 
         SQLiteImpl(::sqliteShutdown).also { instance ->

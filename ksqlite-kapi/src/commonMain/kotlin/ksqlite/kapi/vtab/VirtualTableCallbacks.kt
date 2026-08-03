@@ -18,7 +18,6 @@ package ksqlite.kapi.vtab
 import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.sqlite3_result_text
-import ksqlite.types.SqliteResultCode
 import ksqlite.capi.vtab.callbacks.SqliteVtabBestIndexCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabCloseCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabColumnCallback
@@ -42,6 +41,7 @@ import ksqlite.kapi.helpers.ContextClosableScope
 import ksqlite.kapi.helpers.runCatchingSQLiteException
 import ksqlite.kapi.sqliteRequireConnection
 import ksqlite.kapi.value.toProtectedValues
+import ksqlite.types.SqliteResultCode
 
 /**
  * Invokes [VirtualTableModule.close] and closes the [VirtualTableModule.module].

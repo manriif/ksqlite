@@ -15,12 +15,12 @@
  */
 package ksqlite.kapi.vtab
 
-import ksqlite.types.SqliteResultCode
 import ksqlite.capi.sqlite3
 import ksqlite.capi.vtab.sqlite3_vtab
 import ksqlite.capi.vtab.sqlite3_vtab_cursor
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.helpers.runCatchingSQLiteException
+import ksqlite.types.SqliteResultCode
 
 /**
  * Implementation of [sqlite3_vtab].

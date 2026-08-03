@@ -24,4 +24,4 @@ import ksqlite.capi.sqlite3_context
 internal open class ContextClosableScope(
     @PublishedApi
     internal val context: sqlite3_context
-): UnsafeClosableScope()
+) : UnsafeClosableScope()

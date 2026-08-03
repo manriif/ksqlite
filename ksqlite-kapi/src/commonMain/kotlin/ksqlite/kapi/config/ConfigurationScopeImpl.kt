@@ -16,11 +16,12 @@
 package ksqlite.kapi.config
 
 import ksqlite.capi.types.SqliteConfigOption
+import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.usingBooleanParam
 
-internal class ConfigurationScopeImpl :
+internal class ConfigurationScopeImpl(scope: ClosableScope) :
     ConfigurationScope,
-    AnyTimeConfigurationImpl() {
+    AnyTimeConfigurationImpl(scope) {
 
     override var isRowidInViewActivated: Boolean
         get() = usingBooleanParam(null) { applyOption(SqliteConfigOption.ROWID_IN_VIEW(it)) }

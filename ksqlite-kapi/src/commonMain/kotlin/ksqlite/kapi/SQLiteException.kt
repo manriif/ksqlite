@@ -32,8 +32,9 @@ public open class SQLiteException(
      * The result returned by the API call that failed.
      */
     public val result: SqliteResultCode.Failure,
-    override val message: String
-) : RuntimeException(message)
+    override val message: String,
+    cause: Throwable? = null
+) : RuntimeException(message, cause)
 
 ///////////////////////////////////////////////////////////////////////////
 // Factories

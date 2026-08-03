@@ -20,7 +20,7 @@ import ksqlite.capi.callbacks.SqliteDestroyCallback
 /**
  * Destructor invoking [AutoCloseable.close] on the argument it receives.
  */
-internal val AutoCloser = SqliteDestroyCallback{ value: AutoCloseable ->
+internal val AutoCloser = SqliteDestroyCallback { value: AutoCloseable ->
     value.close()
 }
 

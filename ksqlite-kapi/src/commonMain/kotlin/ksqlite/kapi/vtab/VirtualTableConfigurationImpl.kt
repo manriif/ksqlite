@@ -15,9 +15,9 @@
  */
 package ksqlite.kapi.vtab
 
+import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_vtab_config
 import ksqlite.capi.vtab.SqliteVtabConfigOption
-import ksqlite.capi.sqlite3
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 

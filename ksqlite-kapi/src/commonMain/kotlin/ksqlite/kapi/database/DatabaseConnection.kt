@@ -16,9 +16,10 @@
 package ksqlite.kapi.database
 
 import ksqlite.capi.sqlite3
-import ksqlite.kapi.MAIN_DB_NAME
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.cipher.CipherConfiguration
+import ksqlite.kapi.cipher.CipherData
 import ksqlite.kapi.function.AggregateFunction
 import ksqlite.kapi.function.ScalarFunction
 import ksqlite.kapi.function.WindowFunction
@@ -55,6 +56,16 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
      * Configuration of the connection.
      */
     public abstract val config: DatabaseConnectionConfiguration
+
+    /**
+     * Cipher configuration operating on this connection.
+     */
+    public abstract val cipherConfig: CipherConfiguration
+
+    /**
+     * Cipher data for this connection.
+     */
+    public abstract val cipherData: CipherData
 
     /**
      * Number of rows modified, inserted or deleted by the most recently completed INSERT, UPDATE or
@@ -116,7 +127,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
         tableName: String,
         columnName: String,
         rowid: Long,
-        database: String = MAIN_DB_NAME,
+        database: String = SQLITE_MAIN_DB_NAME,
         flags: SqliteBlobOpenFlag = SqliteBlobOpenFlag.READONLY
     ): Blob
 
@@ -278,7 +289,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     /**
      * Returns the absolute pathname of the database [database] of this connection.
      */
-    public abstract fun getFileName(database: String = MAIN_DB_NAME): FileName?
+    public abstract fun getFileName(database: String = SQLITE_MAIN_DB_NAME): FileName?
 
     /**
      * Returns the schema name for the [index]th database on this connection.
@@ -359,7 +370,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun setKey(
         key: ByteArray,
         size: Int = key.size,
-        database: String = MAIN_DB_NAME,
+        database: String = SQLITE_MAIN_DB_NAME,
     )
 
     /**
@@ -410,7 +421,7 @@ public abstract class DatabaseConnection internal constructor() : AutoCloseable 
     public abstract fun setReKey(
         key: ByteArray,
         size: Int = key.size,
-        database: String = MAIN_DB_NAME,
+        database: String = SQLITE_MAIN_DB_NAME,
     )
 
     /**

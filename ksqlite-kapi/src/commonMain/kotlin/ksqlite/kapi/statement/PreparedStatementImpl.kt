@@ -23,12 +23,12 @@ import ksqlite.capi.sqlite3_finalize
 import ksqlite.capi.sqlite3_reset
 import ksqlite.capi.sqlite3_sql
 import ksqlite.capi.sqlite3_step
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.capi.sqlite3_stmt_busy
 import ksqlite.capi.sqlite3_stmt_explain
 import ksqlite.capi.sqlite3_stmt_isexplain
 import ksqlite.capi.sqlite3_stmt_readonly
 import ksqlite.capi.sqlite3_stmt_status
-import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.helpers.AtomicClosableScope
 import ksqlite.kapi.helpers.ClosableScope

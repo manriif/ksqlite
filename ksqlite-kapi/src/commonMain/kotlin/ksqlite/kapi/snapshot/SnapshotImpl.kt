@@ -15,9 +15,9 @@
  */
 package ksqlite.kapi.snapshot
 
+import ksqlite.capi.sqlite3_snapshot
 import ksqlite.capi.sqlite3_snapshot_cmp
 import ksqlite.capi.sqlite3_snapshot_free
-import ksqlite.capi.sqlite3_snapshot
 import ksqlite.kapi.helpers.DelegatingCloseableScope
 
 internal class SnapshotImpl(override val snapshot: sqlite3_snapshot) : Snapshot() {

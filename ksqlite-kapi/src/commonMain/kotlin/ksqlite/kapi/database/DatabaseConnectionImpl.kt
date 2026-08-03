@@ -75,6 +75,8 @@ import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.blob.BlobImpl
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.buffer.ReadableBuffer
+import ksqlite.kapi.cipher.CipherConfigurationImpl
+import ksqlite.kapi.cipher.CipherDataImpl
 import ksqlite.kapi.function.AggregateFunction
 import ksqlite.kapi.function.AggregateFunctionFinalCallback
 import ksqlite.kapi.function.AggregateFunctionStepCallback
@@ -147,6 +149,8 @@ internal class DatabaseConnectionImpl(
     private val closeables = ConcurrentMutableSet<AutoCloseable>()
 
     override val config = DatabaseConnectionConfigurationImpl(db, scope)
+    override val cipherConfig = CipherConfigurationImpl(db, scope)
+    override val cipherData = CipherDataImpl(db, scope)
     override val lastError = LastErrorImpl(db, scope)
     override val fileControl = FileControlImpl(db, scope)
     override val wal = WriteAheadLogImpl(db, scope)

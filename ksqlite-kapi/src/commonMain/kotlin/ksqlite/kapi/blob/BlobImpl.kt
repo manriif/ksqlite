@@ -15,13 +15,13 @@
  */
 package ksqlite.kapi.blob
 
+import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_blob
 import ksqlite.capi.sqlite3_blob_bytes
 import ksqlite.capi.sqlite3_blob_close
 import ksqlite.capi.sqlite3_blob_read
 import ksqlite.capi.sqlite3_blob_reopen
 import ksqlite.capi.sqlite3_blob_write
-import ksqlite.capi.sqlite3
-import ksqlite.capi.sqlite3_blob
 import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck

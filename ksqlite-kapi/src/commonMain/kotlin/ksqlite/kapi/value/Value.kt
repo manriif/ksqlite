@@ -15,6 +15,7 @@
  */
 package ksqlite.kapi.value
 
+import ksqlite.capi.sqlite3_value
 import ksqlite.capi.sqlite3_value_blob
 import ksqlite.capi.sqlite3_value_buffer
 import ksqlite.capi.sqlite3_value_bytes
@@ -30,7 +31,6 @@ import ksqlite.capi.sqlite3_value_pointer
 import ksqlite.capi.sqlite3_value_subtype
 import ksqlite.capi.sqlite3_value_text
 import ksqlite.capi.sqlite3_value_type
-import ksqlite.capi.sqlite3_value
 import ksqlite.kapi.buffer.ReadableBuffer
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.DelegatingCloseableScope

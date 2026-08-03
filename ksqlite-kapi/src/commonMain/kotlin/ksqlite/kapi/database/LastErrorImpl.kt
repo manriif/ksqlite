@@ -15,13 +15,13 @@
  */
 package ksqlite.kapi.database
 
+import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_errcode
 import ksqlite.capi.sqlite3_errmsg
 import ksqlite.capi.sqlite3_error_offset
 import ksqlite.capi.sqlite3_extended_errcode
 import ksqlite.capi.sqlite3_set_errmsg
 import ksqlite.capi.sqlite3_system_errno
-import ksqlite.capi.sqlite3
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.types.SqliteResultCode

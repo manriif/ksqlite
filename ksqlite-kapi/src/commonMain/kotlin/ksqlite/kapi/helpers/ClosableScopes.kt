@@ -117,12 +117,15 @@ internal class DelegatingAtomicCloseableScope(
 
 /**
  * Closable scope which is closed if either [parent] or [child] is closed.
- * The [close] operation is forwarded to [child].
+ * The [close] operation is forwarded to [child], and [onClose] is invoked exactly once.
  */
+@OptIn(ExperimentalAtomicApi::class)
 internal open class CombinedClosableScope(
     private val parent: ClosableScope,
     private val child: ClosableScope
 ) : ClosableScope() {
+
+    private val selfClosed = AtomicBoolean(false)
 
     final override val closed: Boolean
         get() = child.closed || parent.closed
@@ -132,5 +135,11 @@ internal open class CombinedClosableScope(
         check(!parent.closed) { "Parent scope is closed" }
     }
 
-    final override fun close() = child.close()
+    final override fun close() {
+        child.close()
+
+        if (selfClosed.compareAndSet(expectedValue = false, newValue = true)) {
+            onClose()
+        }
+    }
 }

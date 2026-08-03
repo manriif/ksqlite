@@ -15,11 +15,11 @@
  */
 package ksqlite.kapi.database
 
+import ksqlite.capi.memory.Int32OutputParam
+import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_wal_autocheckpoint
 import ksqlite.capi.sqlite3_wal_checkpoint_v2
 import ksqlite.capi.sqlite3_wal_hook
-import ksqlite.capi.memory.Int32OutputParam
-import ksqlite.capi.sqlite3
 import ksqlite.kapi.helpers.ClosableScope
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
