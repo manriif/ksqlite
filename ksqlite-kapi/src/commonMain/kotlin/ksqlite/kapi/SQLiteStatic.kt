@@ -47,6 +47,11 @@ public interface SQLiteStatic {
     public val sourceId: String
 
     /**
+     * Returns the version of SQLite Multiple Ciphers.
+     */
+    public val multipleCiphersVersion: String
+
+    /**
      * Comparator that compare the contents of two buffers containing UTF-8 strings in a
      * case-independent fashion, using the same definition of "case independence" that SQLite uses
      * internally when comparing identifiers.

@@ -149,10 +149,21 @@ public class Buffer internal constructor(buffer: CapiBuffer) :
     /**
      * Releases allocated resources.
      *
-     * @throws IllegalStateException if the buffer is referenced by SQLite as a bind parameter value
-     * for example.
+     * @throws BufferInUseException if the buffer is referenced by SQLite as a bind parameter value
+     * for example. The buffer is not closed in that case and this method can be called again once
+     * the buffer is no longer referenced.
      */
-    override fun close(): Unit = scope.close()
+    override fun close() {
+        // Checked here, ahead of scope.close(), so that a still-referenced buffer is not marked
+        // closed: scope.close() would otherwise mark the scope closed before invoking onClose(),
+        // permanently leaking this buffer's native memory and making close() unretriable even
+        // after the reference is released.
+        if (!scope.closed) {
+            ensureNotReferenced()
+        }
+
+        scope.close()
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Companion
@@ -180,5 +191,10 @@ public class Buffer internal constructor(buffer: CapiBuffer) :
             Buffer(sqliteOutOfMemoryCheck(sqlite3_malloc64(size)) {
                 "Not enough memory to allocate $size bytes"
             })
+
+        /**
+         * Returns a [Buffer] wrapping this [CapiBuffer].
+         */
+        internal fun CapiBuffer.wrap(): Buffer = Buffer(this)
     }
 }

@@ -29,6 +29,7 @@ import ksqlite.capi.sqlite3_soft_heap_limit64
 import ksqlite.capi.sqlite3_status64
 import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.cipher.CipherManagerImpl
 import ksqlite.kapi.config.AnyTimeConfigurationImpl
 import ksqlite.kapi.database.AutoExtension
 import ksqlite.kapi.database.DatabaseConnection
@@ -40,6 +41,7 @@ import ksqlite.kapi.helpers.usingParams
 import ksqlite.kapi.statement.PreparedStatement
 import ksqlite.kapi.value.Status
 import ksqlite.kapi.value.StatusImpl
+import ksqlite.kapi.vfs.VirtualFileSystemManagerImpl
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteStatusOption
 
@@ -52,7 +54,9 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     private val connections = ConcurrentMutableMap<sqlite3, DatabaseConnection>()
     private val statements = ConcurrentMutableMap<sqlite3_stmt, PreparedStatement>()
 
-    override val config = AnyTimeConfigurationImpl()
+    override val config = AnyTimeConfigurationImpl(this)
+    override val ciphers = CipherManagerImpl(this)
+    override val virtualFileSystems = VirtualFileSystemManagerImpl(this)
 
     override var hardHeapLimit: Long
         get() = sqlite3_hard_heap_limit64(-1)
@@ -178,7 +182,7 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     }
 
     override fun onClose() {
-        config.close()
+        ciphers.close()
         autoExtensions.clear()
         connections.clear()
         shutdown()

@@ -29,6 +29,7 @@ import ksqlite.capi.sqlite3_strglob
 import ksqlite.capi.sqlite3_stricmp
 import ksqlite.capi.sqlite3_strlike
 import ksqlite.capi.sqlite3_threadsafe
+import ksqlite.capi.sqlite3mc_version
 import ksqlite.kapi.helpers.BoundedCaseIndependentComparator
 import ksqlite.kapi.helpers.sqliteList
 import ksqlite.kapi.helpers.sqliteResultCheck
@@ -52,6 +53,9 @@ internal object SQLiteStaticImpl : SQLiteStatic {
 
     override val sourceId: String
         get() = sqlite3_sourceid()
+
+    override val multipleCiphersVersion: String
+        get() = sqlite3mc_version()
 
     override val isThreadSafe: Boolean
         get() = sqlite3_threadsafe() != 0

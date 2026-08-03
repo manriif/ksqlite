@@ -15,9 +15,9 @@
  */
 package ksqlite.kapi.function
 
-import ksqlite.types.SqliteResultCode
-import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.SQLiteException
+import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.types.SqliteResultCode
 
 /**
  * Supplies the necessary APIs during the invocation of a function hook.

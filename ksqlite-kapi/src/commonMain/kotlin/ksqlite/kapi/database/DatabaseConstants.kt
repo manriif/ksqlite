@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ksqlite.kapi
+package ksqlite.kapi.database
 
 /**
  * Name of the main database.
  */
-internal const val MAIN_DB_NAME = "main"
+internal const val SQLITE_MAIN_DB_NAME = "main"

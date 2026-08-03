@@ -15,6 +15,7 @@
  */
 package ksqlite.kapi.backup
 
+import ksqlite.capi.sqlite3_backup
 import ksqlite.capi.sqlite3_backup_finish
 import ksqlite.capi.sqlite3_backup_init
 import ksqlite.capi.sqlite3_backup_pagecount
@@ -22,7 +23,6 @@ import ksqlite.capi.sqlite3_backup_remaining
 import ksqlite.capi.sqlite3_backup_step
 import ksqlite.capi.sqlite3_errcode
 import ksqlite.capi.sqlite3_errmsg
-import ksqlite.capi.sqlite3_backup
 import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.helpers.UnsafeClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
