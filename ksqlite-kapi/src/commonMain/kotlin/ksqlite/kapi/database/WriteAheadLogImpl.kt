@@ -20,7 +20,7 @@ import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_wal_autocheckpoint
 import ksqlite.capi.sqlite3_wal_checkpoint_v2
 import ksqlite.capi.sqlite3_wal_hook
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParams
@@ -28,7 +28,7 @@ import ksqlite.types.SqliteCheckpointMode
 
 internal class WriteAheadLogImpl(
     private val db: sqlite3,
-    private val scope: ClosableScope
+    private val scope: CloseableScope
 ) : WriteAheadLog {
 
     override fun autoCheckpoint(frameCount: Int) =

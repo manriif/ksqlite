@@ -3,13 +3,13 @@ package ksqlite.kapi.cipher
 import ksqlite.capi.cipher.SqliteMcConfig
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3mc_config
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.types.cipher.SqliteMcCipher
 import ksqlite.types.cipher.SqliteMcConfigParamPrefix
 
 internal class CipherConfigurationImpl(
     private val db: sqlite3?,
-    private val scope: ClosableScope,
+    private val scope: CloseableScope,
 ) : CipherConfiguration {
 
     override fun <Cipher : SqliteMcCipher> parameters(cipher: Cipher): CipherParameters<Cipher> =

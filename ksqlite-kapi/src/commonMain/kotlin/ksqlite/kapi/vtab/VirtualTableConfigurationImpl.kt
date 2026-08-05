@@ -18,12 +18,12 @@ package ksqlite.kapi.vtab
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_vtab_config
 import ksqlite.capi.vtab.SqliteVtabConfigOption
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 
 internal class VirtualTableConfigurationImpl(
     private val db: sqlite3,
-    private val scope: ClosableScope
+    private val scope: CloseableScope
 ) : VirtualTableConfiguration {
 
     /**

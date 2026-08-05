@@ -17,6 +17,7 @@ package ksqlite.capi
 
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.types.SqliteConfigOption
+import ksqlite.internal.test.isWasm
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteSqlLogEvent
 import kotlin.test.Test

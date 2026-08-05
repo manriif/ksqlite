@@ -71,6 +71,7 @@ import ksqlite.capi.sqlite3_update_hook
 import ksqlite.capi.vtab.callbacks.SqliteVtabConnectCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabCreateCallback
 import ksqlite.capi.vtab.sqlite3_module
+import ksqlite.internal.runtime.closeable.DelegatingAtomicCloseableScope
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.blob.BlobImpl
 import ksqlite.kapi.buffer.Buffer
@@ -86,7 +87,6 @@ import ksqlite.kapi.function.WindowFunction
 import ksqlite.kapi.function.WindowFunctionInverseCallback
 import ksqlite.kapi.function.WindowFunctionValueCallback
 import ksqlite.kapi.helpers.AutoCloser
-import ksqlite.kapi.helpers.DelegatingAtomicCloseableScope
 import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
@@ -190,21 +190,6 @@ internal class DatabaseConnectionImpl(
         clear: () -> Unit,
         set: (Handler) -> Unit
     ) = scope.notClosed { handler?.let(set) ?: clear() }
-
-    /**
-     * Closes the connection and frees resources.
-     */
-    private fun closeConnection() {
-        db.resultCheck(sqlite3_close_v2(db))
-
-        closeables
-            .onEach { it.close() }
-            .clear()
-
-        listener.onConnectionClosed(db)
-    }
-
-    override fun close() = scope.close()
 
     override fun setAutovacuumPages(handler: AutovacuumPages?) = updateHandlerWithResult(
         handler = handler,
@@ -659,13 +644,16 @@ internal class DatabaseConnectionImpl(
         }
 
         val statement = PreparedStatementImpl(
-            connection = this,
-            parentScope = scope,
             stmt = stmt,
-            listener = listener::onStatementClosed
-        )
+            connection = this
+        ) { statement ->
+            listener.onStatementClosed(statement)
+            closeables.remove(statement)
+        }
 
-        listener.onStatementCreated(stmt, statement)
+        listener.onStatementCreated(statement)
+        closeables.add(statement)
+
         return statement
     }
 
@@ -794,6 +782,21 @@ internal class DatabaseConnectionImpl(
         set = { sqlite3_update_hook(db, it, UpdateHookCallback) }
     )
 
+    /**
+     * Closes the connection and frees resources.
+     */
+    private fun closeConnection() {
+        db.resultCheck(sqlite3_close_v2(db))
+
+        closeables
+            .onEach { it.close() }
+            .clear()
+
+        listener.onConnectionClosed(this)
+    }
+
+    override fun close() = scope.close()
+
     ///////////////////////////////////////////////////////////////////////////
     // Listener
     ///////////////////////////////////////////////////////////////////////////
@@ -806,19 +809,16 @@ internal class DatabaseConnectionImpl(
         /**
          * Notifies about statement creation.
          */
-        fun onStatementCreated(
-            stmt: sqlite3_stmt,
-            statement: PreparedStatement
-        )
+        fun onStatementCreated(statement: PreparedStatement)
 
         /**
          * Notifies about statement closing.
          */
-        fun onStatementClosed(stmt: sqlite3_stmt)
+        fun onStatementClosed(statement: PreparedStatement)
 
         /**
          * Notifies about database closing
          */
-        fun onConnectionClosed(db: sqlite3)
+        fun onConnectionClosed(connection: DatabaseConnection)
     }
 }

@@ -18,6 +18,7 @@ package ksqlite.capi
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.Utf8OutputParam
+import ksqlite.internal.test.isWasm
 import ksqlite.types.SqliteCompleteResult
 import ksqlite.types.SqliteResultCode
 import kotlin.test.Test

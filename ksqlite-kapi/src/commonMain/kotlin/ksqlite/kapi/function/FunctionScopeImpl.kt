@@ -23,7 +23,7 @@ import ksqlite.capi.sqlite3_result_error_nomem
 import ksqlite.capi.sqlite3_result_error_toobig
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.database.DatabaseConnection
-import ksqlite.kapi.helpers.ContextClosableScope
+import ksqlite.internal.runtime.closeable.ContextClosableScope
 import ksqlite.kapi.sqliteRequireConnection
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.SqliteResultCode

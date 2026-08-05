@@ -24,6 +24,7 @@ import ksqlite.capi.sqlite3_exec
 import ksqlite.capi.sqlite3_key
 import ksqlite.capi.sqlite3_open_v2
 import ksqlite.capi.sqlite3_rekey
+import ksqlite.capi.sqlite3_vfs_find
 import ksqlite.capi.sqlite3mc_cipher_count
 import ksqlite.capi.sqlite3mc_cipher_index
 import ksqlite.capi.sqlite3mc_cipher_name
@@ -31,6 +32,7 @@ import ksqlite.capi.sqlite3mc_codec_data
 import ksqlite.capi.sqlite3mc_config
 import ksqlite.capi.sqlite3mc_config_cipher
 import ksqlite.capi.sqlite3mc_version
+import ksqlite.capi.sqlite3mc_vfs_create
 import ksqlite.capi.usingRealTempFile
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.cipher.SqliteMcCipher
@@ -125,7 +127,16 @@ class CipherTest {
 
     @Test
     fun keyRekeyRoundTripWorks() = runSqliteTest {
-        findVfs().usingRealTempFile("cipher.db") { path ->
+        val baseVfs = findVfs()
+        val baseVfsName = baseVfs.zName
+
+        val createCipherVfsResult = sqlite3mc_vfs_create(baseVfsName, 0)
+        assertEquals(OK, createCipherVfsResult)
+
+        val cipherVfsName = "multipleciphers-${baseVfsName}"
+        val cipherVfs = assertNotNull(sqlite3_vfs_find(cipherVfsName))
+
+        cipherVfs.usingRealTempFile("cipher.db") { path ->
             val originalKey = "correct horse battery staple".encodeToByteArray()
             val rotatedKey = "new rotated passphrase".encodeToByteArray()
 
@@ -141,8 +152,9 @@ class CipherTest {
                 fileName = path,
                 outDb = outCreateDb,
                 flags = SqliteOpenFlag.READWRITE or SqliteOpenFlag.CREATE,
-                vfs = null
+                vfs = cipherVfsName
             )
+
             assertEquals(OK, createOpenResult)
 
             val createDb = assertNotNull(outCreateDb.value)
@@ -192,7 +204,7 @@ class CipherTest {
                 fileName = path,
                 outDb = outStaleDb,
                 flags = SqliteOpenFlag.READWRITE,
-                vfs = null
+                vfs = cipherVfsName
             )
             assertEquals(OK, staleOpenResult)
 
@@ -226,7 +238,7 @@ class CipherTest {
                 fileName = path,
                 outDb = outReadDb,
                 flags = SqliteOpenFlag.READWRITE,
-                vfs = null
+                vfs = cipherVfsName
             )
             assertEquals(OK, readOpenResult)
 

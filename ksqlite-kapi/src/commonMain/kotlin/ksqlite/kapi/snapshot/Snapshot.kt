@@ -16,12 +16,12 @@
 package ksqlite.kapi.snapshot
 
 import ksqlite.capi.sqlite3_snapshot
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 
 public abstract class Snapshot internal constructor() : Comparable<Snapshot>, AutoCloseable {
 
     internal abstract val snapshot: sqlite3_snapshot
-    internal abstract val scope: ClosableScope
+    internal abstract val scope: CloseableScope
 
     /**
      * Compares the ages of two valid snapshot handles.

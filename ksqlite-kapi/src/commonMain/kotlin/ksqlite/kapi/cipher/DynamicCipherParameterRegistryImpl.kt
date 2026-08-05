@@ -1,11 +1,11 @@
 package ksqlite.kapi.cipher
 
-import ksqlite.kapi.helpers.UnsafeClosableScope
+import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 
 internal class DynamicCipherParameterRegistryImpl(
     private val callbacks: MutableList<DynamicCipherParameter.() -> Unit>
 ) : DynamicCipherParameterRegistry,
-    UnsafeClosableScope() {
+    UnsafeCloseableScope() {
 
     /**
      * Registers a new [DynamicCipherParameter] and [configure]s it.

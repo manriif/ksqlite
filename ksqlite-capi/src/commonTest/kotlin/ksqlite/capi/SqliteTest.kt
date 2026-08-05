@@ -21,17 +21,14 @@ import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.vfs.sqlite3_vfs
 import ksqlite.capi.vfs.xAccess
 import ksqlite.capi.vfs.xDelete
+import ksqlite.internal.test.isWasm
+import ksqlite.internal.test.ksqliteTempTestFile
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode.IOERR.DELETE_NOENT
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
-/**
- * Indicates whether the platform use SQLite WASM.
- */
-internal expect val isWasm: Boolean
 
 /**
  * Runs [block] without initializing SQLite.
@@ -109,23 +106,6 @@ internal fun runSqliteConnectionDataTest(
 ///////////////////////////////////////////////////////////////////////////
 // Files
 ///////////////////////////////////////////////////////////////////////////
-
-/**
- * Returns the path to [subdirectory] against the OS temporary directory.
- * The returned directory is created if it does not exist and must be writable.
- */
-internal expect fun tempTestDirectory(subdirectory: String): String
-
-/**
- * Returns the path to the temporary test directory.
- */
-internal fun ksqliteTempTestDirectory(): String = tempTestDirectory("ksqlite-test")
-
-/**
- * Returns the path to the temporary test file named after [fileName].
- */
-internal fun ksqliteTempTestFile(fileName: String): String =
-    "${ksqliteTempTestDirectory()}/$fileName"
 
 /**
  * Invokes [block] passing it the path to a temporary file, named after [fileName], which isn't

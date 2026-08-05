@@ -16,9 +16,9 @@
 package ksqlite.capi.vfs
 
 import ksqlite.capi.findVfs
-import ksqlite.capi.ksqliteTempTestFile
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.runSqliteTest
+import ksqlite.internal.test.ksqliteTempTestFile
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
 import kotlin.test.Test
@@ -35,7 +35,6 @@ class VfsTest {
     fun memberPropertiesWorks() = runSqliteTest {
         val vfs = findVfs()
 
-        println(vfs.zName)
         assertTrue(vfs.iVersion >= VERSION_1)
         assertTrue(vfs.szOsFile > 0)
         assertTrue(vfs.mxPathname > 0)

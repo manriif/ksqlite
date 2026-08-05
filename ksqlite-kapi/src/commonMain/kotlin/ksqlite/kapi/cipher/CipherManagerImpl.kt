@@ -9,7 +9,7 @@ import ksqlite.capi.sqlite3mc_cipher_index
 import ksqlite.capi.sqlite3mc_cipher_name
 import ksqlite.capi.sqlite3mc_register_cipher
 import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.types.cipher.SqliteMcCipher
@@ -17,7 +17,7 @@ import ksqlite.types.cipher.SqliteMcCipher
 /**
  * Note that this instance must be closed to release registered ciphers.
  */
-internal class CipherManagerImpl(private val scope: ClosableScope) : CipherManager, AutoCloseable {
+internal class CipherManagerImpl(private val scope: CloseableScope) : CipherManager, AutoCloseable {
 
     private val registeredCiphers = mutableListOf<CipherDescriptor>()
 

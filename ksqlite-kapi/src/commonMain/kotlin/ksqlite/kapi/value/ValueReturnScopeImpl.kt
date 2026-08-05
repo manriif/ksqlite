@@ -28,7 +28,7 @@ import ksqlite.capi.sqlite3_result_value
 import ksqlite.capi.sqlite3_result_zeroblob
 import ksqlite.capi.sqlite3_result_zeroblob64
 import ksqlite.kapi.buffer.Buffer
-import ksqlite.kapi.helpers.ContextClosableScope
+import ksqlite.internal.runtime.closeable.ContextClosableScope
 import ksqlite.kapi.helpers.autoCloser
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.types.SqliteTextEncoding

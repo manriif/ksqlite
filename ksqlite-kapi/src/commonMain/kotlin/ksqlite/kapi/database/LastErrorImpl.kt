@@ -22,13 +22,13 @@ import ksqlite.capi.sqlite3_error_offset
 import ksqlite.capi.sqlite3_extended_errcode
 import ksqlite.capi.sqlite3_set_errmsg
 import ksqlite.capi.sqlite3_system_errno
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.types.SqliteResultCode
 
 internal class LastErrorImpl(
     private val db: sqlite3,
-    private val scope: ClosableScope
+    private val scope: CloseableScope
 ) : LastError {
 
     override val message: String?
