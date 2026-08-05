@@ -4,12 +4,12 @@ import ksqlite.capi.sqlite3_vfs_find
 import ksqlite.capi.sqlite3mc_vfs_create
 import ksqlite.capi.sqlite3mc_vfs_shutdown
 import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.vfs.VirtualFileSystem
 import ksqlite.kapi.vfs.VirtualFileSystemBase
 
-internal class CipherVirtualFileSystemManagerImpl(private val scope: ClosableScope) :
+internal class CipherVirtualFileSystemManagerImpl(private val scope: CloseableScope) :
     CipherVirtualFileSystemManager {
 
     override fun create(

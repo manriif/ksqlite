@@ -24,14 +24,14 @@ import ksqlite.capi.sqlite3_backup_step
 import ksqlite.capi.sqlite3_errcode
 import ksqlite.capi.sqlite3_errmsg
 import ksqlite.kapi.database.DatabaseConnection
-import ksqlite.kapi.helpers.UnsafeClosableScope
+import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.SqliteResultCode
 
 internal class BackupImpl(private val backup: sqlite3_backup) :
     Backup,
-    UnsafeClosableScope() {
+    UnsafeCloseableScope() {
 
     override val pageCount: Int
         get() = notClosed { sqlite3_backup_pagecount(backup) }

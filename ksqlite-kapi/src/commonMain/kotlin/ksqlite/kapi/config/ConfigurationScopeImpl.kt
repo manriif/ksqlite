@@ -16,10 +16,10 @@
 package ksqlite.kapi.config
 
 import ksqlite.capi.types.SqliteConfigOption
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.usingBooleanParam
 
-internal class ConfigurationScopeImpl(scope: ClosableScope) :
+internal class ConfigurationScopeImpl(scope: CloseableScope) :
     ConfigurationScope,
     AnyTimeConfigurationImpl(scope) {
 

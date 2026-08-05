@@ -26,7 +26,7 @@ import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.config.ConfigurationScopeImpl
 import ksqlite.kapi.database.DatabaseConnection
-import ksqlite.kapi.helpers.UnsafeClosableScope
+import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.statement.PreparedStatement
 
@@ -64,7 +64,7 @@ internal fun sqliteInitialize(configure: (ConfigurationScope.() -> Unit)? = null
         }
 
         if (configure != null) {
-            UnsafeClosableScope().use { scope ->
+            UnsafeCloseableScope().use { scope ->
                 configure(ConfigurationScopeImpl(scope))
             }
         }

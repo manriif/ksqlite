@@ -37,7 +37,7 @@ import ksqlite.capi.vtab.callbacks.SqliteVtabUpdateCallback
 import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.function.ScalarFunctionFuncCallback
 import ksqlite.kapi.helpers.AutoCloser
-import ksqlite.kapi.helpers.ContextClosableScope
+import ksqlite.internal.runtime.closeable.ContextClosableScope
 import ksqlite.kapi.helpers.runCatchingSQLiteException
 import ksqlite.kapi.sqliteRequireConnection
 import ksqlite.kapi.value.toProtectedValues

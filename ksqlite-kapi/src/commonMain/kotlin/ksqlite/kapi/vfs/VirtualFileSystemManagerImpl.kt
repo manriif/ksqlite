@@ -3,10 +3,10 @@ package ksqlite.kapi.vfs
 import ksqlite.capi.sqlite3_vfs_find
 import ksqlite.capi.sqlite3_vfs_register
 import ksqlite.capi.sqlite3_vfs_unregister
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 
-internal class VirtualFileSystemManagerImpl(private val scope: ClosableScope) :
+internal class VirtualFileSystemManagerImpl(private val scope: CloseableScope) :
     VirtualFileSystemManager {
 
     override val default: VirtualFileSystemBase?

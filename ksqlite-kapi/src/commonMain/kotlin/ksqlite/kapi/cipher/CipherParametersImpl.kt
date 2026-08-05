@@ -2,7 +2,7 @@ package ksqlite.kapi.cipher
 
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3mc_config_cipher
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.types.cipher.SqliteMcCipher
 import ksqlite.types.cipher.SqliteMcConfigCipherParam
 import ksqlite.types.cipher.SqliteMcConfigParamPrefix
@@ -10,7 +10,7 @@ import ksqlite.types.cipher.SqliteMcConfigParamPrefix
 internal class CipherParametersImpl<Cipher : SqliteMcCipher>(
     private val db: sqlite3?,
     private val cipher: Cipher,
-    private val scope: ClosableScope
+    private val scope: CloseableScope
 ) : CipherParameters<Cipher> {
 
     override fun <Value : Any, Param : SqliteMcConfigCipherParam<Cipher, Value>> get(

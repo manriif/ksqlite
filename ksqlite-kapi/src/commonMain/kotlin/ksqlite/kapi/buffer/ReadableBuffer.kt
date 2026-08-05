@@ -18,7 +18,7 @@ package ksqlite.kapi.buffer
 import ksqlite.capi.memory.read
 import ksqlite.capi.memory.readBytes
 import ksqlite.capi.memory.readBytesOrThrow
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.capi.memory.ReadableBuffer as CapiReadableBuffer
 
 /**
@@ -26,11 +26,11 @@ import ksqlite.capi.memory.ReadableBuffer as CapiReadableBuffer
  */
 public open class ReadableBuffer internal constructor(
     internal open val buffer: CapiReadableBuffer,
-    scope: ClosableScope? = null,
+    scope: CloseableScope? = null,
 ) {
 
     @Suppress("CanBePrimaryConstructorProperty")
-    internal open val scope: ClosableScope? = scope
+    internal open val scope: CloseableScope? = scope
 
     /**
      * Size of the memory region in bytes.

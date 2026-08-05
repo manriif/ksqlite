@@ -33,7 +33,7 @@ import ksqlite.capi.sqlite3_bind_zeroblob64
 import ksqlite.capi.sqlite3_clear_bindings
 import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.buffer.Buffer
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.autoCloser
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.value.Value
@@ -42,7 +42,7 @@ import ksqlite.types.SqliteTextEncoding
 
 internal class PreparedStatementParametersImpl(
     private val stmt: sqlite3_stmt,
-    private val scope: ClosableScope
+    private val scope: CloseableScope
 ) : PreparedStatementParameters {
 
     override val count: Int

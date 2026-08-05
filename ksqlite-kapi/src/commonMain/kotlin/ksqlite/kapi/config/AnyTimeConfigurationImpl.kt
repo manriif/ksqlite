@@ -18,11 +18,11 @@ package ksqlite.kapi.config
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.sqlite3_config
 import ksqlite.capi.types.SqliteConfigOption
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingParam
 
-internal open class AnyTimeConfigurationImpl(protected val scope: ClosableScope) :
+internal open class AnyTimeConfigurationImpl(protected val scope: CloseableScope) :
     AnyTimeConfiguration {
 
     override val pageCacheHeaderSize: Int

@@ -27,11 +27,13 @@ kotlin {
         commonMain.dependencies {
             api(projects.ksqliteTypes.ksqliteTypesCore)
             implementation(projects.ksqliteCapi)
+            implementation(projects.ksqliteInternal.ksqliteInternalRuntime)
             implementation(libs.stately.concurrentCollections)
         }
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(projects.ksqliteInternal.ksqliteInternalTest)
         }
     }
 }

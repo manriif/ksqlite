@@ -23,7 +23,7 @@ import ksqlite.capi.sqlite3_malloc
 import ksqlite.capi.sqlite3_malloc64
 import ksqlite.capi.sqlite3_realloc
 import ksqlite.capi.sqlite3_realloc64
-import ksqlite.kapi.helpers.DelegatingCloseableScope
+import ksqlite.internal.runtime.closeable.DelegatingCloseableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -154,10 +154,6 @@ public class Buffer internal constructor(buffer: CapiBuffer) :
      * the buffer is no longer referenced.
      */
     override fun close() {
-        // Checked here, ahead of scope.close(), so that a still-referenced buffer is not marked
-        // closed: scope.close() would otherwise mark the scope closed before invoking onClose(),
-        // permanently leaking this buffer's native memory and making close() unretriable even
-        // after the reference is released.
         if (!scope.closed) {
             ensureNotReferenced()
         }

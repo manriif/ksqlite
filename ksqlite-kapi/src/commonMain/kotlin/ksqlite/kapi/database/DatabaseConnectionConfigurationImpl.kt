@@ -19,14 +19,14 @@ import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_db_config
 import ksqlite.capi.types.SqliteDbConfigOption
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingBooleanParam
 import ksqlite.kapi.helpers.usingParam
 
 internal class DatabaseConnectionConfigurationImpl(
     private val db: sqlite3,
-    private val scope: ClosableScope
+    private val scope: CloseableScope
 ) : DatabaseConnectionConfiguration {
 
     override var isForeignKeyEnabled: Boolean

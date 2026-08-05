@@ -21,7 +21,7 @@ import ksqlite.capi.memory.Utf8OutputParam
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_file_control
 import ksqlite.capi.types.SqliteFileControlOpcode
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.usingBooleanParam
 import ksqlite.kapi.helpers.usingParam
@@ -29,7 +29,7 @@ import ksqlite.types.SqliteResultCode
 
 internal class FileControlImpl(
     private val db: sqlite3,
-    private val scope: ClosableScope
+    private val scope: CloseableScope
 ) : FileControl {
 
     /**

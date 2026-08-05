@@ -32,14 +32,14 @@ import ksqlite.capi.sqlite3_column_value
 import ksqlite.capi.sqlite3_data_count
 import ksqlite.capi.sqlite3_stmt
 import ksqlite.kapi.buffer.ReadableBuffer
-import ksqlite.kapi.helpers.UnsafeClosableScope
+import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 import ksqlite.kapi.value.UnprotectedValue
 import ksqlite.kapi.value.toUnprotectedValue
 import ksqlite.types.SqliteDataType
 
 internal class RowImpl(private val stmt: sqlite3_stmt) :
     Row,
-    UnsafeClosableScope() {
+    UnsafeCloseableScope() {
 
     override val dataCount: Int
         get() = notClosed { sqlite3_data_count(stmt) }

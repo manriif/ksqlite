@@ -1,7 +1,7 @@
 package ksqlite.kapi.vfs
 
 import ksqlite.capi.vfs.sqlite3_vfs
-import ksqlite.kapi.helpers.DelegatingCloseableScope
+import ksqlite.internal.runtime.closeable.DelegatingCloseableScope
 import ksqlite.types.vfs.SqliteVfsVersion
 
 /**
@@ -30,10 +30,6 @@ public abstract class VirtualFileSystem internal constructor(override val vfs: s
 
     /**
      * Destroys this virtual file system's underlying native resources.
-     *
-     * Implementations must read from [vfs] directly rather than through `this` (e.g. `vfs.zName`,
-     * not `zName`): by the time this is invoked, this scope is already marked closed, so guarded
-     * members of `this` would themselves throw.
      */
     protected abstract fun onClose()
 

@@ -34,7 +34,7 @@ import ksqlite.kapi.config.AnyTimeConfigurationImpl
 import ksqlite.kapi.database.AutoExtension
 import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.kapi.database.DatabaseConnectionImpl
-import ksqlite.kapi.helpers.AtomicClosableScope
+import ksqlite.internal.runtime.closeable.AtomicClosableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.sqliteResultThrow
 import ksqlite.kapi.helpers.usingParams
@@ -194,24 +194,22 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
 
     private inner class Listener : DatabaseConnectionImpl.Listener {
 
-        override fun onStatementCreated(
-            stmt: sqlite3_stmt,
-            statement: PreparedStatement
-        ) {
-            check(statements.put(stmt, statement) == null) {
-                "A statement is already associated with the statement handle $stmt"
+        override fun onStatementCreated(statement: PreparedStatement) {
+            check(statements.put(statement.stmt, statement) == null) {
+                "A statement is already associated with the statement handle ${statement.stmt}"
             }
         }
 
-        override fun onStatementClosed(stmt: sqlite3_stmt) {
-            check(statements.remove(stmt) != null) {
-                "Expected a statement to be registered with the statement handle $stmt"
+        override fun onStatementClosed(statement: PreparedStatement) {
+            check(statements.remove(statement.stmt) == statement) {
+                "Expected a statement to be registered with the statement handle ${statement.stmt}"
             }
         }
 
-        override fun onConnectionClosed(db: sqlite3) {
-            check(connections.remove(db) != null) {
-                "Expected a connection to be registered with the database connection handle $db"
+        override fun onConnectionClosed(connection: DatabaseConnection) {
+            check(connections.remove(connection.db) != null) {
+                "Expected a connection to be registered with the database connection handle " +
+                        connection.db
             }
         }
     }

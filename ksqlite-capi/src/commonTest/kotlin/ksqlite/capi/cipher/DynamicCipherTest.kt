@@ -30,8 +30,10 @@ import ksqlite.capi.sqlite3mc_codec_data
 import ksqlite.capi.sqlite3mc_config
 import ksqlite.capi.sqlite3mc_config_cipher
 import ksqlite.capi.sqlite3mc_register_cipher
+import ksqlite.capi.sqlite3mc_vfs_create
 import ksqlite.capi.usingRealTempFile
 import ksqlite.types.SqliteOpenFlag
+import ksqlite.types.SqliteResultCode.OK
 import ksqlite.types.cipher.SqliteMcCipher
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -42,7 +44,7 @@ import kotlin.test.assertTrue
 /**
  * Tests the SQLite3 Multiple Ciphers dynamic cipher registration API.
  *
- * The cipher registered by these tests is a trivial, single-byte XOR "cipher": it exists only to
+ * The cipher registered by these tests is a trivial, single-byte XOR "cipher" that only exists to
  * prove that every hook of [CipherDescriptor] is actually wired up and invoked by SQLite3 Multiple
  * Ciphers, not to provide any real confidentiality.
  */
@@ -133,7 +135,11 @@ class DynamicCipherTest {
 
         val cipher = SqliteMcCipher.Dynamic(cipherName)
 
-        findVfs().usingRealTempFile("dynamic-cipher.db") { path ->
+        val baseVfs = findVfs()
+        val createCipherVfsResult = sqlite3mc_vfs_create(baseVfs.zName, 1)
+        assertEquals(OK, createCipherVfsResult)
+
+        baseVfs.usingRealTempFile("dynamic-cipher.db") { path ->
             val originalKey = "dynamic original passphrase".encodeToByteArray()
             val rotatedKey = "dynamic rotated passphrase".encodeToByteArray()
 

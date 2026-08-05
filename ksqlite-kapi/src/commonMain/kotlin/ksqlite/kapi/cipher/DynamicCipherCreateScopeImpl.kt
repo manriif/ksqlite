@@ -2,14 +2,14 @@ package ksqlite.kapi.cipher
 
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3mc_config_cipher
-import ksqlite.kapi.helpers.UnsafeClosableScope
+import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 import ksqlite.types.cipher.SqliteMcCipher
 
 internal class DynamicCipherCreateScopeImpl(
     private val db: sqlite3,
     cipherName: String
 ) : DynamicCipherCreateScope,
-    UnsafeClosableScope() {
+    UnsafeCloseableScope() {
 
     private val cipher = SqliteMcCipher.Dynamic(cipherName)
 

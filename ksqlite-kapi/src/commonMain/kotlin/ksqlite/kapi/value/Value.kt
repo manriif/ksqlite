@@ -32,8 +32,8 @@ import ksqlite.capi.sqlite3_value_subtype
 import ksqlite.capi.sqlite3_value_text
 import ksqlite.capi.sqlite3_value_type
 import ksqlite.kapi.buffer.ReadableBuffer
-import ksqlite.kapi.helpers.ClosableScope
-import ksqlite.kapi.helpers.DelegatingCloseableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
+import ksqlite.internal.runtime.closeable.DelegatingCloseableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 import ksqlite.types.SqliteDataType
 import ksqlite.types.SqliteTextEncoding
@@ -49,7 +49,7 @@ public sealed class Value(
      * Scope the value is associated with, determining its lifecycle.
      */
     @PublishedApi
-    internal val scope: ClosableScope,
+    internal val scope: CloseableScope,
 ) {
 
     /**
@@ -70,7 +70,7 @@ public sealed class Value(
  */
 public open class ProtectedValue internal constructor(
     value: sqlite3_value,
-    scope: ClosableScope,
+    scope: CloseableScope,
 ) : Value(value, scope) {
 
     /**
@@ -164,7 +164,7 @@ public open class ProtectedValue internal constructor(
  */
 public class UnprotectedValue internal constructor(
     value: sqlite3_value,
-    scope: ClosableScope
+    scope: CloseableScope
 ) : Value(value, scope)
 
 /**
@@ -190,19 +190,19 @@ public class DuplicatedValue internal constructor(value: sqlite3_value) : Protec
  * Creates a new [UnprotectedValue] wrapping `this` [sqlite3_value] or returns `null` if the type
  * of `this` value is [ksqlite.types.SqliteDataType.NULL].
  */
-internal fun sqlite3_value.toUnprotectedValue(scope: ClosableScope): UnprotectedValue =
+internal fun sqlite3_value.toUnprotectedValue(scope: CloseableScope): UnprotectedValue =
     UnprotectedValue(this, scope)
 
 /**
  * Creates a new [ProtectedValue] wrapping `this` [sqlite3_value].
  */
-internal fun sqlite3_value.toProtectedValue(scope: ClosableScope): ProtectedValue =
+internal fun sqlite3_value.toProtectedValue(scope: CloseableScope): ProtectedValue =
     ProtectedValue(this, scope)
 
 /**
  * Map `this` array of [sqlite3_value] to an array of [ProtectedValue].
  */
-internal fun Array<sqlite3_value>.toProtectedValues(scope: ClosableScope): Array<ProtectedValue> {
+internal fun Array<sqlite3_value>.toProtectedValues(scope: CloseableScope): Array<ProtectedValue> {
     return if (isEmpty()) {
         emptyArray()
     } else {

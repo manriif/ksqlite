@@ -5,11 +5,11 @@ import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3mc_codec_data
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.buffer.Buffer.Companion.wrap
-import ksqlite.kapi.helpers.ClosableScope
+import ksqlite.internal.runtime.closeable.CloseableScope
 
 internal class CipherDataImpl(
     private val db: sqlite3,
-    private val scope: ClosableScope
+    private val scope: CloseableScope
 ) : CipherData {
 
     /**
