@@ -1824,6 +1824,27 @@ static char* jstringToUtf8(
 
     const auto length = env->GetStringLength(string);
 
+    // utf16_to_utf8_length() returns -1 for a zero-length input by design, matching AOSP's own
+    // libutils implementation (see its TODO comment) - not a conversion error. Left unhandled,
+    // that -1 falls into the `utf8Length <= 0` check below and this function returns nullptr for
+    // a perfectly valid empty Java String, indistinguishable from `string == nullptr` or a real
+    // failure. Callers that key off the returned pointer being non-null (e.g. sqlite3_bind_text's
+    // JNI glue, which uses it as a map key) then fail a non-null assertion and abort the process.
+    // Handle the empty case directly instead of routing it through utf16_to_utf8_length at all.
+    if (length == 0) {
+        env->ReleaseStringChars(string, chars);
+
+        const auto utf8 = static_cast<char*>(sqlite3_malloc(1));
+        OutOfMemoryCheck(utf8);
+        utf8[0] = '\0';
+
+        if (outLength != nullptr) {
+            *outLength = 0;
+        }
+
+        return utf8;
+    }
+
     const auto utf8Length = utf16_to_utf8_length(
         reinterpret_cast<const char16_t*>(chars),
         length
