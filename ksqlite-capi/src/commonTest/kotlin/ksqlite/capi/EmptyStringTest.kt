@@ -21,13 +21,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 /**
- * Regression tests for a bug on the Android JNI backend: `utf16_to_utf8_length()` returns -1 for
- * zero-length input by design (matching AOSP's own libutils implementation), not as a conversion
- * error - but `jstringToUtf8` didn't distinguish that from a real failure, so it returned a null C
- * string for a perfectly valid empty Kotlin/Java `String`. Some callers (`sqlite3_bind_text`'s and
- * `sqlite3_result_text`'s JNI glue) then used that null pointer as a hash map key, which trips a
- * fatal, unrecoverable JNI assertion and aborts the whole process - not a catchable exception. An
- * empty string must round-trip as an empty string, on every backend, not just avoid crashing.
+ * Regression tests for a bug on the Android JNI backend which wasn't handling empty string
+ * correctly.
  */
 class EmptyStringTest {
 
