@@ -7,8 +7,8 @@ import ksqlite.types.vfs.SqliteVfsVersion
 /**
  * Represents a [virtual file system](https://sqlite.org/c3ref/vfs.html).
  */
-public abstract class VirtualFileSystem internal constructor(override val vfs: sqlite3_vfs) :
-    VirtualFileSystemBase(),
+public abstract class VirtualFileSystem internal constructor(internal val vfs: sqlite3_vfs) :
+    VirtualFileSystemBase,
     AutoCloseable {
 
     private val scope = DelegatingCloseableScope(::onClose)
@@ -29,7 +29,7 @@ public abstract class VirtualFileSystem internal constructor(override val vfs: s
         get() = scope.notClosed { vfs.pNext?.let(::UnmanagedVirtualFileSystem) }
 
     /**
-     * Destroys this virtual file system's underlying native resources.
+     * Releases this virtual file system's native resources.
      */
     protected abstract fun onClose()
 

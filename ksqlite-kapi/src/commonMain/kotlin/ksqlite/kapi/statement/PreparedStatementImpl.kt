@@ -17,20 +17,13 @@
 
 package ksqlite.kapi.statement
 
-import ksqlite.capi.sqlite3_column_count
-import ksqlite.capi.sqlite3_expanded_sql
 import ksqlite.capi.sqlite3_finalize
 import ksqlite.capi.sqlite3_reset
-import ksqlite.capi.sqlite3_sql
 import ksqlite.capi.sqlite3_step
 import ksqlite.capi.sqlite3_stmt
-import ksqlite.capi.sqlite3_stmt_busy
 import ksqlite.capi.sqlite3_stmt_explain
-import ksqlite.capi.sqlite3_stmt_isexplain
-import ksqlite.capi.sqlite3_stmt_readonly
 import ksqlite.capi.sqlite3_stmt_status
-import ksqlite.internal.runtime.closeable.DelegatingAtomicCloseableScope
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.sqliteResultThrow
 import ksqlite.types.SqliteExplainMode
@@ -39,35 +32,20 @@ import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 internal class PreparedStatementImpl(
-    override val stmt: sqlite3_stmt,
+    stmt: sqlite3_stmt,
     override val connection: DatabaseConnection,
     private val listener: Listener
-) : PreparedStatement() {
+) : PreparedStatement,
+    ReadOnlyPreparedStatement(stmt) {
 
-    private val scope = DelegatingAtomicCloseableScope(::closeStatement)
     private val lastRow = AtomicReference<RowImpl?>(null)
-    override val parameters = PreparedStatementParametersImpl(stmt, scope)
-
-    override val columnCount: Int
-        get() = scope.notClosed { sqlite3_column_count(stmt) }
-
-    override val expandedSql: String?
-        get() = scope.notClosed { sqlite3_expanded_sql(stmt) }
-
-    override val sql: String
-        get() = scope.notClosed { sqlite3_sql(stmt) }
-
-    override val isBusy: Boolean
-        get() = scope.notClosed { sqlite3_stmt_busy(stmt) != 0 }
+    override val parameters = PreparedStatementParametersImpl(stmt, this)
 
     override var explain: SqliteExplainMode
-        get() = scope.notClosed { sqlite3_stmt_isexplain(stmt) }
-        set(value) = scope.notClosed { sqliteResultCheck(sqlite3_stmt_explain(stmt, value)) }
+        get() = super.explain
+        set(value) = notClosed { sqliteResultCheck(sqlite3_stmt_explain(stmt, value)) }
 
-    override val isReadOnly: Boolean
-        get() = scope.notClosed { sqlite3_stmt_readonly(stmt) != 0 }
-
-    override fun step(): Row? = scope.notClosed {
+    override fun step(): Row? = notClosed {
         when (val code = sqlite3_step(stmt)) {
             ROW -> RowImpl(stmt).also { row ->
                 lastRow.exchange(row)?.close()
@@ -84,21 +62,18 @@ internal class PreparedStatementImpl(
     }
 
     override fun getStatus(counter: SqliteStatementStatusCounter, reset: Boolean): Int =
-        scope.notClosed { sqlite3_stmt_status(stmt, counter, if (reset) 1 else 0) }
+        notClosed { sqlite3_stmt_status(stmt, counter, if (reset) 1 else 0) }
 
-    override fun reset(): Unit = scope.notClosed {
+    override fun reset(): Unit = notClosed {
         sqliteResultCheck(sqlite3_reset(stmt))
         lastRow.exchange(null)?.close()
     }
 
-    private fun closeStatement() {
-
+    override fun onClose() {
         sqliteResultCheck(sqlite3_finalize(stmt))
         lastRow.exchange(null)?.close()
         listener.onStatementClosed(this)
     }
-
-    override fun close() = scope.close()
 
     ///////////////////////////////////////////////////////////////////////////
     // Listener
@@ -112,6 +87,6 @@ internal class PreparedStatementImpl(
         /**
          * Notifies about a statement being closed.
          */
-        fun onStatementClosed(statement: PreparedStatement)
+        fun onStatementClosed(statement: PreparedStatementImpl)
     }
 }

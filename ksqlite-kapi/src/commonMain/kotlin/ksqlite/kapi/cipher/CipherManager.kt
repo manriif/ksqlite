@@ -30,14 +30,14 @@ public interface CipherManager {
      * Returns the relative 1-based index of the given [cipher].
      * See [SqliteMcCodecType] for the builtin ciphers.
      *
-     * @throws CipherException if the cipher is not registered.
+     * @throws ksqlite.kapi.SQLiteException if the cipher is not registered.
      */
     public fun getIndex(cipher: SqliteMcCipher): Int
 
     /**
      * Returns the name if the cipher at the relative 1-based [index].
      *
-     * @throws CipherException if there is no cipher for the given index.
+     * @throws ksqlite.kapi.SQLiteException if there is no cipher for the given index.
      */
     public fun getName(index: Int): String
 
@@ -63,7 +63,7 @@ public interface CipherManager {
 /**
  * Returns the relative 1-based index of the dynamic cipher named after [name].
  *
- * @throws CipherException if the cipher is not registered.
+ * @throws ksqlite.kapi.SQLiteException if the cipher is not registered.
  */
 public fun CipherManager.getIndex(name: String): Int =
     getIndex(SqliteMcCipher.Dynamic(name))

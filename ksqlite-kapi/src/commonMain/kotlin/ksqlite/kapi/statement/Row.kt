@@ -65,13 +65,13 @@ public interface Row {
     /**
      * Returns the size of the column at [index] in bytes.
      */
-    public fun getBytes(index: Int): Int
+    public fun getSize(index: Int): Int
 
     /**
      * Returns the value of the column at [index] as a [ByteArray] or `null` in the value cannot be
      * converted to a [ByteArray].
      */
-    public fun getBlob(index: Int): ByteArray?
+    public fun getByteArray(index: Int): ByteArray?
 
     /**
      * Returns the value of the column at [index] as a [ReadableBuffer] or `null` in the value

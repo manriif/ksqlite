@@ -22,8 +22,8 @@ import ksqlite.capi.sqlite3_result_error_code
 import ksqlite.capi.sqlite3_result_error_nomem
 import ksqlite.capi.sqlite3_result_error_toobig
 import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.database.DatabaseConnection
-import ksqlite.internal.runtime.closeable.ContextClosableScope
+import ksqlite.kapi.connection.DatabaseConnection
+import ksqlite.kapi.helpers.ContextCloseableScope
 import ksqlite.kapi.sqliteRequireConnection
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.SqliteResultCode
@@ -39,7 +39,7 @@ private sealed class ResultException : SQLiteException(SqliteResultCode.ERROR, "
 @PublishedApi
 internal class FunctionScopeImpl(context: sqlite3_context) :
     FunctionScope,
-    ContextClosableScope(context) {
+    ContextCloseableScope(context) {
 
     override val connection: DatabaseConnection
         get() = notClosed { sqliteRequireConnection(sqlite3_context_db_handle(context)) }

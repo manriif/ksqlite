@@ -15,63 +15,27 @@
  */
 package ksqlite.kapi.statement
 
-import ksqlite.capi.sqlite3_stmt
-import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.types.SqliteExplainMode
 import ksqlite.types.SqliteStatementStatusCounter
 
 /**
  * Exposes the [Statement](https://sqlite.org/c3ref/stmt.html) API.
  */
-public abstract class PreparedStatement internal constructor(): AutoCloseable {
-
-    /**
-     * Statement handle.
-     */
-    internal abstract val stmt: sqlite3_stmt
-
-    /**
-     * Database connection to which this statement belongs.
-     */
-    public abstract val connection: DatabaseConnection
+public sealed interface PreparedStatement :
+    PreparedStatementBase,
+    AutoCloseable {
 
     /**
      * Statement parameters.
      */
-    public abstract val parameters: PreparedStatementParameters
-
-    /**
-     * Number of column in the result set.
-     */
-    public abstract val columnCount: Int
-
-    /**
-     * SQL associated with the statement with bound parameters expanded.
-     */
-    public abstract val expandedSql: String?
-
-    /**
-     * SQL text used to create this statement.
-     */
-    public abstract val sql: String
-
-    /**
-     * Whether the prepared statement has been stepped at least once using [step] but has neither
-     * run to completion (returned `null` from [step]) nor been reset using [reset].
-     */
-    public abstract val isBusy: Boolean
+    public val parameters: PreparedStatementParameters
 
     /**
      * Explain mode.
      *
      * @throws ksqlite.kapi.SQLiteException if the setting cannot be changed in the actual state.
      */
-    public abstract var explain: SqliteExplainMode
-
-    /**
-     * Whether the prepared statement makes no direct changes to the content of the database file.
-     */
-    public abstract val isReadOnly: Boolean
+    public override var explain: SqliteExplainMode
 
     /**
      * Evaluates the statement and returns a [Row] if any data is found or `null` if the statement
@@ -80,12 +44,12 @@ public abstract class PreparedStatement internal constructor(): AutoCloseable {
      * @throws ksqlite.kapi.SQLiteException if an error occurs while executing the statement.
      */
     @IgnorableReturnValue
-    public abstract fun step(): Row?
+    public fun step(): Row?
 
     /**
      * Returns the current value of the given [counter].
      */
-    public abstract fun getStatus(
+    public fun getStatus(
         counter: SqliteStatementStatusCounter,
         reset: Boolean
     ): Int
@@ -98,12 +62,12 @@ public abstract class PreparedStatement internal constructor(): AutoCloseable {
      *
      * @throws ksqlite.kapi.SQLiteException if the operation fails.
      */
-    public abstract fun reset()
+    public fun reset()
 
     /**
      * Deletes a prepared statement.
      *
      * @throws ksqlite.kapi.SQLiteException if finalizing the statement fails.
      */
-    abstract override fun close()
+    override fun close()
 }

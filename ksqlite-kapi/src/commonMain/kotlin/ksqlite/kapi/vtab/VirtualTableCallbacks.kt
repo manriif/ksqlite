@@ -34,10 +34,10 @@ import ksqlite.capi.vtab.callbacks.SqliteVtabRenameCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabRowidCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabTransactionCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabUpdateCallback
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.kapi.function.ScalarFunctionFuncCallback
 import ksqlite.kapi.helpers.AutoCloser
-import ksqlite.internal.runtime.closeable.ContextClosableScope
+import ksqlite.kapi.helpers.ContextCloseableScope
 import ksqlite.kapi.helpers.runCatchingSQLiteException
 import ksqlite.kapi.sqliteRequireConnection
 import ksqlite.kapi.value.toProtectedValues
@@ -183,7 +183,7 @@ internal val VtabColumnCallback = SqliteVtabColumnCallback { cursor: VtabCursor,
         sqlite3_result_text(context, error.message)
         error.result
     }) {
-        ContextClosableScope(context).use { scope ->
+        ContextCloseableScope(context).use { scope ->
             VirtualTableColumnScopeImpl(scope).column(index)
         }
 

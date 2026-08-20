@@ -16,7 +16,7 @@
 package ksqlite.kapi.function
 
 import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.types.SqliteResultCode
 
 /**

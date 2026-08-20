@@ -8,10 +8,10 @@ import ksqlite.capi.sqlite3mc_cipher_count
 import ksqlite.capi.sqlite3mc_cipher_index
 import ksqlite.capi.sqlite3mc_cipher_name
 import ksqlite.capi.sqlite3mc_register_cipher
-import ksqlite.kapi.SQLiteException
 import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
+import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.cipher.SqliteMcCipher
 
 /**
@@ -29,26 +29,12 @@ internal class CipherManagerImpl(private val scope: CloseableScope) : CipherMana
 
     override fun getIndex(cipher: SqliteMcCipher): Int = scope.notClosed {
         sqlite3mc_cipher_index(cipher).takeIf { it != -1 }
-            ?: throwCipherException("Cipher ${cipher.name} is not registered")
+            ?: throwSQLiteException("Cipher ${cipher.name} is not registered")
     }
 
     override fun getName(index: Int): String = scope.notClosed {
         sqlite3mc_cipher_name(index)
-            ?: throwCipherException("No cipher exists for index $index")
-    }
-
-    /**
-     * Ensures the [name] is a valid cipher name.
-     */
-    private inline fun checkCipherName(
-        name: String,
-        lazyMessage: () -> String
-    ) {
-        try {
-            ensureValidCipherName(name, lazyMessage)
-        } catch (exception: CipherException) {
-            throw SQLiteException(MISUSE, "Invalid name", exception)
-        }
+            ?: throwSQLiteException("No cipher exists for index $index")
     }
 
     /**
@@ -65,7 +51,7 @@ internal class CipherManagerImpl(private val scope: CloseableScope) : CipherMana
             if (index < callbacks.size) {
                 callbacks[index].invoke(this)
 
-                checkCipherName(m_name) {
+                ensureValidCipherName(m_name) {
                     "For param at index ${index}: name $m_name is not a valid cipher name"
                 }
             }
@@ -80,8 +66,8 @@ internal class CipherManagerImpl(private val scope: CloseableScope) : CipherMana
         name: String,
         factory: DynamicCipher.Factory<C>,
         makeDefault: Boolean
-    ) {
-        checkCipherName(name) { "Name $name is not a valid cipher name" }
+    ): Unit = scope.notClosed {
+        ensureValidCipherName(name) { "Name $name is not a valid cipher name" }
 
         val descriptor = CipherDescriptor(
             name = name,

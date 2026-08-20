@@ -29,8 +29,8 @@ import ksqlite.capi.sqlite3_vtab_nochange
 import ksqlite.capi.sqlite3_vtab_on_conflict
 import ksqlite.capi.sqlite3_vtab_rhs_value
 import ksqlite.capi.vtab.sqlite3_index_info
-import ksqlite.internal.runtime.closeable.ContextClosableScope
 import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
+import ksqlite.kapi.helpers.ContextCloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.kapi.value.ValueReturnScope
@@ -80,7 +80,7 @@ internal class VirtualTableBestIndexScopeImpl(
     }
 }
 
-internal class VirtualTableColumnScopeImpl(private val scope: ContextClosableScope) :
+internal class VirtualTableColumnScopeImpl(private val scope: ContextCloseableScope) :
     VirtualTableColumnScope,
     ValueReturnScope by ValueReturnScopeImpl(scope) {
 

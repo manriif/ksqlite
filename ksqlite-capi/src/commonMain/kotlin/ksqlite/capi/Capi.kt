@@ -2080,7 +2080,7 @@ public expect fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot)
  */
 public expect fun sqlite3_snapshot_get(
     db: sqlite3,
-    name: String?,
+    name: String,
     outSnapshot: sqlite3_snapshot.OutputParam
 ): SqliteResultCode
 
@@ -2091,7 +2091,7 @@ public expect fun sqlite3_snapshot_get(
  */
 public expect fun sqlite3_snapshot_open(
     db: sqlite3,
-    name: String?,
+    name: String,
     snapshot: sqlite3_snapshot
 ): SqliteResultCode
 
@@ -2103,7 +2103,7 @@ public expect fun sqlite3_snapshot_open(
  */
 public expect fun sqlite3_snapshot_recover(
     db: sqlite3,
-    name: String?
+    name: String
 ): SqliteResultCode
 
 /**

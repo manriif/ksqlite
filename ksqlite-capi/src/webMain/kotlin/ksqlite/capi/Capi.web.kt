@@ -1419,7 +1419,7 @@ public actual fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Unit =
 
 public actual fun sqlite3_snapshot_get(
     db: sqlite3,
-    name: String?,
+    name: String,
     outSnapshot: sqlite3_snapshot.OutputParam
 ): SqliteResultCode = convertResultCode(heapScoped {
     useParam(outSnapshot) { snapshotPtr ->
@@ -1429,7 +1429,7 @@ public actual fun sqlite3_snapshot_get(
 
 public actual fun sqlite3_snapshot_open(
     db: sqlite3,
-    name: String?,
+    name: String,
     snapshot: sqlite3_snapshot
 ): SqliteResultCode = convertResultCode(heapScoped {
     exports.sqlite3_snapshot_open(db.pointer, name.allocateUtf8Pointer(), snapshot.pointer)
@@ -1437,7 +1437,7 @@ public actual fun sqlite3_snapshot_open(
 
 public actual fun sqlite3_snapshot_recover(
     db: sqlite3,
-    name: String?
+    name: String
 ): SqliteResultCode = convertResultCode(heapScoped {
     exports.sqlite3_snapshot_recover(db.pointer, name.allocateUtf8Pointer())
 })

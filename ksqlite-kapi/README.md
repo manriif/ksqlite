@@ -184,7 +184,7 @@ before handing a multi-line statement to `prepare()`/`execute()`.
 
 ## Database connections
 
-[`DatabaseConnection`](src/commonMain/kotlin/ksqlite/kapi/database/DatabaseConnection.kt) wraps a
+[`DatabaseConnection`](src/commonMain/kotlin/ksqlite/kapi/connection/DatabaseConnection.kt) wraps a
 single SQLite connection, obtained from `SQLite.open()`. It's the object every other API in this
 section, and most of the sections after it, hangs off of.
 

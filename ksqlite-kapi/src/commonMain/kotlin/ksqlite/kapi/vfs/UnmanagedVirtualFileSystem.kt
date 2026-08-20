@@ -6,8 +6,8 @@ import ksqlite.types.vfs.SqliteVfs
 /**
  * Wrapper around [sqlite3_vfs] for VFS that are managed by SQLite.
  */
-internal class UnmanagedVirtualFileSystem(override val vfs: sqlite3_vfs) :
-    VirtualFileSystemBase(),
+internal class UnmanagedVirtualFileSystem(internal val vfs: sqlite3_vfs) :
+    VirtualFileSystemBase,
     SqliteVfs by vfs {
 
     override val pNext: VirtualFileSystemBase?

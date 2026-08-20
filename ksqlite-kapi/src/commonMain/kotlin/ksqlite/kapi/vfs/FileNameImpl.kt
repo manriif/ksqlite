@@ -23,30 +23,34 @@ import ksqlite.capi.sqlite3_uri_boolean
 import ksqlite.capi.sqlite3_uri_int64
 import ksqlite.capi.sqlite3_uri_key
 import ksqlite.capi.sqlite3_uri_parameter
+import ksqlite.internal.runtime.closeable.CloseableScope
 
-internal class FileNameImpl(private val filename: sqlite3_filename) : FileName {
+internal class FileNameImpl(
+    private val filename: sqlite3_filename,
+    private val scope: CloseableScope
+) : FileName {
 
     override val content: String
-        get() = filename.content
+        get() = scope.notClosed { filename.content }
 
     override val databaseFileName: String?
-        get() = sqlite3_filename_database(filename)
+        get() = scope.notClosed { sqlite3_filename_database(filename) }
 
     override val journalFileName: String?
-        get() = sqlite3_filename_journal(filename)
+        get() = scope.notClosed { sqlite3_filename_journal(filename) }
 
     override val walFileName: String?
-        get() = sqlite3_filename_wal(filename)
+        get() = scope.notClosed { sqlite3_filename_wal(filename) }
 
     override fun getKey(index: Int): String? =
-        sqlite3_uri_key(filename, index)
+        scope.notClosed { sqlite3_uri_key(filename, index) }
 
     override fun geValue(parameter: String): String? =
-        sqlite3_uri_parameter(filename, parameter)
+        scope.notClosed { sqlite3_uri_parameter(filename, parameter) }
 
     override fun geValue(parameter: String, default: Boolean): Boolean =
-        sqlite3_uri_boolean(filename, parameter, if (default) 1 else 0) != 0
+        scope.notClosed { sqlite3_uri_boolean(filename, parameter, if (default) 1 else 0) != 0 }
 
     override fun geValue(parameter: String, default: Long): Long =
-        sqlite3_uri_int64(filename, parameter, default)
+        scope.notClosed { sqlite3_uri_int64(filename, parameter, default) }
 }

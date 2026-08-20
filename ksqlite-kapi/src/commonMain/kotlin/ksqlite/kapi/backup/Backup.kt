@@ -15,8 +15,8 @@
  */
 package ksqlite.kapi.backup
 
-import ksqlite.kapi.database.DatabaseConnection
-import ksqlite.kapi.database.SQLITE_MAIN_DB_NAME
+import ksqlite.kapi.connection.DatabaseConnection
+import ksqlite.kapi.connection.SQLITE_MAIN_DB_NAME
 
 /**
  * Exposes the [Online Backup API](https://sqlite.org/backup.html).
