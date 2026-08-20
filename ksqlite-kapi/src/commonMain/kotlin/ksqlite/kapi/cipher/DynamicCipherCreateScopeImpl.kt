@@ -3,6 +3,7 @@ package ksqlite.kapi.cipher
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3mc_config_cipher
 import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
+import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.cipher.SqliteMcCipher
 
 internal class DynamicCipherCreateScopeImpl(
@@ -15,8 +16,6 @@ internal class DynamicCipherCreateScopeImpl(
 
     override fun getParameter(name: String): Int = notClosed {
         sqlite3mc_config_cipher(db, cipher, SqliteMcCipher.Dynamic.Parameter(name), None)
-            ?: throwCipherException(
-                "Cipher ${cipher.name} did not registered a parameter with name $name "
-            )
+            ?: throwSQLiteException("Cipher ${cipher.name} did not registered a $name parameter")
     }
 }

@@ -62,10 +62,10 @@ internal class RowImpl(private val stmt: sqlite3_stmt) :
     override fun getType(index: Int): SqliteDataType =
         notClosed { sqlite3_column_type(stmt, index) }
 
-    override fun getBytes(index: Int): Int =
+    override fun getSize(index: Int): Int =
         notClosed { sqlite3_column_bytes(stmt, index) }
 
-    override fun getBlob(index: Int): ByteArray? =
+    override fun getByteArray(index: Int): ByteArray? =
         notClosed { sqlite3_column_blob(stmt, index) }
 
     override fun getBuffer(index: Int): ReadableBuffer? = notClosed {

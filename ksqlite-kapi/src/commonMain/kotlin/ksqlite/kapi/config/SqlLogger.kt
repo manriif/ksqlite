@@ -15,7 +15,7 @@
  */
 package ksqlite.kapi.config
 
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.types.SqliteSqlLogEvent
 
 /**

@@ -30,5 +30,10 @@ internal val LoggerCallback = SqliteConfigLogCallback { logger: Logger, errorCod
  * Invokes [Logger.log].
  */
 internal val SqlLoggerCallback = SqliteConfigSqlLogCallback { logger: SqlLogger, db, event ->
-    logger.log(sqliteRequireConnection(db), event)
+    val connection = when (event) {
+        DatabaseClosed, is StatementExecuted -> sqliteRequireConnection(db)
+        is DatabaseOpened -> sqliteRequireConnection(db, true)
+    }
+
+    logger.log(connection, event)
 }

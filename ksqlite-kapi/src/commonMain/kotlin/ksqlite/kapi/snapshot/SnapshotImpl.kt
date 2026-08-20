@@ -18,19 +18,30 @@ package ksqlite.kapi.snapshot
 import ksqlite.capi.sqlite3_snapshot
 import ksqlite.capi.sqlite3_snapshot_cmp
 import ksqlite.capi.sqlite3_snapshot_free
-import ksqlite.internal.runtime.closeable.DelegatingCloseableScope
+import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 
-internal class SnapshotImpl(override val snapshot: sqlite3_snapshot) : Snapshot() {
-
-    override val scope = DelegatingCloseableScope {
-        sqlite3_snapshot_free(snapshot)
-    }
+internal class SnapshotImpl(val snapshot: sqlite3_snapshot) :
+    Snapshot,
+    UnsafeCloseableScope() {
 
     override fun compareTo(other: Snapshot): Int {
-        scope.ensureNotClosed { "Snapshot is closed" }
-        other.scope.ensureNotClosed { "Snapshot to compare to is closed" }
-        return sqlite3_snapshot_cmp(snapshot, other.snapshot)
+        val otherImpl = other.impl
+
+        ensureNotClosed { "Snapshot is closed" }
+        otherImpl.ensureNotClosed { "Snapshot to compare to is closed" }
+
+        return sqlite3_snapshot_cmp(snapshot, otherImpl.snapshot)
     }
 
-    override fun close() = scope.close()
+    override fun onClose() {
+        sqlite3_snapshot_free(snapshot)
+    }
 }
+
+/**
+ * Returns the [Snapshot] implementation.
+ */
+internal val Snapshot.impl: SnapshotImpl
+    get() = when (this) {
+        is SnapshotImpl -> this
+    }

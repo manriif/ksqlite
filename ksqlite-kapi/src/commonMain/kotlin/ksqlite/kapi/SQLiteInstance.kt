@@ -25,7 +25,7 @@ import ksqlite.capi.sqlite3_stmt
 import ksqlite.capi.types.SqliteConfigOption
 import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.config.ConfigurationScopeImpl
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.statement.PreparedStatement
@@ -80,8 +80,10 @@ internal fun sqliteInitialize(configure: (ConfigurationScope.() -> Unit)? = null
 /**
  * Retrieves the [DatabaseConnection] associated with [db].
  */
-internal fun sqliteRequireConnection(db: sqlite3): DatabaseConnection =
-    SQLiteInstanceLock.withLock { sqlite.requireConnection(db) }
+internal fun sqliteRequireConnection(
+    db: sqlite3,
+    create: Boolean = false
+): DatabaseConnection = SQLiteInstanceLock.withLock { sqlite.requireConnection(db, create) }
 
 /**
  * Retrieves the [PreparedStatement] associated with [stmt].

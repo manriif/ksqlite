@@ -25,7 +25,7 @@ public interface CipherConfiguration {
     /**
      * Returns the cipher to be used for encrypting the database.
      *
-     * @throws CipherException if an error occurred while reading the value.
+     * @throws ksqlite.kapi.SQLiteException if an error occurred while reading the value.
      */
     public fun getCipher(prefix: SqliteMcConfigParamPrefix = None): SqliteMcCipher
 
@@ -35,7 +35,7 @@ public interface CipherConfiguration {
      *
      * The newly set cipher can be configured within [configure].
      *
-     * @throws CipherException if an error occurred while writing the value.
+     * @throws ksqlite.kapi.SQLiteException if an error occurred while writing the value.
      */
     public fun <Cipher : SqliteMcCipher> setCipher(
         cipher: Cipher,
@@ -47,7 +47,7 @@ public interface CipherConfiguration {
      * Returns whether the HMAC should be validated on read operations for encryption schemes using 
      * HMACs.
      *
-     * @throws CipherException if an error occurred while reading the value.
+     * @throws ksqlite.kapi.SQLiteException if an error occurred while reading the value.
      */
     public fun isHmacCheckEnabled(prefix: SqliteMcConfigParamPrefix = None): Boolean
 
@@ -55,7 +55,7 @@ public interface CipherConfiguration {
      * Sets whether the HMAC should be validated on read operations for encryption schemes using
      * HMACs.
      *
-     * @throws CipherException if an error occurred while writing the value.
+     * @throws ksqlite.kapi.SQLiteException if an error occurred while writing the value.
      */
     public fun setHmacCheckEnabled(
         enabled: Boolean,
@@ -65,7 +65,7 @@ public interface CipherConfiguration {
     /**
      * Returns whether the legacy mode for the WAL journal encryption should be used.
      *
-     * @throws CipherException if an error occurred while reading the value.
+     * @throws ksqlite.kapi.SQLiteException if an error occurred while reading the value.
      */
     public fun isLegacyWalEnabled(prefix: SqliteMcConfigParamPrefix = None): Boolean
 
@@ -73,7 +73,7 @@ public interface CipherConfiguration {
      * Sets whether the legacy mode for the WAL journal encryption should be used.
      * The actual value is returned.
      *
-     * @throws CipherException if an error occurred while writing the value.
+     * @throws ksqlite.kapi.SQLiteException if an error occurred while writing the value.
      */
     public fun setLegacyWalEnabled(
         enabled: Boolean,
@@ -88,7 +88,7 @@ public interface CipherConfiguration {
 /**
  * Transient cipher to be used for encrypting the database.
  *
- * @throws CipherException if an error occurred while reading the value.
+ * @throws ksqlite.kapi.SQLiteException if an error occurred while reading the value.
  */
 public val CipherConfiguration.cipher: SqliteMcCipher
     get() = getCipher(None)
@@ -97,7 +97,7 @@ public val CipherConfiguration.cipher: SqliteMcCipher
  * Transient value for whether the HMAC should be validated on read operations for encryption
  * schemes using HMACs.
  *
- * @throws CipherException if an error occurred while reading the value.
+ * @throws ksqlite.kapi.SQLiteException if an error occurred while reading the value.
  */
 public val CipherConfiguration.isHmacCheckEnabled: Boolean
     get() = isHmacCheckEnabled(None)
@@ -105,7 +105,7 @@ public val CipherConfiguration.isHmacCheckEnabled: Boolean
 /**
  * Transient value for whether the legacy mode for the WAL journal encryption should be used.
  *
- * @throws CipherException if an error occurred while reading the value.
+ * @throws ksqlite.kapi.SQLiteException if an error occurred while reading the value.
  */
 public val CipherConfiguration.isLegacyWalEnabled: Boolean
     get() = isLegacyWalEnabled(None)

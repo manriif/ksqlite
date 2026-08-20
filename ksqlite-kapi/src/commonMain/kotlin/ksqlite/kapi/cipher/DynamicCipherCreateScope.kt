@@ -8,7 +8,7 @@ public interface DynamicCipherCreateScope {
     /**
      * Returns the value for the parameter [name].
      *
-     * @throws CipherException if [name] is not a parameter for the cipher.
+     * @throws ksqlite.kapi.SQLiteException if [name] is not a parameter for the cipher.
      */
     public fun getParameter(name: String): Int
 }

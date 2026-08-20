@@ -23,7 +23,7 @@ import ksqlite.capi.sqlite3_malloc
 import ksqlite.capi.sqlite3_malloc64
 import ksqlite.capi.sqlite3_realloc
 import ksqlite.capi.sqlite3_realloc64
-import ksqlite.internal.runtime.closeable.DelegatingCloseableScope
+import ksqlite.internal.runtime.closeable.DelegatingAtomicCloseableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
 import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -42,19 +42,16 @@ import ksqlite.capi.memory.Buffer as CapiBuffer
  *
  * The [Buffer] must be closed once no longer needed to release allocated resources.
  */
-public class Buffer internal constructor(buffer: CapiBuffer) :
-    ReadableBuffer(buffer),
+public class Buffer internal constructor(capiBuffer: CapiBuffer) :
+    ReadableBuffer(capiBuffer),
     AutoCloseable {
 
     private val refCount = AtomicInt(0)
 
-    override var buffer: CapiBuffer = buffer
+    override var buffer: CapiBuffer = capiBuffer
         private set
 
-    override val scope = DelegatingCloseableScope {
-        ensureNotReferenced()
-        sqlite3_free(buffer)
-    }
+    override val scope = DelegatingAtomicCloseableScope { sqlite3_free(buffer) }
 
     /**
      * Ensures that the buffer is not referenced by SQLite.
@@ -111,13 +108,13 @@ public class Buffer internal constructor(buffer: CapiBuffer) :
     }
 
     /**
-     * Updates the [buffer] with [buffer] if resizing succeeded.
+     * Updates the [buffer] if resizing succeeded.
      */
     private inline fun resize(
         newSize: Long,
         block: () -> CapiBuffer?
     ) {
-        require(newSize > 0) { "Size must be greater than 0 ($newSize requested)" }
+        require(newSize > 0L) { "Size must be greater than 0 ($newSize requested)" }
 
         scope.notClosed {
             ensureNotReferenced()
@@ -171,26 +168,33 @@ public class Buffer internal constructor(buffer: CapiBuffer) :
     public companion object {
 
         /**
-         * Allocates a native memory region of [size] bytes and returns a [Buffer] that allows read
-         * and write operations on that region.
-         */
-        public fun allocate(size: Int): Buffer =
-            Buffer(sqliteOutOfMemoryCheck(sqlite3_malloc(size)) {
-                "Not enough memory to allocate $size bytes"
-            })
-
-        /**
-         * Allocates a native memory region of [size] bytes and returns a [Buffer] that allows read
-         * and write operations on that region.
-         */
-        public fun allocate(size: Long): Buffer =
-            Buffer(sqliteOutOfMemoryCheck(sqlite3_malloc64(size)) {
-                "Not enough memory to allocate $size bytes"
-            })
-
-        /**
          * Returns a [Buffer] wrapping this [CapiBuffer].
          */
         internal fun CapiBuffer.wrap(): Buffer = Buffer(this)
+
+        /**
+         * Returns a [Buffer] wrapping the [CapiBuffer] returned by [malloc].
+         */
+        private inline fun allocate(
+            size: Long,
+            malloc: () -> CapiBuffer?
+        ): Buffer {
+            require(size > 0L) { "Size must be greater than 0 ($size requested)" }
+
+            return sqliteOutOfMemoryCheck(malloc()) { "Not enough memory to allocate $size bytes" }
+                .wrap()
+        }
+
+        /**
+         * Allocates a native memory region of [size] bytes and returns a [Buffer] that allows read
+         * and write operations on that region.
+         */
+        public fun allocate(size: Int): Buffer = allocate(size.toLong()) { sqlite3_malloc(size) }
+
+        /**
+         * Allocates a native memory region of [size] bytes and returns a [Buffer] that allows read
+         * and write operations on that region.
+         */
+        public fun allocate(size: Long): Buffer = allocate(size) { sqlite3_malloc64(size) }
     }
 }

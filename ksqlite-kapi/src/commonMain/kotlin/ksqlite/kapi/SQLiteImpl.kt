@@ -28,17 +28,18 @@ import ksqlite.capi.sqlite3_release_memory
 import ksqlite.capi.sqlite3_soft_heap_limit64
 import ksqlite.capi.sqlite3_status64
 import ksqlite.capi.sqlite3_stmt
+import ksqlite.internal.runtime.closeable.AtomicCloseableScope
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.cipher.CipherManagerImpl
 import ksqlite.kapi.config.AnyTimeConfigurationImpl
-import ksqlite.kapi.database.AutoExtension
-import ksqlite.kapi.database.DatabaseConnection
-import ksqlite.kapi.database.DatabaseConnectionImpl
-import ksqlite.internal.runtime.closeable.AtomicClosableScope
+import ksqlite.kapi.connection.AutoExtension
+import ksqlite.kapi.connection.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnectionImpl
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.sqliteResultThrow
 import ksqlite.kapi.helpers.usingParams
 import ksqlite.kapi.statement.PreparedStatement
+import ksqlite.kapi.statement.PreparedStatementImpl
 import ksqlite.kapi.value.Status
 import ksqlite.kapi.value.StatusImpl
 import ksqlite.kapi.vfs.VirtualFileSystemManagerImpl
@@ -47,7 +48,7 @@ import ksqlite.types.SqliteStatusOption
 
 internal class SQLiteImpl(private val shutdown: () -> Unit) :
     SQLite,
-    AtomicClosableScope() {
+    AtomicCloseableScope() {
 
     private val listener = Listener()
     private val autoExtensions = ConcurrentMutableSet<AutoExtension>()
@@ -59,18 +60,18 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     override val virtualFileSystems = VirtualFileSystemManagerImpl(this)
 
     override var hardHeapLimit: Long
-        get() = sqlite3_hard_heap_limit64(-1)
-        set(value) = setHeapLimit(value, ::sqlite3_hard_heap_limit64)
+        get() = notClosed { sqlite3_hard_heap_limit64(-1) }
+        set(value) = notClosed { setHeapLimit(value, ::sqlite3_hard_heap_limit64) }
 
     override val memoryUsed: Long
-        get() = sqlite3_memory_used()
+        get() = notClosed { sqlite3_memory_used() }
 
     override val memoryHighwater: Long
-        get() = sqlite3_memory_highwater(0)
+        get() = notClosed { sqlite3_memory_highwater(0) }
 
     override var softHeapLimit: Long
-        get() = sqlite3_soft_heap_limit64(-1)
-        set(value) = setHeapLimit(value, ::sqlite3_soft_heap_limit64)
+        get() = notClosed { sqlite3_soft_heap_limit64(-1) }
+        set(value) = notClosed { setHeapLimit(value, ::sqlite3_soft_heap_limit64) }
 
     /**
      * Sets the heap limit using [block] and throws if it returns -1
@@ -84,9 +85,13 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     /**
      * Retrieves the connection associated with [db].
      */
-    fun requireConnection(db: sqlite3): DatabaseConnection = notClosed {
-        checkNotNull(connections[db]) {
-            "No connection is associated with database connection handle $db"
+    fun requireConnection(
+        db: sqlite3,
+        create: Boolean
+    ): DatabaseConnection = notClosed {
+        connections.computeIfAbsent(db) { db ->
+            check(create) { "No connection is associated with database connection handle $db" }
+            DatabaseConnectionImpl(db, listener)
         }
     }
 
@@ -129,7 +134,7 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
             else -> error("Unexpected result from sqlite3_open_v2: $openResult")
         }
 
-        val connection = DatabaseConnectionImpl(db, listener)
+        val connection = requireConnection(db, true)
 
         try {
             extensions.forEach { extension ->
@@ -146,10 +151,6 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
             }
 
             throw exception
-        }
-
-        check(connections.put(db, connection) == null) {
-            "A connection is already associated with the database connection handle $db"
         }
 
         return connection
@@ -194,19 +195,19 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
 
     private inner class Listener : DatabaseConnectionImpl.Listener {
 
-        override fun onStatementCreated(statement: PreparedStatement) {
+        override fun onStatementCreated(statement: PreparedStatementImpl) {
             check(statements.put(statement.stmt, statement) == null) {
                 "A statement is already associated with the statement handle ${statement.stmt}"
             }
         }
 
-        override fun onStatementClosed(statement: PreparedStatement) {
+        override fun onStatementClosed(statement: PreparedStatementImpl) {
             check(statements.remove(statement.stmt) == statement) {
                 "Expected a statement to be registered with the statement handle ${statement.stmt}"
             }
         }
 
-        override fun onConnectionClosed(connection: DatabaseConnection) {
+        override fun onConnectionClosed(connection: DatabaseConnectionImpl) {
             check(connections.remove(connection.db) != null) {
                 "Expected a connection to be registered with the database connection handle " +
                         connection.db

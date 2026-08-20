@@ -173,13 +173,15 @@ public class UnprotectedValue internal constructor(
 public class DuplicatedValue internal constructor(value: sqlite3_value) : ProtectedValue(
     value = value,
     scope = DelegatingCloseableScope { sqlite3_value_free(value) }
-) {
+), AutoCloseable {
 
     /**
      * Frees the value previously obtained using [duplicate].
      * This value can no longer be used after that call.
      */
-    public fun free(): Unit = scope.close()
+    override fun close() {
+        scope.close()
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////

@@ -1580,7 +1580,7 @@ public actual fun sqlite3_snapshot_free(snapshot: sqlite3_snapshot): Unit =
 
 public actual fun sqlite3_snapshot_get(
     db: sqlite3,
-    name: String?,
+    name: String,
     outSnapshot: sqlite3_snapshot.OutputParam
 ): SqliteResultCode = convertResultCode(useParamMemScoped(outSnapshot) { snapshotPtr ->
     native_sqlite3_snapshot_get(db.pointer, name, snapshotPtr)
@@ -1588,14 +1588,14 @@ public actual fun sqlite3_snapshot_get(
 
 public actual fun sqlite3_snapshot_open(
     db: sqlite3,
-    name: String?,
+    name: String,
     snapshot: sqlite3_snapshot
 ): SqliteResultCode =
     convertResultCode(native_sqlite3_snapshot_open(db.pointer, name, snapshot.pointer))
 
 public actual fun sqlite3_snapshot_recover(
     db: sqlite3,
-    name: String?
+    name: String
 ): SqliteResultCode = convertResultCode(native_sqlite3_snapshot_recover(db.pointer, name))
 
 public actual fun sqlite3_soft_heap_limit64(limit: Long): Long =

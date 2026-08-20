@@ -23,8 +23,9 @@ import ksqlite.capi.sqlite3_backup_remaining
 import ksqlite.capi.sqlite3_backup_step
 import ksqlite.capi.sqlite3_errcode
 import ksqlite.capi.sqlite3_errmsg
-import ksqlite.kapi.database.DatabaseConnection
 import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
+import ksqlite.kapi.connection.DatabaseConnection
+import ksqlite.kapi.connection.impl
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.SqliteResultCode
@@ -58,11 +59,14 @@ internal fun createBackup(
     source: DatabaseConnection,
     sourceName: String
 ): Backup {
-    val backup = sqlite3_backup_init(destination.db, destinationName, source.db, sourceName)
+    val destinationDb = destination.impl.db
+    val sourceDb = source.impl.db
+
+    val backup = sqlite3_backup_init(destinationDb, destinationName, sourceDb, sourceName)
 
     if (backup == null) {
-        val message = sqlite3_errmsg(destination.db) ?: "Failed to initializes a backup"
-        val result = sqlite3_errcode(destination.db)
+        val message = sqlite3_errmsg(destinationDb) ?: "Failed to initializes a backup"
+        val result = sqlite3_errcode(destinationDb)
 
         check(result is SqliteResultCode.Failure) {
             "Unexpected result $result after a sqlite3_backup_init() failure"

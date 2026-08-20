@@ -897,19 +897,19 @@ public external fun sqlite3_snapshot_free(snapshot: JniPointer)
 
 public external fun sqlite3_snapshot_get(
     db: JniPointer,
-    name: String?,
+    name: String,
     outSnapshot: OutputPointer.OfPointer
 ): Int
 
 public external fun sqlite3_snapshot_open(
     db: JniPointer,
-    name: String?,
+    name: String,
     snapshot: JniPointer
 ): Int
 
 public external fun sqlite3_snapshot_recover(
     db: JniPointer,
-    name: String?
+    name: String
 ): Int
 
 public external fun sqlite3_soft_heap_limit64(limit: Long): Long

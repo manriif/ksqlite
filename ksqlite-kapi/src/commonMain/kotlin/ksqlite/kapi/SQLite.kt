@@ -19,8 +19,8 @@ import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.cipher.CipherManager
 import ksqlite.kapi.config.AnyTimeConfiguration
 import ksqlite.kapi.config.ConfigurationScope
-import ksqlite.kapi.database.AutoExtension
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.AutoExtension
+import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.kapi.value.Status
 import ksqlite.kapi.vfs.VirtualFileSystemManager
 import ksqlite.types.SqliteOpenFlag

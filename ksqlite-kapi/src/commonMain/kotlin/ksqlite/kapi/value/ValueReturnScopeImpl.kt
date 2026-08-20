@@ -28,12 +28,12 @@ import ksqlite.capi.sqlite3_result_value
 import ksqlite.capi.sqlite3_result_zeroblob
 import ksqlite.capi.sqlite3_result_zeroblob64
 import ksqlite.kapi.buffer.Buffer
-import ksqlite.internal.runtime.closeable.ContextClosableScope
+import ksqlite.kapi.helpers.ContextCloseableScope
 import ksqlite.kapi.helpers.autoCloser
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.types.SqliteTextEncoding
 
-internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : ValueReturnScope {
+internal class ValueReturnScopeImpl(private val scope: ContextCloseableScope) : ValueReturnScope {
 
     override fun setResult(value: Nothing?) =
         scope.notClosed { sqlite3_result_null(scope.context) }
@@ -41,8 +41,9 @@ internal class ValueReturnScopeImpl(private val scope: ContextClosableScope) : V
     override fun setResult(value: Nothing?, size: Int) =
         scope.notClosed { sqlite3_result_zeroblob(scope.context, size) }
 
-    override fun setResult(value: Nothing?, size: ULong) =
-        scope.notClosed { sqliteResultCheck(sqlite3_result_zeroblob64(scope.context, size)) }
+    override fun setResult(value: Nothing?, size: Long) = scope.notClosed {
+        sqliteResultCheck(sqlite3_result_zeroblob64(scope.context, size.toULong()))
+    }
 
     override fun setResult(value: ByteArray, size: Int) =
         scope.notClosed { sqlite3_result_blob(scope.context, value, size, null) }

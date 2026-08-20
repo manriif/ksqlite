@@ -1,7 +1,7 @@
 package ksqlite.kapi.cipher
 
 import ksqlite.kapi.buffer.Buffer
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnection
 
 /**
  * Represents a [dynamic cipher scheme](https://utelle.github.io/SQLite3MultipleCiphers/docs/ciphers/cipher_dynamic/#-dynamic-cipher-schemes)
@@ -93,7 +93,7 @@ public interface DynamicCipher : AutoCloseable {
         /**
          * Creates a new [DynamicCipher] instance.
          *
-         * @throws CipherException if an error happened while creating the [Cipher].
+         * @throws ksqlite.kapi.SQLiteException if an error happened while creating the [Cipher].
          */
         public fun DynamicCipherCreateScope.create(connection: DatabaseConnection): Cipher
 

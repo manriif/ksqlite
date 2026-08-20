@@ -45,7 +45,7 @@ public interface ValueReturnScope {
      */
     public fun setResult(
         value: Nothing?,
-        size: ULong
+        size: Long
     )
 
     /**

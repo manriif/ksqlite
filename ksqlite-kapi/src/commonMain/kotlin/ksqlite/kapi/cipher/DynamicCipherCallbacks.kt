@@ -12,7 +12,7 @@ import ksqlite.capi.cipher.callbacks.CipherDescriptorGetReservedCallback
 import ksqlite.capi.cipher.callbacks.CipherDescriptorGetSaltCallback
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.buffer.Buffer.Companion.wrap
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.kapi.helpers.ksqliteLog
 import ksqlite.kapi.helpers.runCatchingSQLiteException
 import ksqlite.kapi.sqliteRequireConnection
@@ -31,11 +31,11 @@ internal class DynamicCipherWrapper<Cipher : DynamicCipher>(
 ) {
 
     /**
-     * Clones from this source into [target].
+     * Clones from [source] into this cipher.
      */
     @Suppress("UNCHECKED_CAST")
-    fun clone(target: DynamicCipherWrapper<*>) =
-        factory.clone(cipher, (target as DynamicCipherWrapper<Cipher>).cipher)
+    fun clone(source: DynamicCipherWrapper<*>) =
+        factory.clone((source as DynamicCipherWrapper<Cipher>).cipher, cipher)
 
     /**
      * Logs the error and returns the exception result code.
@@ -80,19 +80,17 @@ internal fun createCipherAllocateCipherCallback(
     factory: DynamicCipher.Factory<*>
 ): CipherDescriptorAllocateCipherCallback<DynamicCipherWrapper<*>> =
     CipherDescriptorAllocateCipherCallback { db ->
-        factory.run {
-            try {
+        factory.runCatchingSQLiteException(
+            handleException = { exception ->
+                ksqliteLog(exception.message, exception.result)
+                null
+            },
+            block = {
                 DynamicCipherCreateScopeImpl(db, cipherName).use { scope ->
                     create(scope, sqliteRequireConnection(db))
                 }
-            } catch (exception: CipherException) {
-                ksqliteLog(exception.message)
-                null
-            } catch (other: Exception) {
-                ksqliteLog(other)
-                throw other
             }
-        }
+        )
     }
 
 internal val CipherFreeCipherCallback =

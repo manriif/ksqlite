@@ -18,7 +18,7 @@ package ksqlite.kapi.vtab
 import co.touchlab.stately.concurrency.Lock
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.kapi.SQLiteException
-import ksqlite.kapi.database.DatabaseConnection
+import ksqlite.kapi.connection.DatabaseConnection
 
 /**
  * [Virtual Table Module](https://sqlite.org/vtab.html#implementation).
@@ -74,7 +74,7 @@ public sealed class VirtualTableModule : AutoCloseable {
      * Returns the optional virtual table functions supported by the module.
      * Only the functions that are returned are invoked by SQLite.
      */
-    public fun optionalFunctions(): Set<VirtualTableOptionalFunction> = emptySet()
+    public open fun optionalFunctions(): Set<VirtualTableOptionalFunction> = emptySet()
 
     /**
      * Connects to an already created virtual table and returns the [VirtualTable] instance.

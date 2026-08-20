@@ -15,6 +15,8 @@
  */
 package ksqlite.kapi.cipher
 
+import ksqlite.kapi.throwSQLiteException
+
 /**
  * Prefix of the SQLite Multiple Ciphers VFS.
  */
@@ -31,13 +33,27 @@ internal fun sqliteMcVfsName(realName: String): String =
 /**
  * Ensure that [name] matches SQLite Multiple Ciphers name constraints.
  *
- * @throws CipherException if the name is not valid.
+ * @throws ksqlite.kapi.SQLiteException if the name is not valid.
  */
 internal inline fun ensureValidCipherName(
     name: String,
     lazyMessage: () -> String
 ) {
     if (!CipherNameRegex.matches(name)) {
-        throwCipherException(lazyMessage())
+        throwSQLiteException(lazyMessage(), MISUSE)
     }
+}
+
+/**
+ * Throws an [ksqlite.kapi.SQLiteException] with a message indicating the parameter read failure.
+ */
+internal fun throwParameterReadFailedCipherException(): Nothing {
+    throwSQLiteException("Failed to read the parameter value")
+}
+
+/**
+ * Throws an [ksqlite.kapi.SQLiteException] with a message indicating the parameter write failure.
+ */
+internal fun throwParameterWriteFailedCipherException(): Nothing {
+    throwSQLiteException("Failed to write the parameter value")
 }
