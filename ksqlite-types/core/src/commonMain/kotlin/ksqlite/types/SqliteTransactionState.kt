@@ -16,7 +16,7 @@
 package ksqlite.types
 
 /**
- *These constants define the current transaction state of a database file. The
+ * These constants define the current transaction state of a database file. The
  * sqlite3_txn_state(D,S) interface returns one of these constants in order to describe the
  * transaction state of schema S in database connection D.
  *

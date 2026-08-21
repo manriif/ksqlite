@@ -18,7 +18,7 @@
 package ksqlite.capi.vtab
 
 import kotlinx.cinterop.CPointer
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.vtab.SqliteModuleKind.Eponymous
 import ksqlite.capi.vtab.SqliteModuleKind.EponymousOnly
 import ksqlite.capi.vtab.SqliteModuleKind.Regular
@@ -26,7 +26,7 @@ import ksqlite.capi.vtab.SqliteModuleKind.Regular
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
     override val pointer: CPointer<s3_module>
-) : ClosableStruct(pointer, Application),
+) : CloseableStruct(pointer, Application),
     AutoCloseable {
 
     internal actual constructor(

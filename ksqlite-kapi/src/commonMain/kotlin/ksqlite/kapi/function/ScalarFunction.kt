@@ -15,6 +15,7 @@
  */
 package ksqlite.kapi.function
 
+import ksqlite.kapi.result.Result
 import ksqlite.kapi.value.ProtectedValue
 
 /**
@@ -23,7 +24,9 @@ import ksqlite.kapi.value.ProtectedValue
 public fun interface ScalarFunction : Function {
 
     /**
-     * This method is invoked to handle a function call.
+     * Handles a call to the function. [arguments] are those passed to the call. The returned
+     * [Result] must come from calling one of the receiver's result methods, such as
+     * [ksqlite.kapi.result.ResultScope.resultInt].
      */
-    public fun ScalarFunctionFuncScope.func(arguments: Array<ProtectedValue>)
+    public fun ScalarFunctionFuncScope.func(arguments: Array<ProtectedValue>): Result
 }

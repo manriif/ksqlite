@@ -16,76 +16,77 @@
 package ksqlite.kapi
 
 /**
- * Exposes the SQLite API that does not require initialization.
+ * SQLite API available without initializing a [SQLite] instance first.
  */
 public interface SQLiteStatic {
 
     /**
-     * Returns the options that were defined at compile-time.
-     * The `SQLITE_` prefix is omitted for each option.
+     * Options SQLite was compiled with, each with its `SQLITE_` prefix omitted.
      */
     public val compileOptions: List<String>
 
     /**
-     * Number of distinct keywords understood by SQLite.
+     * Number of distinct keywords SQLite understands.
      */
     public val keywordCount: Int
 
     /**
-     * SQLite version.
+     * SQLite version, for example `3.45.0`.
      */
     public val version: String
 
     /**
-     * SQLite version number.
+     * SQLite version encoded as a single integer, for example `3045000` for version `3.45.0`.
      */
     public val versionNumber: Int
 
     /**
-     * Identifier of the check-in of SQLite within its configuration management system.
+     * Identifier of the check-in this SQLite build was produced from in its source control system.
      */
     public val sourceId: String
 
     /**
-     * Returns the version of SQLite Multiple Ciphers.
+     * Version of SQLite Multiple Ciphers.
      */
     public val multipleCiphersVersion: String
 
     /**
-     * Comparator that compare the contents of two buffers containing UTF-8 strings in a
-     * case-independent fashion, using the same definition of "case independence" that SQLite uses
-     * internally when comparing identifiers.
+     * Comparator for UTF-8 strings that compares them case-independently, using the same
+     * definition of case independence SQLite uses internally when comparing identifiers.
      */
     public val caseIndependentComparator: Comparator<String>
 
     /**
-     * Whether SQLite was compiled with mutexing code omitted due to the SQLITE_THREADSAFE
-     * compile-time option being set to 0.
+     * Whether this SQLite build has mutexing code omitted because the `SQLITE_THREADSAFE`
+     * compile-time option was set to `0`. When `true`, this library and its host application must
+     * not use SQLite from more than one thread at a time.
      */
     public val isThreadSafe: Boolean
 
     /**
-     * Returns `true` if `this` seems to form a complete SQL statement. If additional input is
-     * needed before sending tbe text into SQLite for parsing, then `false` is returned.
+     * Returns `true` if [sql] looks like a complete SQL statement, or `false` if more input would
+     * be needed before SQLite could parse it. Whitespace and comments after the final statement do
+     * not count as needing more input.
      *
      * @throws SQLiteException if a memory allocation fails.
      */
     public fun isCompleteSqlStatement(sql: String): Boolean
 
     /**
-     * Returns whether [word] is a keyword.
+     * Returns whether [word] is an SQLite keyword.
      */
     public fun isKeyword(word: String): Boolean
 
     /**
-     * Returns the keyword at given [index].
+     * Returns the keyword at [index], out of the [keywordCount] keywords SQLite understands.
      *
      * @throws SQLiteException if [index] is out of bounds.
      */
     public fun getKeyword(index: Int): String
 
     /**
-     * Logs content using SQLite logging interface.
+     * Sends [message] through SQLite's logging mechanism, invoking the currently configured
+     * [ksqlite.kapi.config.Logger], if any, with [errorCode].
      */
     public fun log(
         errorCode: Int,
@@ -93,7 +94,7 @@ public interface SQLiteStatic {
     )
 
     /**
-     * Returns `true` if and only if [input] matches the GLOB [pattern].
+     * Returns whether [input] matches the GLOB [pattern].
      */
     public fun matchGlob(
         pattern: String,
@@ -101,7 +102,7 @@ public interface SQLiteStatic {
     ): Boolean
 
     /**
-     * Returns `true` if and only if [input] matches the LIKE [pattern] with [escape] character.
+     * Returns whether [input] matches the LIKE [pattern], using [escape] as the escape character.
      */
     public fun matchLike(
         pattern: String,
@@ -110,11 +111,8 @@ public interface SQLiteStatic {
     ): Boolean
 
     /**
-     * Returns a comparator that compare the contents of two buffers containing UTF-8 strings in a
-     * case-independent fashion, using the same definition of "case independence" that SQLite uses
-     * internally when comparing identifiers.
-     *
-     * The returned comparator only compares at most [maxBytes].
+     * Returns a comparator for UTF-8 strings that compares them case-independently, the same way
+     * [caseIndependentComparator] does, but only looking at the first [maxBytes] bytes.
      */
     public fun createCaseIndependentComparator(maxBytes: Int): Comparator<String>
 }

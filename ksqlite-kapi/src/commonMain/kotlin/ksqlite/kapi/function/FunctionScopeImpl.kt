@@ -44,14 +44,14 @@ internal class FunctionScopeImpl(context: sqlite3_context) :
     override val connection: DatabaseConnection
         get() = notClosed { sqliteRequireConnection(sqlite3_context_db_handle(context)) }
 
-    override fun setResultError(
+    override fun resultError(
         message: String,
         result: SqliteResultCode.Failure
     ): Nothing = notClosed { throwSQLiteException(message, result) }
 
-    override fun setResultErrorNoMem(): Nothing = notClosed { throw ResultException.NoMem() }
+    override fun resultErrorNoMem(): Nothing = notClosed { throw ResultException.NoMem() }
 
-    override fun setResultErrorTooBig(): Nothing = notClosed { throw ResultException.TooBig() }
+    override fun resultErrorTooBig(): Nothing = notClosed { throw ResultException.TooBig() }
 
     fun handleError(exception: SQLiteException) {
         when (exception) {

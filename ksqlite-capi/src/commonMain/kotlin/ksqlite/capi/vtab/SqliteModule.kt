@@ -17,7 +17,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.vtab.callbacks.SqliteVtabBeginCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabBestIndexCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabCloseCallback
@@ -52,7 +52,7 @@ import ksqlite.types.vtab.SqliteModuleVersion
 public expect class sqlite3_module<AppData> internal constructor(
     version: Int,
     callbacks: VtabModuleCallbacks<AppData, *, *>
-) : ClosableStruct
+) : CloseableStruct
 
 ///////////////////////////////////////////////////////////////////////////
 // Factory
@@ -62,8 +62,8 @@ public expect class sqlite3_module<AppData> internal constructor(
  * Returns an instance of [sqlite3_module].
  * For an eponymous virtual table, [create] and [connect] must be referentially equals (===).
  *
- * The caller take the ownership of the returned [sqlite3_module] and is responsible to release it
- * by invoking [sqlite3_module.close].
+ * The caller takes ownership of the returned [sqlite3_module] and is responsible for releasing
+ * it by invoking [sqlite3_module.close].
  */
 public fun <AppData, Vtab : sqlite3_vtab, VtabCursor : sqlite3_vtab_cursor> sqlite3_module(
     version: SqliteModuleVersion,

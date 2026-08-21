@@ -20,42 +20,41 @@ import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.types.SqliteResultCode
 
 /**
- * Supplies the necessary APIs during the invocation of a function hook.
+ * Supplies the APIs available during the invocation of a function hook.
  *
- * If an error is detected, an [SQLiteException] can be thrown. The error is then returned to
- * SQLite.
- * Only [SQLiteException] are recognized as normal error and other exceptions types are not caught.
- * It is also possible to use any of [setResultError], [setResultErrorNoMem] or
- * [setResultErrorTooBig].
+ * If an error is detected, an [SQLiteException] can be thrown, which is equivalent to calling
+ * [resultError]. Only [SQLiteException] is recognized as a normal error, any other exception
+ * type is not caught and propagates instead. [resultErrorNoMem] and [resultErrorTooBig]
+ * are message-less, allocation-free alternatives SQLite provides for two failure classes it
+ * treats specially, see their own documentation.
  */
 public interface FunctionScope {
 
     /**
-     * Returns the database connection associated with the hook.
+     * Database connection associated with the hook.
      */
     public val connection: DatabaseConnection
 
     /**
-     * Causes SQLite to throw an exception with [message].
-     * The default error code is [SqliteResultCode.ERROR] but can be overriden by supplying the appropriate error code
-     *
-     * By default, SQLite sets the error code to [SqliteResultCode.ERROR] but it can be overridden by
-     * supplying an appropriate error [result].
-     *
-     * This method is equivalent to throwing an [SQLiteException].
+     * Fails the function call with [message]. Equivalent to throwing an [SQLiteException] with
+     * [result] as its error code.
      */
-    public fun setResultError(
+    public fun resultError(
         message: String,
         result: SqliteResultCode.Failure = SqliteResultCode.ERROR
     ): Nothing
 
     /**
-     * Causes SQLite to throw an error indicating that a memory allocation failed.
+     * Fails the function call, indicating that a memory allocation failed. Unlike [resultError],
+     * this does not accept a message and performs no allocation of its own, so it remains safe to
+     * call even when memory is already exhausted.
      */
-    public fun setResultErrorNoMem(): Nothing
+    public fun resultErrorNoMem(): Nothing
 
     /**
-     * Causes SQLite to throw an error indicating that a string or BLOB is too long to represent.
+     * Fails the function call with a canned "string or BLOB too big" error. Unlike [resultError],
+     * this does not accept a message, since the failure is already self-explanatory and does not
+     * need one formatted.
      */
-    public fun setResultErrorTooBig(): Nothing
+    public fun resultErrorTooBig(): Nothing
 }

@@ -33,7 +33,8 @@ public interface PreupdateHookScope {
     public val depth: Int
 
     /**
-     * Returns the index if the column for the blob being written.
+     * Index of the column being incrementally written to by a [ksqlite.kapi.blob.Blob], meaningful
+     * only when this hook fired because of that write.
      */
     public val blobColumnIndex: Int
 

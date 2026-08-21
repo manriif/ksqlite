@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ksqlite.kapi.cipher
 
 import ksqlite.types.cipher.SqliteMcCipher
@@ -5,14 +20,15 @@ import ksqlite.types.cipher.SqliteMcConfigCipherParam
 import ksqlite.types.cipher.SqliteMcConfigParamPrefix
 
 /**
- * Reads and writes the parameter values of a given [Cipher].
+ * Reads and writes the parameter values of a [Cipher]. See [CipherConfiguration] for how [prefix]
+ * affects whether a read or write is transient or permanent.
  */
 public interface CipherParameters<Cipher : SqliteMcCipher> {
 
     /**
-     * Returns the [Value] for the given cipher [param].
+     * Returns the value of [param].
      *
-     * @throws ksqlite.kapi.SQLiteException if an error occurred while reading the value.
+     * @throws ksqlite.kapi.SQLiteException if reading the value fails.
      */
     public fun <Value : Any, Param : SqliteMcConfigCipherParam<Cipher, Value>> get(
         param: Param,
@@ -20,18 +36,18 @@ public interface CipherParameters<Cipher : SqliteMcCipher> {
     ): Value
 
     /**
-     * Returns the transient [Value] for the given cipher [param].
+     * Returns the transient value of [param].
      *
-     * @throws ksqlite.kapi.SQLiteException if an error occurred while reading the value.
+     * @throws ksqlite.kapi.SQLiteException if reading the value fails.
      */
     public operator fun <Value : Any, Param : SqliteMcConfigCipherParam<Cipher, Value>> get(
         param: Param
     ): Value = get(param, None)
 
     /**
-     * Sets the [value] for the given cipher [param] and returns the current parameter value.
+     * Sets [param] to [value] and returns the resulting parameter value.
      *
-     * @throws ksqlite.kapi.SQLiteException if an error occurred while writing the value.
+     * @throws ksqlite.kapi.SQLiteException if writing the value fails.
      */
     public fun <Value : Any, Param : SqliteMcConfigCipherParam<Cipher, Value>> set(
         param: Param,
@@ -40,9 +56,9 @@ public interface CipherParameters<Cipher : SqliteMcCipher> {
     )
 
     /**
-     * Sets the permanent [value] for the given cipher [param].
+     * Sets [param] to [value] permanently.
      *
-     * @throws ksqlite.kapi.SQLiteException if an error occurred while writing the value.
+     * @throws ksqlite.kapi.SQLiteException if writing the value fails.
      */
     public operator fun <Value : Any, Param : SqliteMcConfigCipherParam<Cipher, Value>> set(
         param: Param,
@@ -55,10 +71,9 @@ public interface CipherParameters<Cipher : SqliteMcCipher> {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the value for the given dynamic cipher [param].
- * The transient value is returned by default.
+ * Returns the transient value of the dynamic cipher parameter named [param].
  *
- * @throws ksqlite.kapi.SQLiteException if an error occurred while writing the value.
+ * @throws ksqlite.kapi.SQLiteException if reading the value fails.
  */
 public fun CipherParameters<SqliteMcCipher.Dynamic>.get(
     param: String,
@@ -69,10 +84,9 @@ public fun CipherParameters<SqliteMcCipher.Dynamic>.get(
 )
 
 /**
- * Sets the [value] for the given dynamic cipher [param].
- * The value is written permanently by default.
+ * Sets the dynamic cipher parameter named [param] to [value], permanently.
  *
- * @throws ksqlite.kapi.SQLiteException if an error occurred while writing the value.
+ * @throws ksqlite.kapi.SQLiteException if writing the value fails.
  */
 public fun CipherParameters<SqliteMcCipher.Dynamic>.set(
     param: String,

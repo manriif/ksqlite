@@ -24,7 +24,9 @@ import ksqlite.types.SqliteAuthorizerStatus
 public fun interface Authorizer {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/set_authorizer.html).
+     * Called once for each [action] SQLite is about to perform while compiling a statement, with
+     * up to four action-specific details in [detail1] to [detail4]. Returns whether the action is
+     * allowed, denied, or silently ignored.
      */
     public fun apply(
         action: SqliteActionCode,

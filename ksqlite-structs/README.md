@@ -1,14 +1,17 @@
-# Module Ksqlite Foreign WASM
+# Module Ksqlite Structs
 
-Backs `ksqlite-capi`'s `webMain` source set. Browser only, no Node.
+Struct memory-layout machinery for `ksqlite-foreign/jni` and `ksqlite-foreign/wasm`, the two
+targets that don't get one for free from their own interop tooling, unlike Kotlin/Native cinterop
+or Java FFM's jextract.
 
-The upstream here is the official [SQLite WASM](https://sqlite.org/wasm/doc/trunk/api-wasm.md)
-build. Everything in this module is hand-written, `external` Kotlin declarations mirroring that
-build's JS API. Where the official build exposes a single, dynamically
-assembled JavaScript object (`sqlite3`, with its `capi` and `wasm` sub-objects), this module
-splits the same surface across several files instead (`Sqlite3.kt`, `Sqlite3Capi.kt`,
-`Sqlite3Wasm.kt`, plus `structs/`, `wasm/` and `js/` for the supporting pieces).
+`Struct<Type, Member, Pointer>` wraps a `Memory<Pointer>` pointing at a C struct, reading and
+writing a member at the offset and size its `StructLayout` (an `IntArray` of offset/size pairs,
+one per member, plus the struct's own total size) reports for it. `Adapter<Pointer>` is the only
+platform-specific piece, allocating or reinterpreting that `Memory` and moving raw bytes through
+it, `ksqlite-foreign/jni` backs it with a `ByteBuffer`, `ksqlite-foreign/wasm` with a `DataView`
+into the WASM heap.
 
-See [`ksqlite-wasm-resources`](../ksqlite-wasm-resources/README.md) for how the WASM build
-itself is produced. `KsqliteWeb.kt` is the entry point here, importing the `sqlite3` instance from
-the bootstrap module bundled alongside its artifacts.
+A layout itself still has to come from somewhere. `setStructLayoutProvider()` plugs in the one
+piece this module doesn't provide on its own, resolved through `ksqlite_struct_layout_allocate()`,
+a small C helper computing every member's real `offsetof()` on the target ABI, so a layout always
+matches how the C compiler actually laid the struct out, never a hand-copied guess.

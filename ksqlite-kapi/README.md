@@ -1,18 +1,19 @@
 # Module Ksqlite Kotlin API
 
-An object-oriented Kotlin API for SQLite, built on top of [`ksqlite-capi`](../ksqlite-capi/README.md)
-without exposing it. Don't depend on both at once.
+`ksqlite-kapi` is an object-oriented, Kotlin-shaped API for SQLite, built on top of
+[`ksqlite-capi`](../ksqlite-capi/README.md) without exposing it, don't depend on both at once. See
+the [root README](../README.md#choosing-an-implementation) for how the two compare.
 
-Unlike `ksqlite-capi`, which mirrors the SQLite C API closely enough that its own documentation
-stays your primary reference, `ksqlite-kapi` is a Kotlin-shaped API of its own. This README is the
-primary reference for it, written for someone who has never used it before. The generated API
-documentation is where to go once you already know which type or function you need and just want
-its exact signature or a reminder of a default value.
+`ksqlite-capi` mirrors the SQLite C API closely enough that the official SQLite documentation
+doubles as its own reference. `ksqlite-kapi` doesn't have that shortcut, so this README covers it
+section by section instead, each with runnable snippets. Once a type or function's exact signature
+is needed rather than an explanation, the generated API documentation answers that faster.
 
-Some types, mostly enums and flags modeling a finite set of values SQLite itself defines
-(`SqliteOpenFlag`, `SqliteDataType`, the cipher types used in [Encryption](#encryption), and so
-on), live in [`ksqlite-types`](../ksqlite-types/README.md) and are shared as-is with `ksqlite-capi`.
-Its README is worth a look whenever one of those types shows up here without much explanation.
+Some types used here without much explanation, mostly enums and flags modeling a finite set of
+values SQLite itself defines (`SqliteOpenFlag`, `SqliteDataType`, the cipher types used in
+[Encryption](#encryption), and so on), live in [`ksqlite-types`](../ksqlite-types/README.md) and
+are shared as-is with `ksqlite-capi`. Its README is worth a look whenever one shows up here
+unexplained.
 
 ## Table of contents
 
@@ -69,7 +70,7 @@ val db = sqlite.open(":memory:")
 db.execute("CREATE TABLE fruits(name TEXT NOT NULL);")
 
 db.prepare("INSERT INTO fruits VALUES (?);").use { insert ->
-    insert.parameters.bind(1, "Kiwi")
+    insert.parameters.bindString(1, "Kiwi")
     insert.step()
 }
 
@@ -86,11 +87,11 @@ db.close()
 sqlite.close()
 ```
 
-Only one `SQLite` instance can exist at a time, for the whole process, not per-thread. Every
-resource opened through this module (a connection, a statement, and so on) is tied to that one
-instance. `SQLite.initialize()` throws `IllegalStateException` if a previous instance was returned
-and not yet closed. It also takes an optional trailing lambda for options that can only be set
-before SQLite starts up, threading mode among them, see [Configuration](#configuration).
+Only one `SQLite` instance can exist at a time, for the whole process. Every resource opened through
+this module (a connection, a statement, and so on) is tied to that one instance. 
+`SQLite.initialize()` throws `IllegalStateException` if a previous instance was returned and not yet
+closed. It also takes an optional trailing lambda for options that can only be set before SQLite 
+starts up, threading mode among them, see [Configuration](#configuration).
 
 Closing `SQLite` shuts SQLite down process-wide, so every connection, statement, and other
 resource opened through it must be closed first. Closing a connection closes everything opened
@@ -123,8 +124,9 @@ try {
 ### Closing resources
 
 Every resource with a lifecycle, a `SQLite` instance, a `DatabaseConnection`, a `PreparedStatement`,
-a `Blob`, a `Backup`, a `Snapshot`, a `Buffer`, implements `AutoCloseable`. `use { }`, from the
-Kotlin standard library, closes one automatically once the block returns or throws:
+a `Blob`, a `Backup`, a `Snapshot`, a `Buffer`, a `Registration`, implements `AutoCloseable`.
+`use { }`, from the Kotlin standard library, closes one automatically once the block returns or
+throws:
 
 ```kotlin
 db.prepare("SELECT name FROM fruits;").use { select ->
@@ -246,7 +248,7 @@ be bound and stepped repeatedly, without re-parsing the SQL or re-planning the q
 ```kotlin
 db.prepare("INSERT INTO fruits(name) VALUES (?);").use { insert ->
     for (name in listOf("Kiwi", "Mango", "Banana")) {
-        insert.parameters.bind(1, name)
+        insert.parameters.bindString(1, name)
         insert.step()
         insert.reset()
     }
@@ -255,44 +257,47 @@ db.prepare("INSERT INTO fruits(name) VALUES (?);").use { insert ->
 
 ### Binding parameters
 
-`insert.parameters` exposes one `bind()` overload per SQLite type, indexed from `1`, the same
+`insert.parameters` exposes one `bind*()` method per SQLite type, indexed from `1`, the same
 one-based indexing SQLite itself uses:
 
 ```kotlin
-statement.parameters.bind(1, 42)                 // INTEGER
-statement.parameters.bind(2, 4.2)                 // REAL
-statement.parameters.bind(3, "hello")             // TEXT
-statement.parameters.bind(4, byteArrayOf(1, 2, 3)) // BLOB
-statement.parameters.bind(5, null)                // NULL
+statement.parameters.bindInt(1, 42)                 // INTEGER
+statement.parameters.bindDouble(2, 4.2)             // REAL
+statement.parameters.bindString(3, "hello")         // TEXT
+statement.parameters.bindByteArray(4, byteArrayOf(1, 2, 3)) // BLOB
+statement.parameters.bindNull(5)                    // NULL
 ```
 
-Every scalar overload also has a nullable counterpart accepting `Int?`, `String?`, and so on
+Every scalar `bind*()` also has a nullable counterpart accepting `Int?`, `String?`, and so on
 directly, binding `NULL` automatically instead of requiring a separate check:
 
 ```kotlin
 val name: String? = null
-statement.parameters.bind(1, name) // binds NULL, instead of throwing on a non-nullable overload
+statement.parameters.bindString(1, name) // binds NULL, instead of throwing on the non-nullable overload
 ```
+
+`bindBoolean(index, value)` binds `1`/`0`, SQLite's own convention for booleans, there's no
+dedicated storage class for one. It's plain sugar over `bindInt()`, nothing prevents binding `2`
+or any other integer directly instead.
 
 Named parameters (`:name`, `@name`, `$name`) resolve their index through
 `parameters.getIndex(name)` before binding:
 
 ```kotlin
 val statement = db.prepare("SELECT * FROM fruits WHERE name = :name;")
-statement.parameters.bind(statement.parameters.getIndex(":name"), "Kiwi")
+statement.parameters.bindString(statement.parameters.getIndex(":name"), "Kiwi")
 ```
 
-`bind(index, null, size)` binds a placeholder blob of `size` bytes, all set to zero, instead of
-real content (`sqlite3_bind_zeroblob()`/`sqlite3_bind_zeroblob64()`, picked based on whether `size`
-is an `Int` or a `ULong`). It reserves the space without SQLite ever holding the whole value in
-memory at once, exactly the kind of large-content write [`Blob`](#blobs) exists to stream
-piecemeal. The usual reason to bind a zero-blob instead of a real one is to open it as a `Blob`
-right after inserting it, and write the actual content in chunks:
+`bindZeroBlob(index, size)` binds a placeholder blob of `size` bytes, all set to zero, instead of
+real content (an `Int` overload and a `Long` one for larger sizes). It reserves the space without
+SQLite ever holding the whole value in memory at once, exactly the kind of large-content write
+[`Blob`](#blobs) exists to stream piecemeal. The usual reason to bind a zero-blob instead of a real
+one is to open it as a `Blob` right after inserting it, and write the actual content in chunks:
 
 ```kotlin
 db.prepare("INSERT INTO fruits(name, image) VALUES (?, ?);").use { insert ->
-    insert.parameters.bind(1, "Kiwi")
-    insert.parameters.bind(2, null, size = imageBytes.size) // reserves the space, writes nothing yet
+    insert.parameters.bindString(1, "Kiwi")
+    insert.parameters.bindZeroBlob(2, size = imageBytes.size) // reserves the space, writes nothing yet
     insert.step()
 }
 
@@ -308,7 +313,7 @@ Large or binary content can also be bound directly from a [`Buffer`](#buffers) i
 val buffer = Buffer.allocate(imageBytes.size)
 buffer.write(imageBytes)
 
-statement.parameters.bind(4, buffer) { closed ->
+statement.parameters.bindBuffer(4, buffer) { closed ->
     closed.close()
 }
 ```
@@ -319,30 +324,33 @@ compiled and ready to reuse.
 ### Reading rows
 
 `step()` returns a [`Row`](src/commonMain/kotlin/ksqlite/kapi/statement/Row.kt) for as long as
-there's data left, or `null` once the statement is exhausted:
+there's data left, or `null` once the statement is exhausted. `forEachRow { }` wraps that loop:
 
 ```kotlin
 db.prepare("SELECT id, name FROM fruits WHERE name LIKE ?;").use { select ->
-    select.parameters.bind(1, "%an%")
-    var row = select.step()
+    select.parameters.bindString(1, "%an%")
 
-    while (row != null) {
+    select.forEachRow { row ->
         val id = row.getLong(0)
         val name = row.getString(1)
         println("$id: $name")
-        row = select.step()
     }
 }
 ```
 
-`Row` has one `get*(index)` per type, also zero-based like `bind()` is one-based: `getInt()`,
-`getLong()`, `getDouble()`, `getString()`, `getBlob()` (a `ByteArray?`), `getBuffer()` (a
+`Row` has one `get*(index)` per type, also zero-based like `bind*()` is one-based: `getInt()`,
+`getLong()`, `getDouble()`, `getString()`, `getByteArray()` (a `ByteArray?`), `getBuffer()` (a
 [`ReadableBuffer?`](#buffers), a zero-copy view instead of a fresh `ByteArray`), and `getValue()`
-(a [`Value`](#values), for passing a column's content elsewhere without going through a Kotlin
-type at all). SQLite converts between types on demand the same way it does everywhere else,
+(an [`UnprotectedValue`](#values), for passing a column's content elsewhere without going through a
+Kotlin type at all). SQLite converts between types on demand the same way it does everywhere else,
 `getString()` on an `INTEGER` column returns its text representation, for instance.
 `row.getType(index)` reports the column's actual `SqliteDataType` if that matters,
 `row.getColumnName(index)` its name.
+
+`getBoolean(index)` reads `getInt(index)` back as `1`/`0`, the same convention `bindBoolean()`
+writes. Unlike the type conversions above, it doesn't coerce, any value other than `1` or `0`
+throws `SQLiteException`, on the theory that a column meant to hold a boolean should actually
+hold one.
 
 A `Row` is only valid until the next `step()`, a `reset()`, or the statement's own `close()`.
 Reading from a stale one throws `IllegalStateException`, the same as any other closed resource, so
@@ -360,8 +368,9 @@ it came from, and it's worth knowing which is which before running into `Illegal
 a type that seemingly has no `getAsInt()`.
 
 **`ProtectedValue`** is fully readable, `getAsInt()`, `getAsLong()`, `getAsDouble()`,
-`getAsString()`, `getAsByteArray()`, `getAsBuffer()`, plus `type` (its `SqliteDataType`) and a few
-less common properties (`isFromBind`, `subtype`, `encoding`). This is what arrives as the
+`getAsString()`, `getAsByteArray()`, `getAsBuffer()`, `getAsBoolean()` (`1`/`0` only, anything else
+throws `SQLiteException`, see [Reading rows](#reading-rows)), plus `type` (its `SqliteDataType`)
+and a few less common properties (`isFromBind`, `subtype`, `encoding`). This is what arrives as the
 `arguments` of a [scalar/aggregate/window function](#application-defined-functions), and as
 `PreupdateHookScope.oldValue()`/`newValue()`. It's only valid for the duration of the call it was
 handed to, reading it afterward throws `IllegalStateException`, same as any other resource used
@@ -369,16 +378,18 @@ past its lifetime.
 
 **`UnprotectedValue`** is what `Row.getValue(index)` returns. It has no `getAsInt()` or similar,
 the only thing it supports is being handed straight back to SQLite, as a bind parameter
-(`parameters.bind(index, value)`) or a function result (`setResult(value)`), without decoding it
-into a Kotlin type at all:
+(`parameters.bindValue(index, value)`) or a function result (`resultValue(value)`, see
+[Application-defined functions](#application-defined-functions)), without decoding it into a
+Kotlin type at all:
 
 ```kotlin
-val sourceRow = db.prepare("SELECT name FROM fruits WHERE id = 1;").use { it.step()!! }
-val name = sourceRow.getValue(0) // an UnprotectedValue
+db.prepare("SELECT name FROM fruits WHERE id = 1;").use { select ->
+    val name = select.step()!!.getValue(0) // an UnprotectedValue, valid only while select stays open
 
-db.prepare("INSERT INTO archived_fruits(name) VALUES (?);").use { insert ->
-    insert.parameters.bind(1, name) // copies the value directly, no round trip through Kotlin
-    insert.step()
+    db.prepare("INSERT INTO archived_fruits(name) VALUES (?);").use { insert ->
+        insert.parameters.bindValue(1, name) // copies the value directly, no round trip through Kotlin
+        insert.step()
+    }
 }
 ```
 
@@ -390,14 +401,14 @@ needed as a Kotlin value.
 unprotected), copies the underlying SQLite value into memory this module owns. Unlike the other
 two, it outlives the call it was created in, useful for holding on to a value past a function call
 or a row, an aggregate function accumulating values across `step()` calls, for instance. It's a
-`ProtectedValue`, fully readable, but now something to close by hand, through `.free()`, once no
+`ProtectedValue`, fully readable, but now something to close by hand, through `.close()`, once no
 longer needed, since nothing else will:
 
 ```kotlin
 val saved = arguments[0].duplicate()
 // ... later, in a different call ...
 println(saved.getAsInt())
-saved.free()
+saved.close()
 ```
 
 ## Transactions
@@ -410,7 +421,7 @@ db.execute("BEGIN;")
 
 try {
     db.prepare("INSERT INTO fruits(name) VALUES (?);").use { insert ->
-        insert.parameters.bind(1, "Kiwi")
+        insert.parameters.bindString(1, "Kiwi")
         insert.step()
     }
 
@@ -435,24 +446,45 @@ depending on how many rows a call sees at once.
 
 [`ScalarFunction`](src/commonMain/kotlin/ksqlite/kapi/function/ScalarFunction.kt) computes one
 result from the arguments of a single call, registered through
-`db.createFunction(name, argumentCount, encoding, fn)`:
+`db.createFunction(name, argumentCount, encoding, fn)`. An overload without `encoding` is also
+available, using `SqliteTextEncoding.UTF8`, the only one currently supported, so it's rarely
+spelled out:
 
 ```kotlin
-db.createFunction("double", 1, SqliteFunctionTextEncoding.UTF8, ScalarFunction { arguments ->
-    setResult(arguments[0].getAsInt() * 2)
+db.createFunction("double", 1, ScalarFunction { arguments ->
+    resultInt(arguments[0].getAsInt() * 2)
 })
 
 db.execute("SELECT double(21);") // 42
 ```
 
-`arguments` is an `Array<ProtectedValue>`, see [Values](#values). `setResult(...)` reports the
-value back to SQLite, it comes from the `ValueReturnScope` receiver every function body runs in,
-and has one overload per SQLite type, the same shape as `PreparedStatementParameters.bind()`.
-`setResultError(message)`, also on that receiver, fails the call instead, equivalent to throwing
-`SQLiteException` from inside the function body, which works too.
+`arguments` is an `Array<ProtectedValue>`, see [Values](#values). `result*(...)` reports the value
+back to SQLite and must be the function body's return value, it comes from the `ResultScope`
+receiver every function body runs in, has one method per SQLite type plus `resultBoolean(value)`
+(`1`/`0` sugar, the same as `bindBoolean()`), the same shape as `PreparedStatementParameters.bind*()`,
+and returns `Result`, a marker proving one of them was actually called. `resultError(message)`,
+also on that receiver, fails the call instead, equivalent to throwing `SQLiteException` from inside
+the function body, which works too.
 
-`db.deleteFunction(name, argumentCount, encoding)` unregisters a function created this way, or any
-of the other two kinds below.
+`createFunction(...)` returns a [`Registration`](src/commonMain/kotlin/ksqlite/kapi/connection/Registration.kt),
+closing it unregisters the function, the same way for all three kinds below, and for
+`createCollation(...)`/`createModule(...)`, see [Hooks](#hooks) and
+[Virtual tables](#virtual-tables):
+
+```kotlin
+val registered = db.createFunction("double", 1, ScalarFunction { arguments ->
+    resultInt(arguments[0].getAsInt() * 2)
+})
+
+// ...
+
+registered.close()
+```
+
+Registering another function under the same name, argument count, and encoding replaces this one,
+and closing the handle for the one that got replaced is then a no-op, it has nothing left to
+unregister. Closing a handle twice is a no-op for the same reason `use { }`/`AutoCloseable` is
+idempotent everywhere else in this module, see [Closing resources](#closing-resources).
 
 ### Aggregate functions
 
@@ -467,12 +499,11 @@ val product = object : AggregateFunction {
         accumulator[0] *= arguments[0].getAsInt()
     }
 
-    override fun AggregateFunctionFinalScope.final() {
-        setResult(getContextOrNull<IntArray>()?.get(0) ?: 1)
-    }
+    override fun AggregateFunctionFinalScope.final() =
+        resultInt(getContextOrNull<IntArray>()?.get(0) ?: 1)
 }
 
-db.createFunction("product", 1, SqliteFunctionTextEncoding.UTF8, product)
+db.createFunction("product", 1, product)
 db.execute("SELECT product(quantity) FROM fruits;")
 ```
 
@@ -502,16 +533,14 @@ val runningTotal = object : WindowFunction {
         total?.let { it[0] -= arguments[0].getAsInt() }
     }
 
-    override fun AggregateFunctionFinalScope.final() {
-        setResult(getContextOrNull<IntArray>()?.get(0) ?: 0)
-    }
+    override fun AggregateFunctionFinalScope.final() =
+        resultInt(getContextOrNull<IntArray>()?.get(0) ?: 0)
 
-    override fun AggregateFunctionFinalScope.value() {
-        setResult(getContextOrNull<IntArray>()?.get(0) ?: 0)
-    }
+    override fun AggregateFunctionFinalScope.value() =
+        resultInt(getContextOrNull<IntArray>()?.get(0) ?: 0)
 }
 
-db.createFunction("running_total", 1, SqliteFunctionTextEncoding.UTF8, runningTotal)
+db.createFunction("running_total", 1, runningTotal)
 ```
 
 `step()` adds a row entering the window, the same as for a plain aggregate. `inverse()` removes a
@@ -522,15 +551,16 @@ still runs once at the very end, exactly like a plain `AggregateFunction`.
 ### Auxiliary data
 
 A scalar function's `ScalarFunctionFuncScope` (and a window function's step/inverse scopes) also
-expose `AuxDataScope`, a per-argument cache SQLite itself manages: it's kept across calls as long
-as SQLite can prove the argument at that position hasn't changed between rows, a `LIKE` pattern
-that's the same literal on every row of a scan, for instance, and discarded otherwise. Useful for
-caching something expensive to compute from a constant argument, a compiled regular expression:
+expose `AuxDataScope`, a per-argument cache SQLite itself manages. It's kept across calls as long as
+SQLite can prove the argument at that position hasn't changed between rows, a `LIKE` pattern that's
+the same literal on every row of a scan, for instance. It's discarded otherwise. Useful for caching
+something expensive to compute from a constant argument, a compiled regular expression:
 
 ```kotlin
-db.createFunction("regex_match", 2, SqliteFunctionTextEncoding.UTF8, ScalarFunction { arguments ->
+db.createFunction("regex_match", 2, ScalarFunction { arguments ->
     val pattern = getOrCreateAuxData(0) { Regex(arguments[0].getAsString()!!) }
-    setResult(pattern.containsMatchIn(arguments[1].getAsString().orEmpty()))
+    val matches = pattern.containsMatchIn(arguments[1].getAsString().orEmpty())
+    resultInt(if (matches) 1 else 0) // SQLite has no dedicated BOOLEAN type, 0/1 is its own convention
 })
 ```
 
@@ -592,24 +622,23 @@ db.setTrace(SqliteTraceEventCode.STMT or SqliteTraceEventCode.PROFILE) { event -
 }
 ```
 
-> [!WARNING]
-> `STMT` currently crashes the whole process, not just throws, for any statement SQLite prepares
-> internally rather than through `db.prepare()`, `db.execute()` among them. This is an implementation
-> bug in this module, not a Trace limitation of SQLite's own, restrict `STMT` to connections only
-> ever driven through `prepare()`/`step()` until it's fixed.
-
 The rest follow the same shape, a registration function taking a functional interface, documented
 on `DatabaseConnection` and `SQLite` themselves:
 
-| Registration | Callback | Fires |
-| --- | --- | --- |
-| `SQLite.addAutoExtension` | `AutoExtension` | once per new connection, before it's returned |
-| `DatabaseConnection.setBusyHandler` / `setBusyTimeout` | `BusyHandler` | a table is locked by another connection |
-| `DatabaseConnection.createCollation` / `setCollationNeeded` | `Collation` / `CollationNeeded` | comparing text with a custom or missing collation |
-| `DatabaseConnection.setCommitHook` / `setRollbackHook` | `CommitHook` / `RollbackHook` | a transaction is about to commit or was rolled back |
-| `DatabaseConnection.setProgressHandler` | `ProgressHandler` | periodically during a long-running statement |
-| `DatabaseConnection.setAutovacuumPages` | `AutovacuumPages` | before each incremental autovacuum |
-| `DatabaseConnection.wal.setHook` | `WriteAheadLogHook` | data is committed to a database in WAL mode |
+| Registration                                                | Callback                        | Fires                                               |
+|-------------------------------------------------------------|---------------------------------|-----------------------------------------------------|
+| `SQLite.addAutoExtension`                                   | `AutoExtension`                 | once per new connection, before it's returned       |
+| `DatabaseConnection.setBusyHandler` / `setBusyTimeout`      | `BusyHandler`                   | a table is locked by another connection             |
+| `DatabaseConnection.createCollation` / `setCollationNeeded` | `Collation` / `CollationNeeded` | comparing text with a custom or missing collation   |
+| `DatabaseConnection.setCommitHook` / `setRollbackHook`      | `CommitHook` / `RollbackHook`   | a transaction is about to commit or was rolled back |
+| `DatabaseConnection.setProgressHandler`                     | `ProgressHandler`               | periodically during a long-running statement        |
+| `DatabaseConnection.setAutovacuumPages`                     | `AutovacuumPages`               | before each incremental autovacuum                  |
+| `DatabaseConnection.wal.setHook`                            | `WriteAheadLogHook`             | data is committed to a database in WAL mode         |
+
+`createCollation` is the one entry above that isn't a plain setter, it returns a `Registration`
+the same way `createFunction`/`createModule` do, see [Scalar functions](#scalar-functions), and it
+has the same UTF-8-only overload too. `setCollationNeeded` stays a plain callback registration,
+clearing it back to `null` is the only way to unregister it.
 
 ## Blobs
 
@@ -618,7 +647,7 @@ out without loading the whole row, useful for large `BLOB` columns, images or fi
 in the database instead of on disk, that shouldn't be read or written as one giant `ByteArray`:
 
 ```kotlin
-db.openBlob("fruits", "image", rowid, flags = SqliteBlobOpenFlag.READWRITE).use { blob ->
+db.openBlob("fruits", "image", rowid).use { blob ->
     val chunk = ByteArray(4096)
     blob.read(chunk)
     blob.write(chunk, offset = 4096)
@@ -631,7 +660,7 @@ content, defaulting to `0`, to move through it a chunk at a time instead of all 
 cheaper than closing and reopening one when iterating over many rows.
 
 The column has to already exist, `openBlob()` doesn't create a row. Insert a placeholder first,
-`zeroblob(n)` in SQL or `bind(index, null, size = n)` from a prepared statement, see
+`zeroblob(n)` in SQL or `bindZeroBlob(index, size = n)` from a prepared statement, see
 [Binding parameters](#binding-parameters), for a blob of `n` bytes to then open and fill in.
 
 ## Backup
@@ -643,7 +672,7 @@ live, page by page, safe to run while the source database is being written to co
 val source = sqlite.open("app.db")
 val destination = sqlite.open("app-backup.db")
 
-Backup.init(destination, source).use { backup ->
+Backup.create(destination, source).use { backup ->
     do {
         backup.step(5) // copies up to 5 pages at a time
     } while (backup.remaining > 0)
@@ -659,7 +688,7 @@ useful for backing up a large, actively-used database without locking it out for
 duration. `backup.pageCount`/`backup.remaining` report progress, the total page count as of the
 last `step()` and how many are left.
 
-`Backup.init(destination, destinationName, source, sourceName)`, the other overload, backs up an
+`Backup.create(destination, destinationName, source, sourceName)`, the other overload, backs up an
 attached database instead of the main one on either side.
 
 ## Serialization
@@ -702,13 +731,13 @@ happen in between, other connections included:
 db.execute("PRAGMA journal_mode=WAL;")
 
 db.execute("BEGIN;")
-val snapshot = db.createSnapshot("main")
+val snapshot = db.createSnapshot() // main database by default
 db.execute("COMMIT;")
 
 // ... later, possibly after other connections wrote to the database ...
 
 db.execute("BEGIN;")
-db.openSnapshot(snapshot, "main")
+db.openSnapshot(snapshot)
 // reads in this transaction now see the database exactly as it was at the snapshot
 db.execute("COMMIT;")
 
@@ -722,8 +751,8 @@ hides behind a friendlier API, so `BEGIN` immediately followed by `createSnapsho
 is the pattern to reach for.
 
 Snapshots compare with each other through `Comparable`, `snapshot1 < snapshot2` reports which one
-is older. `db.recoverSnapshots("main")` makes snapshots taken by other connections, before this
-one was opened, available to `openSnapshot()`.
+is older. `db.recoverSnapshots()` makes snapshots taken by other connections, before this one was
+opened, available to `openSnapshot()`.
 
 ## Write-ahead log
 
@@ -744,20 +773,8 @@ the type's own documentation for the exact difference between them.
 ## Buffers
 
 [`Buffer`](src/commonMain/kotlin/ksqlite/kapi/buffer/Buffer.kt) is a block of native memory holding
-`ByteArray`-shaped content. Blob content passed to `PreparedStatementParameters.bind()` or
-`ValueReturnScope.setResult()`, and the result of `serialize()`, all move through it.
-
-> [!NOTE]
-> `write()`/`read()` still copy bytes across the Kotlin heap/native memory boundary on every
-> platform this module targets, JNI on JVM and Android, a JS typed-array copy on Web and WASM, so
-> `Buffer` is not a zero-copy alternative to `ByteArray`. What it buys instead is avoiding repeat
-> copies: the same native allocation can be filled once and handed to SQLite directly, or read back
-> a chunk at a time instead of materializing a full `ByteArray` up front. `ReadableBuffer`, `Buffer`'s
-> read-only counterpart, is the one place this module gives out something genuinely zero-copy:
-> `Row.getBuffer()` and `Value.getAsBuffer()` return a view directly over memory SQLite itself owns,
-> valid only as long as the row or value it came from is, and obtaining that view moves no bytes at
-> all. Copying its content into a `ByteArray`, by calling `read()` on it, still costs the same copy
-> as everywhere else.
+`ByteArray`-shaped content. Blob content passed to `PreparedStatementParameters.bind*()` or
+`ResultScope.result*()`, and the result of `serialize()`, all move through it.
 
 ```kotlin
 val buffer = Buffer.allocate(1024)
@@ -779,7 +796,7 @@ finished with yet, for instance, throws `BufferInUseException` if closed, resize
 in the meantime:
 
 ```kotlin
-statement.parameters.bind(1, buffer)
+statement.parameters.bindBuffer(1, buffer)
 
 buffer.close() // throws BufferInUseException, buffer is still bound
 
@@ -790,6 +807,17 @@ buffer.close() // works now
 Reading from it (`read()`, not `write()`) while it's referenced is fine, only mutating or freeing
 it is restricted, to stop the content SQLite is currently using from shifting or disappearing out
 from under it.
+
+> [!NOTE]
+> `write()`/`read()` still copy bytes across the Kotlin heap/native memory boundary on every
+> platform this module targets, so `Buffer` is not a zero-copy alternative to `ByteArray`. What it
+> buys instead is avoiding repeat copies: the same native allocation can be filled once and handed
+> to SQLite directly, or read back a chunk at a time instead of materializing a full `ByteArray` up
+> front. `ReadableBuffer`, `Buffer`'s read-only counterpart, is the one place this module gives out 
+> something genuinely zero-copy: `Row.getBuffer()` and `Value.getAsBuffer()` return a view directly 
+> over memory SQLite itself owns, valid only as long as the row or value it came from is, and 
+> obtaining that view moves no bytes at all. Copying its content into a `ByteArray`, by calling 
+> `read()` on it, still costs the same copy as everywhere else.
 
 ## Virtual tables
 
@@ -820,9 +848,8 @@ class MemoryCursor(val table: MemoryTable) : VirtualTableCursor() {
         position++
     }
 
-    override fun VirtualTableColumnScope.column(index: Int) {
-        setResult(table.rows[position][index])
-    }
+    override fun VirtualTableColumnScope.column(index: Int) =
+        resultString(table.rows[position][index])
 
     override fun rowid() = position.toLong()
     override fun close() = Unit
@@ -830,9 +857,8 @@ class MemoryCursor(val table: MemoryTable) : VirtualTableCursor() {
 ```
 
 `filter()` starts a scan, `next()` advances it, `eof()` reports whether it's exhausted, and
-`column()`/`rowid()` report the current row's content, the same four-step loop `PreparedStatement`
-itself follows internally. `idxNum`/`idxStr`/`arguments` in `filter()` come from whatever
-`bestIndex()`, on the table itself, chose for this particular query, see below.
+`column()`/`rowid()` report the current row's content. `idxNum`/`idxStr`/`arguments` in `filter()` 
+come from whatever `bestIndex()`, on the table itself, chose for this particular query, see below.
 
 The table owns the cursor's underlying data, and describes itself to SQLite once, when a
 connection first uses it:
@@ -887,16 +913,32 @@ schema, and table name always come first.
 `filter()`, `next()`, `column()`, `rowid()`, and `close()`, are the minimum needed for any table,
 even a read-only one, like the example above. Everything else on `VirtualTable`, `update()` for
 writes, `begin()`/`sync()`/`commit()`/`rollback()`/`savepoint()`/`release()`/`rollbackTo()` for
-transactions, `rename()`, `findFunction()`, and `integrity()`, is meant to be opted into by
-overriding `VirtualTableModule.optionalFunctions()`, so SQLite only calls the ones a module
-declared support for.
+transactions, `rename()`, `findFunction()`, and `integrity()`, is meant to be opted into, so SQLite
+only calls the ones a module declared support for.
 
-> [!WARNING]
-> `optionalFunctions()` isn't declared `open` in the current implementation, so a `VirtualTableModule`
-> subclass can't actually override it, an implementation bug in this module rather than something
-> this README is simplifying. Since it always reports an empty set as a result, `update()` and every
-> other function described as optional below are currently unreachable no matter what a `VirtualTable`
-> overrides, SQLite is never given a pointer to call them through in the first place.
+Opting in happens through the `optionalFunctions` constructor parameter every `VirtualTableModule`
+subclass accepts, a `Set<VirtualTableOptionalFunction>` listing which of those methods the tables
+this module produces actually override:
+
+```kotlin
+db.createModule("memory_table", module = object : VirtualTableModule.EponymousOnly(
+    optionalFunctions = setOf(VirtualTableOptionalFunction.Update)
+) {
+    override fun VirtualTableCreateOrConnectScope.connect(
+        connection: DatabaseConnection,
+        arguments: Array<String>
+    ): VirtualTable {
+        declare("CREATE TABLE x(name TEXT)")
+        return MemoryTable() // now overrides update(), see below
+    }
+})
+```
+
+SQLite decides which callbacks exist for a module as a whole, once, before any table is created or
+connected to, so `optionalFunctions` has to be declared upfront this way rather than discovered
+from a `VirtualTable` instance later. A function listed here that the produced `VirtualTable`
+doesn't actually override throws `VirtualTableOptionalFunctionNotImplementedError` the first time
+SQLite tries to call it, instead of silently doing nothing.
 
 ```kotlin
 override fun VirtualTableUpdateScope.update(arguments: Array<ProtectedValue>): Long? {
@@ -938,6 +980,11 @@ so the table is only ever usable directly, by name, never through `CREATE VIRTUA
 the whole feature be registered ahead of time without a matching `CREATE VIRTUAL TABLE` statement
 anywhere.
 
+`createModule(...)` returns the same `Registration` `createFunction(...)` returns, see
+[Scalar functions](#scalar-functions). Closing it unregisters the module, registering another one
+under the same name replaces it and makes closing the replaced handle a no-op, and closing a handle
+twice is a no-op either way.
+
 ## Virtual file systems
 
 `sqlite.virtualFileSystems` finds and manages the VFS SQLite itself already knows about, by name,
@@ -955,14 +1002,15 @@ val customVfs = sqlite.virtualFileSystems.find("unix-excl")
 connection can later be opened with `vfs = "the-registered-name"`. Writing a brand-new VFS from
 Kotlin isn't supported yet, so the `VirtualFileSystemBase` passed to `register()` normally comes
 from somewhere else already, wrapping an existing VFS through
-[the encryption module](#encryption) is the one example currently available:
+[the encryption module](#encryption) is the one example currently available. That one is already
+registered as a side effect of creating it, and `close()` unregisters it in turn, so `register()`/
+`unregister()` don't come into play at all here, they matter for a `VirtualFileSystemBase` obtained
+some other way:
 
 ```kotlin
 val wrapped = sqlite.ciphers.virtualFileSystems.create(defaultVfs!!, makeDefault = false)
-sqlite.virtualFileSystems.register(wrapped, makeDefault = false)
-// ... vfs = wrapped.zName can now be passed to sqlite.open(...) ...
-sqlite.virtualFileSystems.unregister(wrapped)
-wrapped.close()
+// vfs = wrapped.zName can now be passed to sqlite.open(...)
+wrapped.close() // unregisters it too
 ```
 
 See the root [README's VFS notes](../README.md#project-state) for the current state of, and plans
@@ -974,7 +1022,7 @@ custom VFS or SQLite pragma might rely on, `file:app.db?mode=rwc&cache=shared` f
 
 ```kotlin
 val fileName = db.getFileName()
-val cacheMode = fileName?.geValue("cache") // "shared"
+val cacheMode = fileName?.getValue("cache") // "shared"
 ```
 
 ## Encryption
@@ -1021,13 +1069,60 @@ parameters[SqliteMcCodecType.CHACHA20.KDF_ITER] = 128_000
 ```
 
 `sqlite.ciphers.config` reads and writes the same options globally instead, applied to every
-connection opened afterward that doesn't override them itself. `db.cipherData.cipherSalt()` reads
-back the salt SQLite3MultipleCiphers stored in the database header, `null` for a database that
-isn't encrypted.
+connection opened afterward that doesn't override them itself. It also carries
+`isHmacCheckEnabled`/`setHmacCheckEnabled` and `isLegacyWalEnabled`/`setLegacyWalEnabled`, the same
+shape as `setCipher()` above, transient by default, permanent with the right
+`SqliteMcConfigParamPrefix`. `db.cipherData.cipherSalt()`/`cipherSaltRaw()` read back the salt
+SQLite3MultipleCiphers stored in the database header, as hex text or raw bytes respectively, `null`
+for a database that isn't encrypted.
 
 `SqliteMcCodecType` lists every builtin cipher, `AES128`, `AES256`, `CHACHA20`, `SQLCIPHER`,
 `RC4`, `ASCON128`, and `AEGIS`, each declaring its own set of parameter objects directly on it,
-`KDF_ITER` above is one of `CHACHA20`'s.
+`KDF_ITER` above is one of `CHACHA20`'s. `sqlite.ciphers.count`, `getIndex(cipher)`, and
+`getName(index)` walk the full list of registered ciphers, builtin and dynamic alike, by its
+1-based SQLite3MultipleCiphers index instead.
+
+SQLite3MultipleCiphers normally wraps the platform's default VFS with a cipher-aware one and makes
+it the default automatically as soon as it initializes. Ksqlite turns that off, so a cipher VFS has 
+to be created and selected by hand, see [Virtual file systems](#virtual-file-systems). It's made the default VFS
+unless told otherwise, `create()`'s `makeDefault` defaults to `true`, so pass `false` explicitly to
+only use it for connections that ask for it by name:
+
+```kotlin
+val wrapped = sqlite.ciphers.virtualFileSystems.create(
+    vfs = sqlite.virtualFileSystems.default!!,
+    makeDefault = false
+)
+
+val db = sqlite.open("secret.db", vfs = wrapped.zName)
+// ... db.cipherConfig.setCipher(...) / db.setKey(...) as above ...
+```
+
+Everything above encrypts a whole database file. SQLite3MultipleCiphers also has
+[Value Level Encryption](https://utelle.github.io/SQLite3MultipleCiphers/docs/features/feat_vle/)
+(VLE), for encrypting individual values, effectively per-column, in a database that's otherwise
+left unencrypted. It's exposed as plain SQL functions as per author choice, callable through
+`execute()`/`prepare()` like any other SQL:
+
+```kotlin
+db.execute("SELECT sqlite3mc_vle_key('correct horse battery staple');") // once per connection
+
+val encrypted = db.prepare("SELECT sqlite3mc_vle_encrypt(?);").use { statement ->
+    statement.parameters.bindString(1, "4111 1111 1111 1111")
+    statement.step()!!.getByteArray(0) // a BLOB, safe to store in an otherwise plaintext column
+}
+
+val decrypted = db.prepare("SELECT sqlite3mc_vle_decrypt(?);").use { statement ->
+    statement.parameters.bindByteArray(1, encrypted!!)
+    statement.step()!!.getString(0)
+}
+```
+
+`sqlite3mc_vle_key()` must be called once per connection before the other two. 
+`sqlite3mc_vle_encrypt()`/`sqlite3mc_vle_decrypt()` both take an optional second `scope` argument, 
+decrypting with a different scope than the one used to encrypt fails with `SQLiteException`. See 
+SQLite3MultipleCiphers' own docs, linked above, for the full parameter list (salt, algorithm, KDF 
+options).
 
 ### Writing a custom cipher
 
@@ -1078,45 +1173,49 @@ A `Factory` creates one `DynamicCipher` instance per connection, and describes w
 configuration parameters, beyond the ones every cipher already has, the scheme needs:
 
 ```kotlin
-class RollingXorCipherFactory : DynamicCipher.Factory<RollingXorCipher> {
-    override val saltSize = 16L // bytes of salt SQLite3MultipleCiphers should allocate and persist
+class RollingXorCipher(override val salt: Buffer, private val keyOffset: Int) : DynamicCipher {
+    //...
+    companion object Factory : DynamicCipher.Factory<RollingXorCipher> {
+        override val saltSize = 16L // bytes of salt that should be allocated and persisted
 
-    override fun DynamicCipherParameterRegistry.registerParameters() {
-        // RollingXorCipher doesn't actually need a configurable parameter, this one exists purely
-        // to show the wiring: how a cipher declares a custom, per-connection Int option beyond the
-        // ones every cipher already has (isLegacy, pageSize, reserved, above).
-        register {
-            m_name = "key_offset"
-            m_value = 0
-            m_default = 0
-            m_minValue = 0
-            m_maxValue = 255
+        override fun DynamicCipherParameterRegistry.registerParameters() {
+            // RollingXorCipher doesn't actually need a configurable parameter, this one exists 
+            // purely to show the wiring: how a cipher declares a custom, per-connection Int option 
+            // beyond the ones every cipher already has (isLegacy, pageSize, reserved, above).
+            register {
+                m_name = "key_offset"
+                m_value = 0
+                m_default = 0
+                m_minValue = 0
+                m_maxValue = 255
+            }
         }
-    }
 
-    override fun DynamicCipherCreateScope.create(connection: DatabaseConnection): RollingXorCipher {
-        return RollingXorCipher(Buffer.allocate(saltSize), keyOffset = getParameter("key_offset"))
-    }
-
-    override fun clone(source: RollingXorCipher, target: RollingXorCipher) {
-        target.keyByte = source.keyByte
+        override fun DynamicCipherCreateScope.create(connection: DatabaseConnection): RollingXorCipher {
+            return RollingXorCipher(Buffer.allocate(saltSize), keyOffset = getParameter("key_offset"))
+        }
+    
+        override fun clone(source: RollingXorCipher, target: RollingXorCipher) {
+            target.keyByte = source.keyByte
+        }
     }
 }
 ```
 
-`create()` runs once per connection that ends up using this cipher, `getParameter(name)`, from the
-`DynamicCipherCreateScope` receiver, reads back whatever a registered parameter was configured to,
-`key_offset`'s `m_default` above unless a connection overrode it. `clone()` runs when SQLite needs
-a second, independent cipher instance carrying the exact same state as an existing one, backing up
-a database while it's open, for instance.
+`create()` runs whenever SQLite3MultipleCiphers needs a new cipher instance for a connection using
+this cipher. `getParameter(name)`, from the `DynamicCipherCreateScope` receiver, reads back whatever
+a registered parameter was configured to, `key_offset`'s `m_default` above unless a connection
+overrode it. `clone()` runs separately, when SQLite needs a second, independent cipher instance
+carrying the exact same state as an existing one instead of a fresh one, backing up a database
+while it's open, for instance.
 
 Registering the factory, under a name, makes it selectable the same way a builtin cipher is,
 `db.cipherConfig.setCipher(name)` instead of `setCipher(SqliteMcCodecType.xxx)`. Its custom
-parameters are readable and writable the same way too, by name instead of a generated constant
-like `SqliteMcCodecType.CHACHA20.KDF_ITER`:
+parameters are readable and writable the same way too, by name instead of a constant like 
+`SqliteMcCodecType.CHACHA20.KDF_ITER`:
 
 ```kotlin
-sqlite.ciphers.register("rolling-xor", RollingXorCipherFactory())
+sqlite.ciphers.register("rolling-xor", RollingXorCipher)
 
 val db = sqlite.open("secret.db")
 db.cipherConfig.setCipher("rolling-xor", SqliteMcConfigParamPrefix.None) {
@@ -1127,7 +1226,16 @@ db.setKey("correct horse battery staple".encodeToByteArray())
 
 A cipher must be registered before any connection that will use it is opened, a connection's own
 copy of the cipher configuration is set up when it's opened, not looked up fresh on every
-`setCipher()` call.
+`setCipher()` call. `register()`'s `makeDefault` also defaults to `true`, so the snippet above,
+taken on its own, makes `rolling-xor` the default cipher for every connection opened afterward,
+not just the one that calls `setCipher("rolling-xor", ...)` explicitly. Pass `false` when
+registering more than one dynamic cipher and only some connections should use a given one.
+
+> [!NOTE]
+> At most 4 dynamic ciphers can be registered at once, `register()` throws `IllegalStateException`
+> past that. SQLite3MultipleCiphers doesn't pass any context back into the callback responsible for
+> creating a cipher instance, so this module can only tell registrations apart through a small,
+> fixed pool of distinguishable callbacks, hence the cap.
 
 ## Configuration
 
@@ -1168,11 +1276,6 @@ val sqlite = SQLite.initialize {
     setSqlLogger { connection, event -> println(event) }
 }
 ```
-
-> [!WARNING]
-> `DatabaseOpened` currently crashes the whole process, not just throws, the very first time any
-> connection is opened while a `SqlLogger` is active. This is an implementation bug in this module,
-> not a limitation of SQLite's own SQLLOG, don't configure `setSqlLogger()` until it's fixed.
 
 Every other `ConfigurationScope` option is a one-line toggle or setter, `setUriEnabled(enabled)`,
 `setCoveringIndexScanEnabled(enabled)`, `setSmallMallocEnabled(enabled)`,

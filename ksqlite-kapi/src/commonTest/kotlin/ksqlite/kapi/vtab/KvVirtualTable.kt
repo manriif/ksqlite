@@ -18,6 +18,7 @@ package ksqlite.kapi.vtab
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.kapi.function.ScalarFunction
+import ksqlite.kapi.result.Result
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteDataType
@@ -38,7 +39,6 @@ private const val IDX_POINT_LOOKUP = 1
 internal class KvModuleRecorder {
     var createOrConnectCallCount = 0
     var lastConstraintCount = 0
-    var filterCallCount = 0
     var updateCallCount = 0
     var nochangeSeenCount = 0
     var lastConflictMode: SqliteConflictResolutionMode? = null
@@ -119,7 +119,8 @@ internal class KvVirtualTable(internal val recorder: KvModuleRecorder) : Virtual
             // arguments[2]/arguments[3] are the id/name column values.
             arguments[0].type == SqliteDataType.NULL -> {
                 val explicitId = arguments[2].takeIf { it.type != SqliteDataType.NULL }?.getAsLong()
-                val proposedRowid = arguments[1].takeIf { it.type != SqliteDataType.NULL }?.getAsLong()
+                val proposedRowid =
+                    arguments[1].takeIf { it.type != SqliteDataType.NULL }?.getAsLong()
                 val rowid = explicitId ?: proposedRowid ?: nextRowid
                 val name = assertNotNull(arguments[3].getAsString())
 
@@ -171,7 +172,7 @@ internal class KvVirtualTable(internal val recorder: KvModuleRecorder) : Virtual
         return ScalarFunction {
             val text = assertNotNull(it[0].getAsString())
             recorder.overloadCallCount++
-            setResult("vtab:$text")
+            resultString("vtab:$text")
         }
     }
 
@@ -222,7 +223,11 @@ internal class KvVirtualTable(internal val recorder: KvModuleRecorder) : Virtual
         savepoints.keys.removeAll { it > id }
     }
 
-    override fun VirtualTableIntegrityScope.integrity(schema: String, tableName: String, flags: Int) {
+    override fun VirtualTableIntegrityScope.integrity(
+        schema: String,
+        tableName: String,
+        flags: Int
+    ) {
         recorder.integrityCallCount++
     }
 }
@@ -253,16 +258,16 @@ internal class KvCursor(val owner: KvVirtualTable) : VirtualTableCursor() {
         position++
     }
 
-    override fun VirtualTableColumnScope.column(index: Int) {
+    override fun VirtualTableColumnScope.column(index: Int): Result {
         val rowid = rowids[position]
 
-        when (index) {
-            0 -> setResult(rowid)
+        return when (index) {
+            0 -> resultLong(rowid)
             1 -> if (nochange) {
                 owner.recorder.nochangeSeenCount++
-                setResult(null)
+                resultNull()
             } else {
-                setResult(owner.rows.getValue(rowid))
+                resultString(owner.rows.getValue(rowid))
             }
 
             else -> error("Unexpected column index: $index")
@@ -283,7 +288,9 @@ internal fun DatabaseConnection.createKvModule(
     name: String = "kv",
     recorder: KvModuleRecorder = KvModuleRecorder()
 ): KvModuleRecorder {
-    val module = object : VirtualTableModule.Eponymous() {
+    val module = object : VirtualTableModule.Eponymous(
+        optionalFunctions = VirtualTableOptionalFunction.entries.toSet()
+    ) {
 
         override fun VirtualTableCreateOrConnectScope.connect(
             connection: DatabaseConnection,
@@ -294,11 +301,8 @@ internal fun DatabaseConnection.createKvModule(
             config.setInnocuous()
             return KvVirtualTable(recorder)
         }
-
-        override fun optionalFunctions(): Set<VirtualTableOptionalFunction> =
-            VirtualTableOptionalFunction.entries.toSet()
     }
 
-    createModule(name, module = module)
+    val _ = createModule(name, module = module)
     return recorder
 }

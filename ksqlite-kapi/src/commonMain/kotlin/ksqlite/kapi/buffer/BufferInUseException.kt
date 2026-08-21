@@ -16,6 +16,7 @@
 package ksqlite.kapi.buffer
 
 /**
- * Exception raised when an attempt was made to modify a [Buffer] while SQLite was borrowing it.
+ * Thrown when writing to, resizing, or closing a [Buffer] while SQLite is still borrowing it, for
+ * example because it was bound to a statement parameter and not yet released.
  */
 public class BufferInUseException internal constructor(message: String) : RuntimeException(message)

@@ -36,7 +36,7 @@ class BackupTest {
         source.execute("CREATE TABLE fruits(id INTEGER, name TEXT);")
         source.execute("INSERT INTO fruits VALUES (1, 'Kiwi'), (2, 'Mango');")
 
-        val backup = Backup.init(destination = destination, source = source)
+        val backup = Backup.create(destination = destination, source = source)
 
         assertTrue(backup.pageCount >= 0)
 
@@ -69,7 +69,7 @@ class BackupTest {
         source.execute("CREATE TABLE fruits(id INTEGER);")
         source.execute("INSERT INTO fruits VALUES (1);")
 
-        val backup = Backup.init(
+        val backup = Backup.create(
             destination = destination,
             destinationName = "main",
             source = source,
@@ -96,7 +96,7 @@ class BackupTest {
 
         repeat(50) { source.execute("INSERT INTO fruits VALUES ($it);") }
 
-        val backup = Backup.init(destination = destination, source = source)
+        val backup = Backup.create(destination = destination, source = source)
         var stepCount = 0
 
         while (backup.remaining > 0 || stepCount == 0) {
@@ -121,7 +121,7 @@ class BackupTest {
         val destination = sqlite.open(":memory:")
 
         assertFailsWith<SQLiteException> {
-            Backup.init(
+            Backup.create(
                 destination = destination,
                 destinationName = "does_not_exist",
                 source = source,
@@ -142,7 +142,7 @@ class BackupTest {
         val source = sqlite.open(":memory:")
         val destination = sqlite.open(":memory:")
 
-        val backup = Backup.init(destination = destination, source = source)
+        val backup = Backup.create(destination = destination, source = source)
         backup.close()
         // Closing again is a no-op
         backup.close()

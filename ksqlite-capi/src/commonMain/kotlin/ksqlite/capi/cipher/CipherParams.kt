@@ -15,21 +15,21 @@
  */
 package ksqlite.capi.cipher
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.StructLayout
 import ksqlite.types.cipher.SqliteMcCipherParams
 
 /**
- * A cipher descriptor specifies the name of the cipher scheme, and a number of API function
- * pointers.
+ * Describes one configuration parameter of a dynamically registered cipher: its name, current
+ * value, default value, and valid range.
  *
  * [CipherParams](https://utelle.github.io/SQLite3MultipleCiphers/docs/ciphers/cipher_dynamic/#cipher-configuration-parameters)
  *
- * The caller take the ownership of the returned [CipherParams] and is responsible to release it
+ * The caller takes ownership of the returned [CipherParams] and is responsible for releasing it
  * by invoking [CipherParams.close].
  */
 public expect class CipherParams public constructor() :
-    ClosableStruct,
+    CloseableStruct,
     SqliteMcCipherParams {
 
     override var m_name: String

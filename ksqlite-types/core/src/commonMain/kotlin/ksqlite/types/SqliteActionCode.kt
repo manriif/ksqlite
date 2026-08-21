@@ -168,7 +168,7 @@ public sealed class SqliteActionCode(public val code: Int) {
     /**
      * | 3rd              | 4th              |
      * | ---------------- | ---------------- |
-     * | Pragma  | Name      |1st arg or NULL
+     * | Pragma Name      | 1st arg or NULL  |
      */
     public data object PRAGMA : SqliteActionCode(19)
 

@@ -111,8 +111,10 @@ sqlite3_config(SqliteConfigOption.LOG(null, null))
 ### Structs
 
 Some structs are owned by whoever instantiates them, and releasing them is that owner's
-responsibility. The structs below are all identifiable by extending `ClosableStruct`:
+responsibility. The structs below are all identifiable by extending `CloseableStruct`:
 
+- `CipherDescriptor`
+- `CipherParams`
 - `sqlite3_file`
 - `sqlite3_module`
 - `sqlite3_vtab`
@@ -431,7 +433,8 @@ VFS support itself is not official yet.
 ## Encryption
 
 [SQLite3MultipleCiphers](https://github.com/utelle/SQLite3MultipleCiphers) is bundled with every
-build, adding transparent database encryption on top of the plain SQLite C API.
+build, its `sqlite3mc_*` C API wrapped the same way SQLite's own is: opaque handles, output
+parameters, and matching semantics, adding transparent database encryption on top.
 
 `sqlite3_key()`/`sqlite3_key_v2()` set a connection's passphrase, right after `sqlite3_open()`.
 `sqlite3_rekey()`/`sqlite3_rekey_v2()` change it, encrypting a previously plaintext database on the
@@ -440,18 +443,27 @@ first call, or decrypting one if `key`/`nKey` is empty. The `_v2` variants targe
 
 ```kotlin
 val key = "correct horse battery staple".encodeToByteArray()
-val keyResult = sqlite3_key(db, key, key.size)
+check(sqlite3_key(db, key, key.size).isOk)
 ```
 
 `sqlite3mc_config()`/`sqlite3mc_config_cipher()` read and write encryption options, process-wide
 (`SqliteMcConfig`, `db = null` for the compile-time default) or per-cipher
 (`SqliteMcConfigCipherParam`, `SqliteMcCodecType.CHACHA20.KDF_ITER` and similar). Both take a
 `prefix` (`SqliteMcConfigParamPrefix`) this module adds on top of the raw C API, controlling
-whether the transient or the permanent value is read or written:
+whether the transient or the permanent value is read or written. Passing a `newValue` selects the
+write overload, omitting it the read one, either way the return value is the new or current value,
+`null` on failure:
 
 ```kotlin
-val cipherResult = sqlite3mc_config(db, SqliteMcConfig.CIPHER, Default, SqliteMcCodecType.CHACHA20)
-val kdfIter = sqlite3mc_config_cipher(db, SqliteMcCodecType.CHACHA20, SqliteMcCodecType.CHACHA20.KDF_ITER, None)
+val cipher = sqlite3mc_config(db, SqliteMcConfig.CIPHER, Default, SqliteMcCodecType.CHACHA20)
+    ?: error("Setting the cipher failed")
+
+val kdfIter = sqlite3mc_config_cipher(
+    db, 
+    SqliteMcCodecType.CHACHA20,
+    SqliteMcCodecType.CHACHA20.KDF_ITER, 
+    None
+) ?: error("Reading KDF_ITER failed")
 ```
 
 `sqlite3mc_cipher_count()`/`sqlite3mc_cipher_index()`/`sqlite3mc_cipher_name()` walk the registry of
@@ -459,7 +471,7 @@ ciphers currently known to SQLite3MultipleCiphers, builtin and dynamically regis
 `sqlite3mc_codec_data()` reads back per-connection encryption state, the salt among it.
 
 `sqlite3mc_register_cipher()` plugs a cipher implemented in Kotlin into SQLite3MultipleCiphers.
-`descriptor`, a `CipherDescriptor` (a `ClosableStruct`, see [Structs](#structs)), is built from ten
+`descriptor`, a `CipherDescriptor` (a `CloseableStruct`, see [Structs](#structs)), is built from ten
 callbacks covering the whole cipher lifecycle, `allocate`, `free`, `clone`, `getLegacy`,
 `getPageSize`, `getReserved`, `getSalt`, `generateKey`, `encryptPage`, `decryptPage`. `params`, a
 `StructArray<CipherParams>`, declares whatever custom configuration parameters the cipher exposes,
@@ -467,13 +479,27 @@ and must end with a sentinel entry, an empty `m_name`, even for a cipher that ta
 
 ```kotlin
 val params = checkNotNull(CipherParams.allocateArray(1) { m_name = "" })
-val registerResult = sqlite3mc_register_cipher(descriptor, params, makeDefault = 0)
+check(sqlite3mc_register_cipher(descriptor, params, makeDefault = 0).isOk)
 ```
+
+At most 4 dynamic ciphers can be registered at once, `sqlite3mc_register_cipher()` throws
+`IllegalStateException` past that, one of this module's rare hard contract violations. Unlike
+SQLite's own callback-registering APIs, SQLite3MultipleCiphers passes no user data back into
+`m_allocateCipher`, the one callback invoked before any cipher instance exists to carry that state
+on, so this module falls back to a small, fixed pool of statically distinguishable callbacks to
+tell registrations apart, hence the cap.
 
 `sqlite3mc_vfs_create()`/`sqlite3mc_vfs_destroy()`/`sqlite3mc_vfs_shutdown()` wrap an existing VFS
 with one that applies SQLite3MultipleCiphers' encryption transparently, see
-[Virtual file systems](#virtual-file-systems).
+[Virtual file systems](#virtual-file-systems). `sqlite3_shutdown()` must still be called before the
+process exits once encryption was used, see [Initialization](#initialization).
 
-> [!WARNING]
-> `sqlite3_shutdown()` must be called before the process exits once encryption was used, see
-> [Initialization](#initialization).
+> [!IMPORTANT]
+> Unlike SQLite3MultipleCiphers' own default, its cipher-aware VFS isn't automatically registered
+> here. `sqlite3_key()`/`sqlite3_rekey()` still work regardless, no VFS involved. A cipher VFS is
+> only needed for whatever else specifically calls for one, created and selected by hand as above.
+
+[Value Level Encryption](https://utelle.github.io/SQLite3MultipleCiphers/docs/features/feat_vle/)
+(`sqlite3mc_vle_key()`/`sqlite3mc_vle_encrypt()`/`sqlite3mc_vle_decrypt()`) is plain SQL, not a C
+API, nothing here wraps it, reach it through `sqlite3_prepare_v2()`/`sqlite3_bind_*()`/
+`sqlite3_step()`/`sqlite3_column_*()` like any other SQL function.

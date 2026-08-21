@@ -35,11 +35,13 @@ import ksqlite.kapi.buffer.ReadableBuffer
 import ksqlite.internal.runtime.closeable.CloseableScope
 import ksqlite.internal.runtime.closeable.DelegatingCloseableScope
 import ksqlite.kapi.helpers.sqliteOutOfMemoryCheck
+import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteResultCode
 import ksqlite.types.SqliteTextEncoding
 
 /**
- * Represents an `sqlite3_value` opaque type.
+ * Base type for a value obtained from SQLite, either a [ProtectedValue] or an [UnprotectedValue].
  */
 public sealed class Value(
     @PublishedApi
@@ -80,8 +82,8 @@ public open class ProtectedValue internal constructor(
         get() = scope.notClosed { sqlite3_value_type(value) }
 
     /**
-     * Returns the type of the value after a numeric conversion as been done. The conversion is only
-     * made if the value can be converted.
+     * Returns the type of the value after a numeric conversion has been done. The conversion is
+     * only made if the value can be converted.
      */
     public val numericType: SqliteDataType
         get() = scope.notClosed { sqlite3_value_numeric_type(value) }
@@ -115,13 +117,13 @@ public open class ProtectedValue internal constructor(
         get() = scope.notClosed { sqlite3_value_encoding(value) }
 
     /**
-     * Returns the value as [ByteArray].
+     * Returns the value as a [ByteArray].
      */
     public fun getAsByteArray(): ByteArray? =
         scope.notClosed { sqlite3_value_blob(value) }
 
     /**
-     * Returns the value as a [ksqlite.capi.memory.ReadableBuffer].
+     * Returns the value as a [ReadableBuffer].
      */
     public fun getAsBuffer(): ReadableBuffer? = scope.notClosed {
         sqlite3_value_buffer(value)
@@ -129,25 +131,25 @@ public open class ProtectedValue internal constructor(
     }
 
     /**
-     * Returns the value as [Int].
+     * Returns the value as an [Int].
      */
     public fun getAsInt(): Int =
         scope.notClosed { sqlite3_value_int(value) }
 
     /**
-     * Returns the value as [Long].
+     * Returns the value as a [Long].
      */
     public fun getAsLong(): Long =
         scope.notClosed { sqlite3_value_int64(value) }
 
     /**
-     * Returns the value as [Double].
+     * Returns the value as a [Double].
      */
     public fun getAsDouble(): Double =
         scope.notClosed { sqlite3_value_double(value) }
 
     /**
-     * Returns the value as [String].
+     * Returns the value as a [String].
      */
     public fun getAsString(): String? =
         scope.notClosed { sqlite3_value_text(value) }
@@ -160,7 +162,9 @@ public open class ProtectedValue internal constructor(
 }
 
 /**
- * Represents an unprotected [Value].
+ * An unprotected [Value], obtained from [ksqlite.kapi.statement.Row.getValue]. Unlike
+ * [ProtectedValue], it does not expose type-converting accessors and remains valid only for as
+ * long as the [ksqlite.kapi.statement.Row] it came from does.
  */
 public class UnprotectedValue internal constructor(
     value: sqlite3_value,
@@ -176,12 +180,31 @@ public class DuplicatedValue internal constructor(value: sqlite3_value) : Protec
 ), AutoCloseable {
 
     /**
-     * Frees the value previously obtained using [duplicate].
+     * Frees the value previously obtained using [Value.duplicate].
      * This value can no longer be used after that call.
      */
     override fun close() {
         scope.close()
     }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the value as a [Boolean], using SQLite's own convention for booleans, `1` for `true`
+ * and `0` for `false`, since SQLite has no dedicated boolean storage class.
+ *
+ * @throws ksqlite.kapi.SQLiteException if the value is neither `0` nor `1`.
+ */
+public fun ProtectedValue.getAsBoolean(): Boolean = when (val value = getAsInt()) {
+    0 -> false
+    1 -> true
+    else -> throwSQLiteException(
+        "Expected 0 or 1 for a boolean value, got $value",
+        SqliteResultCode.MISMATCH
+    )
 }
 
 ///////////////////////////////////////////////////////////////////////////

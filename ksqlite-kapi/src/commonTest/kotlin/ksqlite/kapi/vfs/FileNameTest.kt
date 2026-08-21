@@ -49,14 +49,14 @@ class FileNameTest {
         assertEquals("hello", fileName.getKey(4))
         assertNull(fileName.getKey(99))
 
-        assertEquals("world", fileName.geValue("testText"))
-        assertNull(fileName.geValue("does-not-exist"))
+        assertEquals("world", fileName.getValue("testText"))
+        assertNull(fileName.getValue("does-not-exist"))
 
-        assertTrue(fileName.geValue("testFlag", default = false))
-        assertEquals(true, fileName.geValue("unknownFlag", default = true))
+        assertTrue(fileName.getValue("testFlag", default = false))
+        assertEquals(true, fileName.getValue("unknownFlag", default = true))
 
-        assertEquals(42L, fileName.geValue("testSize", default = 0L))
-        assertEquals(7L, fileName.geValue("unknownSize", default = 7L))
+        assertEquals(42L, fileName.getValue("testSize", default = 0L))
+        assertEquals(7L, fileName.getValue("unknownSize", default = 7L))
 
         assertEquals(
             listOf("mode", "testFlag", "testSize", "testText", "hello"),

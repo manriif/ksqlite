@@ -21,7 +21,10 @@ package ksqlite.kapi.connection
 public fun interface BusyHandler {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/busy_handler.html).
+     * Called each time an attempt to access a locked table fails. [count] is the number of times
+     * this callback has been invoked for the current locking event, starting at `0`. Returning
+     * `0` stops the retries and lets the failing call return immediately, any other value causes
+     * it to retry.
      */
     public fun apply(count: Int): Int
 }

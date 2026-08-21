@@ -257,22 +257,51 @@ public sealed class SqliteOpenFlag(public open val value: Int) {
      */
     public data object EXCLUSIVE : OptionalVfs(0x00000010)
 
+    /**
+     * The file is being opened for use with the auto-proxy locking style. VFS only.
+     */
     public data object AUTOPROXY : OptionalVfs(0x00000020)
 
+    /**
+     * The file being opened is the main database file. VFS only.
+     */
     public data object MAIN_DB : OptionalVfs(0x00000100)
 
+    /**
+     * The file being opened is a temporary database file. VFS only.
+     */
     public data object TEMP_DB : OptionalVfs(0x00000200)
 
+    /**
+     * The file being opened is a transient database file. VFS only.
+     */
     public data object TRANSIENT_DB : OptionalVfs(0x00000400)
 
+    /**
+     * The file being opened is the main rollback journal file. VFS only.
+     */
     public data object MAIN_JOURNAL : OptionalVfs(0x00000800)
 
+    /**
+     * The file being opened is the rollback journal for a temporary database. VFS only.
+     */
     public data object TEMP_JOURNAL : OptionalVfs(0x00001000)
 
+    /**
+     * The file being opened is a statement journal, used to roll back a single SQL statement
+     * within a larger transaction. VFS only.
+     */
     public data object SUBJOURNAL : OptionalVfs(0x00002000)
 
+    /**
+     * The file being opened is a super-journal file, used to coordinate a transaction spanning
+     * multiple attached databases. VFS only.
+     */
     public data object SUPER_JOURNAL : OptionalVfs(0x00004000)
 
+    /**
+     * The file being opened is a write-ahead log (WAL) file. VFS only.
+     */
     public data object WAL : OptionalVfs(0x00080000)
 
     /**

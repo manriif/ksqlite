@@ -28,75 +28,89 @@ import ksqlite.types.SqliteStatusOption
 
 /**
  * [SQLite](https://sqlite.org/docs.html) entry point.
+ *
+ * Only one [SQLite] instance can exist at a time, see [initialize]. Unless documented otherwise,
+ * every member of this interface throws [IllegalStateException] once this instance is closed.
  */
 public interface SQLite : AutoCloseable {
 
     /**
-     * Configuration exposing options that can be accessed at anytime.
+     * Configuration options that can be read or changed at any point during this instance's
+     * lifetime, as opposed to the ones only settable through [initialize]'s `configure` block.
      */
     public val config: AnyTimeConfiguration
 
     /**
-     * Manager for the ciphers.
+     * Registers and configures ciphers used to encrypt database connections.
      */
     public val ciphers: CipherManager
 
     /**
-     * Manager for the virtual file systems.
+     * Looks up and registers virtual file systems.
      */
     public val virtualFileSystems: VirtualFileSystemManager
 
     /**
-     * Hard limit on the amount of heap memory that may be allocated by SQLite.
+     * Hard limit on the amount of heap memory SQLite may allocate.
      *
-     * @throws SQLiteException if setting the value failed.
+     * Reading this returns the current limit, `-1` meaning no limit is set. Writing it changes the
+     * limit and returns immediately, it does not free memory already allocated.
+     *
+     * @throws SQLiteException if setting the value fails.
      */
     public var hardHeapLimit: Long
 
     /**
-     * Number of bytes of memory currently outstanding.
+     * Number of bytes of memory currently allocated by SQLite.
      */
     public val memoryUsed: Long
 
     /**
-     * Maximum value of [memoryUsed] since the high-water mark was last reset.
+     * Highest value [memoryUsed] has reached since the high-water mark was last reset, either
+     * through [getMemoryStatus] or [getStatus].
      */
     public val memoryHighwater: Long
 
     /**
-     * Soft limit on the amount of heap memory that may be allocated by SQLite.
+     * Soft limit on the amount of heap memory SQLite may allocate.
      *
-     * @throws SQLiteException if setting the value failed.
+     * Unlike [hardHeapLimit], SQLite may temporarily exceed this limit rather than fail an
+     * operation.
+     *
+     * @throws SQLiteException if setting the value fails.
      */
     public var softHeapLimit: Long
 
     /**
-     * Registers the [autoExtension] callback.
-     * This method has no effect if the [autoExtension] is already registered.
+     * Registers [autoExtension] so that it runs against every database connection opened from now
+     * on, including ones already open. Has no effect if [autoExtension] is already registered.
      */
     public fun addAutoExtension(autoExtension: AutoExtension)
 
     /**
-     * Unregisters the [autoExtension] callback.
-     * This method has no effect if the [autoExtension] is not registered.
+     * Unregisters [autoExtension]. Has no effect if it was not registered.
      */
     public fun removeAutoExtension(autoExtension: AutoExtension)
 
     /**
-     * Unregisters all the [AutoExtension] previously registered.
+     * Unregisters every [AutoExtension] previously registered.
      */
     public fun clearAutoExtensions()
 
     /**
-     * Returns the number of bytes of memory currently outstanding and the highwater mark.
+     * Returns [memoryUsed] and [memoryHighwater], resetting the high-water mark afterward if
+     * [reset] is `true`.
      */
     public fun getMemoryStatus(reset: Boolean): Status
 
     /**
-     * Opens an SQLite database file as specified by [fileName] and returns a [DatabaseConnection].
+     * Opens the SQLite database at [fileName] and returns the resulting [DatabaseConnection].
      *
-     * @throws SQLiteException if an error happens while opening the database or if a registered
-     * [AutoExtension] fails.
+     * [fileName] can be a path, a `file:` URI if [SqliteOpenFlag.URI] is set in [flags], or
+     * `:memory:` for a private, temporary in-memory database. [vfs] selects the virtual file
+     * system to open it with, or the default one if `null`.
+     *
+     * @throws SQLiteException if opening the database fails or a registered [AutoExtension] fails.
      */
     public fun open(
         fileName: String,
@@ -105,7 +119,8 @@ public interface SQLite : AutoCloseable {
     ): DatabaseConnection
 
     /**
-     * Stores [size] bytes of randomness into [output].
+     * Fills [output] with [size] bytes of randomness. [output] must hold at least [size] bytes,
+     * writing beyond its capacity is undefined behavior.
      */
     public fun generateRandomBytes(
         output: Buffer,
@@ -113,13 +128,15 @@ public interface SQLite : AutoCloseable {
     )
 
     /**
-     * Attempts to free [size] bytes of heap memory by deallocating non-essential memory allocations
-     * held by the database library.
+     * Attempts to free up to [size] bytes of heap memory by discarding non-essential memory SQLite
+     * is holding onto, and returns the number of bytes actually freed, which may be less than
+     * [size].
      */
     public fun releaseMemory(size: Int): Int
 
     /**
-     * Returns the status for the given [option].
+     * Returns the current value and high-water mark for [option], resetting the high-water mark
+     * afterward if [reset] is `true`.
      */
     public fun getStatus(
         option: SqliteStatusOption,
@@ -127,12 +144,13 @@ public interface SQLite : AutoCloseable {
     ): Status
 
     /**
-     * Shutdowns SQLite and resets global SQLite state.
+     * Closes this instance, releasing every global resource SQLite holds. Calling this again on an
+     * already closed instance has no effect.
      *
-     * It is recommended to terminate any active statement, transaction and opened database
-     * connection first before closing `this` [SQLite] instance.
+     * Any statement, transaction or [DatabaseConnection] still open at that point should be closed
+     * first, closing this instance does not do it for the caller.
      *
-     * @throws SQLiteException if error happens while shutting down SQLite.
+     * @throws SQLiteException if an error happens while shutting down SQLite.
      */
     override fun close()
 

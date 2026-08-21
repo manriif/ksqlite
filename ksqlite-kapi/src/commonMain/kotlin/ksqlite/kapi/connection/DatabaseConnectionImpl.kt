@@ -16,6 +16,8 @@
 package ksqlite.kapi.connection
 
 import co.touchlab.stately.collections.ConcurrentMutableSet
+import co.touchlab.stately.concurrency.Lock
+import co.touchlab.stately.concurrency.close
 import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
@@ -41,7 +43,6 @@ import ksqlite.capi.sqlite3_db_readonly
 import ksqlite.capi.sqlite3_db_release_memory
 import ksqlite.capi.sqlite3_db_status64
 import ksqlite.capi.sqlite3_deserialize
-import ksqlite.capi.sqlite3_drop_modules
 import ksqlite.capi.sqlite3_exec
 import ksqlite.capi.sqlite3_extended_result_codes
 import ksqlite.capi.sqlite3_get_autocommit
@@ -103,7 +104,6 @@ import ksqlite.kapi.vfs.FileName
 import ksqlite.kapi.vfs.FileNameImpl
 import ksqlite.kapi.vtab.VirtualTableModule
 import ksqlite.kapi.vtab.VirtualTableModuleDestructor
-import ksqlite.kapi.vtab.VirtualTableOptionalFunction
 import ksqlite.kapi.vtab.Vtab
 import ksqlite.kapi.vtab.VtabBeginCallback
 import ksqlite.kapi.vtab.VtabBestIndexCallback
@@ -148,6 +148,10 @@ internal class DatabaseConnectionImpl(
     AtomicCloseableScope() {
 
     private val closeables = ConcurrentMutableSet<AutoCloseable>()
+
+    private val collations = RegistrableMap<CollationKey, RegisteredCollation>()
+    private val functions = RegistrableMap<FunctionKey, RegisteredFunction>()
+    private val modules = RegistrableMap<String, RegisteredModule>()
 
     override val config = DatabaseConnectionConfigurationImpl(db, this)
     override val cipherConfig = CipherConfigurationImpl(db, this)
@@ -206,7 +210,7 @@ internal class DatabaseConnectionImpl(
         flags: SqliteBlobOpenFlag
     ): Blob = notClosed {
         BlobImpl(db, usingParam(sqlite3_blob.OutputParam()) { outBlob ->
-            sqliteResultCheck(
+            db.resultCheck(
                 sqlite3_blob_open(
                     db = db,
                     database = database,
@@ -241,29 +245,95 @@ internal class DatabaseConnectionImpl(
         set = { sqlite3_commit_hook(db, it, CommitHookCallback) }
     )
 
-    override fun createCollation(
-        name: String,
-        encoding: SqliteTextEncoding.CreateCollation,
-        collation: Collation
-    ) = notClosed {
-        db.resultCheck(
-            sqlite3_create_collation_v2(
-                db = db,
-                name = name,
-                encoding = encoding,
-                appData = collation,
-                destroy = AutoCloser,
-                callback = CollationCallback
-            ),
-            cleanup = collation::close
-        )
+    private class RegistrableMap<Key : Any, Value : RegistrationImpl<Key, Value>> : AutoCloseable {
+
+        private val lock = Lock()
+        private val map = mutableMapOf<Key, Value>()
+
+        fun register(
+            key: Key,
+            create: (key: Key) -> Value,
+        ): Value = lock.withLock {
+            create(key).also { value ->
+                map.put(key, value)?.supersede()
+            }
+        }
+
+        fun unregister(
+            key: Key,
+            value: RegistrationImpl<Key, *>
+        ) {
+            if (value.active) {
+                lock.withLock {
+                    if (value.active) {
+                        value.supersede()
+                        check(map.remove(key) === value)
+                        value.unregister()
+                    }
+                }
+            }
+        }
+
+        override fun close() {
+            lock.close()
+            map.clear()
+        }
     }
 
-    override fun deleteCollation(
-        name: String,
-        encoding: SqliteTextEncoding.CreateCollation
-    ) = notClosed {
-        db.resultCheck(
+    /**
+     * [Registration] implementation.
+     */
+    private abstract inner class RegistrationImpl<Key : Any, Value : RegistrationImpl<Key, Value>>(
+        protected val key: Key,
+    ) : Registration {
+
+        var active = true
+            private set
+
+        protected abstract val context: RegistrableMap<Key, Value>
+
+        /**
+         * Marks this registration as superseded by a newer one, without touching SQLite, since
+         * the newer registration already replaced it there.
+         */
+        fun supersede() {
+            active = false
+        }
+
+        abstract fun unregister()
+
+        final override fun close() {
+            if (!closed) {
+                context.unregister(key, this)
+            }
+        }
+    }
+
+    /**
+     * Identifies a registered collation the same way SQLite itself does, by name, argument count,
+     * and encoding.
+     */
+    private data class CollationKey(
+        val name: String,
+        val encodingValue: Int
+    )
+
+    /**
+     * [Registration] for a collation registered with [key] and [encoding], the latter kept around
+     * only to issue the eventual deletion call.
+     */
+    private inner class RegisteredCollation(
+        key: CollationKey,
+        private val encoding: SqliteTextEncoding.CreateCollation
+    ) : RegistrationImpl<CollationKey, RegisteredCollation>(key) {
+
+        override val name: String
+            get() = key.name
+
+        override val context: RegistrableMap<CollationKey, RegisteredCollation>
+            get() = collations
+
+        override fun unregister() = db.resultCheck(
             sqlite3_create_collation_v2(
                 db = db,
                 name = name,
@@ -275,82 +345,61 @@ internal class DatabaseConnectionImpl(
         )
     }
 
-    override fun createFunction(
+    override fun createCollation(
         name: String,
-        argumentCount: Int,
-        encoding: SqliteFunctionTextEncoding,
-        function: ScalarFunction
-    ) = notClosed {
-        db.resultCheck(
-            sqlite3_create_function_v2(
-                db = db,
-                name = name,
-                nArg = argumentCount,
-                encoding = encoding,
-                appData = function,
-                func = ScalarFunctionFuncCallback,
-                step = null,
-                final = null,
-                destroy = AutoCloser
+        encoding: SqliteTextEncoding.CreateCollation,
+        collation: Collation
+    ): Registration = notClosed {
+        collations.register(CollationKey(name, encoding.value)) { key ->
+            db.resultCheck(
+                sqlite3_create_collation_v2(
+                    db = db,
+                    name = name,
+                    encoding = encoding,
+                    appData = collation,
+                    destroy = AutoCloser,
+                    callback = CollationCallback
+                ),
+                cleanup = collation::close
             )
-        )
+
+            RegisteredCollation(key, encoding)
+        }
     }
 
-    override fun createFunction(
-        name: String,
-        argumentCount: Int,
-        encoding: SqliteFunctionTextEncoding,
-        function: AggregateFunction
-    ) = notClosed {
-        db.resultCheck(
-            sqlite3_create_function_v2(
-                db = db,
-                name = name,
-                nArg = argumentCount,
-                encoding = encoding,
-                appData = function,
-                func = null,
-                step = AggregateFunctionStepCallback,
-                final = AggregateFunctionFinalCallback,
-                destroy = AutoCloser
-            )
-        )
-    }
+    /**
+     * Identifies a registered function the same way SQLite itself does, by name, argument count,
+     * and encoding.
+     */
+    private data class FunctionKey(
+        val name: String,
+        val argumentCount: Int,
+        val encodingValue: Int
+    )
 
-    override fun createFunction(
-        name: String,
-        argumentCount: Int,
-        encoding: SqliteFunctionTextEncoding,
-        function: WindowFunction
-    ) = notClosed {
-        db.resultCheck(
-            sqlite3_create_window_function(
-                db = db,
-                name = name,
-                nArg = argumentCount,
-                encoding = encoding,
-                appData = function,
-                step = AggregateFunctionStepCallback,
-                final = AggregateFunctionFinalCallback,
-                inverse = WindowFunctionInverseCallback,
-                value = WindowFunctionValueCallback,
-                destroy = AutoCloser
-            )
-        )
-    }
+    /**
+     * [Registration] for a function registered with [key] and [encoding], the latter kept around
+     * only to issue the eventual deletion call, [isWindowFunction] selecting which SQLite
+     * API deletes it.
+     */
+    private inner class RegisteredFunction(
+        key: FunctionKey,
+        private val encoding: SqliteFunctionTextEncoding,
+        private val isWindowFunction: Boolean
+    ) : RegistrationImpl<FunctionKey, RegisteredFunction>(key) {
 
-    override fun deleteFunction(
-        name: String,
-        argumentCount: Int,
-        encoding: SqliteFunctionTextEncoding,
-        isWindowFunction: Boolean
-    ) = notClosed {
-        db.resultCheck(
+        override val name: String
+            get() = key.name
+
+        override val context: RegistrableMap<FunctionKey, RegisteredFunction>
+            get() = functions
+
+        override fun unregister() = db.resultCheck(
             if (isWindowFunction) {
                 sqlite3_create_window_function(
                     db = db,
-                    name = name,
-                    nArg = argumentCount,
+                    name = key.name,
+                    nArg = key.argumentCount,
                     encoding = encoding,
                     appData = null,
                     step = null,
@@ -362,8 +411,8 @@ internal class DatabaseConnectionImpl(
             } else {
                 sqlite3_create_function_v2(
                     db = db,
-                    name = name,
-                    nArg = argumentCount,
+                    name = key.name,
+                    nArg = key.argumentCount,
                     encoding = encoding,
                     appData = null,
                     func = null,
@@ -376,16 +425,130 @@ internal class DatabaseConnectionImpl(
     }
 
     /**
-     * Installs a virtual table module.
+     * Registers a function by invoking [register], and returns a [RegisteredFunction] handle that
+     * removes it again once closed. Any previously registered function under the same [name],
+     * [argumentCount], and [encoding] is superseded, its own handle becoming a no-op from then on.
+     */
+    private fun registerFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: SqliteFunctionTextEncoding,
+        isWindowFunction: Boolean,
+        register: () -> SqliteResultCode
+    ): RegisteredFunction = notClosed {
+        functions.register(FunctionKey(name, argumentCount, encoding.value)) { key ->
+            db.resultCheck(register())
+            RegisteredFunction(key, encoding, isWindowFunction)
+        }
+    }
+
+    override fun createFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: SqliteFunctionTextEncoding,
+        function: ScalarFunction
+    ): Registration = registerFunction(
+        name = name,
+        argumentCount = argumentCount,
+        encoding = encoding,
+        isWindowFunction = false
+    ) {
+        sqlite3_create_function_v2(
+            db = db,
+            name = name,
+            nArg = argumentCount,
+            encoding = encoding,
+            appData = function,
+            func = ScalarFunctionFuncCallback,
+            step = null,
+            final = null,
+            destroy = AutoCloser
+        )
+    }
+
+    override fun createFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: SqliteFunctionTextEncoding,
+        function: AggregateFunction
+    ): Registration = registerFunction(
+        name = name,
+        argumentCount = argumentCount,
+        encoding = encoding,
+        isWindowFunction = false
+    ) {
+        sqlite3_create_function_v2(
+            db = db,
+            name = name,
+            nArg = argumentCount,
+            encoding = encoding,
+            appData = function,
+            func = null,
+            step = AggregateFunctionStepCallback,
+            final = AggregateFunctionFinalCallback,
+            destroy = AutoCloser
+        )
+    }
+
+    override fun createFunction(
+        name: String,
+        argumentCount: Int,
+        encoding: SqliteFunctionTextEncoding,
+        function: WindowFunction
+    ): Registration = registerFunction(
+        name = name,
+        argumentCount = argumentCount,
+        encoding = encoding,
+        isWindowFunction = true
+    ) {
+        sqlite3_create_window_function(
+            db = db,
+            name = name,
+            nArg = argumentCount,
+            encoding = encoding,
+            appData = function,
+            step = AggregateFunctionStepCallback,
+            final = AggregateFunctionFinalCallback,
+            inverse = WindowFunctionInverseCallback,
+            value = WindowFunctionValueCallback,
+            destroy = AutoCloser
+        )
+    }
+
+    /**
+     * [RegisteredModule] for a module registered under [name].
+     */
+    private inner class RegisteredModule(name: String) :
+        RegistrationImpl<String, RegisteredModule>(name) {
+
+        override val name: String
+            get() = key
+
+        override val context: RegistrableMap<String, RegisteredModule>
+            get() = modules
+
+        override fun unregister() = db.resultCheck(
+            sqlite3_create_module_v2(
+                db = db,
+                name = name,
+                module = null,
+                appData = null,
+                destroy = null
+            )
+        )
+    }
+
+    /**
+     * Installs a virtual table module, and returns a [RegisteredModule] handle that removes it
+     * again once closed. Any previously registered module under the same [name] is superseded,
+     * its own handle becoming a no-op from then on.
      */
     private fun <Module : VirtualTableModule> Module.install(
         name: String,
         version: SqliteModuleVersion,
         create: SqliteVtabCreateCallback<in Module, Vtab>?,
         connect: SqliteVtabConnectCallback<in Module, Vtab>,
-    ): Unit = notClosed {
-        val optionalFunctions = optionalFunctions()
-
+    ): RegisteredModule = notClosed {
         val sqliteModule = sqlite3_module(
             version = version,
             create = create,
@@ -400,28 +563,17 @@ internal class DatabaseConnectionImpl(
             eof = VtabEofCallback,
             column = VtabColumnCallback,
             rowid = VtabRowidCallback,
-            update = VtabUpdateCallback
-                .takeIf { VirtualTableOptionalFunction.Update in optionalFunctions },
-            findFunction = VtabFindFunctionCallback
-                .takeIf { VirtualTableOptionalFunction.FindFunction in optionalFunctions },
-            begin = VtabBeginCallback
-                .takeIf { VirtualTableOptionalFunction.Begin in optionalFunctions },
-            sync = VtabSyncCallback
-                .takeIf { VirtualTableOptionalFunction.Sync in optionalFunctions },
-            commit = VtabCommitCallback
-                .takeIf { VirtualTableOptionalFunction.Commit in optionalFunctions },
-            rollback = VtabRollbackCallback
-                .takeIf { VirtualTableOptionalFunction.Rollback in optionalFunctions },
-            rename = VtabRenameCallback
-                .takeIf { VirtualTableOptionalFunction.Rename in optionalFunctions },
-            savepoint = VtabSavepointCallback
-                .takeIf { VirtualTableOptionalFunction.Savepoint in optionalFunctions },
-            release = VtabReleaseCallback
-                .takeIf { VirtualTableOptionalFunction.Release in optionalFunctions },
-            rollbackTo = VtabRollbackToCallback
-                .takeIf { VirtualTableOptionalFunction.RollbackTo in optionalFunctions },
-            integrity = VtabIntegrityCallback
-                .takeIf { VirtualTableOptionalFunction.Integrity in optionalFunctions },
+            update = VtabUpdateCallback.takeIf { Update in optionalFunctions },
+            findFunction = VtabFindFunctionCallback.takeIf { FindFunction in optionalFunctions },
+            begin = VtabBeginCallback.takeIf { Begin in optionalFunctions },
+            sync = VtabSyncCallback.takeIf { Sync in optionalFunctions },
+            commit = VtabCommitCallback.takeIf { Commit in optionalFunctions },
+            rollback = VtabRollbackCallback.takeIf { Rollback in optionalFunctions },
+            rename = VtabRenameCallback.takeIf { Rename in optionalFunctions },
+            savepoint = VtabSavepointCallback.takeIf { Savepoint in optionalFunctions },
+            release = VtabReleaseCallback.takeIf { Release in optionalFunctions },
+            rollbackTo = VtabRollbackToCallback.takeIf { RollbackTo in optionalFunctions },
+            integrity = VtabIntegrityCallback.takeIf { Integrity in optionalFunctions },
         )
 
         moduleLock.withLock {
@@ -432,26 +584,26 @@ internal class DatabaseConnectionImpl(
             module = sqliteModule
         }
 
-        // TODO SQLite is a bit vague regarding when it decide to clear the appData, we
-        //  must ensure that the sqlite3_module itself is no longer required too when
-        //  the appData are destroyed. For now we assume that the destructor is invoked
-        //  when the module is dropped or replaced
-        db.resultCheck(
-            sqlite3_create_module_v2(
-                db = db,
-                name = name,
-                module = sqliteModule,
-                appData = this,
-                destroy = VirtualTableModuleDestructor
+        modules.register(name) { name ->
+            db.resultCheck(
+                sqlite3_create_module_v2(
+                    db = db,
+                    name = name,
+                    module = sqliteModule,
+                    appData = this,
+                    destroy = VirtualTableModuleDestructor
+                )
             )
-        )
+
+            RegisteredModule(name)
+        }
     }
 
     override fun createModule(
         name: String,
         version: SqliteModuleVersion,
         module: VirtualTableModule.Regular
-    ) = module.install(
+    ): Registration = module.install(
         name = name,
         version = version,
         create = VtabCreateCallback,
@@ -462,7 +614,7 @@ internal class DatabaseConnectionImpl(
         name: String,
         version: SqliteModuleVersion,
         module: VirtualTableModule.Eponymous
-    ) = module.install(
+    ): Registration = module.install(
         name = name,
         version = version,
         create = VtabConnectCallback,
@@ -473,27 +625,12 @@ internal class DatabaseConnectionImpl(
         name: String,
         version: SqliteModuleVersion,
         module: VirtualTableModule.EponymousOnly
-    ) = module.install(
+    ): Registration = module.install(
         name = name,
         version = version,
         create = null,
         connect = VtabConnectCallback
     )
-
-    override fun deleteModule(name: String) = notClosed {
-        db.resultCheck(
-            sqlite3_create_module_v2(
-                db = db,
-                name = name,
-                module = null,
-                appData = null,
-                destroy = null
-            )
-        )
-    }
-
-    override fun deleteModules(keep: Set<String>) =
-        notClosed { db.resultCheck(sqlite3_drop_modules(db, keep.toTypedArray())) }
 
     override fun flushCache() =
         notClosed { sqliteResultCheck(sqlite3_db_cacheflush(db)) }
@@ -542,7 +679,7 @@ internal class DatabaseConnectionImpl(
 
     override fun deserialize(
         serializedDatabase: Buffer,
-        database: String?,
+        database: String,
         databaseSize: Long,
         bufferSize: Long,
         flags: SqliteDeserializeFlag?
@@ -644,7 +781,7 @@ internal class DatabaseConnectionImpl(
         flags: SqlitePrepareFlag?
     ): PreparedStatement = notClosed {
         val stmt = usingParam(sqlite3_stmt.OutputParam()) { outStmt ->
-            sqliteResultCheck(sqlite3_prepare_v3(db, sql, flags, outStmt))
+            db.resultCheck(sqlite3_prepare_v3(db, sql, flags, outStmt))
         }
 
         val statement = PreparedStatementImpl(
@@ -694,7 +831,7 @@ internal class DatabaseConnectionImpl(
 
     override fun serialize(
         flags: SqliteSerializeFlag?,
-        database: String?
+        database: String
     ): SerializeResult = notClosed {
         when (val result = sqlite3_serialize(db, database, flags)) {
             is Failure -> SerializeResult.Failure(result.databaseSize)
@@ -736,7 +873,7 @@ internal class DatabaseConnectionImpl(
         val outPrimaryKey = Int32OutputParam(0)
         val outAutoIncrement = Int32OutputParam(0)
 
-        sqliteResultCheck(
+        db.resultCheck(
             sqlite3_table_column_metadata(
                 db = db,
                 dbName = database,
@@ -791,6 +928,10 @@ internal class DatabaseConnectionImpl(
      */
     override fun onClose() {
         db.resultCheck(sqlite3_close_v2(db))
+
+        collations.close()
+        functions.close()
+        modules.close()
 
         closeables
             .onEach { it.close() }

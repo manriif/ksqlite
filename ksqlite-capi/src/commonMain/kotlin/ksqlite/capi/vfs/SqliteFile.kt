@@ -17,7 +17,7 @@
 
 package ksqlite.capi.vfs
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.types.vfs.SqliteFile
 
 /**
@@ -28,7 +28,7 @@ import ksqlite.types.vfs.SqliteFile
  *
  * [sqlite3_file](https://sqlite.org/c3ref/file.html)
  */
-public expect class sqlite3_file(vfs: sqlite3_vfs) : ClosableStruct, SqliteFile {
+public expect class sqlite3_file(vfs: sqlite3_vfs) : CloseableStruct, SqliteFile {
 
     public val pMethods: sqlite3_io_methods?
 }

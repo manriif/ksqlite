@@ -40,7 +40,7 @@ public actual open class Struct internal constructor(internal val pointer: WasmP
     }
 }
 
-public actual open class ClosableStruct internal constructor(
+public actual open class CloseableStruct internal constructor(
     private val wasmStruct: WasmStruct,
     private val owner: PointerOwner
 ) : Struct(wasmStruct.pointer),

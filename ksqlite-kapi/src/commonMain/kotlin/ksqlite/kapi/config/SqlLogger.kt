@@ -19,12 +19,14 @@ import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.types.SqliteSqlLogEvent
 
 /**
- * SQLite SQL logging interface.
+ * Receives the lifecycle events of every [DatabaseConnection] opened during the SQLite session,
+ * once registered through [ksqlite.kapi.config.ConfigurationScope.setSqlLogger]: opening,
+ * executing a statement and closing, see [SqliteSqlLogEvent].
  */
 public fun interface SqlLogger {
 
     /**
-     * Details on parameters can be found [here](https://sqlite.org/c3ref/c_config_covering_index_scan.html).
+     * Called for each [event] of [connection].
      */
     public fun log(
         connection: DatabaseConnection,

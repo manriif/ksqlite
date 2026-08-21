@@ -15,12 +15,12 @@
  */
 package ksqlite.kapi.vtab
 
-import ksqlite.kapi.value.ValueReturnScope
+import ksqlite.kapi.result.ResultScope
 
 /**
  * Scope to use with [VirtualTableCursor.column].
  */
-public interface VirtualTableColumnScope : ValueReturnScope {
+public interface VirtualTableColumnScope : ResultScope {
 
     /**
      * Returns `true` if and only if the call is during an UPDATE operation and the value of the

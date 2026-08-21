@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ksqlite.kapi.value
+package ksqlite.kapi.result
 
 import ksqlite.capi.sqlite3_result_blob
 import ksqlite.capi.sqlite3_result_blob64
@@ -31,28 +31,37 @@ import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.helpers.ContextCloseableScope
 import ksqlite.kapi.helpers.autoCloser
 import ksqlite.kapi.helpers.sqliteResultCheck
+import ksqlite.kapi.value.Value
 import ksqlite.types.SqliteTextEncoding
 
-internal class ValueReturnScopeImpl(private val scope: ContextCloseableScope) : ValueReturnScope {
+internal class ResultScopeImpl(private val scope: ContextCloseableScope) : ResultScope {
 
-    override fun setResult(value: Nothing?) =
-        scope.notClosed { sqlite3_result_null(scope.context) }
+    /**
+     * Invokes [block] and returns [ResultImpl].
+     */
+    private inline fun setResult(block: () -> Unit): Result  = scope.notClosed {
+        block()
+        ResultImpl
+    }
 
-    override fun setResult(value: Nothing?, size: Int) =
-        scope.notClosed { sqlite3_result_zeroblob(scope.context, size) }
+    override fun resultNull(): Result =
+        setResult { sqlite3_result_null(scope.context) }
 
-    override fun setResult(value: Nothing?, size: Long) = scope.notClosed {
+    override fun resultZeroBlob(size: Int): Result =
+        setResult { sqlite3_result_zeroblob(scope.context, size) }
+
+    override fun resultZeroBlob(size: Long): Result = setResult {
         sqliteResultCheck(sqlite3_result_zeroblob64(scope.context, size.toULong()))
     }
 
-    override fun setResult(value: ByteArray, size: Int) =
-        scope.notClosed { sqlite3_result_blob(scope.context, value, size, null) }
+    override fun resultByteArray(value: ByteArray, size: Int): Result =
+        setResult { sqlite3_result_blob(scope.context, value, size, null) }
 
-    override fun setResult(
+    override fun resultBuffer(
         value: Buffer,
         size: Long,
         cleanup: ((Buffer) -> Unit)?
-    ) = scope.notClosed {
+    ): Result = setResult {
         sqlite3_result_blob64(
             context = scope.context,
             buffer = value.buffer,
@@ -61,24 +70,24 @@ internal class ValueReturnScopeImpl(private val scope: ContextCloseableScope) : 
         )
     }
 
-    override fun setResult(value: Int) =
-        scope.notClosed { sqlite3_result_int(scope.context, value) }
+    override fun resultInt(value: Int): Result =
+        setResult { sqlite3_result_int(scope.context, value) }
 
-    override fun setResult(value: Long) =
-        scope.notClosed { sqlite3_result_int64(scope.context, value) }
+    override fun resultLong(value: Long): Result =
+        setResult { sqlite3_result_int64(scope.context, value) }
 
-    override fun setResult(value: Double) =
-        scope.notClosed { sqlite3_result_double(scope.context, value) }
+    override fun resultDouble(value: Double): Result =
+        setResult { sqlite3_result_double(scope.context, value) }
 
-    override fun setResult(value: String) =
-        scope.notClosed { sqlite3_result_text(scope.context, value) }
+    override fun resultString(value: String): Result =
+        setResult { sqlite3_result_text(scope.context, value) }
 
-    override fun setResult(
+    override fun resultText(
         value: Buffer,
         encoding: SqliteTextEncoding.ResultText,
         size: Long,
         cleanup: ((Buffer) -> Unit)?
-    ) = scope.notClosed {
+    ): Result = setResult {
         sqlite3_result_text64(
             context = scope.context,
             buffer = value.buffer,
@@ -88,9 +97,9 @@ internal class ValueReturnScopeImpl(private val scope: ContextCloseableScope) : 
         )
     }
 
-    override fun setResult(value: Value) =
-        scope.notClosed { sqlite3_result_value(scope.context, value.value) }
+    override fun resultValue(value: Value): Result =
+        setResult { sqlite3_result_value(scope.context, value.value) }
 
-    override fun setResult(value: Any, type: String?) =
-        scope.notClosed { sqlite3_result_pointer(scope.context, value, type, autoCloser(value)) }
+    override fun resultPointer(value: Any, type: String?): Result =
+        setResult { sqlite3_result_pointer(scope.context, value, type, autoCloser(value)) }
 }

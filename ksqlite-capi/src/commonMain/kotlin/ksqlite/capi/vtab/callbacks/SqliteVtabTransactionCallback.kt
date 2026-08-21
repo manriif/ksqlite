@@ -20,7 +20,7 @@ import ksqlite.types.SqliteResultCode
 
 /**
  * Serves both for [SqliteVtabBeginCallback], [SqliteVtabSyncCallback], [SqliteVtabCommitCallback]
- * and [SqliteVtabRollbackToCallback].
+ * and [SqliteVtabRollbackCallback].
  */
 public fun interface SqliteVtabTransactionCallback<Vtab : sqlite3_vtab> {
 

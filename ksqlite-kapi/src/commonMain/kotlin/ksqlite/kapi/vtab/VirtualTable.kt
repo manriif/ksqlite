@@ -25,21 +25,19 @@ import ksqlite.types.vtab.SqliteVtab
  * Represents a [Virtual Table](https://sqlite.org/vtab.html).
  *
  * This interface declares the mandatory functions required by SQLite as well as the optional ones.
- * An optional function `F` must be implemented only if the [VirtualTableModule] that instantiated a
- * [VirtualTable] returned the function `F` when [VirtualTableModule.optionalFunctions] was called.
- * Otherwise, the function `F` do not need to be implemented and is guaranteed to never been called
- * by SQLite.
+ * An optional function `F` must be overridden only if it is listed in the
+ * [VirtualTableModule.optionalFunctions] of the [VirtualTableModule] that instantiated this
+ * [VirtualTable]. Otherwise `F` does not need to be overridden and is guaranteed to never be
+ * called by SQLite.
  *
- * If an error is detected in a mandatory or optional function, and if error raising is allowed by
- * SQLite, it is allowed to raise an [SQLiteException] that is then reported to SQLite.
+ * If an error is detected in a mandatory or optional function, it is allowed to raise an
+ * [SQLiteException] that is then reported to SQLite.
  *
- * The [errMsg] is internally filled with the [SQLiteException]'s message when one is thrown by a
- * function. So unless the implementation do not want to deal with exceptions, it is not required to
- * fill it.
+ * [errMsg] is automatically filled with the thrown [SQLiteException]'s message, so setting it
+ * manually is only needed when not relying on exceptions to report errors.
  *
- * The [nRef] and [errMsg] properties must only be accessed from within one of the methods listed in
- * [VirtualTable]. So it is illegal to access these fields in one of [VirtualTableModule] methods as
- * an example.
+ * [nRef] and [errMsg] can only be accessed from within one of this [VirtualTable]'s own methods,
+ * not from a [VirtualTableModule] method such as [VirtualTableModule.connect].
  */
 public abstract class VirtualTable : SqliteVtab {
 
@@ -67,7 +65,8 @@ public abstract class VirtualTable : SqliteVtab {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * This method is used by SQLite to determine the best way to access the virtual table.
+     * Called by SQLite to determine the most efficient way to access the virtual table for a
+     * given query, described by [info].
      */
     public abstract fun VirtualTableBestIndexScope.bestIndex(info: SqliteIndexInfo)
 
@@ -91,20 +90,19 @@ public abstract class VirtualTable : SqliteVtab {
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Throws a [NotImplementedError] for an optional function for which a [VirtualTableModule]
-     * specified that it is supported.
+     * Throws [VirtualTableOptionalFunctionNotImplementedError] for [function].
      */
-    private fun notImplemented(name: String): Nothing = throw NotImplementedError(
-        "Optional virtual table function $name() is not implemented but the associated module " +
-                "specified that it supports it"
-    )
+    private fun notImplemented(function: VirtualTableOptionalFunction): Nothing =
+        throw VirtualTableOptionalFunctionNotImplementedError(function)
 
     /**
-     * Updates the virtual table and returns the newly inserted rowid or `null` if no rowid must
-     * be returned to SQLite.
+     * Applies an INSERT, UPDATE or DELETE described by [arguments] to the virtual table.
+     * Returns the rowid of the newly inserted row, or `null` if none should be reported to
+     * SQLite. Conflict resolution and unchanged-column information are available through the
+     * receiver [VirtualTableUpdateScope].
      */
     public open fun VirtualTableUpdateScope.update(arguments: Array<ProtectedValue>): Long? =
-        notImplemented("update")
+        notImplemented(VirtualTableOptionalFunction.Update)
 
     /**
      * Returns a [ScalarFunction] that overrides the global one identified by [name] and
@@ -113,48 +111,48 @@ public abstract class VirtualTable : SqliteVtab {
     public open fun VirtualTableFindFunctionScope.findFunction(
         name: String,
         argumentCount: Int
-    ): ScalarFunction? = notImplemented("findFunction")
+    ): ScalarFunction? = notImplemented(VirtualTableOptionalFunction.FindFunction)
 
     /**
      * Begins a transaction.
      */
-    public open fun begin(): Unit = notImplemented("begin")
+    public open fun begin(): Unit = notImplemented(VirtualTableOptionalFunction.Begin)
 
     /**
      * Starts a two-phase commit.
      */
-    public open fun sync(): Unit = notImplemented("sync")
+    public open fun sync(): Unit = notImplemented(VirtualTableOptionalFunction.Sync)
 
     /**
      * Commits the transaction.
      */
-    public open fun commit(): Unit = notImplemented("commit")
+    public open fun commit(): Unit = notImplemented(VirtualTableOptionalFunction.Commit)
 
     /**
      * Rollbacks the transaction.
      */
-    public open fun rollback(): Unit = notImplemented("rollback")
+    public open fun rollback(): Unit = notImplemented(VirtualTableOptionalFunction.Rollback)
 
     /**
      * Renames the virtual table to [newName].
      */
-    public open fun rename(newName: String): Unit = notImplemented("rename")
+    public open fun rename(newName: String): Unit = notImplemented(VirtualTableOptionalFunction.Rename)
 
     /**
-     * Saves the current state to [id].
+     * Records a savepoint identified by [id].
      */
-    public open fun savepoint(id: Int): Unit = notImplemented("savepoint")
+    public open fun savepoint(id: Int): Unit = notImplemented(VirtualTableOptionalFunction.Savepoint)
 
     /**
      * Invalidates all savepoints >= [id].
      */
-    public open fun release(id: Int): Unit = notImplemented("release")
+    public open fun release(id: Int): Unit = notImplemented(VirtualTableOptionalFunction.Release)
 
     /**
      * Restores the state to what it was when [savepoint] was called with [id], invalidating all
      * savepoints > [id].
      */
-    public open fun rollbackTo(id: Int): Unit = notImplemented("rollbackTo")
+    public open fun rollbackTo(id: Int): Unit = notImplemented(VirtualTableOptionalFunction.RollbackTo)
 
     /**
      * Verifies the integrity of the content stored in the virtual table.
@@ -166,5 +164,5 @@ public abstract class VirtualTable : SqliteVtab {
         schema: String,
         tableName: String,
         flags: Int
-    ): Unit = notImplemented("integrity")
+    ): Unit = notImplemented(VirtualTableOptionalFunction.Integrity)
 }

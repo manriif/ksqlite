@@ -18,21 +18,21 @@
 package ksqlite.kapi.config
 
 /**
- * Exposes the anytime options of the SQLite configuration API.
- *
- * [Configurations Options](https://sqlite.org/c3ref/c_config_covering_index_scan.html)
+ * The subset of SQLite's [configuration options](https://sqlite.org/c3ref/c_config_covering_index_scan.html)
+ * that can be read or changed at any point, exposed as [ksqlite.kapi.SQLite.config]. See
+ * [ConfigurationScope] for the larger set only available before initialization.
  */
 public interface AnyTimeConfiguration {
 
     /**
-     * Number of extra bytes per page required for each page in SQLITE_CONFIG_PAGECACHE.
+     * Number of extra bytes SQLite reserves per page for the page cache the application supplies.
      */
     public val pageCacheHeaderSize: Int
 
     /**
-     * Sets the logging interface.
+     * Sets the [Logger] that receives SQLite's internal log messages, or `null` to stop logging.
      *
-     * @throws ksqlite.kapi.SQLiteException if setting the option fails.
+     * @throws ksqlite.kapi.SQLiteException if setting it fails.
      */
     public fun setLogger(logger: Logger?)
 }

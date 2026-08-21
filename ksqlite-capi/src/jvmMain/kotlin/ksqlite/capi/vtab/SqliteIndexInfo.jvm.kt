@@ -17,7 +17,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
 import ksqlite.capi.sqlite3_mprintf
 import ksqlite.foreign.sqlite3
@@ -32,7 +32,7 @@ import ksqlite.foreign.sqlite3_index_info.sqlite3_index_constraint_usage as s3_i
 import ksqlite.foreign.sqlite3_index_info.sqlite3_index_orderby as s3_index_orderby
 
 public actual class sqlite3_index_info internal constructor(pointer: MemorySegment) :
-    ClosableStruct(s3_index_info.layout(), pointer, External, Arena.ofConfined()),
+    CloseableStruct(s3_index_info.layout(), pointer, External, Arena.ofConfined()),
     SqliteIndexInfo {
 
     private val constraints by lazy {

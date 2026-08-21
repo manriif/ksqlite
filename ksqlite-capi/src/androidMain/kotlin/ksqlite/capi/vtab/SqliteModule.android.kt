@@ -17,13 +17,13 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.PointerOwner.Application
 
 public actual class sqlite3_module<AppData> private constructor(
     internal val callbacks: VtabModuleCallbacks<AppData, *, *>,
     module: s3_module
-) : ClosableStruct(module, Application),
+) : CloseableStruct(module, Application),
     AutoCloseable {
 
     internal actual constructor(

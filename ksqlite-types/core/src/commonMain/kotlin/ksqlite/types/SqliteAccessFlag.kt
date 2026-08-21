@@ -25,9 +25,7 @@ package ksqlite.types
 public enum class SqliteAccessFlag(public open val value: Int) {
 
     /**
-     * With SQLITE_ACCESS_READWRITE, the xAccess method checks whether the named directory is both
-     * readable and writable (in other words, if files can be added, removed, and renamed within
-     * the directory)
+     * With SQLITE_ACCESS_EXISTS, the xAccess method simply checks whether the file exists.
      */
     EXISTS(0),
 

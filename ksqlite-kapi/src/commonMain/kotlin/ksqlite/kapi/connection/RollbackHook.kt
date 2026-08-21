@@ -21,7 +21,7 @@ package ksqlite.kapi.connection
 public fun interface RollbackHook {
 
     /**
-     * Details on parameters can be found [here](https://sqlite.org/c3ref/commit_hook.html).
+     * Called whenever a transaction is rolled back.
      */
     public fun apply()
 }

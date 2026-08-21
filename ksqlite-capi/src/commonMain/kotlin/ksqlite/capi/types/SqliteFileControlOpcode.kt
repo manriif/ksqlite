@@ -191,6 +191,13 @@ public sealed class SqliteFileControlOpcode(public open val code: Int) {
      */
     public class SIZE_LIMIT(param: Int64OutputParam) : LongParam(36, param)
 
+    /**
+     * The SQLITE_FCNTL_RESERVE_BYTES opcode is used to set or query the number of bytes of
+     * reserved space at the end of each database page, available to extensions such as an
+     * encryption codec for a nonce or checksum. The argument is a pointer to an integer holding
+     * the new value, or a negative value to only query the current one. Before returning, the
+     * integer is overwritten with the previous value.
+     */
     public class RESERVE_BYTES(param: Int32OutputParam) : IntParam(38, param)
 
     /**

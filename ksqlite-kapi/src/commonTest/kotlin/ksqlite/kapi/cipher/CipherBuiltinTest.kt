@@ -27,6 +27,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -173,6 +174,87 @@ class CipherBuiltinTest {
 
         readConnection.close()
         sqlite.ciphers.virtualFileSystems.destroyAll()
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // VLE
+    ///////////////////////////////////////////////////////////////////////////
+
+    @Test
+    fun valueLevelEncryptionRoundTripWorks() = runSqliteConnectionTest { _, connection ->
+        connection.execute("SELECT sqlite3mc_vle_key('correct horse battery staple');")
+
+        val encrypted = connection.prepare("SELECT sqlite3mc_vle_encrypt(?);").use { statement ->
+            statement.parameters.bindString(1, "top secret")
+            assertNotNull(statement.step()).getByteArray(0)
+        }
+
+        val encryptedContent = assertNotNull(encrypted)
+        assertNotEquals("top secret", encryptedContent.decodeToString())
+
+        val decrypted = connection.prepare("SELECT sqlite3mc_vle_decrypt(?);").use { statement ->
+            statement.parameters.bindByteArray(1, encrypted)
+            assertNotNull(statement.step()).getString(0)
+        }
+
+        assertEquals("top secret", decrypted)
+    }
+
+    @Test
+    fun valueLevelEncryptionPreservesType() = runSqliteConnectionTest { _, connection ->
+        connection.execute("SELECT sqlite3mc_vle_key('correct horse battery staple');")
+
+        connection.prepare("SELECT sqlite3mc_vle_decrypt(sqlite3mc_vle_encrypt(?));")
+            .use { statement ->
+                statement.parameters.bindInt(1, 42)
+                assertEquals(42, assertNotNull(statement.step()).getInt(0))
+            }
+
+        connection.prepare("SELECT sqlite3mc_vle_decrypt(sqlite3mc_vle_encrypt(?));")
+            .use { statement ->
+                statement.parameters.bindDouble(1, 4.2)
+                assertEquals(4.2, assertNotNull(statement.step()).getDouble(0))
+            }
+    }
+
+    @Test
+    fun valueLevelEncryptionScopeMustMatchToDecrypt() = runSqliteConnectionTest { _, connection ->
+        connection.execute("SELECT sqlite3mc_vle_key('correct horse battery staple');")
+
+        val encrypted = assertNotNull(
+            connection.prepare("SELECT sqlite3mc_vle_encrypt(?, ?);").use { statement ->
+                statement.parameters.bindString(1, "top secret")
+                statement.parameters.bindString(2, "scope-a")
+                assertNotNull(statement.step()).getByteArray(0)
+            }
+        )
+
+        // Decrypting with a scope other than the one used to encrypt fails outright.
+        assertFailsWith<SQLiteException> {
+            connection.prepare("SELECT sqlite3mc_vle_decrypt(?, ?);").use { statement ->
+                statement.parameters.bindByteArray(1, encrypted)
+                statement.parameters.bindString(2, "scope-b")
+                statement.step()
+            }
+        }
+
+        val decrypted = connection.prepare("SELECT sqlite3mc_vle_decrypt(?, ?);").use { statement ->
+            statement.parameters.bindByteArray(1, encrypted)
+            statement.parameters.bindString(2, "scope-a")
+            assertNotNull(statement.step()).getString(0)
+        }
+
+        assertEquals("top secret", decrypted)
+    }
+
+    @Test
+    fun valueLevelEncryptionRequiresKeyFirst() = runSqliteConnectionTest { _, connection ->
+        assertFailsWith<SQLiteException> {
+            connection.prepare("SELECT sqlite3mc_vle_encrypt(?);").use { statement ->
+                statement.parameters.bindString(1, "top secret")
+                statement.step()
+            }
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////

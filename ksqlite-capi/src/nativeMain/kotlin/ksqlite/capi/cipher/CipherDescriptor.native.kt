@@ -20,7 +20,7 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.toKStringFromUtf8
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.s3
 import ksqlite.foreign.ksqlite_cipher_descriptor
 import ksqlite.foreign.sqlite3_free
@@ -30,7 +30,7 @@ import ksqlite.types.cipher.SqliteMcCipherDescriptor
 public actual class CipherDescriptor private constructor(
     internal val callbacks: CipherCallbacks<*>,
     override val pointer: CPointer<ksqlite_cipher_descriptor>
-) : ClosableStruct(pointer, Application),
+) : CloseableStruct(pointer, Application),
     SqliteMcCipherDescriptor {
 
     internal actual constructor(

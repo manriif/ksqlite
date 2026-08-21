@@ -15,7 +15,7 @@
  */
 package ksqlite.capi.cipher
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.NullPtr
 import ksqlite.capi.memory.PointerOwner
 import ksqlite.capi.memory.StructLayout
@@ -30,7 +30,7 @@ import java.lang.foreign.MemorySegment
 public actual class CipherParams private constructor(
     pointer: MemorySegment?,
     owner: PointerOwner
-) : ClosableStruct(layout, pointer, owner),
+) : CloseableStruct(layout, pointer, owner),
     SqliteMcCipherParams {
 
     public actual constructor() : this(null, Application)

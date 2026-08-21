@@ -21,10 +21,8 @@ package ksqlite.kapi.connection
 public fun interface CommitHook {
 
     /**
-     * Returns `true` to convert the commit into a rollback or `false` to let the operation continue
-     * normally.
-     *
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/commit_hook.html).
+     * Called right before a transaction commits. Returns `true` to convert the commit into a
+     * rollback instead, or `false` to let it proceed normally.
      */
     public fun apply(): Boolean
 }

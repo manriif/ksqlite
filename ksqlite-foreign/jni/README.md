@@ -11,11 +11,12 @@ Compiling it is the Android Gradle Plugin's own CMake/NDK build, not
 paths, compile definitions, and library name, passed in as CMake arguments so this build stays
 aligned with what Komple compiles for every other target.
 
-The `structs/` package wraps SQLite's C structs (`sqlite3_vfs`, `sqlite3_module`, `sqlite3_vtab`,
-and so on) for custom VFS and virtual table implementations. Each wrapper reads and writes its
-fields over a `ByteBuffer` pointing at the native struct, at offsets it doesn't hardcode. The C++
-side computes them with `offsetof`, so they hold for the real layout on the target ABI. The Kotlin
-side only tracks the member declaration order, and matches it against that layout by index.
+The struct wrappers themselves, `sqlite3_vfs`, `sqlite3_module`, `sqlite3_vtab`, and so on for
+custom VFS and virtual table implementations, live in [`ksqlite-structs`](../../ksqlite-structs),
+shared with `ksqlite-foreign/wasm`. The `structs/` package here only plugs that module's
+`Struct.Adapter`/`Struct.Memory` into a direct `ByteBuffer`, and its `StructLayoutProvider` into
+`structLayout()`, a JNI call into `ksqlite_struct_layout_allocate()`, caching the result per struct
+type since the underlying layout never changes at runtime.
 
 The only generated piece is a single native library name constant, kept in sync with Komple's
 shared C project.

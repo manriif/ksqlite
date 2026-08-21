@@ -21,7 +21,10 @@ package ksqlite.kapi.connection
 public fun interface AutovacuumPages : AutoCloseable {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/autovacuum_pages.html).
+     * Called before each autovacuum of the database identified by [schemaName]. [dbPage] is the
+     * current size of the database in pages, [freePage] the number of pages currently free and
+     * available for reuse, and [bytePerPage] the number of bytes per page. Returns the number of
+     * pages to autovacuum during this pass, `0u` to skip it entirely.
      */
     public fun apply(
         schemaName: String,

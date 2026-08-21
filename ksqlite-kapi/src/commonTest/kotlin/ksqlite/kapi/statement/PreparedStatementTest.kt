@@ -35,7 +35,7 @@ class PreparedStatementTest {
             assertEquals("SELECT ?;", statement.sql)
             assertEquals("SELECT NULL;", statement.expandedSql)
 
-            statement.parameters.bind(1, 42)
+            statement.parameters.bindInt(1, 42)
             assertEquals("SELECT 42;", statement.expandedSql)
 
             assertEquals(1, statement.columnCount)
@@ -65,6 +65,53 @@ class PreparedStatementTest {
             assertTrue(!statement.isBusy)
             assertNotNull(statement.step())
         }
+    }
+
+    @Test
+    fun forEachRowWorks() = runSqliteConnectionTest { _, connection ->
+        connection.execute("CREATE TABLE fruits(id INTEGER);")
+        connection.execute("INSERT INTO fruits VALUES (1), (2), (3);")
+
+        val ids = mutableListOf<Int>()
+
+        connection.prepare("SELECT id FROM fruits ORDER BY id;").use { statement ->
+            statement.forEachRow { row ->
+                ids.add(row.getInt(0))
+            }
+        }
+
+        assertEquals(listOf(1, 2, 3), ids)
+    }
+
+    @Test
+    fun forEachRowOnEmptyResultDoesNotInvokeAction() = runSqliteConnectionTest { _, connection ->
+        connection.execute("CREATE TABLE fruits(id INTEGER);")
+
+        var callCount = 0
+
+        connection.prepare("SELECT id FROM fruits;").use { statement ->
+            statement.forEachRow { callCount++ }
+        }
+
+        assertEquals(0, callCount)
+    }
+
+    @Test
+    fun forEachRowRowIsStaleOnceActionReturns() = runSqliteConnectionTest { _, connection ->
+        connection.execute("CREATE TABLE fruits(id INTEGER);")
+        connection.execute("INSERT INTO fruits VALUES (1), (2);")
+
+        var escapedRow: Row? = null
+
+        connection.prepare("SELECT id FROM fruits ORDER BY id;").use { statement ->
+            statement.forEachRow { row ->
+                if (escapedRow == null) {
+                    escapedRow = row
+                }
+            }
+        }
+
+        assertFailsWith<IllegalStateException> { assertNotNull(escapedRow).getInt(0) }
     }
 
     @Test

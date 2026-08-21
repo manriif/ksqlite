@@ -17,14 +17,13 @@
 
 package ksqlite.capi.vfs
 
-import ksqlite.capi.memory.ClosableStruct
-import ksqlite.capi.memory.orNull
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.wrapOrNull
 import ksqlite.types.vfs.SqliteFile
 import ksqlite.foreign.sqlite3_file as s3_file
 
 public actual class sqlite3_file public actual constructor(vfs: sqlite3_vfs) :
-    ClosableStruct(s3_file.layout(), null, Application, vfs.szOsFile.toLong()),
+    CloseableStruct(s3_file.layout(), null, Application, vfs.szOsFile.toLong()),
     SqliteFile {
 
     public actual val pMethods: sqlite3_io_methods? by lazy {

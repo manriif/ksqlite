@@ -179,14 +179,14 @@ public sealed class SqliteMcCodecType(override val name: String) : SqliteMcCiphe
         public data object LEGACY_PAGE_SIZE : Param<PageSize>, PageSize.Param()
 
         /**
-         * Hash algoritm for key derivation function.
+         * Hash algorithm for key derivation function.
          */
         public data object KDF_ALGORITHM :
             Param<HashAlgorithm>,
             OfEnum<HashAlgorithm>("kdf_algorithm", HashAlgorithm.entries)
 
         /**
-         * Hash algoritm for HMAC calculation.
+         * Hash algorithm for HMAC calculation.
          */
         public data object HMAC_ALGORITHM :
             Param<HashAlgorithm>,
@@ -257,15 +257,15 @@ public sealed class SqliteMcCodecType(override val name: String) : SqliteMcCiphe
             public val algorithmName: String
         ) : IntRepresentable {
             AEGIS_128L(1, "aegis-128l"),
-            AEGIS_128X2(1, "aegis-128x2"),
-            AEGIS_128X4(1, "aegis-128x4"),
-            AEGIS_256(1, "aegis-256"),
-            AEGIS_256X2(1, "aegis-256x2"),
-            AEGIS_256X4(1, "aegis-256x4")
+            AEGIS_128X2(2, "aegis-128x2"),
+            AEGIS_128X4(3, "aegis-128x4"),
+            AEGIS_256(4, "aegis-256"),
+            AEGIS_256X2(5, "aegis-256x2"),
+            AEGIS_256X4(6, "aegis-256x4")
         }
 
         /**
-         * Parameters available for the [] cipher.
+         * Parameters available for the [AEGIS] cipher.
          */
         public sealed interface Param<Value : Any> : SqliteMcConfigCipherParam<AEGIS, Value>
 

@@ -230,11 +230,11 @@ private inline fun checkBufferRange(
     }
 
     require((sourceSize - sourceOffset) >= size) {
-        "source buffer cannot provides the requested number of bytes"
+        "source buffer cannot provide the requested number of bytes"
     }
 
     require((destinationSize - destinationOffset) >= size) {
-        "destination buffer cannot receives the requested number of bytes"
+        "destination buffer cannot receive the requested number of bytes"
     }
 }
 

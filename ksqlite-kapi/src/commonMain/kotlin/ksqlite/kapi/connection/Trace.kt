@@ -21,7 +21,7 @@ package ksqlite.kapi.connection
 public fun interface Trace {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/trace_v2.html).
+     * Called for every [event] whose kind was enabled through [DatabaseConnection.setTrace].
      */
     public fun apply(event: TraceEvent)
 }

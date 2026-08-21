@@ -19,11 +19,21 @@ import ksqlite.capi.findVfs
 import ksqlite.capi.runSqliteConnectionTest
 import ksqlite.capi.runSqliteTest
 import ksqlite.capi.sqlite3
+import ksqlite.capi.sqlite3_bind_blob
+import ksqlite.capi.sqlite3_bind_int64
+import ksqlite.capi.sqlite3_bind_text
 import ksqlite.capi.sqlite3_close
+import ksqlite.capi.sqlite3_column_blob
+import ksqlite.capi.sqlite3_column_int64
+import ksqlite.capi.sqlite3_column_text
 import ksqlite.capi.sqlite3_exec
+import ksqlite.capi.sqlite3_finalize
 import ksqlite.capi.sqlite3_key
 import ksqlite.capi.sqlite3_open_v2
+import ksqlite.capi.sqlite3_prepare_v2
 import ksqlite.capi.sqlite3_rekey
+import ksqlite.capi.sqlite3_step
+import ksqlite.capi.sqlite3_stmt
 import ksqlite.capi.sqlite3_vfs_find
 import ksqlite.capi.sqlite3mc_cipher_count
 import ksqlite.capi.sqlite3mc_cipher_index
@@ -35,6 +45,7 @@ import ksqlite.capi.sqlite3mc_version
 import ksqlite.capi.sqlite3mc_vfs_create
 import ksqlite.capi.usingRealTempFile
 import ksqlite.types.SqliteOpenFlag
+import ksqlite.types.SqliteResultCode
 import ksqlite.types.cipher.SqliteMcCipher
 import ksqlite.types.cipher.SqliteMcCodecType
 import kotlin.test.Test
@@ -266,5 +277,165 @@ class CipherTest {
             val closeReadResult = sqlite3_close(readDb)
             assertEquals(OK, closeReadResult)
         }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // VLE
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Prepares [sql], invokes [bind] on the resulting statement, steps it once, invokes [block] on
+     * the resulting statement, then finalizes it.
+     */
+    private fun stepOnce(
+        db: sqlite3,
+        sql: String,
+        bind: (sqlite3_stmt) -> Unit = {},
+        block: (sqlite3_stmt) -> Unit,
+    ) {
+        val outStmt = sqlite3_stmt.OutputParam()
+        assertEquals(OK, sqlite3_prepare_v2(db, sql, outStmt))
+        val stmt = assertNotNull(outStmt.value)
+
+        bind(stmt)
+
+        val stepResult = sqlite3_step(stmt)
+        assertEquals(ROW, stepResult)
+
+        block(stmt)
+
+        val finalizeResult = sqlite3_finalize(stmt)
+        assertEquals(OK, finalizeResult)
+    }
+
+    @Test
+    fun valueLevelEncryptionRoundTripWorks() = runSqliteConnectionTest { db ->
+        val keyResult = sqlite3_exec(
+            db = db,
+            sql = "SELECT sqlite3mc_vle_key('correct horse battery staple');",
+            outErrorMessage = null,
+            appData = null,
+            callback = null
+        )
+        assertEquals(OK, keyResult)
+
+        var encrypted: ByteArray? = null
+
+        stepOnce(
+            db,
+            "SELECT sqlite3mc_vle_encrypt(?);",
+            bind = { stmt -> assertEquals(OK, sqlite3_bind_text(stmt, 1, "top secret")) },
+        ) { stmt ->
+            encrypted = assertNotNull(sqlite3_column_blob(stmt, 0))
+        }
+
+        var decrypted: String? = null
+
+        stepOnce(
+            db,
+            "SELECT sqlite3mc_vle_decrypt(?);",
+            bind = { stmt ->
+                val value = assertNotNull(encrypted)
+                assertEquals(OK, sqlite3_bind_blob(stmt, 1, value, value.size, null))
+            },
+        ) { stmt ->
+            decrypted = sqlite3_column_text(stmt, 0)
+        }
+
+        assertEquals("top secret", decrypted)
+    }
+
+    @Test
+    fun valueLevelEncryptionPreservesType() = runSqliteConnectionTest { db ->
+        val keyResult = sqlite3_exec(
+            db = db,
+            sql = "SELECT sqlite3mc_vle_key('correct horse battery staple');",
+            outErrorMessage = null,
+            appData = null,
+            callback = null
+        )
+        assertEquals(OK, keyResult)
+
+        stepOnce(
+            db,
+            "SELECT sqlite3mc_vle_decrypt(sqlite3mc_vle_encrypt(?));",
+            bind = { stmt -> assertEquals(OK, sqlite3_bind_int64(stmt, 1, 42L)) },
+        ) { stmt ->
+            assertEquals(42L, sqlite3_column_int64(stmt, 0))
+        }
+    }
+
+    @Test
+    fun valueLevelEncryptionScopeMustMatchToDecrypt() = runSqliteConnectionTest { db ->
+        val keyResult = sqlite3_exec(
+            db = db,
+            sql = "SELECT sqlite3mc_vle_key('correct horse battery staple');",
+            outErrorMessage = null,
+            appData = null,
+            callback = null
+        )
+        assertEquals(OK, keyResult)
+
+        var encrypted: ByteArray? = null
+
+        stepOnce(
+            db,
+            "SELECT sqlite3mc_vle_encrypt(?, ?);",
+            bind = { stmt ->
+                assertEquals(OK, sqlite3_bind_text(stmt, 1, "top secret"))
+                assertEquals(OK, sqlite3_bind_text(stmt, 2, "scope-a"))
+            },
+        ) { stmt ->
+            encrypted = assertNotNull(sqlite3_column_blob(stmt, 0))
+        }
+
+        // Decrypting with a scope other than the one used to encrypt fails outright.
+        val outWrongScopeStmt = sqlite3_stmt.OutputParam()
+
+        assertEquals(
+            OK,
+            sqlite3_prepare_v2(db, "SELECT sqlite3mc_vle_decrypt(?, ?);", outWrongScopeStmt)
+        )
+
+        val wrongScopeStmt = assertNotNull(outWrongScopeStmt.value)
+        val wrongScopeValue = assertNotNull(encrypted)
+        assertEquals(OK, sqlite3_bind_blob(wrongScopeStmt, 1, wrongScopeValue, wrongScopeValue.size, null))
+        assertEquals(OK, sqlite3_bind_text(wrongScopeStmt, 2, "scope-b"))
+
+        val wrongScopeStepResult = sqlite3_step(wrongScopeStmt)
+        assertTrue(wrongScopeStepResult is SqliteResultCode.Failure)
+
+        val wrongScopeFinalizeResult = sqlite3_finalize(wrongScopeStmt)
+        assertTrue(wrongScopeFinalizeResult is SqliteResultCode.Failure)
+
+        var decrypted: String? = null
+
+        stepOnce(
+            db,
+            "SELECT sqlite3mc_vle_decrypt(?, ?);",
+            bind = { stmt ->
+                val value = assertNotNull(encrypted)
+                assertEquals(OK, sqlite3_bind_blob(stmt, 1, value, value.size, null))
+                assertEquals(OK, sqlite3_bind_text(stmt, 2, "scope-a"))
+            },
+        ) { stmt ->
+            decrypted = sqlite3_column_text(stmt, 0)
+        }
+
+        assertEquals("top secret", decrypted)
+    }
+
+    @Test
+    fun valueLevelEncryptionRequiresKeyFirst() = runSqliteConnectionTest { db ->
+        val outStmt = sqlite3_stmt.OutputParam()
+        assertEquals(OK, sqlite3_prepare_v2(db, "SELECT sqlite3mc_vle_encrypt(?);", outStmt))
+        val stmt = assertNotNull(outStmt.value)
+        assertEquals(OK, sqlite3_bind_text(stmt, 1, "top secret"))
+
+        val stepResult = sqlite3_step(stmt)
+        assertTrue(stepResult is SqliteResultCode.Failure)
+
+        val finalizeResult = sqlite3_finalize(stmt)
+        assertTrue(finalizeResult is SqliteResultCode.Failure)
     }
 }

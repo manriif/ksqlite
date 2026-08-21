@@ -15,7 +15,7 @@
  */
 package ksqlite.capi.cipher
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.notNull
 import ksqlite.capi.memory.toKStringFromUtf8
 import ksqlite.capi.sqlite3_mprintf
@@ -28,7 +28,7 @@ import java.lang.foreign.MemorySegment
 public actual class CipherDescriptor internal actual constructor(
     name: String,
     internal val callbacks: CipherCallbacks<*>
-) : ClosableStruct(ksqlite_cipher_descriptor.layout(), null, Application),
+) : CloseableStruct(ksqlite_cipher_descriptor.layout(), null, Application),
     SqliteMcCipherDescriptor {
 
     init {

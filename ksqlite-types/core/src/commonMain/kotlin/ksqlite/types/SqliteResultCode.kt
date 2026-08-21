@@ -1155,7 +1155,7 @@ public sealed class SqliteResultCode(public val code: Int) {
          * whenever automatic indexing is used. This can serve as a warning to application designers
          * that the database might benefit from additional indexes.
          */
-        public data object AUTOINDEX : READONLY(284)
+        public data object AUTOINDEX : WARNING(284)
 
         /**
          * Represents the primary result code for [WARNING].

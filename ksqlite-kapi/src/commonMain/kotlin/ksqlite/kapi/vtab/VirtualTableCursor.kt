@@ -16,6 +16,7 @@
 package ksqlite.kapi.vtab
 
 import ksqlite.kapi.SQLiteException
+import ksqlite.kapi.result.Result
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.types.vtab.SqliteVtabCursor
 
@@ -28,13 +29,15 @@ import ksqlite.types.vtab.SqliteVtabCursor
 public abstract class VirtualTableCursor : SqliteVtabCursor {
 
     /**
-     * Returns `false` if `this` cursor currently points to a valid row of data, of `true`
-     * otherwise.
+     * Returns `false` if this cursor currently points to a valid row of data, `true` otherwise.
      */
     public abstract fun eof(): Boolean
 
     /**
-     * Begins a search on a virtual table.
+     * Begins a search of the virtual table using the query plan selected by
+     * [VirtualTable.bestIndex]. [idxNum] and [idxStr] carry whatever values
+     * [VirtualTable.bestIndex] set on the index info, and [arguments] holds the value of each
+     * constraint marked as usable in that plan, in the order they were requested.
      */
     public abstract fun VirtualTableFilterScope.filter(
         idxNum: Int,
@@ -43,18 +46,18 @@ public abstract class VirtualTableCursor : SqliteVtabCursor {
     )
 
     /**
-     * Advances `this` cursor to the next row of a result set initiated by [filter].
+     * Advances this cursor to the next row of the result set initiated by [filter].
      */
     public abstract fun next()
 
     /**
-     * Returns the value of the [index]th column by using one of the
-     * [VirtualTableColumnScope.setResult] overload.
+     * Returns the value of the [index]th column. The returned [Result] must come from
+     * calling one of the receiver [VirtualTableColumnScope]'s result methods.
      */
-    public abstract fun VirtualTableColumnScope.column(index: Int)
+    public abstract fun VirtualTableColumnScope.column(index: Int): Result
 
     /**
-     * Returns the rowid `this` cursor is currently pointing at.
+     * Returns the rowid this cursor is currently pointing at.
      */
     public abstract fun rowid(): Long
 

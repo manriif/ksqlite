@@ -21,9 +21,8 @@ package ksqlite.kapi.connection
 public fun interface ProgressHandler {
 
     /**
-     * Details on result can be found [here](https://sqlite.org/c3ref/progress_handler.html).
-     *
-     * To interrupt the operation, `true` must be returned, `false` to keep it continue.
+     * Called periodically during long-running operations. Returns `true` to interrupt the
+     * operation, `false` to let it continue.
      */
     public fun apply(): Boolean
 }

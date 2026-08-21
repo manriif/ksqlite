@@ -25,7 +25,7 @@ import ksqlite.capi.cipher.callbacks.CipherDescriptorGetLegacyCallback
 import ksqlite.capi.cipher.callbacks.CipherDescriptorGetPageSizeCallback
 import ksqlite.capi.cipher.callbacks.CipherDescriptorGetReservedCallback
 import ksqlite.capi.cipher.callbacks.CipherDescriptorGetSaltCallback
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.types.cipher.SqliteMcCipherDescriptor
 
 /**
@@ -37,7 +37,7 @@ import ksqlite.types.cipher.SqliteMcCipherDescriptor
 public expect class CipherDescriptor internal constructor(
     name: String,
     callbacks: CipherCallbacks<*>
-) : ClosableStruct,
+) : CloseableStruct,
     SqliteMcCipherDescriptor {
 
     override val m_name: String
@@ -50,8 +50,8 @@ public expect class CipherDescriptor internal constructor(
 /**
  * Returns an instance of [CipherDescriptor].
  *
- * The caller take the ownership of the returned [CipherDescriptor] and is responsible to release it
- * by invoking [CipherDescriptor.close].
+ * The caller takes ownership of the returned [CipherDescriptor] and is responsible for releasing
+ * it by invoking [CipherDescriptor.close].
  *
  * @param name The first character must be alphabetic = alpha, all other characters may be
  * alphanumeric or underscore. The name may consist of a maximum of 63 characters.

@@ -16,12 +16,13 @@
 package ksqlite.kapi.config
 
 /**
- * SQLite logging interface.
+ * Receives SQLite's internal log messages once registered through
+ * [ksqlite.kapi.config.AnyTimeConfiguration.setLogger].
  */
 public fun interface Logger {
 
     /**
-     * Details on parameters can be found [here](https://sqlite.org/c3ref/c_config_covering_index_scan.html).
+     * Called for each logged message, with the associated result code in [errorCode].
      */
     public fun log(
         errorCode: Int,

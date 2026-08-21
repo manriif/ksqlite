@@ -18,14 +18,12 @@ package ksqlite.kapi
 import ksqlite.types.SqliteResultCode
 
 /**
- * Exception resulting from a call to an SQLite API that failed, returning a non-successful result
- * code.
+ * Exception thrown when a call to an SQLite API fails with a non-successful result code.
  *
- * This exception can also be thrown in an SQLite callback, the [result] and the error [message]
- * are then forwarded to SQLite.
+ * User callback code can also throw this exception. When it escapes a callback invoked by SQLite,
+ * [result] and [message] are forwarded to SQLite as the failure it reports back to the caller.
  *
- * The helper function [throwSQLiteException] can be used to construct and throw an instance of
- * [SQLiteException].
+ * [throwSQLiteException] is a shorthand for constructing and throwing an instance of this class.
  */
 public open class SQLiteException(
     /**

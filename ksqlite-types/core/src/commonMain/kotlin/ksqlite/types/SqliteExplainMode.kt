@@ -23,17 +23,17 @@ package ksqlite.types
 public enum class SqliteExplainMode(public val id: Int) {
 
     /**
-	 * Statement becomes a normal prepared statement.
-	 */
-	NORMAL(0),
+     * Statement becomes a normal prepared statement.
+     */
+    NORMAL(0),
 
     /**
-	 * Statement behaves as if its SQL text began with "EXPLAIN".
-	 */
-	EXPLAIN(1),
+     * Statement behaves as if its SQL text began with "EXPLAIN".
+     */
+    EXPLAIN(1),
 
     /**
-	 * Statement behaves as if its SQL text began with "EXPLAIN QUERY PLAN".
-	 */
-	EXPLAIN_QUERY_PLAN(2),
+     * Statement behaves as if its SQL text began with "EXPLAIN QUERY PLAN".
+     */
+    EXPLAIN_QUERY_PLAN(2),
 }

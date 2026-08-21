@@ -136,7 +136,8 @@ internal inline fun <AppData, R> createVtabModule(
 
 /**
  * State for virtual table [vTab].
- * Cursors are kept in a map associated by their address as there is no way to put
+ * Cursors are kept in a map associated by their address, since there is no way to store an
+ * arbitrary object in the native `sqlite3_vtab_cursor` struct in most interops.
  */
 internal class VtabState<Vtab : sqlite3_vtab, VtabCursor : sqlite3_vtab_cursor>(
     val vTab: Vtab,

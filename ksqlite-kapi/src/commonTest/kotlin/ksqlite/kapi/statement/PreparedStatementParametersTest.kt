@@ -15,8 +15,10 @@
  */
 package ksqlite.kapi.statement
 
+import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.runSqliteConnectionTest
+import ksqlite.types.SqliteFunctionTextEncoding
 import ksqlite.types.SqliteTextEncoding
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -51,11 +53,11 @@ class PreparedStatementParametersTest {
         connection.prepare("SELECT ?, ?, ?, ?, ?;").use { statement ->
             val parameters = statement.parameters
 
-            parameters.bind(1, 42)
-            parameters.bind(2, 42L)
-            parameters.bind(3, 4.2)
-            parameters.bind(4, "hello")
-            parameters.bind(5, byteArrayOf(1, 2, 3))
+            parameters.bindInt(1, 42)
+            parameters.bindLong(2, 42L)
+            parameters.bindDouble(3, 4.2)
+            parameters.bindString(4, "hello")
+            parameters.bindByteArray(5, byteArrayOf(1, 2, 3))
 
             val row = assertNotNull(statement.step())
             assertEquals(42, row.getInt(0))
@@ -69,7 +71,7 @@ class PreparedStatementParametersTest {
     @Test
     fun bindingNullWorks() = runSqliteConnectionTest { _, connection ->
         connection.prepare("SELECT ?;").use { statement ->
-            statement.parameters.bind(1, null)
+            statement.parameters.bindNull(1)
             val row = assertNotNull(statement.step())
             assertNull(row.getString(0))
         }
@@ -82,10 +84,10 @@ class PreparedStatementParametersTest {
             val text: String? = null
             val number: Int? = null
 
-            parameters.bind(1, text)
-            parameters.bind(2, number)
-            parameters.bind(3, "present")
-            parameters.bind(4, 7)
+            parameters.bindString(1, text)
+            parameters.bindInt(2, number)
+            parameters.bindString(3, "present")
+            parameters.bindInt(4, 7)
 
             val row = assertNotNull(statement.step())
             assertNull(row.getString(0))
@@ -96,9 +98,44 @@ class PreparedStatementParametersTest {
     }
 
     @Test
+    fun bindingBooleanWorks() = runSqliteConnectionTest { _, connection ->
+        connection.prepare("SELECT ?, ?;").use { statement ->
+            statement.parameters.bindBoolean(1, true)
+            statement.parameters.bindBoolean(2, false)
+
+            val row = assertNotNull(statement.step())
+            assertEquals(true, row.getBoolean(0))
+            assertEquals(false, row.getBoolean(1))
+        }
+    }
+
+    @Test
+    fun bindingNullableBooleanWorks() = runSqliteConnectionTest { _, connection ->
+        connection.prepare("SELECT ?, ?;").use { statement ->
+            val value: Boolean? = null
+            statement.parameters.bindBoolean(1, value)
+            statement.parameters.bindBoolean(2, true)
+
+            val row = assertNotNull(statement.step())
+            assertNull(row.getString(0))
+            assertEquals(true, row.getBoolean(1))
+        }
+    }
+
+    @Test
+    fun getBooleanThrowsForValueOtherThanZeroOrOne() = runSqliteConnectionTest { _, connection ->
+        connection.prepare("SELECT ?;").use { statement ->
+            statement.parameters.bindInt(1, 2)
+            val row = assertNotNull(statement.step())
+
+            assertFailsWith<SQLiteException> { row.getBoolean(0) }
+        }
+    }
+
+    @Test
     fun bindingZeroBlobWorks() = runSqliteConnectionTest { _, connection ->
         connection.prepare("SELECT ?;").use { statement ->
-            statement.parameters.bind(1, null, size = 4)
+            statement.parameters.bindZeroBlob(1, size = 4)
             val row = assertNotNull(statement.step())
             assertContentEquals(byteArrayOf(0, 0, 0, 0), row.getByteArray(0))
         }
@@ -111,7 +148,7 @@ class PreparedStatementParametersTest {
             buffer.write(byteArrayOf(9, 8, 7), size = 3)
 
             var cleanedUp = false
-            statement.parameters.bind(1, buffer) { cleanedUp = true }
+            statement.parameters.bindBuffer(1, buffer) { cleanedUp = true }
 
             val row = assertNotNull(statement.step())
             assertContentEquals(byteArrayOf(9, 8, 7), row.getByteArray(0))
@@ -131,7 +168,7 @@ class PreparedStatementParametersTest {
             val buffer = Buffer.allocate(text.length)
             buffer.write(text.encodeToByteArray(), size = text.length)
 
-            statement.parameters.bind(1, buffer, SqliteTextEncoding.UTF8)
+            statement.parameters.bindText(1, buffer, SqliteTextEncoding.UTF8)
 
             val row = assertNotNull(statement.step())
             assertEquals(text, row.getString(0))
@@ -145,12 +182,12 @@ class PreparedStatementParametersTest {
     @Test
     fun bindingValueWorks() = runSqliteConnectionTest { _, connection ->
         connection.prepare("SELECT ?;").use { source ->
-            source.parameters.bind(1, "from-value")
+            source.parameters.bindString(1, "from-value")
             val row = assertNotNull(source.step())
             val value = assertNotNull(row.getValue(0))
 
             connection.prepare("SELECT ?;").use { destination ->
-                destination.parameters.bind(1, value)
+                destination.parameters.bindValue(1, value)
                 val destinationRow = assertNotNull(destination.step())
                 assertEquals("from-value", destinationRow.getString(0))
             }
@@ -160,7 +197,7 @@ class PreparedStatementParametersTest {
     @Test
     fun clearWorks() = runSqliteConnectionTest { _, connection ->
         connection.prepare("SELECT ?;").use { statement ->
-            statement.parameters.bind(1, "present")
+            statement.parameters.bindString(1, "present")
             statement.parameters.clear()
 
             val row = assertNotNull(statement.step())
@@ -181,9 +218,9 @@ class PreparedStatementParametersTest {
         assertFailsWith<IllegalStateException> { parameters.count }
         assertFailsWith<IllegalStateException> { parameters.getIndex("?") }
         assertFailsWith<IllegalStateException> { parameters.getName(1) }
-        assertFailsWith<IllegalStateException> { parameters.bind(1, null) }
-        assertFailsWith<IllegalStateException> { parameters.bind(1, 1) }
-        assertFailsWith<IllegalStateException> { parameters.bind(1, "text") }
+        assertFailsWith<IllegalStateException> { parameters.bindNull(1) }
+        assertFailsWith<IllegalStateException> { parameters.bindInt(1, 1) }
+        assertFailsWith<IllegalStateException> { parameters.bindString(1, "text") }
         assertFailsWith<IllegalStateException> { parameters.clear() }
     }
 }

@@ -37,7 +37,7 @@ public actual open class Struct internal constructor(internal val pointer: JniPo
     }
 }
 
-public actual open class ClosableStruct internal constructor(
+public actual open class CloseableStruct internal constructor(
     private val jniStruct: JniStruct,
     private val owner: PointerOwner
 ) : Struct(jniStruct.pointer),

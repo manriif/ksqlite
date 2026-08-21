@@ -15,13 +15,13 @@
  */
 package ksqlite.kapi.function
 
-import ksqlite.kapi.value.ValueReturnScope
-import ksqlite.kapi.value.ValueReturnScopeImpl
+import ksqlite.kapi.result.ResultScope
+import ksqlite.kapi.result.ResultScopeImpl
 
 /**
  * Scope for use with [ScalarFunction.func].
  */
 public class ScalarFunctionFuncScope internal constructor(scope: FunctionScopeImpl) :
     FunctionScope by scope,
-    ValueReturnScope by ValueReturnScopeImpl(scope),
+    ResultScope by ResultScopeImpl(scope),
     AuxDataScope(scope)
