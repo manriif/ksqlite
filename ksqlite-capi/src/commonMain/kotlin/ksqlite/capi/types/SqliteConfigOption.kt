@@ -25,7 +25,7 @@ import ksqlite.capi.memory.Int32OutputParam
  * These constants are the available integer configuration options that can be passed as the first
  * argument to the sqlite3_config() interface.
  *
- * [Configuration Options][https://sqlite.org/c3ref/c_config_covering_index_scan.html]
+ * [Configuration Options](https://sqlite.org/c3ref/c_config_covering_index_scan.html)
  */
 public sealed class SqliteConfigOption(public val id: Int) {
 
@@ -208,11 +208,10 @@ public sealed class SqliteConfigOption(public val id: Int) {
     public class STMTJRNL_SPILL(internal val nByte: Int) : SqliteConfigOption(26)
 
     /**
-     * Provides a hint to SQLite that it should avoid large memory  allocations if possible. SQLite
+     * Provides a hint to SQLite that it should avoid large memory allocations if possible. SQLite
      * will run faster if it is free to make large memory allocations, but some applications might
      * prefer to run slower in exchange for guarantees about memory fragmentation that are possible
-     * if large allocations are avoide
-     * d. This hint is normally off.
+     * if large allocations are avoided. This hint is normally off.
      */
     public class SMALL_MALLOC(internal val enabled: Int) : SqliteConfigOption(27)
 

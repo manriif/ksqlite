@@ -1,53 +1,70 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ksqlite.kapi.cipher
 
 import ksqlite.types.cipher.SqliteMcCipher
 import ksqlite.types.cipher.SqliteMcCodecType
 
 /**
- * Exposes SQLite Multiple Cipher global APIs covering dynamic cipher registration and virtual file
- * system related operations.
+ * Registers and looks up SQLite Multiple Ciphers [dynamic ciphers](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_register_cipher),
+ * on top of the ciphers SQLite Multiple Ciphers already provides.
  *
- * [Register cipher][https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/#function-sqlite3mc_register_cipher]
+ * Unless documented otherwise, every member throws [IllegalStateException] once the owning
+ * [ksqlite.kapi.SQLite] instance is closed.
  */
 public interface CipherManager {
 
     /**
-     * Configuration operating on all the connections.
+     * Configuration shared by every connection.
      */
     public val config: CipherConfiguration
 
     /**
-     * Manager for the cipher wrapped virtual file systems.
+     * Creates and destroys virtual file systems wrapped for encryption.
      */
     public val virtualFileSystems: CipherVirtualFileSystemManager
 
     /**
-     * Number of currently registered cipher schemes.
+     * Number of currently registered ciphers, builtin and dynamic.
      */
     public val count: Int
 
     /**
-     * Returns the relative 1-based index of the given [cipher].
-     * See [SqliteMcCodecType] for the builtin ciphers.
+     * Returns the 1-based index of [cipher] among the registered ciphers. See [SqliteMcCodecType]
+     * for the builtin ciphers.
      *
-     * @throws ksqlite.kapi.SQLiteException if the cipher is not registered.
+     * @throws ksqlite.kapi.SQLiteException if [cipher] is not registered.
      */
     public fun getIndex(cipher: SqliteMcCipher): Int
 
     /**
-     * Returns the name if the cipher at the relative 1-based [index].
+     * Returns the name of the cipher at the 1-based [index].
      *
-     * @throws ksqlite.kapi.SQLiteException if there is no cipher for the given index.
+     * @throws ksqlite.kapi.SQLiteException if there is no cipher at [index].
      */
     public fun getName(index: Int): String
 
     /**
-     * Registers a dynamic cipher, supplied by [factory], under the given [name].
+     * Registers a dynamic cipher under [name], created through [factory] whenever a connection
+     * actually derives a key with it.
      *
-     * If [makeDefault] is `true`, which is the default behavior, then the cipher is set as the
-     * default one.
+     * [makeDefault] sets it as the default cipher for connections that do not select one
+     * explicitly.
      *
-     * @throws ksqlite.kapi.SQLiteException if the cipher registration fails.
+     * @throws ksqlite.kapi.SQLiteException if the name is invalid or registration fails.
      */
     public fun <Cipher : DynamicCipher> register(
         name: String,
@@ -61,9 +78,9 @@ public interface CipherManager {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the relative 1-based index of the dynamic cipher named after [name].
+ * Returns the 1-based index of the dynamic cipher named [name] among the registered ciphers.
  *
- * @throws ksqlite.kapi.SQLiteException if the cipher is not registered.
+ * @throws ksqlite.kapi.SQLiteException if it is not registered.
  */
 public fun CipherManager.getIndex(name: String): Int =
     getIndex(SqliteMcCipher.Dynamic(name))

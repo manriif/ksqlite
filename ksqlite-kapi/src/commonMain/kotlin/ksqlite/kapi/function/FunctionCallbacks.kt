@@ -36,12 +36,13 @@ private inline fun <F : Function> F.scoped(
 }
 
 /**
- * Invokes [AggregateFunction.step] and [WindowFunction.step].
+ * Invokes [ScalarFunction.func].
  */
 internal val ScalarFunctionFuncCallback =
     SqliteFunctionFuncCallback { appData: ScalarFunction, context, arguments ->
         appData.scoped(context) { scope ->
-            ScalarFunctionFuncScope(scope).func(arguments.toProtectedValues(scope))
+            // Result only proves func() set a result, nothing to do with it here.
+            val returned = ScalarFunctionFuncScope(scope).func(arguments.toProtectedValues(scope))
         }
     }
 
@@ -61,7 +62,8 @@ internal val AggregateFunctionStepCallback =
 internal val AggregateFunctionFinalCallback =
     SqliteFunctionFinalCallback { appData: AggregateFunction, context ->
         appData.scoped(context) { scope ->
-            AggregateFunctionFinalScope(scope).final()
+            // Result only proves final() set a result, nothing to do with it here.
+            val returned = AggregateFunctionFinalScope(scope).final()
         }
     }
 
@@ -81,6 +83,7 @@ internal val WindowFunctionInverseCallback =
 internal val WindowFunctionValueCallback =
     SqliteFunctionValueCallback { appData: WindowFunction, context ->
         appData.scoped(context) { scope ->
-            AggregateFunctionFinalScope(scope).value()
+            // Result only proves value() set a result, nothing to do with it here.
+            val returned = AggregateFunctionFinalScope(scope).value()
         }
     }

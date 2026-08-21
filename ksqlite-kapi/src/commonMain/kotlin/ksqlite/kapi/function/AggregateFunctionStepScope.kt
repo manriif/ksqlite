@@ -29,7 +29,7 @@ public class AggregateFunctionStepScope internal constructor(scope: FunctionScop
      * Returns the aggregate context as [C].
      *
      * The [C] is created the first time the function is called using [compute] and is returned
-     * on subsequent call.
+     * on subsequent calls.
      */
     public inline fun <reified C : Any> getOrCreateAggregateContext(noinline compute: () -> C): C {
         return scope.notClosed {

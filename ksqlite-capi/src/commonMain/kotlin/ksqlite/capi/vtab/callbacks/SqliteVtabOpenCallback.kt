@@ -20,7 +20,7 @@ import ksqlite.capi.vtab.sqlite3_vtab_cursor
 import ksqlite.types.SqliteResultCode
 
 /**
- * The xOpen method creates a new cursor used for accessing (read and/or writing) a virtual  table.
+ * The xOpen method creates a new cursor used for accessing (read and/or writing) a virtual table.
  * A successful invocation of this method will allocate the memory for the sqlite3_vtab_cursor
  * (or a subclass), initialize the new object, and make *ppCursor point to the new object.
  *

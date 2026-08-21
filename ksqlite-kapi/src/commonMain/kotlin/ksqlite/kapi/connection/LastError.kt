@@ -47,7 +47,7 @@ public interface LastError {
     public val offset: Int
 
     /**
-     * OS-dependant error code or error number that caused the most recent I/O error or failure to
+     * OS-dependent error code or error number that caused the most recent I/O error or failure to
      * open a file.
      */
     public val systemError: Int

@@ -23,12 +23,14 @@ import ksqlite.kapi.value.ProtectedValue
 public interface VirtualTableFilterScope {
 
     /**
-     * Returns the first value on the right-hand-side of the IN contraint for the [value] parameter.
+     * Returns the first value on the right-hand-side of the IN() constraint for [value], or
+     * `null` if there are none.
      */
     public fun inFirst(value: ProtectedValue): ProtectedValue?
 
     /**
-     * Returns the next value on the right-hand-side of the IN contraint for the [value] parameter.
+     * Returns the value following [value] on the right-hand-side of the same IN() constraint,
+     * or `null` if there are no more.
      */
     public fun inNext(value: ProtectedValue): ProtectedValue?
 }
@@ -38,8 +40,7 @@ public interface VirtualTableFilterScope {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Invokes [block] for each value on the right-hand-side of the IN contraint for the [value]
- * parameter.
+ * Invokes [block] for each value on the right-hand-side of the IN() constraint for [value].
  */
 public inline fun VirtualTableFilterScope.inValues(
     value: ProtectedValue,

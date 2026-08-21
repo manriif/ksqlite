@@ -20,6 +20,9 @@ import ksqlite.kapi.connection.SQLITE_MAIN_DB_NAME
 
 /**
  * Exposes the [Online Backup API](https://sqlite.org/backup.html).
+ *
+ * Unless documented otherwise, every member throws [IllegalStateException] once this backup is
+ * closed.
  */
 public interface Backup : AutoCloseable {
 
@@ -34,14 +37,17 @@ public interface Backup : AutoCloseable {
     public val remaining: Int
 
     /**
-     * Copies up to [count] pages between the source and destination databases.
+     * Copies up to [count] pages between the source and destination databases. A negative
+     * [count] copies all remaining pages in this single call. Use [remaining] to check whether
+     * the backup is complete.
      *
      * @throws ksqlite.kapi.SQLiteException if the operation fails.
      */
     public fun step(count: Int)
 
     /**
-     * Releases all resources associated with `this` backup.
+     * Releases all resources associated with this backup. Calling this again on an already
+     * closed backup has no effect.
      *
      * @throws ksqlite.kapi.SQLiteException if finalizing the backup fails.
      */
@@ -57,13 +63,12 @@ public interface Backup : AutoCloseable {
     public companion object {
 
         /**
-         * Initializes a backup, copying content from database [sourceName] using the connection
-         * [source] into the database [destinationName] using connection [destination] and returns
-         * a [Backup].
+         * Creates and initializes a [Backup] that copies [sourceName] of [source] into
+         * [destinationName] of [destination].
          *
-         * The returned [Backup] must be closed when done with.
+         * The returned [Backup] must be closed once done with.
          */
-        public fun init(
+        public fun create(
             destination: DatabaseConnection,
             destinationName: String,
             source: DatabaseConnection,
@@ -76,12 +81,12 @@ public interface Backup : AutoCloseable {
         )
 
         /**
-         * Initializes a backup, copying content from database `main` using the connection [source]
-         * into the database `main` using connection [destination] and returns a [Backup].
+         * Creates and initializes a [Backup] that copies the `main` database of [source] into
+         * the `main` database of [destination].
          *
-         * The returned [Backup] must be closed when done with.
+         * The returned [Backup] must be closed once done with.
          */
-        public fun init(
+        public fun create(
             destination: DatabaseConnection,
             source: DatabaseConnection
         ): Backup = createBackup(

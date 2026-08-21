@@ -15,17 +15,28 @@
  */
 package ksqlite.kapi.snapshot
 
+/**
+ * An immutable, point-in-time snapshot of the state of a WAL mode database, returned by
+ * [ksqlite.kapi.connection.DatabaseConnection.createSnapshot] and consumed by
+ * [ksqlite.kapi.connection.DatabaseConnection.openSnapshot].
+ *
+ * Unless documented otherwise, every member throws [IllegalStateException] once this snapshot
+ * is closed.
+ */
 public sealed interface Snapshot :
     Comparable<Snapshot>,
     AutoCloseable {
 
     /**
-     * Compares the ages of two valid snapshot handles.
+     * Compares the age of this snapshot to [other]. A negative number means this snapshot is
+     * older than [other], zero that they refer to the same point in time, and a positive number
+     * that this snapshot is newer. Comparing snapshots taken from different databases gives an
+     * unspecified result.
      */
     abstract override fun compareTo(other: Snapshot): Int
 
     /**
-     * Destroys this snapshot.
+     * Destroys this snapshot. Calling this again on an already closed snapshot has no effect.
      */
     abstract override fun close()
 }

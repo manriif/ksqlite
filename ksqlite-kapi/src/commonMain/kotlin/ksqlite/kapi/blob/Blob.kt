@@ -16,19 +16,25 @@
 package ksqlite.kapi.blob
 
 /**
- * Exposes the [BLOB API](https://sqlite.org/c3ref/blob.html).
+ * Streams the content of a single BLOB value in and out without loading it fully into memory,
+ * see the [BLOB API](https://sqlite.org/c3ref/blob.html).
+ *
+ * Unless documented otherwise, every member throws [IllegalStateException] once this blob is
+ * closed.
  */
 public interface Blob : AutoCloseable {
 
     /**
-     * Returns the size of `this` blob in bytes.
+     * Size of this blob in bytes. This does not change over the life of this instance, reopen
+     * this blob with [reopen] to observe a value written concurrently by another connection.
      */
     public val bytes: Int
 
     /**
-     * Reads [size] bytes from `this` blob, starting at [offset], into [output].
+     * Reads [size] bytes from this blob, starting at [offset], into [output].
      *
-     * @throws ksqlite.kapi.SQLiteException if the read operation fails.
+     * @throws ksqlite.kapi.SQLiteException if [offset] and [size] are out of range for this blob,
+     * or if the read fails.
      */
     public fun read(
         output: ByteArray,
@@ -37,9 +43,13 @@ public interface Blob : AutoCloseable {
     )
 
     /**
-     * Writes [size] bytes from [input] into `this` blob, starting at [offset].
+     * Writes [size] bytes from [input] into this blob, starting at [offset].
      *
-     * @throws ksqlite.kapi.SQLiteException if the write operation fails.
+     * This can only overwrite existing bytes, it cannot grow the blob. [offset] plus [size] must
+     * not exceed [bytes].
+     *
+     * @throws ksqlite.kapi.SQLiteException if [offset] and [size] are out of range for this blob,
+     * or if the write fails.
      */
     public fun write(
         input: ByteArray,
@@ -48,16 +58,18 @@ public interface Blob : AutoCloseable {
     )
 
     /**
-     * Moves `this` blob to the row identified by [rowid] of the same database, table and column.
+     * Points this blob at the row identified by [rowid], in the same database, table and column
+     * it was originally opened on. This is cheaper than closing and reopening a new [Blob].
      *
-     * @throws ksqlite.kapi.SQLiteException if the move operation fails.
+     * @throws ksqlite.kapi.SQLiteException if [rowid] does not exist or the move fails.
      */
     public fun reopen(rowid: Long)
 
     /**
-     * Closes `this` open [Blob] unconditionally.
+     * Closes this blob, releasing the resources it holds. Calling this again on an already closed
+     * blob has no effect.
      *
-     * @throws ksqlite.kapi.SQLiteException if closing the blob fails.
+     * @throws ksqlite.kapi.SQLiteException if closing fails.
      */
     override fun close()
 }
@@ -67,8 +79,14 @@ public interface Blob : AutoCloseable {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Reads [size] bytes from the blob, starting at [offset] and returns the bytes read.
+ * Reads [size] bytes from this blob, starting at [offset], and returns them as a new [ByteArray].
+ *
+ * @throws ksqlite.kapi.SQLiteException if [offset] and [size] are out of range for this blob,
+ * or if the read fails.
  */
-public fun Blob.read(size: Int = bytes, offset: Int = 0): ByteArray = ByteArray(size).apply {
+public fun Blob.read(
+    size: Int = bytes,
+    offset: Int = 0
+): ByteArray = ByteArray(size).apply {
     read(this, size, offset)
 }

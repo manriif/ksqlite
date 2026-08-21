@@ -20,72 +20,63 @@ import ksqlite.kapi.value.Value
 import ksqlite.types.SqliteTextEncoding
 
 /**
- * Exposes the API to deal with [PreparedStatement]'s parameters.
+ * Exposes the API to bind values to a [PreparedStatement]'s parameters.
  *
- * [Binding Values To Prepared Statements](https://sqlite.org/c3ref/bind_blob.html).
- * [Binding Parameters and Reusing Prepared Statements](https://sqlite.org/cintro.html#binding_parameters_and_reusing_prepared_statements)
+ * [Binding Values To Prepared Statements](https://sqlite.org/c3ref/bind_blob.html)
  */
 public interface PreparedStatementParameters {
 
     /**
-     * Number of parameter that can be potentially bound to.
+     * Number of parameters that can be bound to.
      */
     public val count: Int
 
     /**
-     * Returns the index of an SQL parameter given its name.
+     * Returns the index of the parameter named [name], or `0` if there is no matching
+     * parameter.
      */
     public fun getIndex(name: String): Int
 
     /**
-     * Returns the name of the SQL parameter at [index].
+     * Returns the name of the parameter at [index], or `null` if it is unnamed or [index] is
+     * out of range.
      */
     public fun getName(index: Int): String?
 
     /**
      * Sets `null` as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_null()`.
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
-        index: Int,
-        value: Nothing?
-    )
+    public fun bindNull(index: Int)
 
     /**
-     * Sets the value for the parameter at [index] to be a buffer of the given [size] with all bytes
-     * set to `zero`.
-     * This function maps to `sqlite3_bind_zeroblob()`.
+     * Sets the value for the parameter at [index] to be a buffer of [size] bytes, all set to
+     * zero.
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindZeroBlob(
         index: Int,
-        value: Nothing?,
         size: Int
     )
 
     /**
-     * Sets the value for the parameter at [index] to be a buffer of the given [size] with all bytes
-     * set to `zero`.
-     * This function maps to `sqlite3_bind_zeroblob64()`.
+     * Overload of [bindZeroBlob] for sizes larger than [Int.MAX_VALUE].
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindZeroBlob(
         index: Int,
-        value: Nothing?,
-        size: ULong
+        size: Long
     )
 
     /**
      * Sets the bytes buffer [value] as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_blob()`.
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindByteArray(
         index: Int,
         value: ByteArray,
         size: Int = value.size
@@ -93,13 +84,12 @@ public interface PreparedStatementParameters {
 
     /**
      * Sets the bytes buffer [value] as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_blob64()`.
      *
-     * When SQLite no longer needs the [value], it will invoke [cleanup].
+     * When SQLite no longer needs [value], it invokes [cleanup].
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindBuffer(
         index: Int,
         value: Buffer,
         size: Long = value.byteSize,
@@ -108,57 +98,53 @@ public interface PreparedStatementParameters {
 
     /**
      * Sets the 32-bit signed integer [value] as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_int()`.
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindInt(
         index: Int,
         value: Int
     )
 
     /**
      * Sets the 64-bit signed integer [value] as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_int64()`.
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindLong(
         index: Int,
         value: Long
     )
 
     /**
      * Sets the 64-bit floating point [value] as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_double()`.
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindDouble(
         index: Int,
         value: Double
     )
 
     /**
      * Sets the text [value] as the UTF-8 encoded value for the parameter at [index].
-     * This function maps to `sqlite3_bind_text()`.
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindString(
         index: Int,
         value: String
     )
 
     /**
-     * Sets the text buffer [value] as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_text64()`.
+     * Sets the text buffer [value], interpreted using [encoding], as the value for the
+     * parameter at [index].
      *
-     * When SQLite no longer needs the [value], it will invoke [cleanup].
+     * When SQLite no longer needs [value], it invokes [cleanup].
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindText(
         index: Int,
         value: Buffer,
         encoding: SqliteTextEncoding.BindText,
@@ -167,35 +153,32 @@ public interface PreparedStatementParameters {
     )
 
     /**
-     * Sets [value] as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_value()`.
+     * Sets [value] as the value for the parameter at [index]. [value] can be a protected or
+     * unprotected SQLite value.
      *
-     * The [value] can be a protected or unprotected SQLite value.
-     *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindValue(
         index: Int,
         value: Value
     )
 
     /**
      * Sets [value] as the value for the parameter at [index].
-     * This function maps to `sqlite3_bind_pointer()`.
      *
-     * If [value] implements [AutoCloseable] then [AutoCloseable.close] is invoked on [value] when
-     * SQLite finalize it.
+     * If [value] implements [AutoCloseable] then [AutoCloseable.close] is invoked on it when
+     * SQLite finalizes it.
      *
-     * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+     * @throws ksqlite.kapi.SQLiteException if binding the value fails.
      */
-    public fun bind(
+    public fun bindPointer(
         index: Int,
         value: Any,
         type: String? = null
     )
 
     /**
-     * Resets all host parameters to `null`.
+     * Resets all parameters to `null`.
      *
      * @throws ksqlite.kapi.SQLiteException if the operation fails.
      */
@@ -207,79 +190,119 @@ public interface PreparedStatementParameters {
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Sets the bytes buffer [value] as the value for the parameter at [index] or sets `null` as the
- * value for the parameter at [index] if [value] is `null`.
+ * Convenience overload of [bindByteArray] that binds `null` when [value] is `null`.
  *
- * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
  */
-public fun PreparedStatementParameters.bind(
+public fun PreparedStatementParameters.bindByteArray(
     index: Int,
-    value: ByteArray?
-): Unit = value?.let { bind(index, it) } ?: bind(index, null)
+    value: ByteArray?,
+    size: Int = value?.size ?: 0
+): Unit = value?.let { bindByteArray(index, it, size) } ?: bindNull(index)
 
 /**
- * Sets the 32-bit signed integer [value] as the value for the parameter at [index] or sets `null`
- * as the value for the parameter at [index] if [value] is `null`.
+ * Convenience overload of [bindBuffer] that binds `null` when [value] is `null`.
  *
- * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
  */
-public fun PreparedStatementParameters.bind(
+public fun PreparedStatementParameters.bindBuffer(
+    index: Int,
+    value: Buffer?,
+    cleanup: ((Buffer) -> Unit)? = null
+): Unit = value?.let { bindBuffer(index, it, cleanup) } ?: bindNull(index)
+
+/**
+ * Convenience overload of [bindInt] that binds `null` when [value] is `null`.
+ *
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
+ */
+public fun PreparedStatementParameters.bindInt(
     index: Int,
     value: Int?
-): Unit = value?.let { bind(index, it) } ?: bind(index, null)
+): Unit = value?.let { bindInt(index, it) } ?: bindNull(index)
 
 /**
- * Sets the 64-bit signed integer [value] as the value for the parameter at [index] or sets `null`
- * as the value for the parameter at [index] if [value] is `null`.
+ * Sets [value] as the value for the parameter at [index], using SQLite's own convention for
+ * booleans, `1` for `true` and `0` for `false`, since SQLite has no dedicated boolean storage
+ * class.
  *
- * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
  */
-public fun PreparedStatementParameters.bind(
+public fun PreparedStatementParameters.bindBoolean(
+    index: Int,
+    value: Boolean
+): Unit = bindInt(index, if (value) 1 else 0)
+
+/**
+ * Convenience overload of [bindBoolean] that binds `null` when [value] is `null`.
+ *
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
+ */
+public fun PreparedStatementParameters.bindBoolean(
+    index: Int,
+    value: Boolean?
+): Unit = value?.let { bindBoolean(index, it) } ?: bindNull(index)
+
+/**
+ * Convenience overload of [bindLong] that binds `null` when [value] is `null`.
+ *
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
+ */
+public fun PreparedStatementParameters.bindLong(
     index: Int,
     value: Long?
-): Unit = value?.let { bind(index, it) } ?: bind(index, null)
+): Unit = value?.let { bindLong(index, it) } ?: bindNull(index)
 
 /**
- * Sets the 64-bit floating point [value] as the value for the parameter at [index] or sets `null`
- * as the value for the parameter at [index] if [value] is `null`.
+ * Convenience overload of [bindDouble] that binds `null` when [value] is `null`.
  *
- * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
  */
-public fun PreparedStatementParameters.bind(
+public fun PreparedStatementParameters.bindDouble(
     index: Int,
     value: Double?
-): Unit = value?.let { bind(index, it) } ?: bind(index, null)
+): Unit = value?.let { bindDouble(index, it) } ?: bindNull(index)
 
 /**
- * Sets the text [value] as the UTF-8 encoded value for the parameter at [index] or sets `null` as
- * the value for the parameter at [index] if [value] is `null`.
+ * Convenience overload of [bindString] that binds `null` when [value] is `null`.
  *
- * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
  */
-public fun PreparedStatementParameters.bind(
+public fun PreparedStatementParameters.bindString(
     index: Int,
     value: String?
-): Unit = value?.let { bind(index, it) } ?: bind(index, null)
+): Unit = value?.let { bindString(index, it) } ?: bindNull(index)
 
 /**
- * Sets [value] as the value for the parameter at [index] or sets `null`
- * as the value for the parameter at [index] if [value] is `null`.
+ * Convenience overload of [bindText] that binds `null` when [value] is `null`.
  *
- * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
  */
-public fun PreparedStatementParameters.bind(
+public fun PreparedStatementParameters.bindText(
+    index: Int,
+    value: Buffer?,
+    encoding: SqliteTextEncoding.BindText,
+    size: Long = value?.byteSize ?: 0L,
+    cleanup: ((Buffer) -> Unit)? = null
+): Unit = value?.let { bindText(index, it, encoding, size, cleanup) } ?: bindNull(index)
+
+/**
+ * Convenience overload of [bindValue] that binds `null` when [value] is `null`.
+ *
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
+ */
+public fun PreparedStatementParameters.bindValue(
+    index: Int,
+    value: Value?
+): Unit = value?.let { bindValue(index, it) } ?: bindNull(index)
+
+/**
+ * Convenience overload of [bindPointer] that binds `null` when [value] is `null`.
+ *
+ * @throws ksqlite.kapi.SQLiteException if binding the value fails.
+ */
+public fun PreparedStatementParameters.bindPointer(
     index: Int,
     value: Any?,
     type: String? = null
-): Unit = value?.let { bind(index, it, type) } ?: bind(index, null)
-
-/**
- * Sets [value] as the value for the parameter at [index] or sets `null`
- * as the value for the parameter at [index] if [value] is `null`.
- *
- * @throws ksqlite.kapi.SQLiteException if the bind operation fails.
- */
-public fun PreparedStatementParameters.bind(
-    index: Int,
-    value: Value?
-): Unit = value?.let { bind(index, it) } ?: bind(index, null)
+): Unit = value?.let { bindPointer(index, it, type) } ?: bindNull(index)

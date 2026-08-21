@@ -29,11 +29,10 @@ public interface VirtualTableUpdateScope {
     public val onConflict: SqliteConflictResolutionMode
 
     /**
-     * Returns `true` if and only if the column corresponding to X is unchanged by the UPDATE
-     * operation that the xUpdate method call was invoked to implement and if the prior xColumn
-     * method call that was invoked to extract the value for that column returned without setting a
-     * result (probably because it queried sqlite3_vtab_nochange() and found that the column was
-     * unchanging).
+     * Returns `true` if this value's column is unchanged by the current UPDATE, and the virtual
+     * table skipped setting a result the last time this column was read through
+     * [VirtualTableColumnScope.column], typically because [VirtualTableColumnScope.nochange]
+     * reported it as unchanging.
      */
     public val ProtectedValue.nochange: Boolean
 }

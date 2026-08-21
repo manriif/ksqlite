@@ -47,13 +47,13 @@ public expect open class Struct : StructBase {
  *
  * Instances created through [StructArray] factory are owned by the [StructArray].
  *
- * The owner of a [ClosableStruct] is responsible for releasing associated resources.
+ * The owner of a [CloseableStruct] is responsible for releasing associated resources.
  *
  * Structs belonging to a [StructArray] must not be closed individually. The whole [StructArray]
  * should be closed instead. An [UnsupportedOperationException] is thrown if a [close] call is made
  * on an individual instance belonging to a [StructArray].
  */
-public expect open class ClosableStruct : Struct, AutoCloseable {
+public expect open class CloseableStruct : Struct, AutoCloseable {
 
     /**
      * Releases the native resources if this struct is owned by the application.
@@ -85,7 +85,7 @@ internal enum class PointerOwner {
 }
 
 /**
- * Handles [ClosableStruct.close], calling [free] when ever the pointer should be closed
+ * Handles [CloseableStruct.close], calling [free] when ever the pointer should be closed
  */
 internal inline fun PointerOwner.handleClose(free: () -> Unit) = when (this) {
     External -> Unit

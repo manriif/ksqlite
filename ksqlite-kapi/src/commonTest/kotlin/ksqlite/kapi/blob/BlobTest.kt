@@ -17,7 +17,6 @@ package ksqlite.kapi.blob
 
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.runSqliteConnectionTest
-import ksqlite.types.SqliteBlobOpenFlag
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -33,7 +32,7 @@ class BlobTest {
         connection.execute("CREATE TABLE fruits(id INTEGER PRIMARY KEY, image BLOB);")
         connection.execute("INSERT INTO fruits VALUES (1, X'0102030405');")
 
-        connection.openBlob("fruits", "image", 1).use { blob ->
+        connection.openBlob("fruits", "image", 1, flags = READONLY).use { blob ->
             assertEquals(5, blob.bytes)
             assertContentEquals(byteArrayOf(1, 2, 3, 4, 5), blob.read())
 
@@ -48,11 +47,12 @@ class BlobTest {
         connection.execute("CREATE TABLE fruits(id INTEGER PRIMARY KEY, image BLOB);")
         connection.execute("INSERT INTO fruits VALUES (1, X'0000000000');")
 
-        connection.openBlob("fruits", "image", 1, flags = SqliteBlobOpenFlag.READWRITE).use { blob ->
-            blob.write(byteArrayOf(9, 9), offset = 1)
-        }
+        connection.openBlob("fruits", "image", 1, flags = READWRITE)
+            .use { blob ->
+                blob.write(byteArrayOf(9, 9), offset = 1)
+            }
 
-        connection.openBlob("fruits", "image", 1).use { blob ->
+        connection.openBlob("fruits", "image", 1, flags = READONLY).use { blob ->
             assertContentEquals(byteArrayOf(0, 9, 9, 0, 0), blob.read())
         }
     }
@@ -62,7 +62,7 @@ class BlobTest {
         connection.execute("CREATE TABLE fruits(id INTEGER PRIMARY KEY, image BLOB);")
         connection.execute("INSERT INTO fruits VALUES (1, X'0000');")
 
-        val blob = connection.openBlob("fruits", "image", 1)
+        val blob = connection.openBlob("fruits", "image", 1, flags = READONLY)
 
         assertFailsWith<SQLiteException> {
             blob.write(byteArrayOf(1, 2))
@@ -79,7 +79,7 @@ class BlobTest {
         connection.execute("CREATE TABLE fruits(id INTEGER PRIMARY KEY, image BLOB);")
         connection.execute("INSERT INTO fruits VALUES (1, X'0102'), (2, X'0304');")
 
-        connection.openBlob("fruits", "image", 1).use { blob ->
+        connection.openBlob("fruits", "image", 1, flags = READONLY).use { blob ->
             assertContentEquals(byteArrayOf(1, 2), blob.read())
 
             blob.reopen(2)
@@ -92,7 +92,7 @@ class BlobTest {
         connection.execute("CREATE TABLE fruits(id INTEGER PRIMARY KEY, image BLOB);")
 
         assertFailsWith<SQLiteException> {
-            connection.openBlob("fruits", "image", 999)
+            connection.openBlob("fruits", "image", 999, flags = READONLY)
         }
     }
 
@@ -105,7 +105,7 @@ class BlobTest {
         connection.execute("CREATE TABLE fruits(id INTEGER PRIMARY KEY, image BLOB);")
         connection.execute("INSERT INTO fruits VALUES (1, X'0102');")
 
-        val blob = connection.openBlob("fruits", "image", 1, flags = SqliteBlobOpenFlag.READWRITE)
+        val blob = connection.openBlob("fruits", "image", 1)
         blob.close()
         // Closing again is a no-op
         blob.close()

@@ -21,12 +21,10 @@ package ksqlite.kapi.connection
 public fun interface Exec {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/exec.html).
-     *
-     * The application must not access more than [columnCount] elements from [columnValues] and
-     * [columnNames] even if they contain more than [columnCount] elements.
-     *
-     * To abort the execution, `true` must be returned, `false` to keep it continue.
+     * Called once per result row. [columnCount] is the number of columns in the row,
+     * [columnValues] and [columnNames] hold the value and name of each column and must not be
+     * accessed past index [columnCount] even if they contain more elements. Returns `true` to
+     * abort the execution, `false` to let it continue.
      */
     public fun apply(
         columnCount: Int,

@@ -22,7 +22,7 @@ import ksqlite.types.SqliteResultCode
 /**
  * The SQLite core invokes this method in order to find the value for the N-th column of the current
  * row. N is zero-based so the first column is numbered 0. The xColumn method may return its result
- * back to SQLite using one oof the following interfaces:
+ * back to SQLite using one of the following interfaces:
  * 
  * sqlite3_result_blob()
  * sqlite3_result_blob64()

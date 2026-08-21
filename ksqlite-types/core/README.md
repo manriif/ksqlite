@@ -1,16 +1,15 @@
 # Module Ksqlite Types
 
 Public enumerations and sealed types for the finite value spaces of the SQLite C API. Result
-codes, flags, action codes, and a handful of struct shapes for VFS and virtual table
-implementations.
+codes, flags, action codes, SQLite3MultipleCiphers' cipher configuration, and a handful of struct
+shapes for VFS and virtual table implementations.
 
 Wherever a C function or struct field only ever takes one of a fixed set of values, this module
 gives it a real Kotlin type instead of a raw `Int`. Passing the wrong value becomes a compile
 error, not a misuse SQLite may or may not catch at runtime.
 
 These types are shared between all the different API implementations such as `ksqlite-capi` and
-`ksqlite-kapi`. Duplicating them would mean duplicating everything baked into them. Not just a
-name, but the SQLite documentation in their KDoc and the exact bit layout of the C header too.
+`ksqlite-kapi`. Duplicating them would mean duplicating everything baked into them.
 
 Every snippet below uses `ksqlite-capi`, the API these types were designed against first. They
 work the same way in `ksqlite-kapi` or any other implementation.
@@ -25,6 +24,7 @@ work the same way in `ksqlite-kapi` or any other implementation.
     - [Known and custom values](#known-and-custom-values)
     - [Outcomes and events](#outcomes-and-events)
 - [VFS and virtual table shapes](#vfs-and-virtual-table-shapes)
+- [Cipher types](#cipher-types)
 
 ## Constants
 
@@ -93,7 +93,7 @@ gets a chance to:
 sqlite3_open_v2(
     fileName = "test_connection",
     outDb = outDb,
-    // doesn't compile: AUTOPROXY is a `SqliteOpenFlag.Vfs` flag, `or` on a `Db` flag like
+    // doesn't compile: AUTOPROXY is a `SqliteOpenFlag.OptionalVfs` flag, `or` on a `Db` flag like
     // READWRITE only accepts another `OptionalDb`
     flags = SqliteOpenFlag.READWRITE or SqliteOpenFlag.AUTOPROXY,
     vfs = null
@@ -266,8 +266,60 @@ version field is itself one of the plain constants from the [Constants](#constan
 `SqliteVfsVersion`, `SqliteIoMethodsVersion`, and `SqliteModuleVersion`.
 
 These interfaces only cover the part of each struct that's the same regardless of who implements
-it, plain data fields such as `SqliteVfs.mxPathname` or `SqliteVtab.errMsg`. The C structs are
-mostly made of function pointers, `sqlite3_vfs.xOpen`, `sqlite3_io_methods.xRead`,
+it, plain data fields such as `SqliteVfs.mxPathname`, `SqliteVfs.pNext`, or `SqliteVtab.errMsg`.
+The C structs are mostly made of function pointers, `sqlite3_vfs.xOpen`, `sqlite3_io_methods.xRead`,
 `sqlite3_module.xBestIndex`, and so on. Those are implementation-defined. `ksqlite-capi`,
 `ksqlite-kapi`, and any implementation added later each decide how to represent and wire up that
 part on their own, so this module doesn't attempt to abstract it.
+
+## Cipher types
+
+[SQLite3MultipleCiphers](https://github.com/utelle/SQLite3MultipleCiphers) is bundled with every
+build, adding transparent database encryption on top of SQLite. This module models its
+configuration surface.
+
+`SqliteMcCipher` identifies which cipher a parameter belongs to, the same
+[known and custom values](#known-and-custom-values) shape as `SqliteVtabConstraintOperatorCode`.
+`SqliteMcCodecType` is the known side, one `data object` per builtin cipher (`AES128`, `AES256`,
+`CHACHA20`, `SQLCIPHER`, `RC4`, `ASCON128`, `AEGIS`), each also a `sealed class` nesting its own
+`Param<Value>` cases, since builtin ciphers don't all take the same parameters. `Dynamic` is the
+custom side, keyed by whatever name a
+[dynamically registered cipher](https://utelle.github.io/SQLite3MultipleCiphers/docs/ciphers/cipher_dynamic/)
+was given, its `Parameter` accepting any `Int`, since a dynamic cipher's own parameters aren't
+known ahead of time.
+
+`SqliteMcConfigCipherParam<Cipher, Value>` ties a parameter to one specific `Cipher`, the same
+[narrowing](#narrowing-to-a-known-subset) pattern as `SqliteActionCode.RowChange`, so a `CHACHA20`
+parameter like `KDF_ITER` can't be paired with an `AES128` cipher, even though both are
+`SqliteMcCodecType`:
+
+```kotlin
+// ksqlite-capi
+val kdfIter = sqlite3mc_config_cipher(
+    db,
+    SqliteMcCodecType.CHACHA20,
+    SqliteMcCodecType.CHACHA20.KDF_ITER,
+    SqliteMcConfigParamPrefix.None
+)
+
+// doesn't compile: KDF_ITER is a SqliteMcConfigCipherParam<CHACHA20, Int>, AES128 isn't CHACHA20
+sqlite3mc_config_cipher(
+    db,
+    SqliteMcCodecType.AES128,
+    SqliteMcCodecType.CHACHA20.KDF_ITER,
+    SqliteMcConfigParamPrefix.None
+)
+```
+
+`SqliteMcConfigParamPrefix` controls whether a config function reads or writes the transient or
+permanent value (`None`/`Default`), or the valid range instead (`Min`/`Max`). Only `None` and
+`Default` extend `ReadWrite`, so `sqlite3mc_config()`/`sqlite3mc_config_cipher()`'s write overload
+only accepts one of those two, `Min`/`Max` are read-only by construction, not just by convention.
+
+`SqliteMcCipherDescriptor` and `SqliteMcCipherParams` are the same kind of type as
+[VFS and virtual table shapes](#vfs-and-virtual-table-shapes) above, plain interfaces over the
+`CipherDescriptor`/`CipherParams` C structs a dynamic cipher registers itself with. The
+function-pointer part, the actual cipher callbacks, is left to each API implementation.
+
+`SqliteMcLegacyPageSize`, one of the [Constants](#constants) group, lists the page sizes several
+ciphers' `LEGACY_PAGE_SIZE` parameter accepts.

@@ -23,9 +23,10 @@ import ksqlite.kapi.SQLiteException
 public fun interface WriteAheadLogHook {
 
     /**
-     * Details on parameters can be found [here](https://sqlite.org/c3ref/wal_hook.html).
+     * Called each time data is committed to [databaseName] of [connection] in WAL mode.
+     * [pageCount] is the number of frames the write-ahead log file now holds.
      *
-     * If an error is detected, then an [SQLiteException] must be thrown.
+     * If an error is detected, an [SQLiteException] must be thrown.
      */
     public fun apply(
         connection: DatabaseConnection,

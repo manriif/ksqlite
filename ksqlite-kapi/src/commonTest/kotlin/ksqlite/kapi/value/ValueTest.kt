@@ -16,7 +16,10 @@
 package ksqlite.kapi.value
 
 import ksqlite.kapi.buffer.Buffer
+import ksqlite.kapi.result.resultBoolean
 import ksqlite.kapi.runSqliteConnectionTest
+import ksqlite.kapi.statement.bindBoolean
+import ksqlite.kapi.statement.getBoolean
 import ksqlite.types.SqliteTextEncoding
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -26,7 +29,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * Tests [ProtectedValue], [UnprotectedValue], [DuplicatedValue] and [ValueReturnScope], all of
+ * Tests [ProtectedValue], [UnprotectedValue], [DuplicatedValue] and [ResultScope], all of
  * which can only be exercised through a live SQLite call (a bound parameter, a row, or a scalar
  * function invocation).
  */
@@ -44,11 +47,11 @@ class ValueTest {
             assertEquals(5, value.bytes)
             assertEquals("hello", value.getAsString())
             called = true
-            setResult(1)
+            resultInt(1)
         }
 
         connection.prepare("SELECT probe(?);").use { statement ->
-            statement.parameters.bind(1, "hello")
+            statement.parameters.bindString(1, "hello")
             statement.step()
         }
 
@@ -66,16 +69,53 @@ class ValueTest {
             assertEquals(42L, value.getAsLong())
             assertEquals(42.0, value.getAsDouble())
             called = true
-            setResult(1)
+            resultInt(1)
         }
 
         connection.prepare("SELECT probe(?);").use { statement ->
-            statement.parameters.bind(1, 42)
+            statement.parameters.bindInt(1, 42)
             statement.step()
         }
 
         assertTrue(called)
     }
+
+    @Test
+    fun protectedValueBooleanAccessorWorks() = runSqliteConnectionTest { _, connection ->
+        val seen = mutableListOf<Boolean>()
+
+        val registered = connection.createFunction("probe", 1, SqliteTextEncoding.UTF8) { arguments ->
+            seen.add(arguments[0].getAsBoolean())
+            resultInt(1)
+        }
+
+        connection.prepare("SELECT probe(?);").use { statement ->
+            statement.parameters.bindBoolean(1, true)
+            statement.step()
+        }
+
+        registered.close()
+        assertEquals(listOf(true), seen)
+    }
+
+    @Test
+    fun protectedValueBooleanAccessorThrowsForValueOtherThanZeroOrOne() =
+        runSqliteConnectionTest { _, connection ->
+            var thrown = false
+
+            val registered = connection.createFunction("probe", 1, SqliteTextEncoding.UTF8) { arguments ->
+                thrown = runCatching { arguments[0].getAsBoolean() }.isFailure
+                resultInt(1)
+            }
+
+            connection.prepare("SELECT probe(?);").use { statement ->
+                statement.parameters.bindInt(1, 2)
+                statement.step()
+            }
+
+            registered.close()
+            assertTrue(thrown)
+        }
 
     @Test
     fun protectedValueBlobAccessorsWork() = runSqliteConnectionTest { _, connection ->
@@ -87,11 +127,11 @@ class ValueTest {
             assertContentEquals(byteArrayOf(1, 2, 3), value.getAsByteArray())
             assertNotNull(value.getAsBuffer())
             called = true
-            setResult(1)
+            resultInt(1)
         }
 
         connection.prepare("SELECT probe(?);").use { statement ->
-            statement.parameters.bind(1, byteArrayOf(1, 2, 3))
+            statement.parameters.bindByteArray(1, byteArrayOf(1, 2, 3))
             statement.step()
         }
 
@@ -104,11 +144,11 @@ class ValueTest {
 
         connection.createFunction("probe", 1, SqliteTextEncoding.UTF8) { arguments ->
             duplicated = arguments[0].duplicate()
-            setResult(1)
+            resultInt(1)
         }
 
         connection.prepare("SELECT probe(?);").use { statement ->
-            statement.parameters.bind(1, 7)
+            statement.parameters.bindInt(1, 7)
             statement.step()
         }
 
@@ -126,11 +166,11 @@ class ValueTest {
 
         connection.createFunction("probe", 1, SqliteTextEncoding.UTF8) {
             probed = it[0]
-            setResult(1)
+            resultInt(1)
         }
 
         connection.prepare("SELECT probe(?);").use { statement ->
-            statement.parameters.bind(1, 7)
+            statement.parameters.bindInt(1, 7)
             statement.step()
         }
 
@@ -139,39 +179,43 @@ class ValueTest {
     }
 
     @Test
-    fun valueReturnScopeVariantsWork() = runSqliteConnectionTest { _, connection ->
+    fun resultScopeVariantsWork() = runSqliteConnectionTest { _, connection ->
         connection.createFunction("as_null", 0, SqliteTextEncoding.UTF8) {
-            setResult(null)
+            resultNull()
         }
 
         connection.createFunction("as_int", 0, SqliteTextEncoding.UTF8) {
-            setResult(42)
+            resultInt(42)
         }
 
         connection.createFunction("as_long", 0, SqliteTextEncoding.UTF8) {
-            setResult(42L)
+            resultLong(42L)
         }
 
         connection.createFunction("as_double", 0, SqliteTextEncoding.UTF8) {
-            setResult(4.2)
+            resultDouble(4.2)
         }
 
         connection.createFunction("as_text", 0, SqliteTextEncoding.UTF8) {
-            setResult("hi")
+            resultString("hi")
         }
 
         connection.createFunction("as_blob", 0, SqliteTextEncoding.UTF8) {
-            setResult(byteArrayOf(1, 2, 3))
+            resultByteArray(byteArrayOf(1, 2, 3))
         }
 
         connection.createFunction("as_zeroblob", 0, SqliteTextEncoding.UTF8) {
-            setResult(null, size = 3)
+            resultZeroBlob(size = 3)
+        }
+
+        connection.createFunction("as_bool", 0, SqliteTextEncoding.UTF8) {
+            resultBoolean(true)
         }
 
         connection.prepare(
             """
                 SELECT as_null(), as_int(), as_long(), as_double(), as_text(), as_blob(),
-                       as_zeroblob();
+                       as_zeroblob(), as_bool();
             """.trimIndent()
         ).use { statement ->
             val row = assertNotNull(statement.step())
@@ -182,15 +226,16 @@ class ValueTest {
             assertEquals("hi", row.getString(4))
             assertContentEquals(byteArrayOf(1, 2, 3), row.getByteArray(5))
             assertContentEquals(byteArrayOf(0, 0, 0), row.getByteArray(6))
+            assertEquals(true, row.getBoolean(7))
         }
     }
 
     @Test
-    fun valueReturnScopeBufferVariantsWork() = runSqliteConnectionTest { _, connection ->
+    fun resultScopeBufferVariantsWork() = runSqliteConnectionTest { _, connection ->
         connection.createFunction("as_buffer_blob", 0, SqliteTextEncoding.UTF8) {
             val buffer = Buffer.allocate(3)
             buffer.write(byteArrayOf(4, 5, 6), size = 3)
-            setResult(buffer)
+            resultBuffer(buffer)
         }
 
         connection.prepare("SELECT as_buffer_blob();").use { statement ->

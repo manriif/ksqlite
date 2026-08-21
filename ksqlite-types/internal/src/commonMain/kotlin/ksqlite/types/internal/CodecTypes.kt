@@ -36,7 +36,6 @@ private fun sqliteMcCodecTypes(): Set<SqliteMcCodecType> =
 /**
  * [SqliteMcCodecType]s associated by their integer code.
  */
-@PublishedApi
 internal val SqliteMcCodecTypeMap: Map<String, SqliteMcCodecType> =
     sqliteMcCodecTypes().associateBy(SqliteMcCodecType::name)
 

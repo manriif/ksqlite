@@ -17,7 +17,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.destroyMemory
 import ksqlite.capi.memory.toKStringFromUtf8OrNull
@@ -26,7 +26,7 @@ import ksqlite.foreign.sqlite3
 import ksqlite.types.vtab.SqliteVtab
 
 public actual open class sqlite3_vtab public actual constructor() :
-    ClosableStruct(s3_vtab.layout(), null, Application),
+    CloseableStruct(s3_vtab.layout(), null, Application),
     MemoryScope,
     SqliteVtab {
 

@@ -34,13 +34,11 @@ import ksqlite.capi.memory.Buffer as CapiBuffer
 /**
  * Region of native memory that can be read and written.
  *
- * [Buffer] does not provide any kind of thread-safety and external synchronization is required if
- * concurrent access is needed.
+ * This class provides no thread-safety of its own. Synchronize externally if the same instance is
+ * accessed from more than one thread.
  *
- * Attempting to alter the buffer while it is in use by SQLite will throw an
- * [IllegalStateException].
- *
- * The [Buffer] must be closed once no longer needed to release allocated resources.
+ * This buffer must be closed once no longer needed to release the memory it holds. Unless
+ * documented otherwise, every member throws [IllegalStateException] once it is closed.
  */
 public class Buffer internal constructor(capiBuffer: CapiBuffer) :
     ReadableBuffer(capiBuffer),
@@ -90,6 +88,8 @@ public class Buffer internal constructor(capiBuffer: CapiBuffer) :
      * negative.
      * @throws IndexOutOfBoundsException if the requested range is out of bounds in either [source]
      * or the native memory block.
+     * @throws BufferInUseException if SQLite is currently borrowing this buffer, for example as a
+     * bound statement parameter.
      */
     public fun write(
         source: ByteArray,
@@ -126,29 +126,34 @@ public class Buffer internal constructor(capiBuffer: CapiBuffer) :
     }
 
     /**
-     * Resizes this buffer to [newSize].
-     * If allocation fails, this buffer stays untouched.
+     * Resizes this buffer to [newSize]. The buffer is left untouched if allocation fails.
      *
-     * @throws ksqlite.kapi.SQLiteException if memory allocation failed.
+     * @throws IllegalArgumentException if [newSize] is not positive.
+     * @throws BufferInUseException if SQLite is currently borrowing this buffer, for example as a
+     * bound statement parameter.
+     * @throws ksqlite.kapi.SQLiteException if there is not enough memory available.
      */
     public fun resize(newSize: Int): Unit =
         resize(newSize.toLong()) { sqlite3_realloc(buffer, newSize) }
 
     /**
-     * Resizes this buffer to [newSize].
-     * If allocation fails, this buffer stays untouched.
+     * Resizes this buffer to [newSize]. The buffer is left untouched if allocation fails.
      *
-     * @throws ksqlite.kapi.SQLiteException if memory allocation failed.
+     * @throws IllegalArgumentException if [newSize] is not positive.
+     * @throws BufferInUseException if SQLite is currently borrowing this buffer, for example as a
+     * bound statement parameter.
+     * @throws ksqlite.kapi.SQLiteException if there is not enough memory available.
      */
     public fun resize(newSize: Long): Unit =
         resize(newSize) { sqlite3_realloc64(buffer, newSize) }
 
     /**
-     * Releases allocated resources.
+     * Releases the memory this buffer holds. Calling this again on an already closed buffer has no
+     * effect.
      *
-     * @throws BufferInUseException if the buffer is referenced by SQLite as a bind parameter value
-     * for example. The buffer is not closed in that case and this method can be called again once
-     * the buffer is no longer referenced.
+     * @throws BufferInUseException if SQLite is currently borrowing this buffer, for example as a
+     * bound statement parameter. The buffer is left open in that case, and this method can be
+     * called again once it is no longer borrowed.
      */
     override fun close() {
         if (!scope.closed) {
@@ -186,14 +191,20 @@ public class Buffer internal constructor(capiBuffer: CapiBuffer) :
         }
 
         /**
-         * Allocates a native memory region of [size] bytes and returns a [Buffer] that allows read
-         * and write operations on that region.
+         * Allocates a native memory region of [size] bytes and returns a [Buffer] for reading and
+         * writing it.
+         *
+         * @throws IllegalArgumentException if [size] is not positive.
+         * @throws ksqlite.kapi.SQLiteException if there is not enough memory available.
          */
         public fun allocate(size: Int): Buffer = allocate(size.toLong()) { sqlite3_malloc(size) }
 
         /**
-         * Allocates a native memory region of [size] bytes and returns a [Buffer] that allows read
-         * and write operations on that region.
+         * Allocates a native memory region of [size] bytes and returns a [Buffer] for reading and
+         * writing it.
+         *
+         * @throws IllegalArgumentException if [size] is not positive.
+         * @throws ksqlite.kapi.SQLiteException if there is not enough memory available.
          */
         public fun allocate(size: Long): Buffer = allocate(size) { sqlite3_malloc64(size) }
     }

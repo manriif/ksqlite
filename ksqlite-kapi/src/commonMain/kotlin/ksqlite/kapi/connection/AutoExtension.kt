@@ -24,10 +24,10 @@ import ksqlite.kapi.SQLiteException
 public fun interface AutoExtension {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/auto_extension.html).
+     * Called on every newly opened [connection], before [SQLite.open] returns it to the caller.
      *
-     * If an error is detected, then an [SQLiteException] should be thrown. Other exception types
-     * are not caught.
+     * If an error is detected, an [SQLiteException] should be thrown. Other exception types are
+     * not caught.
      */
     public fun apply(connection: DatabaseConnection)
 }

@@ -228,7 +228,7 @@ public expect fun sqlite3_bind_blob64(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a floating point value to an SQL statement variable.
  *
  * [sqlite3_bind_double()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -239,7 +239,7 @@ public expect fun sqlite3_bind_double(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a 32-bit signed integer value to an SQL statement variable.
  *
  * [sqlite3_bind_int()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -250,7 +250,7 @@ public expect fun sqlite3_bind_int(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a 64-bit signed integer value to an SQL statement variable.
  *
  * [sqlite3_bind_int64()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -261,7 +261,7 @@ public expect fun sqlite3_bind_int64(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a NULL value to an SQL statement variable.
  *
  * [sqlite3_bind_null()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -302,7 +302,7 @@ public expect fun sqlite3_bind_parameter_name(
 ): String?
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a pointer value to an SQL statement variable.
  *
  * [sqlite3_bind_pointer()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -315,7 +315,7 @@ public expect fun <Data> sqlite3_bind_pointer(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a text value to an SQL statement variable.
  *
  * [sqlite3_bind_text()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -326,7 +326,7 @@ public expect fun sqlite3_bind_text(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a text value to an SQL statement variable.
  *
  * [sqlite3_bind_text64()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -340,7 +340,7 @@ public expect fun sqlite3_bind_text64(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind the content of another [sqlite3_value] to an SQL statement variable.
  *
  * [sqlite3_bind_value()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -351,7 +351,7 @@ public expect fun sqlite3_bind_value(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a blob of [size] bytes, all set to zero, to an SQL statement variable.
  *
  * [sqlite3_bind_zeroblob()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -362,7 +362,7 @@ public expect fun sqlite3_bind_zeroblob(
 ): SqliteResultCode
 
 /**
- * Bind a blob value to an SQL statement variable.
+ * Bind a blob of [size] bytes, all set to zero, to an SQL statement variable.
  *
  * [sqlite3_bind_zeroblob64()](https://sqlite.org/c3ref/bind_blob.html)
  */
@@ -490,7 +490,7 @@ public fun sqlite3_busy_timeout(
  * it is currently on the list. If [callback] is not on the list, then this routine is a no-op.
  *
  * Return 1 if [callback] was found on the list and removed.
- * Return 0 if [callback]  was not on the list.
+ * Return 0 if [callback] was not on the list.
  *
  * [sqlite3_cancel_auto_extension()](https://sqlite.org/c3ref/cancel_auto_extension.html)
  */
@@ -767,8 +767,7 @@ public expect fun sqlite3_complete(sql: String): SqliteCompleteResult
 public expect fun sqlite3_config(option: SqliteConfigOption): SqliteResultCode
 
 /**
- * Extract the user data from a sqlite3_context structure and return a pointer to it.
- * Extract the user data from a sqlite3_context structure and return a pointer to it.
+ * Return the database connection handle associated with a given [sqlite3_context].
  *
  * [sqlite3_context_db_handle()](https://sqlite.org/c3ref/context_db_handle.html)
  */
@@ -880,7 +879,7 @@ public expect fun <AppData> sqlite3_create_function_v2(
  *
  * This function differs from sqlite3_create_module_v2() in the destroy parameter only.
  * sqlite3_create_module_v2() is used in place of sqlite3_create_module(). That being said, the
- * semantic of both functions is the same as (maybe ?) stated by SQLite.
+ * semantic of both functions is the same as stated by SQLite.
  */
 public fun <AppData> sqlite3_create_module(
     db: sqlite3,
@@ -1024,7 +1023,7 @@ public expect fun sqlite3_db_status64(
 ): SqliteResultCode
 
 /**
- * This function is used to set the schema of a virtual table. It is only  valid to call this
+ * This function is used to set the schema of a virtual table. It is only valid to call this
  * function from within the xCreate() or xConnect() of a virtual table module.
  *
  * [sqlite3_declare_vtab()](https://sqlite.org/c3ref/declare_vtab.html)
@@ -1035,7 +1034,7 @@ public expect fun sqlite3_declare_vtab(
 ): SqliteResultCode
 
 /**
- * Convert zSchema to a MemDB and initialize its content.
+ * Convert [database] to a MemDB and initialize its content.
  *
  * [sqlite3_deserialize()](https://sqlite.org/c3ref/deserialize.html)
  */
@@ -1245,7 +1244,7 @@ public inline fun <reified Data : Any> sqlite3_get_auxdata(
 public expect fun sqlite3_hard_heap_limit64(limit: Long): Long
 
 /**
- * Invokes the `sqlite3_initiliaze()`.
+ * Invokes the `sqlite3_initialize()`.
  */
 internal expect fun sqlite3_initialize_internal(): Int
 
@@ -1281,7 +1280,7 @@ internal expect fun sqlite3_initialize_internal(): Int
  * # Ksqlite
  *
  * Ksqlite disables cipher VFS, which are automatically enabled by SQLite3 Multiple Ciphers. If
- * encryption is required, the VFS must be explicitelly configured. See [sqlite3mc_vfs_create].
+ * encryption is required, the VFS must be explicitly configured. See [sqlite3mc_vfs_create].
  */
 public fun sqlite3_initialize(): SqliteResultCode {
     val result = convertResultCode(sqlite3_initialize_internal())
@@ -1947,7 +1946,7 @@ internal expect fun sqlite3_serialize_internal(
 /**
  * Return the serialization of a database.
  *
- * [serializeInternal()](https://sqlite.org/c3ref/serialize.html)
+ * [sqlite3_serialize()](https://sqlite.org/c3ref/serialize.html)
  */
 public fun sqlite3_serialize(
     db: sqlite3,
@@ -2555,7 +2554,7 @@ public expect fun sqlite3_vfs_register(
 /**
  * Unregister a VFS so that it is no longer accessible.
  *
- * [sqlite3_vfs_find()](https://sqlite.org/c3ref/vfs_find.html)
+ * [sqlite3_vfs_unregister()](https://sqlite.org/c3ref/vfs_find.html)
  */
 public expect fun sqlite3_vfs_unregister(vfs: sqlite3_vfs): SqliteResultCode
 
@@ -2644,7 +2643,7 @@ public expect fun sqlite3_vtab_nochange(context: sqlite3_context): Int
  *
  * The results of this routine are undefined unless it is called from  within an xUpdate method.
  *
- * [sqlite3_vtab_on_conflict()](https://sOnqlite.org/c3ref/vtab_on_conflict.html)
+ * [sqlite3_vtab_on_conflict()](https://sqlite.org/c3ref/vtab_on_conflict.html)
  */
 public expect fun sqlite3_vtab_on_conflict(db: sqlite3): SqliteConflictResolutionMode
 
@@ -2667,7 +2666,7 @@ public expect fun sqlite3_vtab_rhs_value(
  * a transaction if there are [nFrame] or more frames in the log file. Passing zero or a negative
  * value as the [nFrame] parameter disables automatic checkpoints entirely.
  *
- * The callback registered by this function replaces any existing callback egistered using
+ * The callback registered by this function replaces any existing callback registered using
  * [sqlite3_wal_hook]. Likewise, registering a callback using [sqlite3_wal_hook] disables the
  * automatic checkpoint mechanism configured by this function.
  *
@@ -2854,7 +2853,7 @@ internal expect fun sqlite3mc_config_cipher_internal(
  *
  * # Ksqlite
  *
- * This overload is for writing the value of [param].
+ * This overload is for reading the value of [param].
  * A [prefix] parameter has been added to reduce the risk of misuse.
  *
  * If an error occurs while querying or updating the value, then `null` is returned.

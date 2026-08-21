@@ -88,11 +88,23 @@ class VirtualTableTest {
     }
 
     @Test
-    fun deleteModuleWorks() = runSqliteConnectionTest { _, connection ->
-        val _ = connection.createKvModule("kv_delete")
+    fun closingARegisteredModuleRemovesIt() = runSqliteConnectionTest { _, connection ->
+        val recorder = KvModuleRecorder()
+
+        val module = object : VirtualTableModule.Eponymous() {
+            override fun VirtualTableCreateOrConnectScope.connect(
+                connection: DatabaseConnection,
+                arguments: Array<String>
+            ): VirtualTable {
+                declare("CREATE TABLE x(id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+                return KvVirtualTable(recorder)
+            }
+        }
+
+        val registration = connection.createModule("kv_delete", module = module)
         connection.execute("SELECT * FROM kv_delete;")
 
-        connection.deleteModule("kv_delete")
+        registration.close()
 
         assertFailsWith<SQLiteException> {
             connection.execute("SELECT * FROM kv_delete;")
@@ -236,7 +248,7 @@ class VirtualTableTest {
         // A global "tag" function must exist for SQLite to resolve calls to it at all; xFindFunction
         // is only consulted afterward to let the vtab offer an overload for its own column.
         connection.createFunction("tag", 1, SqliteTextEncoding.UTF8) { arguments ->
-            setResult("global:${requireNotNull(arguments[0].getAsString())}")
+            resultString("global:${requireNotNull(arguments[0].getAsString())}")
         }
 
         // Sanity check: without a vtab column argument, the global implementation runs unmodified.
@@ -279,12 +291,22 @@ class VirtualTableTest {
     }
 
     @Test
-    fun deleteModuleFailsOnceConnectionClosed() = runSqliteConnectionTest { _, connection ->
-        val _ = connection.createKvModule("kv_delete_closed")
+    fun closingARegisteredModuleIsANoOpOnceConnectionClosed() = runSqliteConnectionTest { _, connection ->
+        val module = object : VirtualTableModule.EponymousOnly() {
+            override fun VirtualTableCreateOrConnectScope.connect(
+                connection: DatabaseConnection,
+                arguments: Array<String>
+            ): VirtualTable {
+                declare("CREATE TABLE x(id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+                return KvVirtualTable(KvModuleRecorder())
+            }
+        }
+
+        val registration = connection.createModule("kv_delete_closed", module = module)
         connection.close()
 
-        assertFailsWith<IllegalStateException> {
-            connection.deleteModule("kv_delete_closed")
-        }
+        // The connection already tore everything down, closing the handle afterward is a no-op
+        // rather than a failure, the same as closing any other resource a second time.
+        registration.close()
     }
 }

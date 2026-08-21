@@ -18,14 +18,15 @@
 package ksqlite.kapi.config
 
 /**
- * Exposes SQLite configuration API.
- *
- * [Configurations Options](https://sqlite.org/c3ref/c_config_covering_index_scan.html)
+ * The full set of SQLite's [configuration options](https://sqlite.org/c3ref/c_config_covering_index_scan.html),
+ * available only inside the `configure` block passed to [ksqlite.kapi.SQLite.initialize], before
+ * SQLite is initialized. [AnyTimeConfiguration] exposes the smaller subset still changeable
+ * afterward.
  */
 public interface ConfigurationScope : AnyTimeConfiguration {
 
     /**
-     * Whether the ability for VIEWs to have ROWIDs is activated.
+     * Whether views may have a ROWID.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
@@ -84,14 +85,16 @@ public interface ConfigurationScope : AnyTimeConfiguration {
     public fun setCoveringIndexScanEnabled(enabled: Boolean)
 
     /**
-     * Sets the logging interface for SQL logging.
+     * Sets the [SqlLogger] that receives every connection's open, statement execution and close
+     * events for the rest of the SQLite session, or `null` to stop logging.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
     public fun setSqlLogger(logger: SqlLogger?)
 
     /**
-     * Sets the default mmap size limit a,d the maximum allowed mmap size limit.
+     * Sets the default mmap size limit, [sz], and the maximum allowed mmap size limit, [mx], for
+     * every connection opened from now on.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
@@ -115,14 +118,15 @@ public interface ConfigurationScope : AnyTimeConfiguration {
     public fun setStatementJournalSpillThreshold(nByte: Int)
 
     /**
-     * Sets wheter SQLite should avoid large memory allocations if possible.
+     * Sets whether SQLite should avoid large memory allocations if possible.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */
     public fun setSmallMallocEnabled(enabled: Boolean)
 
     /**
-     * Sets the default maximum size for an in-memory database created using `sqlite3_deserialize()`.
+     * Sets the default maximum size for an in-memory database created by deserializing a
+     * previously serialized one.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */

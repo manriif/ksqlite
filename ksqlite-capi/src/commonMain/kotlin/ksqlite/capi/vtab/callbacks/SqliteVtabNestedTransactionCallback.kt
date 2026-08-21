@@ -19,7 +19,7 @@ import ksqlite.capi.vtab.sqlite3_vtab
 import ksqlite.types.SqliteResultCode
 
 /**
- * This method provide the virtual table implementation an opportunity to implement nested
+ * This method provides the virtual table implementation an opportunity to implement nested
  * transactions.
  *
  * When xSavepoint(X,N) is invoked, that is a signal to the virtual table X that it should save its
@@ -29,7 +29,7 @@ import ksqlite.types.SqliteResultCode
  * be rolled back or released without first being reinitialized by a call to xSavepoint(). A call to
  * xRelease(X,M) invalidates all savepoints where N>=M.
  *
- * [The xBegin Method](https://sqlite.org/vtab.html#the_xsavepoint_xrelease_and_xrollbackto_methods)
+ * [The xSavepoint, xRelease, and xRollbackTo Methods](https://sqlite.org/vtab.html#the_xsavepoint_xrelease_and_xrollbackto_methods)
  */
 public fun interface SqliteVtabNestedTransactionCallback<Vtab : sqlite3_vtab> {
 

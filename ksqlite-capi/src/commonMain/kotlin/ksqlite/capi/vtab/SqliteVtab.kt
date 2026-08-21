@@ -17,7 +17,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.types.vtab.SqliteVtab
 
@@ -29,7 +29,7 @@ import ksqlite.types.vtab.SqliteVtab
  *
  * [sqlite3_vtab](https://sqlite.org/c3ref/vtab.html)
  */
-public expect open class sqlite3_vtab() : ClosableStruct, MemoryScope, SqliteVtab {
+public expect open class sqlite3_vtab() : CloseableStruct, MemoryScope, SqliteVtab {
 
     override val nRef: Int
     override var errMsg: String?

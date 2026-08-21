@@ -426,6 +426,7 @@ SQLITE_OPT.common += -DSQLITE_MAX_EXPR_DEPTH=0
 SQLITE_OPT.common += -DSQLITE_OMIT_AUTOINIT
 SQLITE_OPT.common += -DSQLITE_STRICT_SUBTYPE=1
 SQLITE_OPT.common += -DSQLITE_USE_URI
+SQLITE_OPT.common += -DSQLITE3MC_ENABLE_VLE=1
 
 #
 # Currently always needed but TODO is paring tester1.c-pp.js down

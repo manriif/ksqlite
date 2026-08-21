@@ -112,6 +112,7 @@ val SqliteDefinitions = mapOf(
     "SQLITE_TEMP_STORE" to "2",
     "SQLITE_STRICT_SUBTYPE" to "1",
     "SQLITE_USE_URI" to "1",
+    "SQLITE3MC_ENABLE_VLE" to "1",
 )
 
 val SqliteCompilerOptions = listOf(

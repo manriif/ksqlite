@@ -44,7 +44,7 @@ public actual open class Struct internal constructor(internal open val pointer: 
     }
 }
 
-public actual open class ClosableStruct internal constructor(
+public actual open class CloseableStruct internal constructor(
     pointer: COpaquePointer,
     private val owner: PointerOwner,
 ) : Struct(pointer),

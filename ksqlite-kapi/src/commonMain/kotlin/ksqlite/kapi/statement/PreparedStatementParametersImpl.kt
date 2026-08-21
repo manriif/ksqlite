@@ -60,19 +60,19 @@ internal class PreparedStatementParametersImpl(
     private inline fun bind(block: () -> SqliteResultCode) =
         scope.notClosed { sqliteResultCheck(block()) }
 
-    override fun bind(index: Int, value: Nothing?): Unit =
+    override fun bindNull(index: Int): Unit =
         bind { sqlite3_bind_null(stmt, index) }
 
-    override fun bind(index: Int, value: Nothing?, size: Int) =
+    override fun bindZeroBlob(index: Int, size: Int) =
         bind { sqlite3_bind_zeroblob(stmt, index, size) }
 
-    override fun bind(index: Int, value: Nothing?, size: ULong) =
-        bind { sqlite3_bind_zeroblob64(stmt, index, size) }
+    override fun bindZeroBlob(index: Int, size: Long) =
+        bind { sqlite3_bind_zeroblob64(stmt, index, size.toULong()) }
 
-    override fun bind(index: Int, value: ByteArray, size: Int) =
+    override fun bindByteArray(index: Int, value: ByteArray, size: Int) =
         bind { sqlite3_bind_blob(stmt, index, value, size, null) }
 
-    override fun bind(
+    override fun bindBuffer(
         index: Int,
         value: Buffer,
         size: Long,
@@ -87,19 +87,19 @@ internal class PreparedStatementParametersImpl(
         )
     }
 
-    override fun bind(index: Int, value: Int) =
+    override fun bindInt(index: Int, value: Int) =
         bind { sqlite3_bind_int(stmt, index, value) }
 
-    override fun bind(index: Int, value: Long) =
+    override fun bindLong(index: Int, value: Long) =
         bind { sqlite3_bind_int64(stmt, index, value) }
 
-    override fun bind(index: Int, value: Double) =
+    override fun bindDouble(index: Int, value: Double) =
         bind { sqlite3_bind_double(stmt, index, value) }
 
-    override fun bind(index: Int, value: String) =
+    override fun bindString(index: Int, value: String) =
         bind { sqlite3_bind_text(stmt, index, value) }
 
-    override fun bind(
+    override fun bindText(
         index: Int,
         value: Buffer,
         encoding: SqliteTextEncoding.BindText,
@@ -116,10 +116,10 @@ internal class PreparedStatementParametersImpl(
         )
     }
 
-    override fun bind(index: Int, value: Value) =
+    override fun bindValue(index: Int, value: Value) =
         bind { sqlite3_bind_value(stmt, index, value.value) }
 
-    override fun bind(index: Int, value: Any, type: String?) =
+    override fun bindPointer(index: Int, value: Any, type: String?) =
         bind { sqlite3_bind_pointer(stmt, index, value, type, autoCloser(value)) }
 
     override fun clear() = scope.notClosed {

@@ -32,7 +32,7 @@ public interface KsqliteWasm {
      * The test runner used by the application.
      * Can be set to null to not generate a configuration for the runner.
      *
-     * Default to null.
+     * Defaults to null.
      */
     public val testRunner: Property<WasmTestRunner>
 }

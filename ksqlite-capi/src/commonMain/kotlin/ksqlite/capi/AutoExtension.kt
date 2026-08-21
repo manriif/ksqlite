@@ -77,7 +77,7 @@ internal inline fun autoExtensionReset(invoke: () -> Unit) {
 }
 
 /**
- * Handles the  for [sqlite3_auto_extension].
+ * Handles the dispatch for [sqlite3_auto_extension].
  * Dispatches sqlite3_auto_extension call to all registered extensions.
  */
 internal fun <Pointer> autoExtensionHandle(

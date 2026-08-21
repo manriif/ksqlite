@@ -15,8 +15,9 @@
  */
 package ksqlite.kapi.snapshot
 
-import ksqlite.kapi.runSqliteWalFileTest
+import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.connection.DatabaseConnection
+import ksqlite.kapi.runSqliteWalFileTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -107,26 +108,38 @@ class SnapshotTest {
         connection2.close()
     }
 
+    @Test
+    fun createSnapshotFailsWithoutReadTransaction() =
+        runSqliteWalFileTest("kapi-snapshot-no-transaction.db") { sqlite, path ->
+            val connection = sqlite.open(path)
+            connection.execute("PRAGMA journal_mode=WAL;")
+            connection.execute("CREATE TABLE test(id INTEGER);")
+
+            assertFailsWith<SQLiteException> { connection.createSnapshot() }
+            connection.close()
+        }
+
     ///////////////////////////////////////////////////////////////////////////
     // Closed snapshot violations
     ///////////////////////////////////////////////////////////////////////////
 
     @Test
-    fun operationsFailOnceClosed() = runSqliteWalFileTest("kapi-snapshot-closed.db") { sqlite, path ->
-        val connection = sqlite.open(path)
-        connection.execute("PRAGMA journal_mode=WAL;")
-        connection.execute("CREATE TABLE test(id INTEGER);")
+    fun operationsFailOnceClosed() =
+        runSqliteWalFileTest("kapi-snapshot-closed.db") { sqlite, path ->
+            val connection = sqlite.open(path)
+            connection.execute("PRAGMA journal_mode=WAL;")
+            connection.execute("CREATE TABLE test(id INTEGER);")
 
-        connection.execute("BEGIN;")
-        val snapshot = connection.createSnapshot()
-        connection.execute("COMMIT;")
+            connection.execute("BEGIN;")
+            val snapshot = connection.createSnapshot()
+            connection.execute("COMMIT;")
 
-        snapshot.close()
-        // Closing again is a no-op
-        snapshot.close()
+            snapshot.close()
+            // Closing again is a no-op
+            snapshot.close()
 
-        assertFailsWith<IllegalStateException> { snapshot.compareTo(snapshot) }
+            assertFailsWith<IllegalStateException> { snapshot.compareTo(snapshot) }
 
-        connection.close()
-    }
+            connection.close()
+        }
 }

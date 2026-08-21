@@ -19,6 +19,7 @@ import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.runSqliteConnectionDataTest
 import ksqlite.kapi.runSqliteConnectionTest
 import ksqlite.kapi.runSqliteWalFileTest
+import ksqlite.types.SqliteTextEncoding
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -265,6 +266,14 @@ class DatabaseConnectionTest {
     fun operationsFailOnceClosed() = runSqliteConnectionTest { _, connection ->
         connection.close()
 
+        assertFailsWith<IllegalStateException> {
+            connection.createCollation("noop", SqliteTextEncoding.UTF8) { _, _ -> 0 }
+        }
+
+        assertFailsWith<IllegalStateException> {
+            connection.createFunction("noop", 0, SqliteTextEncoding.UTF8) { resultInt(0) }
+        }
+
         assertFailsWith<IllegalStateException> { connection.changes }
         assertFailsWith<IllegalStateException> { connection.isAutocommit }
         assertFailsWith<IllegalStateException> { connection.isInterrupted }
@@ -277,7 +286,6 @@ class DatabaseConnectionTest {
         assertFailsWith<IllegalStateException> { connection.setBusyTimeout(0) }
         assertFailsWith<IllegalStateException> { connection.setCollationNeeded(null) }
         assertFailsWith<IllegalStateException> { connection.setCommitHook(null) }
-        assertFailsWith<IllegalStateException> { connection.deleteModule("does_not_exist") }
         assertFailsWith<IllegalStateException> { connection.flushCache() }
         assertFailsWith<IllegalStateException> { connection.getFileName() }
         assertFailsWith<IllegalStateException> { connection.getName(0) }
@@ -302,7 +310,7 @@ class DatabaseConnectionTest {
         assertFailsWith<IllegalStateException> { connection.setUpdateHook(null) }
         assertFailsWith<IllegalStateException> { connection.config.isForeignKeyEnabled }
         assertFailsWith<IllegalStateException> { connection.lastError.message }
-        assertFailsWith<IllegalStateException> { connection.fileControl.getDataVersion() }
+        assertFailsWith<IllegalStateException> { connection.fileControl.dataVersion }
         assertFailsWith<IllegalStateException> { connection.wal.autoCheckpoint(1) }
     }
 }

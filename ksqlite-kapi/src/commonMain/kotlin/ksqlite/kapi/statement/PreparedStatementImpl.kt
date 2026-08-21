@@ -24,6 +24,7 @@ import ksqlite.capi.sqlite3_stmt
 import ksqlite.capi.sqlite3_stmt_explain
 import ksqlite.capi.sqlite3_stmt_status
 import ksqlite.kapi.connection.DatabaseConnection
+import ksqlite.kapi.connection.impl
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.helpers.sqliteResultThrow
 import ksqlite.types.SqliteExplainMode
@@ -56,7 +57,7 @@ internal class PreparedStatementImpl(
                 null
             }
 
-            is Failure -> sqliteResultThrow(code, null)
+            is Failure -> sqliteResultThrow(code, connection.impl.db)
             else -> error("Unexpected SQLite result code: $code") // SQLITE_OK
         }
     }
@@ -65,14 +66,22 @@ internal class PreparedStatementImpl(
         notClosed { sqlite3_stmt_status(stmt, counter, if (reset) 1 else 0) }
 
     override fun reset(): Unit = notClosed {
-        sqliteResultCheck(sqlite3_reset(stmt))
+        val result = sqlite3_reset(stmt)
         lastRow.exchange(null)?.close()
+
+        if (result is Failure) {
+            sqliteResultThrow(result, connection.impl.db)
+        }
     }
 
     override fun onClose() {
-        sqliteResultCheck(sqlite3_finalize(stmt))
+        val result = sqlite3_finalize(stmt)
         lastRow.exchange(null)?.close()
         listener.onStatementClosed(this)
+
+        if (result is Failure) {
+            sqliteResultThrow(result, connection.impl.db)
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////

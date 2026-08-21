@@ -7,8 +7,10 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![API](https://img.shields.io/badge/API-dokka-green)][ksqlite_docs]
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.manriif.ksqlite/ksqlite-capi?label=Maven%20Central&logo=apache-maven&color=teal)](https://central.sonatype.com/artifact/io.github.manriif.ksqlite/ksqlite-capi)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-purple.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20--RC-purple.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![SQLite](https://img.shields.io/badge/SQLite-3.53.4-white.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
+[![SQLite Multiple Ciphers](https://img.shields.io/badge/SQLite%20Multiple%20Ciphers-2.5.0-red.svg)](https://utelle.github.io/SQLite3MultipleCiphers/)
 
 ![platform-jvm](https://img.shields.io/badge/platform-jvm-DB413D.svg?style=flat)
 ![platform-android](https://img.shields.io/badge/platform-android-6EDB8D.svg?style=flat)
@@ -111,7 +113,7 @@ Every Kotlin target is supported, including simulators, except `wasmWasi`:
   see [Sqlite.kt](compile-logic/src/main/kotlin/Sqlite.kt) for the (non-exhaustive) list of common 
   compile options
 - Every build includes [SQLite3MultipleCiphers](https://github.com/utelle/SQLite3MultipleCiphers),
-  full encryption support is on its way, see [Project state](#project-state)
+  full encryption support across every target
 
 ### SQLite feature coverage
 
@@ -125,6 +127,28 @@ Every Kotlin target is supported, including simulators, except `wasmWasi`:
 - Snapshot API
 - Write-ahead log API
 - Virtual tables: regular, eponymous, eponymous-only
+
+### SQLite3 Multiple Ciphers feature coverage
+
+- Complete support of the public C functions
+- Full encryption: `sqlite3_key()`/`sqlite3_key_v2()`, `sqlite3_rekey()`/`sqlite3_rekey_v2()`
+- Per-value (column) encryption via
+  [Value Level Encryption](https://utelle.github.io/SQLite3MultipleCiphers/docs/features/feat_vle/)
+- All builtin ciphers: wxSQLite3 (AES 128/256), sqleet (ChaCha20-Poly1305), SQLCipher (AES 256), 
+  System.Data.SQLite (RC4), Ascon (Ascon-128), AEGIS
+- Custom cipher written in Kotlin via 
+  [Dynamic cipher](https://utelle.github.io/SQLite3MultipleCiphers/docs/ciphers/cipher_dynamic/),
+  up to 4 concurrently registered
+- Per-connection and per-cipher configuration: `sqlite3mc_config()`/`sqlite3mc_config_cipher()`
+- Cipher registry and per-connection encryption state introspection:
+  `sqlite3mc_cipher_count()`/`sqlite3mc_cipher_index()`/`sqlite3mc_cipher_name()`,
+  `sqlite3mc_codec_data()`
+- VFS operations: `sqlite3mc_vfs_create()`/`sqlite3mc_vfs_destroy()`/`sqlite3mc_vfs_shutdown()`
+
+> [!IMPORTANT]
+> Unlike SQLite3 Multiple Ciphers' own default, its cipher-aware VFS isn't automatically enabled
+> here. A cipher VFS, if something needs one, has to be created and selected first, see each 
+> implementation's own Encryption section.
 
 ### What Ksqlite adds
 
@@ -146,9 +170,8 @@ missing from the source, it simply hasn't been implemented yet.
 ### UTF-8 only
 
 None of SQLite's UTF-16 routines are exposed. This isn't really a limitation, more a choice:
-adding UTF-16 support on every target is extra work, though some platforms would genuinely
-benefit from it. See [Project state](#project-state) for the current per-target picture and
-notes on picking it up.
+adding UTF-16 support on every target is extra work, though some platforms would genuinely benefit 
+from it. See [Project state](#project-state) for the current per-target picture and notes on picking it up.
 
 ### Virtual tables
 
@@ -165,24 +188,22 @@ time, though not many are expected at this point.
 - Mastering the SQLite build across every target
 - The one-to-one mapping in `ksqlite-capi`
 - The object-oriented API in `ksqlite-kapi`
+- Encryption via the bundled
+  [SQLite3MultipleCiphers API](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/),
+  across every target
 
 **Planned:**
 
-- Stabilizing `ksqlite-kapi`
+- Proxy API, third implementation sitting next to `ksqlite-capi` and `ksqlite-kapi`, a requirement 
+  for using Ksqlite in a WebWorker or even remotely
 - [WASM OPFS](https://sqlite.org/wasm/doc/trunk/persistence.md) support, plus WAL mode
-- A proxy API (client/server), a requirement for WASM OPFS
-- A `suspend` API, for the two cases that actually call for it: a `ksqlite-kapi` wrapper for local
-  SQLite, and a proxy wrapper for non-local SQLite, WebWorkers included
-- The full 
-  [SQLite3MultipleCiphers API](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/),
-  enabling encryption on every target (its own pragmas shouldn't be relied on until then)
 - Wrapper functions in `ksqlite.h`/`ksqlite.c`, to cut native call round-trips during large queries
 
 **Not planned:**
 
 - Deprecated SQLite APIs
 - Dynamic string APIs (`kotlin.String` and string templates already cover this)
-- Mutex APIs (the JVM has its own, Kotlin/Native has third-party libraries for it)
+- Mutex APIs
 - Windows-specific APIs
 - UTF-16 support
 - VFS support
@@ -243,7 +264,7 @@ though 😈
 
 ## Choosing an implementation
 
-Multiple implementations are available, and at least one more is coming.
+Multiple implementations, covering the same set of features, are available.
 
 Every implementation goes through a native call, which costs a few nanoseconds each time. That's
 irrelevant for a handful of rows, but caching a value read out of an interop call starts to
@@ -283,7 +304,7 @@ object-oriented API on top of.
 > For Android and JVM, Ksqlite can be loaded eagerly by initializing SQLite at the desired time 
 > (for example, at application startup).
 
-### [`ksqlite-kapi`](ksqlite-kapi/README.md) (experimental, untested)
+### [`ksqlite-kapi`](ksqlite-kapi/README.md)
 
 One of infinitely many possible object-oriented APIs for SQLite.
 
@@ -301,9 +322,9 @@ One of infinitely many possible object-oriented APIs for SQLite.
 - Throws `IllegalStateException` when accessing a closed resource, or attempting an operation
   with potentially undesirable side effects
 
-`ksqlite-kapi` is generally simpler and safer than `ksqlite-capi`, though `try`/`catch` may
-still be everywhere in your code, like with any SQLite library. It should be your default
-choice, unless you target Wasm and need OPFS. That still needs the third module.
+`ksqlite-kapi` is generally simpler and safer than `ksqlite-capi`, though `try`/`catch` may still be
+everywhere in your code, like with any SQLite library. It should be your default choice, unless you
+target Wasm and need OPFS. That still needs the third module.
 
 ## Requirements
 
@@ -319,8 +340,8 @@ choice, unless you target Wasm and need OPFS. That still needs the third module.
 
 SQLite's C API relies on 64-bit integers throughout, row ids included. To keep that precision
 consistent with every other target, Ksqlite enables a 64-bit WASM build, so those values cross the
-JS↔WASM boundary as native `BigInt`. Kotlin/JS's `Long` doesn't use that representation by
-default, and mixing the two crashes at runtime.
+JS↔WASM boundary as native `BigInt`. Kotlin/JS's `Long` doesn't use that representation by default, 
+and mixing the two crashes at runtime.
 
 Consuming projects need `useEsModules()`, and may need to enable `BigInt` support too:
 
@@ -427,19 +448,16 @@ val db = sqlite.open(":memory:")
 db.execute("CREATE TABLE fruits(name TEXT NOT NULL);")
 
 db.prepare("INSERT INTO fruits VALUES (?);").use { insert ->
-    insert.parameters.bind(1, "Kiwi")
+    insert.parameters.bindString(1, "Kiwi")
     insert.step()
 }
 
-val select = db.prepare("SELECT name FROM fruits;")
-var row: Row? = select.step()
-
-while (row != null) {
-    println(row.getString(0))
-    row = select.step()
+db.prepare("SELECT name FROM fruits;").use { select ->
+    select.forEachRow { row ->
+        println(row.getString(0))
+    }
 }
 
-select.close()
 db.close()
 sqlite.close()
 ```
@@ -472,6 +490,9 @@ See its README for how to enable a test runner, or for more detail on what the p
 | [`ksqlite-foreign/ffm`](ksqlite-foreign/ffm)           | Java FFM bindings for ksqlite on desktop JVM.                                         |
 | [`ksqlite-foreign/jni`](ksqlite-foreign/jni)           | JNI bindings for ksqlite on Android.                                                  |
 | [`ksqlite-foreign/wasm`](ksqlite-foreign/wasm)         | Kotlin external bindings for the ksqlite WASM build.                                  |
+| [`ksqlite-structs`](ksqlite-structs)                   | Struct memory-layout machinery for `ksqlite-foreign/jni` and `ksqlite-foreign/wasm`.  |
+| [`ksqlite-internal/runtime`](ksqlite-internal/runtime) | Internal code shared between whichever modules need it.                               |
+| [`ksqlite-internal/test`](ksqlite-internal/test)       | Shared test utilities for whichever modules need it.                                  |
 
 ## Contributing
 

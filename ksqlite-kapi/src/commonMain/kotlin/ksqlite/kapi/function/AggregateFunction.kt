@@ -15,6 +15,7 @@
  */
 package ksqlite.kapi.function
 
+import ksqlite.kapi.result.Result
 import ksqlite.kapi.value.ProtectedValue
 
 /**
@@ -23,15 +24,14 @@ import ksqlite.kapi.value.ProtectedValue
 public interface AggregateFunction : Function {
 
     /**
-     * This method is invoked to add a row to the current window. The function [arguments], if any,
-     * corresponds to the row being added.
+     * Adds a row to the current window. [arguments], if any, correspond to the row being added.
      */
     public fun AggregateFunctionStepScope.step(arguments: Array<ProtectedValue>)
 
     /**
-     * This method is invoked to return the current value of the aggregate (determined by the
-     * contents of the current window), and to free any resources allocated by earlier calls to
-     * [step].
+     * Returns the current value of the aggregate, determined by the contents of the current
+     * window, and frees any resources allocated by earlier calls to [step]. The returned
+     * [Result] must come from calling one of the receiver's result methods.
      */
-    public fun AggregateFunctionFinalScope.final()
+    public fun AggregateFunctionFinalScope.final(): Result
 }

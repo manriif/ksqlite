@@ -88,8 +88,8 @@ public abstract class Int32TransformOutputParam<T : Any> internal constructor() 
 /**
  * Throws if [value] is not null.
  *
- * Allowing reuse of pointer based [OutputParam] would require to initialize a pointer to the value
- * it is currently holding. There is currently not such use case.
+ * Allowing reuse of a pointer based [OutputParam] would require initializing a pointer to the
+ * value it is currently holding. There is currently no such use case.
  */
 internal fun ensurePointerInitialValueIsNull(value: Any?) {
     check(value == null) {

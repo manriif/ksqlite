@@ -25,9 +25,9 @@ package ksqlite.kapi.vtab
 public interface VirtualTableConfiguration {
 
     /**
-     * Sets whether the virtual table implementation guarantees that if xUpdate returns
-     * SQLITE_CONSTRAINT, it will do so before any modifications to internal or persistent data
-     * structures have been made.
+     * Sets whether the virtual table implementation guarantees that when an update fails due to
+     * a constraint violation, it does so before making any change to internal or persistent
+     * data structures.
      */
     public fun setConstraintSupportEnabled(enabled: Boolean)
 
@@ -39,7 +39,7 @@ public interface VirtualTableConfiguration {
     /**
      * Prohibits the use of the virtual table from within triggers and views.
      */
-    public fun setDirectonly()
+    public fun setDirectOnly()
 
     /**
      * Instructs the query planner to begin at least a read transaction on all schemas ("main",

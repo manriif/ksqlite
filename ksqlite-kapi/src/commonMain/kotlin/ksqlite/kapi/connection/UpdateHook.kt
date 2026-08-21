@@ -23,7 +23,8 @@ import ksqlite.types.SqliteActionCode
 public fun interface UpdateHook {
 
     /**
-     * Details on parameters can be found [here](https://sqlite.org/c3ref/update_hook.html).
+     * Called after a row identified by [rowid] is inserted, updated or deleted in [tableName] of
+     * [databaseName]. [action] identifies the kind of change.
      */
     public fun apply(
         action: SqliteActionCode.RowChange,

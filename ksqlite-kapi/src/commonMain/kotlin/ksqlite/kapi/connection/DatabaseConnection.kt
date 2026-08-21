@@ -40,9 +40,11 @@ import ksqlite.types.SqliteTransactionState
 import ksqlite.types.vtab.SqliteModuleVersion
 
 /**
- * Exposes the [Database Connection](https://sqlite.org/c3ref/sqlite3.html) and the associated
- * [Encryption](https://utelle.github.io/SQLite3MultipleCiphers/docs/configuration/config_capi/)
- * APIs.
+ * A [database connection](https://sqlite.org/c3ref/sqlite3.html), opened through
+ * [ksqlite.kapi.SQLite.open].
+ *
+ * Unless documented otherwise, every member throws [IllegalStateException] once this connection
+ * is closed.
  */
 public sealed interface DatabaseConnection : AutoCloseable {
 
@@ -73,7 +75,7 @@ public sealed interface DatabaseConnection : AutoCloseable {
     public val lastError: LastError
 
     /**
-     * File control object that allows direct call to the xFileControl.
+     * Low-level file control operations on the underlying VFS.
      */
     public val fileControl: FileControl
 
@@ -113,7 +115,8 @@ public sealed interface DatabaseConnection : AutoCloseable {
     public fun setAutovacuumPages(handler: AutovacuumPages?)
 
     /**
-     * Opens a [Blob].
+     * Opens the [Blob] for incremental I/O on column [columnName] of the row [rowid] in table
+     * [tableName], in [database]. [flags] controls whether the blob is opened for writing.
      *
      * @throws ksqlite.kapi.SQLiteException if opening the blob fails.
      */
@@ -122,7 +125,7 @@ public sealed interface DatabaseConnection : AutoCloseable {
         columnName: String,
         rowid: Long,
         database: String = SQLITE_MAIN_DB_NAME,
-        flags: SqliteBlobOpenFlag = SqliteBlobOpenFlag.READONLY
+        flags: SqliteBlobOpenFlag = SqliteBlobOpenFlag.READWRITE
     ): Blob
 
     /**
@@ -142,151 +145,140 @@ public sealed interface DatabaseConnection : AutoCloseable {
     public fun setBusyTimeout(millis: Int)
 
     /**
-     * Sets the callback that get invoked whenever an undefined collation sequence is required.
+     * Sets the callback invoked whenever an undefined collation sequence is required.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
     public fun setCollationNeeded(handler: CollationNeeded?)
 
     /**
-     * Sets the callback that get invoked whenever an undefined collation sequence is required.
+     * Sets the callback invoked right before a transaction commits.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
     public fun setCommitHook(handler: CommitHook?)
 
     /**
-     * Creates or replaces a collation.
+     * Creates the collation [name], or replaces it if one was already created with that name and
+     * [encoding], backed by [collation].
      *
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
+    @IgnorableReturnValue
     public fun createCollation(
         name: String,
         encoding: SqliteTextEncoding.CreateCollation,
         collation: Collation
-    )
+    ): Registration
 
     /**
-     * Deletes the collation created using the same parameters.
-     *
-     * @throws ksqlite.kapi.SQLiteException if an error happened while deleting the collation.
-     */
-    public fun deleteCollation(
-        name: String,
-        encoding: SqliteTextEncoding.CreateCollation
-    )
-
-    /**
-     * Creates or updates a scalar function.
+     * Creates the scalar function `name(argumentCount)`, or replaces it if one was already
+     * created with the same name, argument count and encoding, and returns a handle that removes
+     * it again once closed.
      *
      * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
      */
+    @IgnorableReturnValue
     public fun createFunction(
         name: String,
         argumentCount: Int,
         encoding: SqliteFunctionTextEncoding,
         function: ScalarFunction
-    )
+    ): Registration
 
     /**
-     * Creates or updates an aggregate function.
+     * Creates the aggregate function `name(argumentCount)`, or replaces it if one was already
+     * created with the same name, argument count and encoding, and returns a handle that removes
+     * it again once closed.
      *
      * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
      */
+    @IgnorableReturnValue
     public fun createFunction(
         name: String,
         argumentCount: Int,
         encoding: SqliteFunctionTextEncoding,
         function: AggregateFunction
-    )
+    ): Registration
 
     /**
-     * Creates or updates a window function.
+     * Creates the window function `name(argumentCount)`, or replaces it if one was already
+     * created with the same name, argument count and encoding, and returns a handle that removes
+     * it again once closed.
      *
      * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
      */
+    @IgnorableReturnValue
     public fun createFunction(
         name: String,
         argumentCount: Int,
         encoding: SqliteFunctionTextEncoding,
         function: WindowFunction
-    )
+    ): Registration
 
     /**
-     * Deletes the function that was created with the same arguments.
-     * If the function is a window function, then [isWindowFunction] should be set to `true`.
-     *
-     * @throws ksqlite.kapi.SQLiteException if an error happened while deleting the function.
-     */
-    public fun deleteFunction(
-        name: String,
-        argumentCount: Int,
-        encoding: SqliteFunctionTextEncoding,
-        isWindowFunction: Boolean = false
-    )
-
-    /**
-     * Creates or replaces a virtual table module.
+     * Creates the virtual table module [name], or replaces it if one was already created with
+     * that name, and returns a handle that removes it again once closed. [module] must implement
+     * its `create` and `connect` functions differently, since SQLite only creates the backing
+     * table once but connects to it every time it is referenced.
      *
      * @throws ksqlite.kapi.SQLiteException if an error happened while creating the module.
      */
+    @IgnorableReturnValue
     public fun createModule(
         name: String,
         version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.Regular
-    )
+    ): Registration
 
     /**
-     * Creates or replaces a virtual table module.
+     * Creates the virtual table module [name], or replaces it if one was already created with
+     * that name, and returns a handle that removes it again once closed. The table [module]
+     * connects to can either be referenced directly by [name] in SQL, with no
+     * `CREATE VIRTUAL TABLE` needed, or explicitly created like a [VirtualTableModule.Regular]
+     * one.
      *
      * @throws ksqlite.kapi.SQLiteException if an error happened while creating the module.
      */
+    @IgnorableReturnValue
     public fun createModule(
         name: String,
         version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.Eponymous
-    )
+    ): Registration
 
     /**
-     * Creates or replaces a virtual table module.
+     * Creates the virtual table module [name], or replaces it if one was already created with
+     * that name, and returns a handle that removes it again once closed. The table [module]
+     * connects to can only be referenced directly by [name] in SQL, `CREATE VIRTUAL TABLE` is not
+     * supported for it.
      *
      * @throws ksqlite.kapi.SQLiteException if an error happened while creating the module.
      */
+    @IgnorableReturnValue
     public fun createModule(
         name: String,
         version: SqliteModuleVersion = SqliteModuleVersion.VERSION_4,
         module: VirtualTableModule.EponymousOnly
-    )
+    ): Registration
 
     /**
-     * Deletes the module for [name].
-     *
-     * @throws ksqlite.kapi.SQLiteException if an error happened while deleting the module.
-     */
-    public fun deleteModule(name: String)
-
-    /**
-     * Deletes all the modules excepts those that get their name listed in [keep].
-     *
-     * @throws ksqlite.kapi.SQLiteException if an error happened while deleting the modules.
-     */
-    public fun deleteModules(keep: Set<String>)
-
-    /**
-     * Writes any dirty pages in the pager-cache that are not currently in use. The operation only
-     * take places if there is a write-transaction open at the time this function is called.
+     * Writes any dirty pages in the pager cache that are not currently in use. The operation only
+     * takes place if there is a write transaction open at the time this function is called.
      *
      * @throws ksqlite.kapi.SQLiteException if the operation fails.
      */
     public fun flushCache()
 
     /**
-     * Returns the absolute pathname of the database [database] of this connection.
+     * Returns the absolute pathname of [database], or `null` for a temporary or in-memory
+     * database.
      */
     public fun getFileName(database: String = SQLITE_MAIN_DB_NAME): FileName?
 
     /**
-     * Returns the schema name for the [index]th database on this connection.
+     * Returns the schema name of the database at the 0-based [index], `main` being `0`, or `null`
+     * if there is no database at that index.
      */
     public fun getName(index: Int): String?
 
@@ -306,7 +298,8 @@ public sealed interface DatabaseConnection : AutoCloseable {
     public fun releaseMemory()
 
     /**
-     * Returns the status for the given options.
+     * Returns the current value and high-water mark for [option], resetting the high-water mark
+     * afterward if [reset] is `true`.
      */
     public fun getStatus(
         option: SqliteDbStatusOption,
@@ -326,14 +319,15 @@ public sealed interface DatabaseConnection : AutoCloseable {
      */
     public fun deserialize(
         serializedDatabase: Buffer,
-        database: String? = null,
+        database: String = SQLITE_MAIN_DB_NAME,
         databaseSize: Long = serializedDatabase.byteSize,
         bufferSize: Long = databaseSize,
         flags: SqliteDeserializeFlag? = null
     )
 
     /**
-     * Enables or disables the extended result codes.
+     * Enables or disables extended result codes, which report failures in more detail than the
+     * primary [ksqlite.types.SqliteResultCode] alone.
      *
      * @throws ksqlite.kapi.SQLiteException if the operation fails.
      */
@@ -357,7 +351,12 @@ public sealed interface DatabaseConnection : AutoCloseable {
     public fun interrupt()
 
     /**
-     * Sets the database key to use when accessing an encrypted database.
+     * Sets the key used to access an encrypted database.
+     *
+     * This connection must have been opened through a cipher virtual file system for encryption
+     * to actually take effect, see [ksqlite.kapi.cipher.CipherVirtualFileSystemManager]. Setting
+     * a key on a connection opened through a plain virtual file system fails with a generic
+     * error rather than a clear one.
      *
      * @throws ksqlite.kapi.SQLiteException if an error happened while setting the key.
      */
@@ -398,7 +397,8 @@ public sealed interface DatabaseConnection : AutoCloseable {
     public fun setPreupdateHook(handler: PreupdateHook?)
 
     /**
-     * Sets the callback that is invoked periodically during long-running calls.
+     * Sets [handler] to be invoked every [operationCount] internal VM instructions during
+     * long-running calls, or clears it if [operationCount] is not positive.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
@@ -410,6 +410,11 @@ public sealed interface DatabaseConnection : AutoCloseable {
     /**
      * Changes the database encryption key.
      *
+     * For a dynamic cipher, the cipher must be selected again through
+     * [ksqlite.kapi.cipher.CipherConfiguration.setCipher] right before calling this, even if it
+     * was already selected earlier on the same connection. Otherwise this silently does nothing
+     * instead of failing.
+     *
      * @throws ksqlite.kapi.SQLiteException if an error happened while setting the key.
      */
     public fun setReKey(
@@ -419,22 +424,25 @@ public sealed interface DatabaseConnection : AutoCloseable {
     )
 
     /**
-     * Sets the callback that get invoked whenever a transaction is rolled back.
+     * Sets the callback invoked whenever a transaction is rolled back.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
     public fun setRollbackHook(handler: RollbackHook?)
 
     /**
-     * Returns a [Buffer] that is a serialization of the given [database].
+     * Serializes [database] into a [SerializeResult]. Whether the returned buffer is owned by
+     * SQLite or by the caller depends on [flags], see [SerializeResult.Immutable] and
+     * [SerializeResult.Mutable].
      */
     public fun serialize(
         flags: SqliteSerializeFlag? = null,
-        database: String? = null
+        database: String = SQLITE_MAIN_DB_NAME
     ): SerializeResult
 
     /**
-     * Sets the callback that get invoked whenever an SQL statements is being compiled by [prepare].
+     * Sets the callback invoked while an SQL statement is being compiled by [prepare], once per
+     * action it would perform, to allow or deny each one.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
@@ -480,8 +488,8 @@ public sealed interface DatabaseConnection : AutoCloseable {
     ): TableColumnMetadata
 
     /**
-     * Sets the callback that get invoked whenever any of the events identified by [eventCodes]
-     * occur.
+     * Sets the callback invoked whenever any of the events identified by [eventCodes] occur, or
+     * clears it if [eventCodes] is `null`.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
      */
@@ -505,3 +513,55 @@ public sealed interface DatabaseConnection : AutoCloseable {
      */
     public fun setUpdateHook(handler: UpdateHook?)
 }
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Convenience overload of [createCollation] using UTF-8 encoding, the only one currently
+ * supported.
+ *
+ * @throws ksqlite.kapi.SQLiteException if setting the handler fails.
+ */
+@IgnorableReturnValue
+public fun DatabaseConnection.createCollation(
+    name: String,
+    collation: Collation
+): Registration = createCollation(name, SqliteTextEncoding.UTF8, collation)
+
+/**
+ * Convenience overload of [createFunction] using UTF-8 encoding, the only one currently supported.
+ *
+ * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
+ */
+@IgnorableReturnValue
+public fun DatabaseConnection.createFunction(
+    name: String,
+    argumentCount: Int,
+    function: ScalarFunction
+): Registration = createFunction(name, argumentCount, SqliteTextEncoding.UTF8, function)
+
+/**
+ * Convenience overload of [createFunction] using UTF-8 encoding, the only one currently supported.
+ *
+ * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
+ */
+@IgnorableReturnValue
+public fun DatabaseConnection.createFunction(
+    name: String,
+    argumentCount: Int,
+    function: AggregateFunction
+): Registration = createFunction(name, argumentCount, SqliteTextEncoding.UTF8, function)
+
+/**
+ * Convenience overload of [createFunction] using UTF-8 encoding, the only one currently supported.
+ *
+ * @throws ksqlite.kapi.SQLiteException if an error happened while creating the function.
+ */
+@IgnorableReturnValue
+public fun DatabaseConnection.createFunction(
+    name: String,
+    argumentCount: Int,
+    function: WindowFunction
+): Registration = createFunction(name, argumentCount, SqliteTextEncoding.UTF8, function)

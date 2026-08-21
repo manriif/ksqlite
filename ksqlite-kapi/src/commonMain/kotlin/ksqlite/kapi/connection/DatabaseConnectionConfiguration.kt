@@ -54,8 +54,8 @@ public interface DatabaseConnectionConfiguration {
     public var isLoadExtensionEnabled: Boolean
 
     /**
-     * Whether the checkpoint performed by SQLite before closing the connection and deleting the WAL
-     * file, after a dababase connection is closed or detached, is enabled.
+     * Whether the checkpoint SQLite performs before closing the connection and deleting the WAL
+     * file, after a database connection is closed or detached, is disabled.
      *
      * @throws ksqlite.kapi.SQLiteException if getting or setting the option fails.
      */
@@ -107,7 +107,7 @@ public interface DatabaseConnectionConfiguration {
     public var isDoubleQuotedStringDmlEnabled: Boolean
 
     /**
-     * Whether the llegacy double-quoted string literal misfeature is enabled for DDL statements,
+     * Whether the legacy double-quoted string literal misfeature is enabled for DDL statements,
      * such as CREATE TABLE and CREATE INDEX.
      *
      * @throws ksqlite.kapi.SQLiteException if getting or setting the option fails.
@@ -154,7 +154,7 @@ public interface DatabaseConnectionConfiguration {
 
     /**
      * Whether the ability of the ATTACH DATABASE SQL command to create a new database file if the
-     * database filed named in the ATTACH command does not already exist is enabled.
+     * database file named in the ATTACH command does not already exist is enabled.
      *
      * @throws ksqlite.kapi.SQLiteException if getting or setting the option fails.
      */
@@ -178,6 +178,8 @@ public interface DatabaseConnectionConfiguration {
     /**
      * Number of significant digits that SQLite will attempt to preserve when converting floating
      * point numbers (IEEE 754 "doubles") into text.
+     *
+     * @throws ksqlite.kapi.SQLiteException if getting or setting the option fails.
      */
     public var floatingPointDigits: Int
 
@@ -189,7 +191,7 @@ public interface DatabaseConnectionConfiguration {
     public fun setMainDatabaseName(name: String)
 
     /**
-     * Enables of disables the database reset mode.
+     * Enables or disables the database reset mode.
      *
      * @throws ksqlite.kapi.SQLiteException if setting the option fails.
      */

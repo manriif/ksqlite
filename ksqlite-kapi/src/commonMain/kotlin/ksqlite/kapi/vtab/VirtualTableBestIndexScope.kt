@@ -24,18 +24,22 @@ import ksqlite.types.vtab.SqliteIndexInfo
 public interface VirtualTableBestIndexScope {
 
     /**
-     * Returns an integer value between 0 and 3 that help determining if the query is distinct.
+     * Integer between 0 and 3 that helps determine whether the query is distinct.
      */
     public val distinct: Int
 
     /**
      * Returns the name of the collation sequence to use for text comparisons on the constraint
-     * the received [SqliteIndexInfo] and constraint at [index].
+     * at [index] of the received [SqliteIndexInfo].
      */
     public fun collation(index: Int): String
 
     /**
-     * Returns `true` if the [index]th constraint is a IN() constraint, or `false` otherwise.
+     * Declares to SQLite whether the [index]th constraint is an IN() constraint, and if
+     * [handle] is non-zero, that this virtual table intends to iterate its right-hand-side
+     * values one at a time through [VirtualTableFilterScope.inFirst] and
+     * [VirtualTableFilterScope.inNext] instead of having SQLite expand them upfront. Returns
+     * `true` if the constraint is indeed an IN() constraint.
      */
     public fun isIn(
         index: Int,
@@ -43,7 +47,8 @@ public interface VirtualTableBestIndexScope {
     ): Boolean
 
     /**
-     * Returns the right-hand-side value for the [index]th constraint.
+     * Returns the right-hand-side value of the [index]th constraint, or `null` if it is not
+     * known yet.
      */
     public fun rhsValue(index: Int): ProtectedValue?
 }

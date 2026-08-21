@@ -19,7 +19,7 @@ package ksqlite.capi.vtab
 
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.pointed
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.capi.memory.MemoryScope
 import ksqlite.capi.memory.destroyMemory
 import ksqlite.capi.memory.toKStringFromUtf8
@@ -29,7 +29,7 @@ import ksqlite.types.vtab.SqliteVtab
 
 public actual open class sqlite3_vtab
 private constructor(override val pointer: CPointer<s3_vtab>) :
-    ClosableStruct(pointer, Application),
+    CloseableStruct(pointer, Application),
     MemoryScope,
     SqliteVtab {
 

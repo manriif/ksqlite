@@ -16,8 +16,10 @@
 package ksqlite.kapi.statement
 
 import ksqlite.kapi.buffer.ReadableBuffer
+import ksqlite.kapi.throwSQLiteException
 import ksqlite.kapi.value.UnprotectedValue
 import ksqlite.types.SqliteDataType
+import ksqlite.types.SqliteResultCode
 
 /**
  * Exposes the API to extract values from an SQLite row.
@@ -28,7 +30,7 @@ import ksqlite.types.SqliteDataType
 public interface Row {
 
     /**
-     * Returns the number of column in the current row of the result set.
+     * Returns the number of columns in the current row of the result set.
      */
     public val dataCount: Int
 
@@ -68,13 +70,13 @@ public interface Row {
     public fun getSize(index: Int): Int
 
     /**
-     * Returns the value of the column at [index] as a [ByteArray] or `null` in the value cannot be
-     * converted to a [ByteArray].
+     * Returns the value of the column at [index] as a [ByteArray], or `null` if the value cannot
+     * be converted to a [ByteArray].
      */
     public fun getByteArray(index: Int): ByteArray?
 
     /**
-     * Returns the value of the column at [index] as a [ReadableBuffer] or `null` in the value
+     * Returns the value of the column at [index] as a [ReadableBuffer], or `null` if the value
      * cannot be converted to a [ReadableBuffer].
      */
     public fun getBuffer(index: Int): ReadableBuffer?
@@ -95,14 +97,34 @@ public interface Row {
     public fun getLong(index: Int): Long
 
     /**
-     * Returns the value of the column at [index] as a [String] or `null` in the value cannot be
+     * Returns the value of the column at [index] as a [String], or `null` if the value cannot be
      * converted to a [String].
      */
     public fun getString(index: Int): String?
 
     /**
-     * Returns the value of the column at [index] as an [UnprotectedValue ]or `null` in the value
-     * cannot be converted to a [ByteArray].
+     * Returns the value of the column at [index] as an [UnprotectedValue], or `null` if [index]
+     * is out of range.
      */
     public fun getValue(index: Int): UnprotectedValue?
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the value of the column at [index] as a [Boolean], using SQLite's own convention for
+ * booleans, `1` for `true` and `0` for `false`, since SQLite has no dedicated boolean storage
+ * class.
+ *
+ * @throws ksqlite.kapi.SQLiteException if the value is neither `0` nor `1`.
+ */
+public fun Row.getBoolean(index: Int): Boolean = when (val value = getInt(index)) {
+    0 -> false
+    1 -> true
+    else -> throwSQLiteException(
+        "Expected 0 or 1 for a boolean value, got $value",
+        SqliteResultCode.MISMATCH
+    )
 }

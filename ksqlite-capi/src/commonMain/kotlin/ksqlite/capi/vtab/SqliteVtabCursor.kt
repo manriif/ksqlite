@@ -17,7 +17,7 @@
 
 package ksqlite.capi.vtab
 
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.types.vtab.SqliteVtabCursor
 
 /**
@@ -38,4 +38,4 @@ import ksqlite.types.vtab.SqliteVtabCursor
  *
  * Subclasser may pass the typed [sqlite3_vtab] as a constructor parameter if necessary.
  */
-public expect open class sqlite3_vtab_cursor() : ClosableStruct, SqliteVtabCursor
+public expect open class sqlite3_vtab_cursor() : CloseableStruct, SqliteVtabCursor

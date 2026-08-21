@@ -1,13 +1,13 @@
 [versions]
 
 # Project version
-ksqlite = "0.0.3"
+ksqlite = "0.0.4"
 
 # Android
 android-ndk = "29.0.14206865"
 android-sdk-compile = "36"
 android-sdk-min = "21"
-android-gradlePlugin = "9.3.1"
+android-gradlePlugin = "9.3.2"
 
 # Apple
 apple-macos-min = "10.13"
@@ -26,9 +26,9 @@ jvm-toolchain-ffm = "22"
 androidx-testRunner = "1.7.0"
 cmake = "3.22.1"
 dokka = "2.2.0"
-kotlin = "2.4.20-Beta2"
+kotlin = "2.4.20-RC"
 kotlinx-coroutines = "1.11.0"
-kotlin-wrappers = "2026.7.7"
+kotlin-wrappers = "2026.8.4"
 sqlite = "3.53.4"
 sqliteMultipleCiphers = "2.5.0"
 sqliteReleaseYear = "2026"

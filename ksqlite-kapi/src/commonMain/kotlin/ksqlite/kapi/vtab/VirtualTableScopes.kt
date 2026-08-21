@@ -31,10 +31,11 @@ import ksqlite.capi.sqlite3_vtab_rhs_value
 import ksqlite.capi.vtab.sqlite3_index_info
 import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 import ksqlite.kapi.helpers.ContextCloseableScope
+import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.helpers.sqliteResultCheck
+import ksqlite.kapi.result.ResultScope
+import ksqlite.kapi.result.ResultScopeImpl
 import ksqlite.kapi.value.ProtectedValue
-import ksqlite.kapi.value.ValueReturnScope
-import ksqlite.kapi.value.ValueReturnScopeImpl
 import ksqlite.kapi.value.toProtectedValue
 import ksqlite.types.SqliteConflictResolutionMode
 import ksqlite.types.SqliteResultCode
@@ -48,7 +49,7 @@ internal class VirtualTableCreateOrConnectScopeImpl(private val db: sqlite3) :
     override val config = VirtualTableConfigurationImpl(db, this)
 
     override fun declare(sql: String) =
-        notClosed { sqliteResultCheck(sqlite3_declare_vtab(db, sql)) }
+        notClosed { db.resultCheck(sqlite3_declare_vtab(db, sql)) }
 
     override fun overloadFunction(name: String, argumentCount: Int) =
         notClosed { sqliteResultCheck(sqlite3_overload_function(db, name, argumentCount)) }
@@ -82,7 +83,7 @@ internal class VirtualTableBestIndexScopeImpl(
 
 internal class VirtualTableColumnScopeImpl(private val scope: ContextCloseableScope) :
     VirtualTableColumnScope,
-    ValueReturnScope by ValueReturnScopeImpl(scope) {
+    ResultScope by ResultScopeImpl(scope) {
 
     override val nochange: Boolean
         get() = scope.notClosed { sqlite3_vtab_nochange(scope.context) != 0 }

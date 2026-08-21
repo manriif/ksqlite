@@ -23,7 +23,11 @@ import ksqlite.types.SqliteActionCode
 public fun interface PreupdateHook {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/preupdate_blobwrite.html).
+     * Called before a row is inserted, updated or deleted in [tableName] of [databaseName] on
+     * [connection]. [action] identifies the kind of change. [oldRowid] is the rowid of the row
+     * before the change and [newRowid] the rowid it will have afterward, both are only meaningful
+     * for the [action] they apply to. The receiver [PreupdateHookScope] gives access to the old
+     * and new column values.
      */
     public fun PreupdateHookScope.apply(
         connection: DatabaseConnection,

@@ -45,12 +45,12 @@ internal class FileNameImpl(
     override fun getKey(index: Int): String? =
         scope.notClosed { sqlite3_uri_key(filename, index) }
 
-    override fun geValue(parameter: String): String? =
+    override fun getValue(parameter: String): String? =
         scope.notClosed { sqlite3_uri_parameter(filename, parameter) }
 
-    override fun geValue(parameter: String, default: Boolean): Boolean =
+    override fun getValue(parameter: String, default: Boolean): Boolean =
         scope.notClosed { sqlite3_uri_boolean(filename, parameter, if (default) 1 else 0) != 0 }
 
-    override fun geValue(parameter: String, default: Long): Long =
+    override fun getValue(parameter: String, default: Long): Long =
         scope.notClosed { sqlite3_uri_int64(filename, parameter, default) }
 }

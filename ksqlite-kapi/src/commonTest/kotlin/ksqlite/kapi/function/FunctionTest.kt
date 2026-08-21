@@ -16,6 +16,8 @@
 package ksqlite.kapi.function
 
 import ksqlite.kapi.SQLiteException
+import ksqlite.kapi.connection.createFunction
+import ksqlite.kapi.result.Result
 import ksqlite.kapi.runSqliteConnectionTest
 import ksqlite.kapi.value.ProtectedValue
 import ksqlite.types.SqliteTextEncoding
@@ -31,15 +33,32 @@ import kotlin.test.assertTrue
 class FunctionTest {
 
     @Test
+    fun createFunctionDefaultsToUtf8Encoding() = runSqliteConnectionTest { _, connection ->
+        val registered = connection.createFunction("triple", 1) { arguments ->
+            resultInt(arguments[0].getAsInt() * 3)
+        }
+
+        var result: String? = null
+
+        connection.execute("SELECT triple(14);") { _, values, _ ->
+            result = values[0]
+            false
+        }
+
+        assertEquals("42", result)
+        registered.close()
+    }
+
+    @Test
     fun scalarFunctionWorks() = runSqliteConnectionTest { _, connection ->
         var destructorCalled = false
         var callCount = 0
 
         val function = object : ScalarFunction {
 
-            override fun ScalarFunctionFuncScope.func(arguments: Array<ProtectedValue>) {
+            override fun ScalarFunctionFuncScope.func(arguments: Array<ProtectedValue>): Result {
                 callCount++
-                setResult(arguments[0].getAsInt() + arguments[1].getAsInt())
+                return resultInt(arguments[0].getAsInt() + arguments[1].getAsInt())
             }
 
             override fun close() {
@@ -47,7 +66,7 @@ class FunctionTest {
             }
         }
 
-        connection.createFunction("add_ints", 2, SqliteTextEncoding.UTF8, function)
+        val registration = connection.createFunction("add_ints", 2, SqliteTextEncoding.UTF8, function)
 
         connection.execute("CREATE TABLE numbers(a INTEGER, b INTEGER);")
         connection.execute("INSERT INTO numbers VALUES (1, 2), (10, 20);")
@@ -62,7 +81,7 @@ class FunctionTest {
         assertEquals(listOf(3, 30), results)
         assertEquals(2, callCount)
 
-        connection.deleteFunction("add_ints", 2, SqliteTextEncoding.UTF8)
+        registration.close()
         assertTrue(destructorCalled)
     }
 
@@ -80,13 +99,13 @@ class FunctionTest {
             }
         }
 
-        connection.createFunction("scaled", 2, SqliteTextEncoding.UTF8) { arguments ->
+        val registration = connection.createFunction("scaled", 2, SqliteTextEncoding.UTF8) { arguments ->
             val multiplier = getOrCreateAuxData(1) {
                 computeCount++
                 Multiplier(arguments[1].getAsInt())
             }
 
-            setResult(arguments[0].getAsInt() * multiplier.value)
+            resultInt(arguments[0].getAsInt() * multiplier.value)
         }
 
         connection.execute("CREATE TABLE numbers(a INTEGER);")
@@ -104,14 +123,14 @@ class FunctionTest {
         // its auxiliary data is computed once and reused.
         assertEquals(1, computeCount)
 
-        connection.deleteFunction("scaled", 2, SqliteTextEncoding.UTF8)
+        registration.close()
         assertEquals(1, destroyCount)
     }
 
     @Test
     fun scalarFunctionErrorPropagates() = runSqliteConnectionTest { _, connection ->
         connection.createFunction("fail", 0, SqliteTextEncoding.UTF8) {
-            setResultError("Something went wrong")
+            resultError("Something went wrong")
         }
 
         assertFailsWith<SQLiteException> {
@@ -128,8 +147,8 @@ class FunctionTest {
                 sum[0] += arguments[0].getAsInt()
             }
 
-            override fun AggregateFunctionFinalScope.final() {
-                setResult(getContextOrNull<IntArray>()?.get(0) ?: 0)
+            override fun AggregateFunctionFinalScope.final(): Result {
+                return resultInt(getContextOrNull<IntArray>()?.get(0) ?: 0)
             }
         }
 
@@ -149,13 +168,46 @@ class FunctionTest {
     }
 
     @Test
+    fun createFunctionDefaultsToUtf8EncodingForAPrebuiltFunctionValue() =
+        runSqliteConnectionTest { _, connection ->
+            val function = object : AggregateFunction {
+
+                override fun AggregateFunctionStepScope.step(arguments: Array<ProtectedValue>) {
+                    val sum = getOrCreateAggregateContext { intArrayOf(0) }
+                    sum[0] += arguments[0].getAsInt()
+                }
+
+                override fun AggregateFunctionFinalScope.final(): Result {
+                    return resultInt(getContextOrNull<IntArray>()?.get(0) ?: 0)
+                }
+            }
+
+            // Passing a pre-built function value, rather than a trailing lambda, is the case the
+            // no-encoding overload has to work as an extension: a plain positional call can't skip
+            // a required parameter, only a trailing lambda bound to the very last one can.
+            connection.createFunction("total", 1, function)
+
+            connection.execute("CREATE TABLE numbers(a INTEGER);")
+            connection.execute("INSERT INTO numbers VALUES (1), (2), (3);")
+
+            var result: Int? = null
+
+            connection.execute("SELECT total(a) FROM numbers;") { _, values, _ ->
+                result = assertNotNull(values[0]).toInt()
+                false
+            }
+
+            assertEquals(6, result)
+        }
+
+    @Test
     fun aggregateFunctionWithNoRowsReturnsDefault() = runSqliteConnectionTest { _, connection ->
         val function = object : AggregateFunction {
 
             override fun AggregateFunctionStepScope.step(arguments: Array<ProtectedValue>) = Unit
 
-            override fun AggregateFunctionFinalScope.final() {
-                setResult(getContextOrNull<IntArray>()?.get(0) ?: -1)
+            override fun AggregateFunctionFinalScope.final(): Result {
+                return resultInt(getContextOrNull<IntArray>()?.get(0) ?: -1)
             }
         }
 
@@ -190,12 +242,12 @@ class FunctionTest {
                 }
             }
 
-            override fun AggregateFunctionFinalScope.final() {
-                setResult(getContextOrNull<IntArray>()?.get(0) ?: 0)
+            override fun AggregateFunctionFinalScope.final(): Result {
+                return resultInt(getContextOrNull<IntArray>()?.get(0) ?: 0)
             }
 
-            override fun AggregateFunctionFinalScope.value() {
-                setResult(getContextOrNull<IntArray>()?.get(0) ?: 0)
+            override fun AggregateFunctionFinalScope.value(): Result {
+                return resultInt(getContextOrNull<IntArray>()?.get(0) ?: 0)
             }
         }
 
@@ -221,8 +273,31 @@ class FunctionTest {
     }
 
     @Test
-    fun deleteFunctionOnUnknownFunctionIsANoOp() = runSqliteConnectionTest { _, connection ->
-        // Deleting a function that was never registered is not an error in SQLite.
-        connection.deleteFunction("does_not_exist", 0, SqliteTextEncoding.UTF8)
+    fun closingAFunctionRegistrationTwiceIsANoOp() = runSqliteConnectionTest { _, connection ->
+        val registration = connection.createFunction("once", 0, SqliteTextEncoding.UTF8) {
+            resultInt(1)
+        }
+
+        registration.close()
+        registration.close()
+    }
+
+    @Test
+    fun closingAReplacedFunctionRegistrationIsANoOp() = runSqliteConnectionTest { _, connection ->
+        val first = connection.createFunction("dup", 0, SqliteTextEncoding.UTF8) { resultInt(1) }
+        val second = connection.createFunction("dup", 0, SqliteTextEncoding.UTF8) { resultInt(2) }
+
+        // `first` was already replaced by `second`, closing it must not delete `second`'s function.
+        first.close()
+
+        var result: String? = null
+
+        connection.execute("SELECT dup();") { _, values, _ ->
+            result = values[0]
+            false
+        }
+
+        assertEquals("2", result)
+        second.close()
     }
 }

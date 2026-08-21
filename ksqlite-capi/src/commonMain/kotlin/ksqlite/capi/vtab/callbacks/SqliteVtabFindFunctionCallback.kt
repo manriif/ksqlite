@@ -21,8 +21,10 @@ import ksqlite.capi.vtab.sqlite3_vtab
 import ksqlite.types.vtab.SqliteVtabConstraintOperatorCode
 
 /**
- * This method releases a connection to a virtual table, just like the xDisconnect method, and it
- * also findFunctions the underlying table implementation. This method undoes the work of xCreate.
+ * This method is called during query planning to give a virtual table the opportunity to
+ * override the global SQL function identified by `functionName` and `argumentCount` with its
+ * own, more efficient implementation. If the function should not be overridden,
+ * [Scope.doNotOverload] is used instead.
  *
  * [The xFindFunction Method](https://sqlite.org/vtab.html#the_xfindfunction_method)
  */

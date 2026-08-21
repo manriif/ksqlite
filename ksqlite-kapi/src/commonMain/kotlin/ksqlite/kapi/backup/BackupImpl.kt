@@ -15,6 +15,7 @@
  */
 package ksqlite.kapi.backup
 
+import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_backup
 import ksqlite.capi.sqlite3_backup_finish
 import ksqlite.capi.sqlite3_backup_init
@@ -26,12 +27,14 @@ import ksqlite.capi.sqlite3_errmsg
 import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
 import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.kapi.connection.impl
-import ksqlite.kapi.helpers.sqliteResultCheck
+import ksqlite.kapi.helpers.resultCheck
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.types.SqliteResultCode
 
-internal class BackupImpl(private val backup: sqlite3_backup) :
-    Backup,
+internal class BackupImpl(
+    private val destinationDb: sqlite3,
+    private val backup: sqlite3_backup
+) : Backup,
     UnsafeCloseableScope() {
 
     override val pageCount: Int
@@ -41,9 +44,9 @@ internal class BackupImpl(private val backup: sqlite3_backup) :
         get() = notClosed { sqlite3_backup_remaining(backup) }
 
     override fun step(count: Int) =
-        notClosed { sqliteResultCheck(sqlite3_backup_step(backup, count)) }
+        notClosed { destinationDb.resultCheck(sqlite3_backup_step(backup, count)) }
 
-    override fun onClose() = sqliteResultCheck(sqlite3_backup_finish(backup))
+    override fun onClose() = destinationDb.resultCheck(sqlite3_backup_finish(backup))
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -75,5 +78,5 @@ internal fun createBackup(
         throwSQLiteException(message, result)
     }
 
-    return BackupImpl(backup)
+    return BackupImpl(destinationDb, backup)
 }

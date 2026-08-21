@@ -39,7 +39,7 @@ public actual open class Struct internal constructor(internal val pointer: Memor
     }
 }
 
-public actual open class ClosableStruct private constructor(
+public actual open class CloseableStruct private constructor(
     private val originalPointer: MemorySegment,
     reinterpretedPointer: MemorySegment,
     private val owner: PointerOwner,

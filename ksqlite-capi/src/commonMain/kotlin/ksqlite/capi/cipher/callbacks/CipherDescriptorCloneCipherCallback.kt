@@ -16,8 +16,8 @@
 package ksqlite.capi.cipher.callbacks
 
 /**
- * This function creates of clone of a given cipher scheme, typically used to derive the write
- * cipher scheme from the write cipher scheme.
+ * This function creates a clone of a given cipher scheme, typically used to derive the write
+ * cipher scheme from the read cipher scheme.
  *
  * [CipherDescriptor](https://utelle.github.io/SQLite3MultipleCiphers/docs/ciphers/cipher_dynamic/#cipher-descriptor)
  */

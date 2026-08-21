@@ -23,6 +23,10 @@ import ksqlite.capi.memory.ReadableBuffer as CapiReadableBuffer
 
 /**
  * Region of native memory that can be read.
+ *
+ * Some instances, such as ones obtained while reading a row or a function argument, are only
+ * valid for as long as the resource they came from is. Reading from one after that resource was
+ * released throws [IllegalStateException].
  */
 public open class ReadableBuffer internal constructor(
     internal open val buffer: CapiReadableBuffer,
@@ -71,13 +75,12 @@ public open class ReadableBuffer internal constructor(
 ///////////////////////////////////////////////////////////////////////////
 
 /**
- * Reads [size] bytes from the native memory block and returns a [ByteArray] holding them.
- *
- * The read starts at [offset] in the native memory region and writes into the returned [ByteArray].
+ * Reads [size] bytes from the native memory block, starting at [offset], and returns them as a
+ * new [ByteArray].
  *
  * @throws IllegalArgumentException if [size] or [offset] is negative.
- * @throws IndexOutOfBoundsException if the requested range is out of bounds in either the
- * native memory block or the returned [ByteArray].
+ * @throws IndexOutOfBoundsException if the requested range is out of bounds in the native memory
+ * block.
  */
 public fun ReadableBuffer.read(
     size: Int,
@@ -88,7 +91,7 @@ public fun ReadableBuffer.read(
 }
 
 /**
- * Reads at most [Int.MAX_VALUE] bytes from `this` buffer.
+ * Reads this whole buffer and returns it as a new [ByteArray], up to [Int.MAX_VALUE] bytes.
  */
 public fun ReadableBuffer.readBytes(): ByteArray {
     scope?.ensureNotClosed()
@@ -96,10 +99,10 @@ public fun ReadableBuffer.readBytes(): ByteArray {
 }
 
 /**
- * Reads all bytes from `this` buffer.
+ * Reads this whole buffer and returns it as a new [ByteArray].
  *
- * @throws UnsupportedOperationException if not all bytes in `this` buffer can fit into a
- * [ByteArray].
+ * @throws UnsupportedOperationException if this buffer is larger than what a [ByteArray] can
+ * hold.
  */
 public fun ReadableBuffer.readBytesOrThrow(): ByteArray {
     scope?.ensureNotClosed()

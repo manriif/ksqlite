@@ -74,10 +74,30 @@ class DatabaseConnectionCallbacksTest {
     }
 
     @Test
+    fun createCollationDefaultsToUtf8Encoding() = runSqliteConnectionTest { _, connection ->
+        val registered = connection.createCollation("NOCASE_LIKE") { lhs, rhs ->
+            lhs.decodeToString().lowercase().compareTo(rhs.decodeToString().lowercase())
+        }
+
+        connection.execute("CREATE TABLE fruits(name TEXT);")
+        connection.execute("INSERT INTO fruits VALUES ('apple');")
+
+        var count = 0L
+
+        connection.execute("SELECT COUNT(*) FROM fruits WHERE name = 'APPLE' COLLATE NOCASE_LIKE;") { _, values, _ ->
+            count = requireNotNull(values[0]).toLong()
+            false
+        }
+
+        assertEquals(1L, count)
+        registered.close()
+    }
+
+    @Test
     fun collationWorks() = runSqliteConnectionTest { _, connection ->
         var callCount = 0
 
-        connection.createCollation("REVERSE", SqliteTextEncoding.UTF8) { lhs, rhs ->
+        val registered = connection.createCollation("REVERSE", SqliteTextEncoding.UTF8) { lhs, rhs ->
             callCount++
             // Reverse the natural ordering.
             -lhs.decodeToString().compareTo(rhs.decodeToString())
@@ -96,11 +116,45 @@ class DatabaseConnectionCallbacksTest {
         assertEquals(listOf("Banana", "Apple"), names)
         assertTrue(callCount > 0)
 
-        connection.deleteCollation("REVERSE", SqliteTextEncoding.UTF8)
+        registered.close()
 
         assertFailsWith<SQLiteException> {
             connection.execute("SELECT name FROM fruits ORDER BY name COLLATE REVERSE;")
         }
+    }
+
+    @Test
+    fun closingACollationRegistrationTwiceIsANoOp() = runSqliteConnectionTest { _, connection ->
+        val registered = connection.createCollation("ONCE", SqliteTextEncoding.UTF8) { lhs, rhs ->
+            lhs.decodeToString().compareTo(rhs.decodeToString())
+        }
+
+        registered.close()
+        registered.close()
+    }
+
+    @Test
+    fun closingAReplacedCollationRegistrationIsANoOp() = runSqliteConnectionTest { _, connection ->
+        var secondCalled = false
+
+        val first = connection.createCollation("DUP", SqliteTextEncoding.UTF8) { lhs, rhs ->
+            lhs.decodeToString().compareTo(rhs.decodeToString())
+        }
+
+        val second = connection.createCollation("DUP", SqliteTextEncoding.UTF8) { lhs, rhs ->
+            secondCalled = true
+            lhs.decodeToString().compareTo(rhs.decodeToString())
+        }
+
+        // `first` was already replaced by `second`, closing it must not remove `second`'s collation.
+        first.close()
+
+        connection.execute("CREATE TABLE fruits(name TEXT);")
+        connection.execute("INSERT INTO fruits VALUES ('Apple'), ('Banana');")
+        connection.execute("SELECT name FROM fruits ORDER BY name COLLATE DUP;")
+
+        assertTrue(secondCalled)
+        second.close()
     }
 
     @Test

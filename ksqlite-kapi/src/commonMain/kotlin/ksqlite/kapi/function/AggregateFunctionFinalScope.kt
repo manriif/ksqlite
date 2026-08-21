@@ -16,8 +16,8 @@
 package ksqlite.kapi.function
 
 import ksqlite.capi.sqlite3_aggregate_context
-import ksqlite.kapi.value.ValueReturnScope
-import ksqlite.kapi.value.ValueReturnScopeImpl
+import ksqlite.kapi.result.ResultScope
+import ksqlite.kapi.result.ResultScopeImpl
 
 /**
  * Scope for use with [AggregateFunction.final], [WindowFunction.final] and [WindowFunction.value].
@@ -26,7 +26,7 @@ public class AggregateFunctionFinalScope internal constructor(
     @PublishedApi
     internal val scope: FunctionScopeImpl
 ) : FunctionScope by scope,
-    ValueReturnScope by ValueReturnScopeImpl(scope) {
+    ResultScope by ResultScopeImpl(scope) {
 
     /**
      * Returns the aggregate context, if any, as [C].

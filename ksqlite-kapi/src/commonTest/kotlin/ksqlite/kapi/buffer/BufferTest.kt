@@ -91,7 +91,7 @@ class BufferTest {
             val buffer = Buffer.allocate(3)
             buffer.write(byteArrayOf(1, 2, 3), size = 3)
 
-            statement.parameters.bind(1, buffer)
+            statement.parameters.bindBuffer(1, buffer)
 
             assertFailsWith<BufferInUseException> { buffer.close() }
             assertFailsWith<BufferInUseException> { buffer.write(byteArrayOf(9), size = 1) }

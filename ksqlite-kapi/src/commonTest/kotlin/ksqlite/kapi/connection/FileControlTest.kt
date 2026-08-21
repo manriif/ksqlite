@@ -32,37 +32,37 @@ class FileControlTest {
     fun optionsWork() = runSqliteConnectionTest { _, connection ->
         val fileControl = connection.fileControl
 
-        val _ = fileControl.getSystemError()
+        val _ = fileControl.systemError
         fileControl.setSizeHint(4_096)
         fileControl.setChunkSize(4_096)
 
-        val _ = fileControl.isPersistWal()
-        fileControl.setPersistWal(true)
-        fileControl.setPersistWal(false)
+        val _ = fileControl.isPersistWal
+        fileControl.isPersistWal = true
+        fileControl.isPersistWal = false
 
-        fileControl.setOverwrite(0, null)
+        fileControl.setOverwrite(0)
 
-        val _ = fileControl.getVfsName()
+        val _ = fileControl.vfsName
 
-        val _ = fileControl.isPowerSafeOverwrite()
-        fileControl.setPowerSafeOverwrite(true)
+        val _ = fileControl.isPowerSafeOverwrite
+        fileControl.isPowerSafeOverwrite = true
 
-        val _ = fileControl.getTempFileName()
+        val _ = fileControl.tempFileName
 
-        val _ = fileControl.getMmapSize()
-        fileControl.setMmapSize(0)
+        val _ = fileControl.mmapSize
+        fileControl.mmapSize = 0
 
-        val _ = fileControl.hasMoved()
+        val _ = fileControl.hasMoved
 
         fileControl.setLockTimeout(0)
 
-        val dataVersion = fileControl.getDataVersion()
+        val dataVersion = fileControl.dataVersion
         assertTrue(dataVersion >= 0)
 
-        val _ = fileControl.getSizeLimit()
-        fileControl.setSizeLimit(-1)
+        val _ = fileControl.sizeLimit
+        fileControl.sizeLimit = -1
 
-        fileControl.reserveBytes(0, null)
+        fileControl.reserveBytes(0)
 
         fileControl.resetCache()
     }
@@ -72,8 +72,8 @@ class FileControlTest {
         val fileControl = connection.fileControl
         connection.close()
 
-        assertFailsWith<IllegalStateException> { fileControl.getSystemError() }
-        assertFailsWith<IllegalStateException> { fileControl.getDataVersion() }
+        assertFailsWith<IllegalStateException> { fileControl.systemError }
+        assertFailsWith<IllegalStateException> { fileControl.dataVersion }
         assertFailsWith<IllegalStateException> { fileControl.resetCache() }
     }
 }

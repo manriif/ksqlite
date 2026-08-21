@@ -15,6 +15,7 @@
  */
 package ksqlite.kapi.function
 
+import ksqlite.kapi.result.Result
 import ksqlite.kapi.value.ProtectedValue
 
 /**
@@ -23,15 +24,14 @@ import ksqlite.kapi.value.ProtectedValue
 public interface WindowFunction : AggregateFunction {
 
     /**
-     * This method is invoked to remove the oldest presently aggregated result of [step] from the
-     * current window. The function arguments, if any, are those passed to [step] for the row being
-     * removed.
+     * Removes from the current window the oldest row previously aggregated by [step].
+     * [arguments], if any, are those that were passed to [step] for that row.
      */
     public fun WindowFunctionInverseScope.inverse(arguments: Array<ProtectedValue>)
 
     /**
-     * This method is invoked to return the current value of the aggregate. Unlike [final], the
-     * implementation should not delete any context.
+     * Returns the current value of the aggregate without freeing the context, unlike [final].
+     * The returned [Result] must come from calling one of the receiver's result methods.
      */
-    public fun AggregateFunctionFinalScope.value()
+    public fun AggregateFunctionFinalScope.value(): Result
 }

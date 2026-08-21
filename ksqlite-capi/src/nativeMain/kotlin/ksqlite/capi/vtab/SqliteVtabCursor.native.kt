@@ -18,12 +18,12 @@
 package ksqlite.capi.vtab
 
 import kotlinx.cinterop.CPointer
-import ksqlite.capi.memory.ClosableStruct
+import ksqlite.capi.memory.CloseableStruct
 import ksqlite.types.vtab.SqliteVtabCursor
 
 public actual open class sqlite3_vtab_cursor
 private constructor(override val pointer: CPointer<s3_vtab_cursor>) :
-    ClosableStruct(pointer, Application),
+    CloseableStruct(pointer, Application),
     SqliteVtabCursor {
 
     public actual constructor() : this(allocate())

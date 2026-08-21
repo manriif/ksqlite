@@ -8,3 +8,4 @@
 build
 docs
 local.properties
+.DS_Store

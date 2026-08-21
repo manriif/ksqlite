@@ -23,7 +23,9 @@ import ksqlite.types.SqliteTextEncoding
 public fun interface CollationNeeded {
 
     /**
-     * Details on parameters can be found [here](https://sqlite.org/c3ref/collation_needed.html).
+     * Called when [connection] needs the collation [name] in [encoding] but none has been
+     * registered for it yet, typically to register one on demand through
+     * [DatabaseConnection.createCollation].
      */
     public fun apply(
         connection: DatabaseConnection,

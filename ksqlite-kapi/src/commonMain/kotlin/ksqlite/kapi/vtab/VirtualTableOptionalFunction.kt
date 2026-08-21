@@ -19,6 +19,7 @@ package ksqlite.kapi.vtab
  * Optional functions of a [VirtualTable].
  */
 public enum class VirtualTableOptionalFunction {
+
     /**
      * Represents [VirtualTable.update].
      */

@@ -21,7 +21,8 @@ package ksqlite.kapi.connection
 public fun interface Collation : AutoCloseable {
 
     /**
-     * Details on parameters and result can be found [here](https://sqlite.org/c3ref/create_collation.html).
+     * Compares [lhs] to [rhs], returning a negative number if [lhs] is less than [rhs], zero if
+     * they are equal, or a positive number if [lhs] is greater than [rhs].
      */
     public fun apply(
         lhs: ByteArray,

@@ -43,19 +43,17 @@ public interface FileName {
     public val walFileName: String?
 
     /**
-     * Returns the name (not the value) of the [index]-th query parameter for this filename or
-     * `null` if [index] is less than zero or greater than the number of query parameters minus 1.
-     * The [index] value is zero-based so [index] should be 0 to obtain the name of the first query
-     * parameter, 1 for the second parameter, and so forth.
+     * Returns the name, not the value, of the 0-based [index]-th query parameter for this
+     * filename, or `null` if [index] is out of bounds.
      */
     public fun getKey(index: Int): String?
 
     /**
-     * Returns the value of the query [parameter] if it exists or `null` if P does not appear as a
-     * query parameter of this filename. If [parameter] exists and has no explicit value, then an
-     * empty string is returned.
+     * Returns the value of the query [parameter], or `null` if it does not appear as a query
+     * parameter of this filename. If [parameter] exists but has no explicit value, an empty
+     * string is returned instead.
      */
-    public fun geValue(parameter: String): String?
+    public fun getValue(parameter: String): String?
 
     /**
      * Returns `true` if the value of query [parameter] is one of "yes", "true", or "on" in any
@@ -67,7 +65,7 @@ public interface FileName {
      * If [parameter] is not present or if the value of [parameter] does not match any of the
      * above, then [default] is returned.
      */
-    public fun geValue(
+    public fun getValue(
         parameter: String,
         default: Boolean
     ): Boolean
@@ -77,7 +75,7 @@ public interface FileName {
      * or [default] if [parameter] does not exist. If the value of [parameter] is something other
      * than an integer, then zero is returned.
      */
-    public fun geValue(
+    public fun getValue(
         parameter: String,
         default: Long
     ): Long

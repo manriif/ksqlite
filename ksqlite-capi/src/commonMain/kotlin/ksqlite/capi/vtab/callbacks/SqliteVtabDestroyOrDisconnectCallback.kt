@@ -45,7 +45,6 @@ public fun interface SqliteVtabDestroyOrDisconnectCallback<Vtab : sqlite3_vtab> 
  */
 public typealias SqliteVtabDisconnectCallback<Vtab> = SqliteVtabDestroyOrDisconnectCallback<Vtab>
 
-
 /**
  * This method releases a connection to a virtual table, just like the xDisconnect method, and it
  * also destroys the underlying table implementation. This method undoes the work of xCreate.
