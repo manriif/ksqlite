@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     `kotlin-dsl`
     `java-gradle-plugin`
@@ -53,6 +55,15 @@ gradlePlugin {
             displayName = localName
             description = localDescription
             tags = localTags.split(',')
+        }
+    }
+}
+
+// https://github.com/gradle/gradle/issues/38634
+tasks.withType<KotlinCompile>().configureEach {
+    compilerOptions {
+        freeCompilerArgs = freeCompilerArgs.get().filterNot { arg ->
+            arg.startsWith("-Xuse-fir-lt")
         }
     }
 }

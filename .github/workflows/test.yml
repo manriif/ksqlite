@@ -21,6 +21,11 @@ on:
         required: false
         type: boolean
         default: true
+      test_web:
+        description: 'Run test-web'
+        required: false
+        type: boolean
+        default: true
   workflow_call:
 
 permissions:
@@ -98,7 +103,7 @@ jobs:
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           cache-read-only: true
-      - name: Run Apple, JVM, JS, and WasmJs tests
+      - name: Run Apple and JVM tests
         run: |
           ./gradlew \
             jvmTest \
@@ -106,7 +111,30 @@ jobs:
             iosSimulatorArm64Test \
             tvosSimulatorArm64Test \
             watchosSimulatorArm64Test \
+            -Pksqlite.build.wasm.enabled=false \
+            -Pksqlite.build.platforms=macosArm64,iosSimulatorArm64,tvosSimulatorArm64,watchosSimulatorArm64
+
+  test-web:
+    if: github.event_name != 'workflow_dispatch' || inputs.test_web
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+          cache-read-only: true
+      - name: Run JS and WasmJs browser tests
+        run: |
+          ./gradlew \
             jsBrowserTest \
             wasmJsBrowserTest \
+            --no-parallel \
             -Pksqlite.build.wasm.enabled=true \
-            -Pksqlite.build.platforms=macosArm64,iosSimulatorArm64,tvosSimulatorArm64,watchosSimulatorArm64
+            -Pksqlite.build.platforms=

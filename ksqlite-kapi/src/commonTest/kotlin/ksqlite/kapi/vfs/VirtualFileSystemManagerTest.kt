@@ -56,15 +56,16 @@ class VirtualFileSystemManagerTest {
         // genuinely standalone, safely disposable VirtualFileSystem to register with, without
         // touching the real default VFS's own registration.
         val wrapped = sqlite.ciphers.virtualFileSystems.create(defaultVfs, makeDefault = false)
+        val wrappedName = wrapped.zName
 
         sqlite.virtualFileSystems.register(wrapped, makeDefault = true)
-
-        val newDefault = assertNotNull(sqlite.virtualFileSystems.default)
-        assertEquals(wrapped.zName, newDefault.zName)
-        assertNotEquals(defaultVfs.zName, newDefault.zName)
+        val newDefaultName = sqlite.virtualFileSystems.default?.zName
 
         sqlite.virtualFileSystems.unregister(wrapped)
         wrapped.close()
+
+        assertEquals(wrappedName, newDefaultName)
+        assertNotEquals(defaultVfs.zName, newDefaultName)
     }
 
     @Test
