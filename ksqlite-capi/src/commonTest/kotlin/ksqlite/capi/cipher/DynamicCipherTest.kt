@@ -31,6 +31,7 @@ import ksqlite.capi.sqlite3mc_config
 import ksqlite.capi.sqlite3mc_config_cipher
 import ksqlite.capi.sqlite3mc_register_cipher
 import ksqlite.capi.sqlite3mc_vfs_create
+import ksqlite.capi.sqlite3mc_vfs_destroy
 import ksqlite.capi.usingRealTempFile
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode.OK
@@ -138,6 +139,8 @@ class DynamicCipherTest {
         val baseVfs = findVfs()
         val createCipherVfsResult = sqlite3mc_vfs_create(baseVfs.zName, 1)
         assertEquals(OK, createCipherVfsResult)
+
+        val cipherVfsName = "multipleciphers-${baseVfs.zName}"
 
         baseVfs.usingRealTempFile("dynamic-cipher.db") { path ->
             val originalKey = "dynamic original passphrase".encodeToByteArray()
@@ -278,6 +281,8 @@ class DynamicCipherTest {
             val closeReadResult = sqlite3_close(readDb)
             assertEquals(OK, closeReadResult)
         }
+
+        sqlite3mc_vfs_destroy(cipherVfsName)
 
         assertTrue(tracking.allocateCalled)
         assertTrue(tracking.freeCalled)

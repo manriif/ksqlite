@@ -43,6 +43,7 @@ import ksqlite.capi.sqlite3mc_config
 import ksqlite.capi.sqlite3mc_config_cipher
 import ksqlite.capi.sqlite3mc_version
 import ksqlite.capi.sqlite3mc_vfs_create
+import ksqlite.capi.sqlite3mc_vfs_destroy
 import ksqlite.capi.usingRealTempFile
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteResultCode
@@ -277,6 +278,8 @@ class CipherTest {
             val closeReadResult = sqlite3_close(readDb)
             assertEquals(OK, closeReadResult)
         }
+
+        sqlite3mc_vfs_destroy(cipherVfsName)
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -399,7 +402,11 @@ class CipherTest {
 
         val wrongScopeStmt = assertNotNull(outWrongScopeStmt.value)
         val wrongScopeValue = assertNotNull(encrypted)
-        assertEquals(OK, sqlite3_bind_blob(wrongScopeStmt, 1, wrongScopeValue, wrongScopeValue.size, null))
+
+        val bindBlobResult =
+            sqlite3_bind_blob(wrongScopeStmt, 1, wrongScopeValue, wrongScopeValue.size, null)
+
+        assertEquals(OK, bindBlobResult)
         assertEquals(OK, sqlite3_bind_text(wrongScopeStmt, 2, "scope-b"))
 
         val wrongScopeStepResult = sqlite3_step(wrongScopeStmt)

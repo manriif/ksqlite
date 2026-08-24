@@ -91,6 +91,18 @@ class ConfigTest {
         val rowidInViewResult = sqlite3_config(rowidInView)
         assertEquals(OK, rowidInViewResult)
         assertNotEquals(-1, outRowidInView.value)
+
+        // Reset with acceptable values
+        assertEquals(OK, sqlite3_config(SqliteConfigOption.LOOKASIDE(1200, 40)))
+        assertEquals(OK, sqlite3_config(SqliteConfigOption.MMAP_SIZE(-1, -1)))
+        assertEquals(OK, sqlite3_config(SqliteConfigOption.PMASZ(250U)))
+        assertEquals(OK, sqlite3_config(SqliteConfigOption.STMTJRNL_SPILL(64 * 1024)))
+        assertEquals(OK, sqlite3_config(SqliteConfigOption.SMALL_MALLOC(0)))
+        assertEquals(OK, sqlite3_config(SqliteConfigOption.MEMDB_MAXSIZE(1_073_741_824)))
+
+        if (!isWasm) {
+            assertEquals(OK, sqlite3_config(SqliteConfigOption.SERIALIZED))
+        }
     }
 
     @Test
