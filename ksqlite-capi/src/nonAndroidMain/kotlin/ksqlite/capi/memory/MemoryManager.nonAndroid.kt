@@ -106,7 +106,6 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * Returns the next available disposable identifier.
      */
     private fun computeNextDisposableId(): Long {
-        disposableLock.lock()
         val nextId = ++nextDisposableId
 
         check(nextId > 0L) {
