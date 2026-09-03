@@ -73,7 +73,10 @@ public sealed interface PreparedStatement :
      * Finalizes this prepared statement. Calling this again on an already closed statement has
      * no effect.
      *
-     * @throws ksqlite.kapi.SQLiteException if finalizing the statement fails.
+     * The statement is finalized even if this throws. The exception only reports that the
+     * statement's last evaluation failed, not that finalization itself failed.
+     *
+     * @throws ksqlite.kapi.SQLiteException if the statement's last evaluation failed.
      */
     override fun close()
 }

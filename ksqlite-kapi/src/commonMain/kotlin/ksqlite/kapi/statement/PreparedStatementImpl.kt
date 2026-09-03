@@ -75,9 +75,11 @@ internal class PreparedStatementImpl(
     }
 
     override fun onClose() {
-        val result = sqlite3_finalize(stmt)
+        val result = listener.onFinalizingStatement(this) {
+            sqlite3_finalize(stmt)
+        }
+
         lastRow.exchange(null)?.close()
-        listener.onStatementClosed(this)
 
         if (result is Failure) {
             sqliteResultThrow(result, connection.impl.db)
@@ -91,11 +93,14 @@ internal class PreparedStatementImpl(
     /**
      * Listener for statement events.
      */
-    fun interface Listener {
+    interface Listener {
 
         /**
          * Notifies about a statement being closed.
          */
-        fun onStatementClosed(statement: PreparedStatementImpl)
+        fun <R> onFinalizingStatement(
+            statement: PreparedStatementImpl,
+            block: () -> R
+        ): R
     }
 }

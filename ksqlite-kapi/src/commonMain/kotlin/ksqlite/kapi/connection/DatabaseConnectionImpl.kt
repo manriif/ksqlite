@@ -148,6 +148,7 @@ internal class DatabaseConnectionImpl(
     AtomicCloseableScope() {
 
     private val closeables = ConcurrentMutableSet<AutoCloseable>()
+    private val statementListener = StatementListener()
 
     private val collations = RegistrableMap<CollationKey, RegisteredCollation>()
     private val functions = RegistrableMap<FunctionKey, RegisteredFunction>()
@@ -786,11 +787,9 @@ internal class DatabaseConnectionImpl(
 
         val statement = PreparedStatementImpl(
             stmt = stmt,
-            connection = this
-        ) { statement ->
-            listener.onStatementClosed(statement)
-            closeables.remove(statement)
-        }
+            connection = this,
+            listener = statementListener
+        )
 
         listener.onStatementCreated(statement)
         closeables.add(statement)
@@ -927,7 +926,9 @@ internal class DatabaseConnectionImpl(
      * Closes the connection and frees resources.
      */
     override fun onClose() {
-        db.resultCheck(sqlite3_close_v2(db))
+        val result = listener.onClosingConnection(this) {
+            sqlite3_close_v2(db)
+        }
 
         collations.close()
         functions.close()
@@ -937,7 +938,22 @@ internal class DatabaseConnectionImpl(
             .onEach { it.close() }
             .clear()
 
-        listener.onConnectionClosed(this)
+        db.resultCheck(result)
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Statement
+    ///////////////////////////////////////////////////////////////////////////
+
+    private inner class StatementListener: PreparedStatementImpl.Listener {
+
+        override fun <R> onFinalizingStatement(
+            statement: PreparedStatementImpl,
+            block: () -> R
+        ): R = listener.onFinalizingStatement(statement) {
+            closeables.remove(statement)
+            block()
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -947,22 +963,17 @@ internal class DatabaseConnectionImpl(
     /**
      * Listener for connection events.
      */
-    interface Listener {
+    interface Listener: PreparedStatementImpl.Listener {
 
         /**
          * Notifies about statement creation.
          */
         fun onStatementCreated(statement: PreparedStatementImpl)
 
-        /**
-         * Notifies about statement closing.
-         */
-        fun onStatementClosed(statement: PreparedStatementImpl)
-
-        /**
-         * Notifies about database closing
-         */
-        fun onConnectionClosed(connection: DatabaseConnectionImpl)
+        fun <R> onClosingConnection(
+            connection: DatabaseConnectionImpl,
+            block: () -> R
+        ): R
     }
 }
 

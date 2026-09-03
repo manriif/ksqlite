@@ -33,13 +33,11 @@ import kotlin.test.assertTrue
 /**
  * Runs [block] without initializing SQLite.
  */
-internal fun runTestNoInit(block: () -> Unit) = if (!isWasm) block() else {
-    // Print details of issue on WASM due to some only showing on CI
-    try {
-        block()
-    } catch (cause: Throwable) {
-        println(cause.stackTraceToString())
-    }
+internal fun runTestNoInit(block: () -> Unit) = try {
+    block()
+} catch (cause: Throwable) {
+    // Print details of issue due to some only showing on CI
+    println(cause.stackTraceToString())
 }
 
 /**

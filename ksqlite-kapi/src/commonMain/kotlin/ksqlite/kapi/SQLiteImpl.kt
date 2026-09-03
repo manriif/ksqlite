@@ -13,10 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:OptIn(ExperimentalAtomicApi::class)
+
 package ksqlite.kapi
 
 import co.touchlab.stately.collections.ConcurrentMutableMap
 import co.touchlab.stately.collections.ConcurrentMutableSet
+import co.touchlab.stately.concurrency.Lock
+import co.touchlab.stately.concurrency.close
+import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_hard_heap_limit64
@@ -45,6 +50,7 @@ import ksqlite.kapi.value.StatusImpl
 import ksqlite.kapi.vfs.VirtualFileSystemManagerImpl
 import ksqlite.types.SqliteOpenFlag
 import ksqlite.types.SqliteStatusOption
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 internal class SQLiteImpl(private val shutdown: () -> Unit) :
     SQLite,
@@ -52,8 +58,10 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
 
     private val listener = Listener()
     private val autoExtensions = ConcurrentMutableSet<AutoExtension>()
-    private val connections = ConcurrentMutableMap<sqlite3, DatabaseConnection>()
     private val statements = ConcurrentMutableMap<sqlite3_stmt, PreparedStatement>()
+
+    private val connections = mutableMapOf<sqlite3, DatabaseConnection>()
+    private val connectionsLock = Lock()
 
     override val config = AnyTimeConfigurationImpl(this)
     override val ciphers = CipherManagerImpl(this)
@@ -89,9 +97,15 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
         db: sqlite3,
         create: Boolean
     ): DatabaseConnection = notClosed {
-        connections.computeIfAbsent(db) { db ->
-            check(create) { "No connection is associated with database connection handle $db" }
-            DatabaseConnectionImpl(db, listener)
+        // Reentrancy is important here because if a database is being closed then a hook invoked
+        // from the closing thread should access the current connection instance. Other thread must
+        // by opposite wait because db may have been attributed the same pointer as the connection
+        // being closed
+        connectionsLock.withLock {
+            connections.getOrPut(db) {
+                check(create) { "No connection is associated with database connection handle $db" }
+                DatabaseConnectionImpl(db, listener)
+            }
         }
     }
 
@@ -185,7 +199,13 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     override fun onClose() {
         ciphers.close()
         autoExtensions.clear()
-        connections.clear()
+        statements.clear()
+
+        connectionsLock.withLock {
+            connections.clear()
+        }
+
+        connectionsLock.close()
         shutdown()
     }
 
@@ -201,17 +221,34 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
             }
         }
 
-        override fun onStatementClosed(statement: PreparedStatementImpl) {
+        override fun <R> onFinalizingStatement(
+            statement: PreparedStatementImpl,
+            block: () -> R
+        ): R {
             check(statements.remove(statement.stmt) == statement) {
                 "Expected a statement to be registered with the statement handle ${statement.stmt}"
             }
+
+            return block()
         }
 
-        override fun onConnectionClosed(connection: DatabaseConnectionImpl) {
-            check(connections.remove(connection.db) != null) {
+        override fun <R> onClosingConnection(
+            connection: DatabaseConnectionImpl,
+            block: () -> R
+        ): R = connectionsLock.withLock {
+            val currentConnection = checkNotNull(connections[connection.db]) {
                 "Expected a connection to be registered with the database connection handle " +
                         connection.db
             }
+
+            check(currentConnection === connection)
+
+            // Hook may be invoked in block and try to access the connection so thats why it has
+            // not been removed in previous lookup
+            val result = block()
+
+            check(connections.remove(currentConnection.db) === currentConnection)
+            result
         }
     }
 }
