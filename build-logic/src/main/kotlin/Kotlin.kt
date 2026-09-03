@@ -20,6 +20,14 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinBaseExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.plugin.HasProject
 
+const val CONCURRENT_GROUP = "concurrent"
+const val JVM_ANDROID_GROUP = "jvmAndroid"
+const val JVM_NATIVE_GROUP = "jvmNative"
+const val NATIVE_GROUP = "native"
+const val NON_ANDROID_GROUP = "nonAndroid"
+const val NON_WEB_GROUP = "nonWeb"
+const val WEB_GROUP = "web"
+
 /**
  * Names of all native main sources sets.
  */

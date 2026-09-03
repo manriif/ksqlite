@@ -15,6 +15,8 @@
  */
 import com.android.build.api.withAndroid
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest
+import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 
 plugins {
     org.jetbrains.kotlin.multiplatform
@@ -28,16 +30,25 @@ kotlin {
 
     applyDefaultHierarchyTemplate {
         common {
-            group("nonWeb") {
-                withAndroid()
-                withJvm()
-                group("native")
+            group(NON_WEB_GROUP) {
+                // May include WASI in the future
+                group(CONCURRENT_GROUP) {
+                    group(JVM_ANDROID_GROUP) {
+                        withAndroid()
+                        withJvm()
+                    }
+
+                    group(NATIVE_GROUP)
+                }
             }
 
-            group("nonAndroid") {
-                withJvm()
-                group("native")
-                group("web")
+            group(NON_ANDROID_GROUP) {
+                group(JVM_NATIVE_GROUP) {
+                    withJvm()
+                    group(NATIVE_GROUP)
+                }
+
+                group(WEB_GROUP)
             }
         }
     }
@@ -55,4 +66,8 @@ kotlin {
             }
         }
     }
+}
+
+tasks.withType<AbstractTestTask>().configureEach {
+    outputs.upToDateWhen { false }
 }

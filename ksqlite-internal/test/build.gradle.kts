@@ -22,6 +22,10 @@ kotlin {
     allTargets()
 
     sourceSets {
+        concurrentMain.dependencies {
+            implementation(libs.stately.concurrentCollections)
+        }
+
         androidMain.dependencies {
             implementation(libs.androidx.testRunner)
         }
