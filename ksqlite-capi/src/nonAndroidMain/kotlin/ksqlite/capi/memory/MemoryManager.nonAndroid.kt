@@ -59,15 +59,25 @@ internal abstract class MemoryManagerBase : AutoCloseable {
     /**
      * Invokes and returns [block]'s result throwing an [IllegalStateException] if this instance is
      * closed.
+     *
+     * Checks [closed] under [disposableLock]. Otherwise a call could pass the check right before
+     * [close] runs, then register a disposable that never gets released.
      */
-    protected inline fun <T> notClosed(block: () -> T): T {
+    protected inline fun <T> notClosed(block: () -> T): T = disposableLock.withLock {
         check(!closed.load()) { "Manager is closed" }
-        return block()
+        block()
     }
 
     final override fun close() {
-        if (closed.compareAndSet(expectedValue = false, newValue = true)) {
-            clear()
+        val closedByThisCall = disposableLock.withLock {
+            closed.compareAndSet(expectedValue = false, newValue = true).also { won ->
+                if (won) {
+                    clear()
+                }
+            }
+        }
+
+        if (closedByThisCall) {
             disposableLock.close()
         }
     }
