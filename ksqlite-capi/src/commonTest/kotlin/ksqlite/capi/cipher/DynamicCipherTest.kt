@@ -142,147 +142,150 @@ class DynamicCipherTest {
 
         val cipherVfsName = "multipleciphers-${baseVfs.zName}"
 
-        baseVfs.usingRealTempFile("dynamic-cipher.db") { path ->
-            val originalKey = "dynamic original passphrase".encodeToByteArray()
-            val rotatedKey = "dynamic rotated passphrase".encodeToByteArray()
+        try {
+            baseVfs.usingRealTempFile("dynamic-cipher.db") { path ->
+                val originalKey = "dynamic original passphrase".encodeToByteArray()
+                val rotatedKey = "dynamic rotated passphrase".encodeToByteArray()
 
-            val createSql = "CREATE TABLE fruits(id INTEGER, name TEXT);"
-            val insertSql = "INSERT INTO fruits VALUES (1, 'Mangue');"
-            val selectSql = "SELECT name FROM fruits WHERE id = 1;"
+                val createSql = "CREATE TABLE fruits(id INTEGER, name TEXT);"
+                val insertSql = "INSERT INTO fruits VALUES (1, 'Mangue');"
+                val selectSql = "SELECT name FROM fruits WHERE id = 1;"
 
-            // Create the encrypted database using the dynamically registered cipher.
-            val outCreateDb = sqlite3.OutputParam()
+                // Create the encrypted database using the dynamically registered cipher.
+                val outCreateDb = sqlite3.OutputParam()
 
-            val createOpenResult = sqlite3_open_v2(
-                fileName = path,
-                outDb = outCreateDb,
-                flags = SqliteOpenFlag.READWRITE or SqliteOpenFlag.CREATE,
-                vfs = null
-            )
-            assertEquals(OK, createOpenResult)
+                val createOpenResult = sqlite3_open_v2(
+                    fileName = path,
+                    outDb = outCreateDb,
+                    flags = SqliteOpenFlag.READWRITE or SqliteOpenFlag.CREATE,
+                    vfs = null
+                )
+                assertEquals(OK, createOpenResult)
 
-            val createDb = assertNotNull(outCreateDb.value)
+                val createDb = assertNotNull(outCreateDb.value)
 
-            val createCipherResult = sqlite3mc_config(
-                db = createDb,
-                param = SqliteMcConfig.CIPHER,
-                prefix = Default,
-                newValue = cipher
-            )
-            assertEquals(cipher, createCipherResult)
+                val createCipherResult = sqlite3mc_config(
+                    db = createDb,
+                    param = SqliteMcConfig.CIPHER,
+                    prefix = Default,
+                    newValue = cipher
+                )
+                assertEquals(cipher, createCipherResult)
 
-            val keyResult = sqlite3_key(createDb, originalKey, originalKey.size)
-            assertEquals(OK, keyResult)
+                val keyResult = sqlite3_key(createDb, originalKey, originalKey.size)
+                assertEquals(OK, keyResult)
 
-            val createTableResult = sqlite3_exec(createDb, createSql, null, null, null)
-            assertEquals(OK, createTableResult)
+                val createTableResult = sqlite3_exec(createDb, createSql, null, null, null)
+                assertEquals(OK, createTableResult)
 
-            val insertResult = sqlite3_exec(createDb, insertSql, null, null, null)
-            assertEquals(OK, insertResult)
+                val insertResult = sqlite3_exec(createDb, insertSql, null, null, null)
+                assertEquals(OK, insertResult)
 
-            // Control: the original key must be able to read back the row before any rekey.
-            var beforeRekeyName: String? = null
+                // Control: the original key must be able to read back the row before any rekey.
+                var beforeRekeyName: String? = null
 
-            val beforeRekeyResult =
-                sqlite3_exec(createDb, selectSql, null, null) { _, _, values, _ ->
-                    beforeRekeyName = values[0]
+                val beforeRekeyResult =
+                    sqlite3_exec(createDb, selectSql, null, null) { _, _, values, _ ->
+                        beforeRekeyName = values[0]
+                        0
+                    }
+
+                assertEquals(OK, beforeRekeyResult)
+                assertEquals("Mangue", beforeRekeyName)
+
+                val rekeyResult = sqlite3_rekey(createDb, rotatedKey, rotatedKey.size)
+                assertEquals(OK, rekeyResult)
+
+                // Control: the same connection must still read correctly right after rekey.
+                var afterRekeyName: String? = null
+
+                val afterRekeyResult =
+                    sqlite3_exec(createDb, selectSql, null, null) { _, _, values, _ ->
+                        afterRekeyName = values[0]
+                        0
+                    }
+
+                assertEquals(OK, afterRekeyResult)
+                assertEquals("Mangue", afterRekeyName)
+
+                val cipherSalt =
+                    sqlite3mc_codec_data(createDb, null, SqliteMcCodecDataParam.CIPHER_SALT_RAW)
+
+                assertNotNull(cipherSalt)
+                assertEquals(XOR_CIPHER_SALT_LENGTH, cipherSalt.byteSize)
+
+                val closeCreateResult = sqlite3_close(createDb)
+                assertEquals(OK, closeCreateResult)
+
+                // The original key must no longer work once the database has been rekeyed.
+                val outStaleDb = sqlite3.OutputParam()
+
+                val staleOpenResult = sqlite3_open_v2(
+                    fileName = path,
+                    outDb = outStaleDb,
+                    flags = SqliteOpenFlag.READWRITE,
+                    vfs = null
+                )
+                assertEquals(OK, staleOpenResult)
+
+                val staleDb = assertNotNull(outStaleDb.value)
+
+                val staleCipherResult =
+                    sqlite3mc_config(staleDb, SqliteMcConfig.CIPHER, None, cipher)
+                assertEquals(cipher, staleCipherResult)
+
+                val staleKeyResult = sqlite3_key(staleDb, originalKey, originalKey.size)
+                assertEquals(OK, staleKeyResult)
+
+                var staleReadCallbackInvoked = false
+
+                val staleReadResult = sqlite3_exec(staleDb, selectSql, null, null) { _, _, _, _ ->
+                    staleReadCallbackInvoked = true
                     0
                 }
 
-            assertEquals(OK, beforeRekeyResult)
-            assertEquals("Mangue", beforeRekeyName)
+                assertEquals(NOTADB, staleReadResult)
+                assertFalse(staleReadCallbackInvoked)
 
-            val rekeyResult = sqlite3_rekey(createDb, rotatedKey, rotatedKey.size)
-            assertEquals(OK, rekeyResult)
+                val closeStaleResult = sqlite3_close(staleDb)
+                assertEquals(OK, closeStaleResult)
 
-            // Control: the same connection must still read correctly right after rekey.
-            var afterRekeyName: String? = null
+                // Reopen with the rotated key: reading must succeed and return the inserted row.
+                val outReadDb = sqlite3.OutputParam()
 
-            val afterRekeyResult =
-                sqlite3_exec(createDb, selectSql, null, null) { _, _, values, _ ->
-                    afterRekeyName = values[0]
+                val readOpenResult = sqlite3_open_v2(
+                    fileName = path,
+                    outDb = outReadDb,
+                    flags = SqliteOpenFlag.READWRITE,
+                    vfs = null
+                )
+                assertEquals(OK, readOpenResult)
+
+                val readDb = assertNotNull(outReadDb.value)
+
+                val readCipherResult = sqlite3mc_config(readDb, SqliteMcConfig.CIPHER, None, cipher)
+                assertEquals(cipher, readCipherResult)
+
+                val readKeyResult = sqlite3_key(readDb, rotatedKey, rotatedKey.size)
+                assertEquals(OK, readKeyResult)
+
+                var selectedName: String? = null
+
+                val readResult = sqlite3_exec(readDb, selectSql, null, null) { _, count, values, _ ->
+                    assertEquals(1, count)
+                    selectedName = values[0]
                     0
                 }
 
-            assertEquals(OK, afterRekeyResult)
-            assertEquals("Mangue", afterRekeyName)
+                assertEquals(OK, readResult)
+                assertEquals("Mangue", selectedName)
 
-            val cipherSalt =
-                sqlite3mc_codec_data(createDb, null, SqliteMcCodecDataParam.CIPHER_SALT_RAW)
-
-            assertNotNull(cipherSalt)
-            assertEquals(XOR_CIPHER_SALT_LENGTH, cipherSalt.byteSize)
-
-            val closeCreateResult = sqlite3_close(createDb)
-            assertEquals(OK, closeCreateResult)
-
-            // The original key must no longer work once the database has been rekeyed.
-            val outStaleDb = sqlite3.OutputParam()
-
-            val staleOpenResult = sqlite3_open_v2(
-                fileName = path,
-                outDb = outStaleDb,
-                flags = SqliteOpenFlag.READWRITE,
-                vfs = null
-            )
-            assertEquals(OK, staleOpenResult)
-
-            val staleDb = assertNotNull(outStaleDb.value)
-
-            val staleCipherResult = sqlite3mc_config(staleDb, SqliteMcConfig.CIPHER, None, cipher)
-            assertEquals(cipher, staleCipherResult)
-
-            val staleKeyResult = sqlite3_key(staleDb, originalKey, originalKey.size)
-            assertEquals(OK, staleKeyResult)
-
-            var staleReadCallbackInvoked = false
-
-            val staleReadResult = sqlite3_exec(staleDb, selectSql, null, null) { _, _, _, _ ->
-                staleReadCallbackInvoked = true
-                0
+                val closeReadResult = sqlite3_close(readDb)
+                assertEquals(OK, closeReadResult)
             }
-
-            assertEquals(NOTADB, staleReadResult)
-            assertFalse(staleReadCallbackInvoked)
-
-            val closeStaleResult = sqlite3_close(staleDb)
-            assertEquals(OK, closeStaleResult)
-
-            // Reopen with the rotated key: reading must succeed and return the inserted row.
-            val outReadDb = sqlite3.OutputParam()
-
-            val readOpenResult = sqlite3_open_v2(
-                fileName = path,
-                outDb = outReadDb,
-                flags = SqliteOpenFlag.READWRITE,
-                vfs = null
-            )
-            assertEquals(OK, readOpenResult)
-
-            val readDb = assertNotNull(outReadDb.value)
-
-            val readCipherResult = sqlite3mc_config(readDb, SqliteMcConfig.CIPHER, None, cipher)
-            assertEquals(cipher, readCipherResult)
-
-            val readKeyResult = sqlite3_key(readDb, rotatedKey, rotatedKey.size)
-            assertEquals(OK, readKeyResult)
-
-            var selectedName: String? = null
-
-            val readResult = sqlite3_exec(readDb, selectSql, null, null) { _, count, values, _ ->
-                assertEquals(1, count)
-                selectedName = values[0]
-                0
-            }
-
-            assertEquals(OK, readResult)
-            assertEquals("Mangue", selectedName)
-
-            val closeReadResult = sqlite3_close(readDb)
-            assertEquals(OK, closeReadResult)
+        } finally {
+            sqlite3mc_vfs_destroy(cipherVfsName)
         }
-
-        sqlite3mc_vfs_destroy(cipherVfsName)
 
         assertTrue(tracking.allocateCalled)
         assertTrue(tracking.freeCalled)

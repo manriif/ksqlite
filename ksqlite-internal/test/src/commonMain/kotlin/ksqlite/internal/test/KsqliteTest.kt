@@ -13,7 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:OptIn(ExperimentalAtomicApi::class)
+
 package ksqlite.internal.test
+
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.incrementAndFetch
+import kotlin.random.Random
 
 /**
  * Indicates whether the platform use SQLite WASM.
@@ -32,7 +39,22 @@ public expect fun tempTestDirectory(subdirectory: String): String
 public fun ksqliteTempTestDirectory(): String = tempTestDirectory("ksqlite-test")
 
 /**
- * Returns the path to the temporary test file named after [fileName].
+ * Random per this process, so a path this returns cannot collide with one from another process.
  */
-public fun ksqliteTempTestFile(fileName: String): String =
-    "${ksqliteTempTestDirectory()}/$fileName"
+private val processId = Random.nextInt()
+
+/**
+ * Counts calls to [ksqliteTempTestFile] within this process, so two calls never collide even with
+ * the same [fileName].
+ */
+private val callCount = AtomicInt(0)
+
+/**
+ * Returns the path to a temporary test file named after [fileName].
+ * The returned path is prefixed in a way it is unique to the process.
+ */
+public fun ksqliteTempTestFile(fileName: String): String {
+    val unique = "$processId-${callCount.incrementAndFetch()}"
+    val uniqueFileName = "$unique-$fileName"
+    return "${ksqliteTempTestDirectory()}/$uniqueFileName"
+}
