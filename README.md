@@ -8,7 +8,7 @@
 [![API](https://img.shields.io/badge/API-dokka-green)][ksqlite_docs]
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.manriif.ksqlite/ksqlite-capi?label=Maven%20Central&logo=apache-maven&color=teal)](https://central.sonatype.com/artifact/io.github.manriif.ksqlite/ksqlite-capi)
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20--RC-purple.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20--RC3-purple.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![SQLite](https://img.shields.io/badge/SQLite-3.53.4-white.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![SQLite Multiple Ciphers](https://img.shields.io/badge/SQLite%20Multiple%20Ciphers-2.5.0-red.svg)](https://utelle.github.io/SQLite3MultipleCiphers/)
 
