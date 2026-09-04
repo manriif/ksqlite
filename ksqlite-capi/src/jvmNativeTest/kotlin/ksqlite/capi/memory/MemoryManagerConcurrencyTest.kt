@@ -15,9 +15,8 @@
  */
 package ksqlite.capi.memory
 
-import co.touchlab.stately.concurrency.Lock
-import co.touchlab.stately.concurrency.close
-import co.touchlab.stately.concurrency.withLock
+import ksqlite.internal.runtime.concurrency.SafeLock
+import ksqlite.internal.runtime.concurrency.withLock
 import ksqlite.internal.test.concurrent.runConcurrently
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,7 +36,7 @@ class MemoryManagerConcurrencyTest {
     @Test
     fun registerDisposableConcurrentlyAssignsUniqueIdsWithoutDeadlocking() {
         val manager = TestMemoryManager()
-        val idsLock = Lock()
+        val idsLock = SafeLock()
         val ids = mutableListOf<Long>()
 
         try {
@@ -135,7 +134,7 @@ class MemoryManagerConcurrencyTest {
         // Every register() call must either succeed or fail with the documented
         // IllegalStateException. It must never hang, crash, or corrupt the registry.
         runConcurrently(threadCount = ThreadCount, timeout = Timeout) { threadIndex ->
-            if (threadIndex == 0) {
+            if (threadIndex == (ThreadCount / 4)) {
                 manager.close()
             } else {
                 repeat(DisposablesPerThread) {

@@ -27,6 +27,7 @@ kotlin {
         commonMain.dependencies {
             api(projects.ksqliteTypes.ksqliteTypesCore)
             implementation(projects.ksqliteTypes.ksqliteTypesInternal)
+            implementation(projects.ksqliteInternal.ksqliteInternalRuntime)
             implementation(libs.stately.concurrentCollections)
         }
 

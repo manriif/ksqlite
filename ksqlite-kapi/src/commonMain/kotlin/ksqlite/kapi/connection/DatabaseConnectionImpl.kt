@@ -15,10 +15,6 @@
  */
 package ksqlite.kapi.connection
 
-import co.touchlab.stately.collections.ConcurrentMutableSet
-import co.touchlab.stately.concurrency.Lock
-import co.touchlab.stately.concurrency.close
-import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.memory.Int32OutputParam
 import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.memory.Utf8OutputParam
@@ -73,6 +69,9 @@ import ksqlite.capi.vtab.callbacks.SqliteVtabConnectCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabCreateCallback
 import ksqlite.capi.vtab.sqlite3_module
 import ksqlite.internal.runtime.closeable.AtomicCloseableScope
+import ksqlite.internal.runtime.concurrency.ConcurrentMutableSet
+import ksqlite.internal.runtime.concurrency.SafeLock
+import ksqlite.internal.runtime.concurrency.withLock
 import ksqlite.kapi.blob.Blob
 import ksqlite.kapi.blob.BlobImpl
 import ksqlite.kapi.buffer.Buffer
@@ -248,7 +247,7 @@ internal class DatabaseConnectionImpl(
 
     private class RegistrableMap<Key : Any, Value : RegistrationImpl<Key, Value>> : AutoCloseable {
 
-        private val lock = Lock()
+        private val lock = SafeLock()
         private val map = mutableMapOf<Key, Value>()
 
         fun register(
@@ -276,8 +275,10 @@ internal class DatabaseConnectionImpl(
         }
 
         override fun close() {
-            lock.close()
-            map.clear()
+            lock.withLock {
+                map.clear()
+                lock.close()
+            }
         }
     }
 

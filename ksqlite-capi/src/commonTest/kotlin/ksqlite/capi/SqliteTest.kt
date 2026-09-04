@@ -33,12 +33,7 @@ import kotlin.test.assertTrue
 /**
  * Runs [block] without initializing SQLite.
  */
-internal fun runTestNoInit(block: () -> Unit) = try {
-    block()
-} catch (cause: Throwable) {
-    // Print details of issue due to some only showing on CI
-    println(cause.stackTraceToString())
-}
+internal fun runTestNoInit(block: () -> Unit) = block()
 
 /**
  * Initializes SQLite and invokes [block].

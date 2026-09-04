@@ -1,0 +1,50 @@
+/*
+ * Copyright (C) 2026 Maanrifa Bacar Ali
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+@file:OptIn(ExperimentalAtomicApi::class)
+
+package ksqlite.internal.runtime.concurrency
+
+import co.touchlab.stately.concurrency.Lock
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+
+/**
+ * `Lock` is backed by [java.util.concurrent.locks.ReentrantLock] on the JVM and Android. There
+ * is no native resource to free, so `close()` there is a no-op only flipping [closed].
+ */
+public actual class SafeLock: AutoCloseable {
+
+    private val lock: Lock = Lock()
+    private val closed: AtomicBoolean = AtomicBoolean(false)
+
+    public actual val isClosed: Boolean
+        get() = closed.load()
+
+    public actual fun lock() {
+        lock.lock()
+
+        if (closed.load()) {
+            lock.unlock()
+            throw IllegalStateException("Lock is closed")
+        }
+    }
+
+    public actual fun unlock(): Unit = lock.unlock()
+
+    public actual override fun close() {
+        closed.store(true)
+    }
+}

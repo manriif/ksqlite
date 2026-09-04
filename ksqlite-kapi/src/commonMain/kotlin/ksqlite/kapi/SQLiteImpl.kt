@@ -17,11 +17,6 @@
 
 package ksqlite.kapi
 
-import co.touchlab.stately.collections.ConcurrentMutableMap
-import co.touchlab.stately.collections.ConcurrentMutableSet
-import co.touchlab.stately.concurrency.Lock
-import co.touchlab.stately.concurrency.close
-import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.memory.Int64OutputParam
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_hard_heap_limit64
@@ -34,6 +29,10 @@ import ksqlite.capi.sqlite3_soft_heap_limit64
 import ksqlite.capi.sqlite3_status64
 import ksqlite.capi.sqlite3_stmt
 import ksqlite.internal.runtime.closeable.AtomicCloseableScope
+import ksqlite.internal.runtime.concurrency.ConcurrentMutableMap
+import ksqlite.internal.runtime.concurrency.ConcurrentMutableSet
+import ksqlite.internal.runtime.concurrency.SafeLock
+import ksqlite.internal.runtime.concurrency.withLock
 import ksqlite.kapi.buffer.Buffer
 import ksqlite.kapi.cipher.CipherManagerImpl
 import ksqlite.kapi.config.AnyTimeConfigurationImpl
@@ -61,7 +60,7 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
     private val statements = ConcurrentMutableMap<sqlite3_stmt, PreparedStatement>()
 
     private val connections = mutableMapOf<sqlite3, DatabaseConnection>()
-    private val connectionsLock = Lock()
+    private val connectionsLock = SafeLock()
 
     override val config = AnyTimeConfigurationImpl(this)
     override val ciphers = CipherManagerImpl(this)
@@ -203,9 +202,9 @@ internal class SQLiteImpl(private val shutdown: () -> Unit) :
 
         connectionsLock.withLock {
             connections.clear()
+            connectionsLock.close()
         }
 
-        connectionsLock.close()
         shutdown()
     }
 

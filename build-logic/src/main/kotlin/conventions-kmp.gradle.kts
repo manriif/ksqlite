@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 import com.android.build.api.withAndroid
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest
-import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 
 plugins {
     org.jetbrains.kotlin.multiplatform
@@ -70,4 +70,12 @@ kotlin {
 
 tasks.withType<AbstractTestTask>().configureEach {
     outputs.upToDateWhen { false }
+
+    testLogging {
+        events = setOf(TestLogEvent.FAILED, TestLogEvent.SKIPPED, TestLogEvent.STANDARD_ERROR)
+        exceptionFormat = TestExceptionFormat.FULL
+        showCauses = true
+        showExceptions = true
+        showStackTraces = true
+    }
 }

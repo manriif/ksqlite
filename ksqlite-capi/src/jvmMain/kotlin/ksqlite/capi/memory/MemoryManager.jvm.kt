@@ -27,8 +27,7 @@ internal actual class MemoryManager : MemoryManagerBase() {
     private val functionPointers = ConcurrentHashMap<KClass<*>, MemorySegment>()
     val stableRefDisposer by lazy { functionPointer(::StableRefDisposerHandler) }
 
-    override fun clear() {
-        super.clear()
+    override fun onCleared() {
         functionPointers.clear()
     }
 

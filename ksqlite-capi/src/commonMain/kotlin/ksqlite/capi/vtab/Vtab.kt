@@ -19,7 +19,6 @@ package ksqlite.capi.vtab
 
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
-import ksqlite.capi.memory.ConcurrentMap
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_context
 import ksqlite.capi.sqlite3_value
@@ -62,6 +61,7 @@ import ksqlite.capi.vtab.callbacks.vTabIntegrityScope
 import ksqlite.capi.vtab.callbacks.vTabOpenScope
 import ksqlite.capi.vtab.callbacks.vTabRowidScope
 import ksqlite.capi.vtab.callbacks.vTabUpdateScope
+import ksqlite.internal.runtime.concurrency.ConcurrentMutableMap
 import ksqlite.types.SqliteResultCode
 import ksqlite.capi.vtab.callbacks.SqliteVtabCreateOrConnectCallback as CreateOrConnect
 
@@ -147,7 +147,7 @@ internal class VtabState<Vtab : sqlite3_vtab, VtabCursor : sqlite3_vtab_cursor>(
     /**
      * Map linking [VtabCursor]s by the native address of their associated [sqlite3_vtab_cursor].
      */
-    private val cursors = ConcurrentMap<Long, VtabCursor>()
+    private val cursors = ConcurrentMutableMap<Long, VtabCursor>()
 
     /**
      * Returns the [VtabCursor] for `this` address.
@@ -308,7 +308,7 @@ internal class VtabState<Vtab : sqlite3_vtab, VtabCursor : sqlite3_vtab_cursor>(
  * This is because there is no way to store an arbitrary object in the native [sqlite3_vtab] struct
  * in most interops.
  */
-private val VtabStates = ConcurrentMap<Long, VtabState<*, *>>()
+private val VtabStates = ConcurrentMutableMap<Long, VtabState<*, *>>()
 
 /**
  * Returns the [VtabState] for `this` address.

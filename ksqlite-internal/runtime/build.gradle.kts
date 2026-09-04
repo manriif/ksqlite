@@ -19,5 +19,17 @@ plugins {
 }
 
 kotlin {
+    jvmToolchainFfm()
     allTargets()
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.stately.concurrentCollections)
+        }
+
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(projects.ksqliteInternal.ksqliteInternalTest)
+        }
+    }
 }

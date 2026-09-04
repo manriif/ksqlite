@@ -16,6 +16,7 @@
 package ksqlite.capi.memory
 
 import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.internal.runtime.concurrency.ConcurrentMutableMap
 
 /**
  * Resource which can be disposed.
@@ -36,7 +37,7 @@ internal interface Disposable {
 /**
  * Holds any [Disposable] that should be reachable by static C function given a pointer.
  */
-private val GlobalDisposables by lazy { ConcurrentMap<Long, Disposable>() }
+private val GlobalDisposables by lazy { ConcurrentMutableMap<Long, Disposable>() }
 
 /**
  * Called from platform global disposer after a native function called a xDestroy hook.
