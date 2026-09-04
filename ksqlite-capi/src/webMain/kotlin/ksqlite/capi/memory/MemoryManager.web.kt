@@ -38,10 +38,13 @@ internal actual class MemoryManager : MemoryManagerBase() {
     val memory: Sqlite3Wasm
         inline get() = wasm
 
-    override fun clear() {
-        super.clear()
+    override fun onCleared() {
         functionPointers.clear()
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Pointers
+    ///////////////////////////////////////////////////////////////////////////
 
     /**
      * Returns the object, previously referenced using [stableRefPointer] and identified by

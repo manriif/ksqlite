@@ -13,18 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ksqlite.capi.memory
+package ksqlite.internal.runtime.concurrency
 
 /**
- * Marker for object having a clearly defined lifecycle.
+ * A thread-safe [MutableMap].
  */
-public interface MemoryScope
+public typealias ConcurrentMutableMap<K, V> = co.touchlab.stately.collections.ConcurrentMutableMap<K, V>
 
 /**
- * Hex format for native address printing.
+ * A thread-safe [MutableSet].
  */
-internal val NativeAddressHexFormat = HexFormat {
-    number {
-        removeLeadingZeros = true
-    }
-}
+public typealias ConcurrentMutableSet<T> = co.touchlab.stately.collections.ConcurrentMutableSet<T>

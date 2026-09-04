@@ -15,9 +15,9 @@
  */
 package ksqlite.capi.memory
 
-import co.touchlab.stately.concurrency.close
-import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.callbacks.SqliteDestroyCallback
+import ksqlite.internal.runtime.concurrency.SafeLock
+import ksqlite.internal.runtime.concurrency.withLock
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -27,26 +27,40 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @OptIn(ExperimentalAtomicApi::class)
 internal abstract class MemoryManagerBase : AutoCloseable {
 
-    // Accessing the three next variable require synchronization
+    // Accessing the three next variables requires holding `lock`.
     private val disposables = mutableMapOf<Long, AutoDisposable<*>>()
     private val keyedDisposables = mutableMapOf<String, Long>()
     private var nextDisposableId = 0L
-    private val disposableLock = Lock()
 
+    private val lock = SafeLock()
     private val closed = AtomicBoolean(false)
 
+    /**
+     * Whether every disposable has been released. Only meaningful once this instance is
+     * [close]d. Nothing can register a new disposable after that, so this reads [disposables]
+     * without holding [lock].
+     */
     internal val isEmpty: Boolean
-        get() = disposableLock.withLock { disposables.isEmpty() }
+        get() = disposables.isEmpty()
 
     ///////////////////////////////////////////////////////////////////////////
-    // Clearing
+    // Closing
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Releases all the resources but keep the manager alive.
-     * Parent function must be called.
+     * Invokes and returns [block]'s result. Throws [IllegalStateException] if this instance is
+     * closed.
+     *
+     * [closed] is checked only after acquiring [lock], not before. A concurrent [close] either
+     * finishes running [doClear] first, or has not acquired [lock] yet. Either way, [block]
+     * never runs once [doClear] has already run.
      */
-    open fun clear() = disposableLock.withLock {
+    protected inline fun <T> notClosed(block: () -> T): T = lock.withLock {
+        check(!closed.load()) { "MemoryManager is closed" }
+        block()
+    }
+
+    private fun doClear() {
         if (disposables.isNotEmpty()) {
             disposables.onEach { it.value.destroy() }.clear()
         }
@@ -54,33 +68,44 @@ internal abstract class MemoryManagerBase : AutoCloseable {
         if (keyedDisposables.isNotEmpty()) {
             keyedDisposables.clear()
         }
+
+        onCleared()
     }
 
     /**
-     * Invokes and returns [block]'s result throwing an [IllegalStateException] if this instance is
-     * closed.
-     *
-     * Checks [closed] under [disposableLock]. Otherwise a call could pass the check right before
-     * [close] runs, then register a disposable that never gets released.
+     * Called once every disposable has been released, while the lock is still held. Subclasses
+     * override this to release their own resources.
      */
-    protected inline fun <T> notClosed(block: () -> T): T = disposableLock.withLock {
-        check(!closed.load()) { "Manager is closed" }
-        block()
-    }
+    protected open fun onCleared() = Unit
 
+    /**
+     * Marks this manager closed, then clears every disposable.
+     *
+     * [closed] is set before [doClear] runs. That alone stops any later call from registering
+     * anything, so freeing [lock]'s own resources does not need to happen before [doClear]
+     * returns. It only needs to happen eventually, which is why it is a separate step below.
+     *
+     * A thread that already holds [lock] through an outer [notClosed] call, and closes this
+     * manager from within it, acquires [lock] again here. That relies on [lock] being reentrant
+     * on that thread, the same way any nested [notClosed] call already does.
+     */
     final override fun close() {
-        val closedByThisCall = disposableLock.withLock {
-            closed.compareAndSet(expectedValue = false, newValue = true).also { won ->
-                if (won) {
-                    clear()
-                }
-            }
+        if (!closed.compareAndSet(expectedValue = false, newValue = true)) {
+            return
         }
 
-        if (closedByThisCall) {
-            disposableLock.close()
-        }
+        lock.withLock { doClear() }
+        lock.close()
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Clearing
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Releases all the resources but keep the manager alive.
+     */
+    fun clear() = lock.withLock { doClear() }
 
     ///////////////////////////////////////////////////////////////////////////
     // Disposables
@@ -92,7 +117,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * @throws NullPointerException if no object is associated with [id].
      */
     protected inline fun <C, reified D : AutoDisposable<C>> getDisposable(id: Long): D {
-        val disposable = disposableLock.withLock {
+        val disposable = lock.withLock {
             disposables[id]
         }
 
@@ -114,6 +139,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
 
     /**
      * Returns the next available disposable identifier.
+     * The lock must be held.
      */
     private fun computeNextDisposableId(): Long {
         val nextId = ++nextDisposableId
@@ -136,7 +162,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
     protected fun <C, D : AutoDisposable<C>> registerDisposable(
         key: String? = null,
         factory: (id: Long) -> D
-    ): D = disposableLock.withLock {
+    ): D = lock.withLock {
         val disposableId = key
             ?.let { keyedDisposables.getOrPut(it, ::computeNextDisposableId) }
             ?: computeNextDisposableId()
@@ -156,7 +182,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
      * Clears the disposable associated with [key] if any and if [key] is not `null`.
      */
     fun clearDisposable(key: String) {
-        val disposable = disposableLock.withLock {
+        val disposable = lock.withLock {
             keyedDisposables[key]?.let(disposables::get)
         }
 
@@ -198,8 +224,8 @@ internal abstract class MemoryManagerBase : AutoCloseable {
         /**
          * Removes `this` from the [disposables] and [destroy] the instance.
          */
-        final override fun dispose(callDestructor: Boolean) {
-            val instance = checkNotNull(disposableLock.withLock {
+        final override fun dispose(callDestructor: Boolean) = notClosed {
+            val instance = checkNotNull(
                 disposables.remove(
                     when (val key = disposableKey) {
                         null -> id
@@ -210,7 +236,7 @@ internal abstract class MemoryManagerBase : AutoCloseable {
                         }
                     }
                 )
-            }) {
+            ) {
                 "Resource is no longer managed"
             }
 

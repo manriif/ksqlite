@@ -15,8 +15,8 @@
  */
 package ksqlite.kapi.vtab
 
-import co.touchlab.stately.concurrency.Lock
 import ksqlite.capi.vtab.sqlite3_module
+import ksqlite.internal.runtime.concurrency.SafeLock
 import ksqlite.kapi.SQLiteException
 import ksqlite.kapi.connection.DatabaseConnection
 
@@ -40,7 +40,7 @@ public sealed class VirtualTableModule(
 ) : AutoCloseable {
 
     internal var module: sqlite3_module<*>? = null
-    internal val moduleLock = Lock()
+    internal val moduleLock = SafeLock()
 
     ///////////////////////////////////////////////////////////////////////////
     // Kinds

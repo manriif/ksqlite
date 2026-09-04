@@ -13,18 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ksqlite.capi.memory
+package ksqlite.internal.runtime.concurrency
 
 /**
- * Marker for object having a clearly defined lifecycle.
+ * JS and wasmJs are single-threaded. There is nothing to actually lock. Only the closed check
+ * remains meaningful.
  */
-public interface MemoryScope
+public actual class SafeLock: AutoCloseable {
 
-/**
- * Hex format for native address printing.
- */
-internal val NativeAddressHexFormat = HexFormat {
-    number {
-        removeLeadingZeros = true
+    private var closed = false
+
+    public actual val isClosed: Boolean
+        get() = closed
+
+    public actual fun lock() {
+        check(!closed) { "Lock is closed" }
+    }
+
+    public actual fun unlock(): Unit = Unit
+
+    public actual override fun close() {
+        closed = true
     }
 }

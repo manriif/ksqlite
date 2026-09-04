@@ -15,8 +15,6 @@
  */
 package ksqlite.kapi
 
-import co.touchlab.stately.concurrency.Lock
-import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.sqlite3
 import ksqlite.capi.sqlite3_config
 import ksqlite.capi.sqlite3_initialize
@@ -27,11 +25,13 @@ import ksqlite.kapi.config.ConfigurationScope
 import ksqlite.kapi.config.ConfigurationScopeImpl
 import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.internal.runtime.closeable.UnsafeCloseableScope
+import ksqlite.internal.runtime.concurrency.SafeLock
+import ksqlite.internal.runtime.concurrency.withLock
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.statement.PreparedStatement
 
 private var SQLiteInstance: SQLiteImpl? = null
-private var SQLiteInstanceLock = Lock()
+private var SQLiteInstanceLock = SafeLock()
 
 private val sqlite: SQLiteImpl
     get() = checkNotNull(SQLiteInstance) { "No SQLite instance exists or it was closed" }

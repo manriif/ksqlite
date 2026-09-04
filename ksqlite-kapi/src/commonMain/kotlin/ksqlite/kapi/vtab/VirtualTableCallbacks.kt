@@ -15,7 +15,6 @@
  */
 package ksqlite.kapi.vtab
 
-import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.callbacks.SqliteDestroyCallback
 import ksqlite.capi.sqlite3_result_text
 import ksqlite.capi.vtab.callbacks.SqliteVtabBestIndexCallback
@@ -34,6 +33,7 @@ import ksqlite.capi.vtab.callbacks.SqliteVtabRenameCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabRowidCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabTransactionCallback
 import ksqlite.capi.vtab.callbacks.SqliteVtabUpdateCallback
+import ksqlite.internal.runtime.concurrency.withLock
 import ksqlite.kapi.connection.DatabaseConnection
 import ksqlite.kapi.function.ScalarFunctionFuncCallback
 import ksqlite.kapi.helpers.AutoCloser
@@ -50,6 +50,7 @@ internal val VirtualTableModuleDestructor = SqliteDestroyCallback { module: Virt
     module.moduleLock.withLock {
         checkNotNull(module.module).close()
         module.module = null
+        module.moduleLock.close()
     }
 
     module.close()

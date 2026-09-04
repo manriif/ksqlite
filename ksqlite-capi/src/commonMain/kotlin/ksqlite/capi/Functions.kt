@@ -23,7 +23,7 @@ import ksqlite.capi.callbacks.SqliteFunctionFuncCallback
 import ksqlite.capi.callbacks.SqliteFunctionInverseCallback
 import ksqlite.capi.callbacks.SqliteFunctionStepCallback
 import ksqlite.capi.callbacks.SqliteFunctionValueCallback
-import ksqlite.capi.memory.ConcurrentMap
+import ksqlite.internal.runtime.concurrency.ConcurrentMutableMap
 
 /**
  * Manages an application defined function from [sqlite3_create_function] and
@@ -44,7 +44,7 @@ internal class ApplicationDefinedFunction<AppData>(
      * Holds aggregate contexts + auxdata instances.
      * Keys are platform specific identifiers.
      */
-    private val identifiedInstances = ConcurrentMap<Long, Any>()
+    private val identifiedInstances = ConcurrentMutableMap<Long, Any>()
 
     ///////////////////////////////////////////////////////////////////////////
     // Cleanup
@@ -148,7 +148,8 @@ internal class ApplicationDefinedFunction<AppData>(
             key?.let(::uncacheInstance)
         }
 
-        key = sqlite3_set_auxdata_internal(context, index, destroyAndRemove) ?: return // Out of memory
+        key = sqlite3_set_auxdata_internal(context, index, destroyAndRemove)
+            ?: return // Out of memory
         identifiedInstances[key] = instance
     }
 

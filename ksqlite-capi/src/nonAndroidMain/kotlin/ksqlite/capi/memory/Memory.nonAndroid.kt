@@ -15,6 +15,8 @@
  */
 package ksqlite.capi.memory
 
+import ksqlite.internal.runtime.concurrency.ConcurrentMutableMap
+
 /**
  * Memory manager for top level objects.
  */
@@ -29,7 +31,7 @@ internal val globalMemory: MemoryManager
 /**
  * Per pointer memory manager.
  */
-private val ScopedMemoryManagers by lazy { ConcurrentMap<Long, MemoryManager>() }
+private val ScopedMemoryManagers by lazy { ConcurrentMutableMap<Long, MemoryManager>() }
 
 /**
  * Returns the [MemoryManager] for `this` [Struct], creating one if necessary.

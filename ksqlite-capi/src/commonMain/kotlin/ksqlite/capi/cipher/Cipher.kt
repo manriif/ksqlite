@@ -18,7 +18,6 @@
 
 package ksqlite.capi.cipher
 
-import co.touchlab.stately.concurrency.withLock
 import ksqlite.capi.cipher.callbacks.CipherDescriptorAllocateCipherCallback
 import ksqlite.capi.cipher.callbacks.CipherDescriptorCloneCipherCallback
 import ksqlite.capi.cipher.callbacks.CipherDescriptorDecryptPageCallback
@@ -30,8 +29,9 @@ import ksqlite.capi.cipher.callbacks.CipherDescriptorGetPageSizeCallback
 import ksqlite.capi.cipher.callbacks.CipherDescriptorGetReservedCallback
 import ksqlite.capi.cipher.callbacks.CipherDescriptorGetSaltCallback
 import ksqlite.capi.memory.Buffer
-import ksqlite.capi.memory.Lock
 import ksqlite.capi.sqlite3
+import ksqlite.internal.runtime.concurrency.SafeLock
+import ksqlite.internal.runtime.concurrency.withLock
 import ksqlite.types.SqliteResultCode
 import ksqlite.types.internal.convertResultCode
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -137,7 +137,7 @@ internal class CipherWrapper<Cipher : Any>(
 
 private const val DYNAMIC_CIPHER_MAX = 4
 
-private val DynamicCipherLock = Lock()
+private val DynamicCipherLock = SafeLock()
 private var DynamicCipherCount = 0
 private val DynamicCipherCallbacks = Array<CipherCallbacks<*>?>(DYNAMIC_CIPHER_MAX) { null }
 

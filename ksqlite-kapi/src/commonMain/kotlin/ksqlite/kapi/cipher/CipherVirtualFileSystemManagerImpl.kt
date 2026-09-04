@@ -15,12 +15,12 @@
  */
 package ksqlite.kapi.cipher
 
-import co.touchlab.stately.collections.ConcurrentMutableSet
 import ksqlite.capi.sqlite3_vfs_find
 import ksqlite.capi.sqlite3mc_vfs_create
 import ksqlite.capi.sqlite3mc_vfs_destroy
 import ksqlite.capi.sqlite3mc_vfs_shutdown
 import ksqlite.internal.runtime.closeable.CloseableScope
+import ksqlite.internal.runtime.concurrency.ConcurrentMutableSet
 import ksqlite.kapi.helpers.sqliteResultCheck
 import ksqlite.kapi.throwSQLiteException
 import ksqlite.kapi.vfs.VirtualFileSystem
